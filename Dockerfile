@@ -40,3 +40,5 @@ RUN chown -R nobody: /app
 USER nobody
 
 ENV HOME=/app
+
+CMD /app/bin/t start

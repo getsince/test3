@@ -20,7 +20,7 @@ config :t, Oban,
   plugins: [Oban.Plugins.Pruner],
   queues: [default: 10, emails: 20]
 
-config :ex_aws, json_codec: Jason
+config :ex_aws, json_codec: Jason, region: "eu-central-1"
 
 if config_env() == :prod do
   config :t, T.Mailer,

@@ -7,6 +7,9 @@ defmodule TWeb.Router do
 
   scope "/api", TWeb do
     pipe_through :api
+
+    post "/share-email", ShareController, :email
+    post "/share-phone", ShareController, :phone
   end
 
   # Enables LiveDashboard only for development

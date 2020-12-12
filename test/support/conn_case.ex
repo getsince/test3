@@ -25,6 +25,7 @@ defmodule TWeb.ConnCase do
       import TWeb.ConnCase
 
       alias TWeb.Router.Helpers, as: Routes
+      alias T.Repo
 
       # The default endpoint for testing
       @endpoint TWeb.Endpoint

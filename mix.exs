@@ -43,7 +43,17 @@ defmodule T.MixProject do
       {:telemetry_poller, "~> 0.4"},
       {:gettext, "~> 0.11"},
       {:jason, "~> 1.0"},
-      {:plug_cowboy, "~> 2.0"}
+      {:plug_cowboy, "~> 2.0"},
+      {:ex_aws, "~> 2.1"},
+      {:ex_aws_s3, "~> 2.0"},
+      {:ex_aws_sns, "~> 2.1"},
+      {:ex_aws_ses, "~> 2.1"},
+      {:hackney, "~> 1.9"},
+      {:sweet_xml, "~> 0.6"},
+      {:plug_attack, "~> 0.3"},
+      {:bamboo_ses, "~> 0.1.6"},
+      {:bamboo, "~> 1.6"},
+      {:oban, "~> 2.3"}
     ]
   end
 

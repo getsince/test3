@@ -15,7 +15,18 @@ config :logger, :console,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]
 
+config :t, Oban,
+  repo: T.Repo,
+  plugins: [Oban.Plugins.Pruner],
+  queues: [default: 10, emails: 20]
+
+config :ex_aws, json_codec: Jason
+
 if config_env() == :prod do
+  config :t, T.Mailer,
+    adapter: Bamboo.SesAdapter,
+    ex_aws: [region: "eu-central-1"]
+
   decode_cert = fn cert ->
     [{:Certificate, der, _}] = :public_key.pem_decode(cert)
     der
@@ -58,11 +69,14 @@ if config_env() == :prod do
       You can generate one by calling: mix phx.gen.secret
       """
 
+  host = System.fetch_env!("HOST")
+  config :t, T.Mailer, our_address: "kindly@#{host}"
+
   config :t, TWeb.Endpoint,
     # For production, don't forget to configure the url host
     # to something meaningful, Phoenix uses this information
     # when generating URLs.
-    url: [host: "example.com", port: 80],
+    url: [host: host, port: 80],
     http: [
       # Enable IPv6 and bind on all interfaces.
       # Set it to {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
@@ -77,6 +91,15 @@ if config_env() == :prod do
 end
 
 if config_env() == :dev do
+  # config :t, T.Mailer,
+  #   adapter: Bamboo.SesAdapter,
+  #   ex_aws: [region: "eu-west-1"],
+  #   our_address: "kindly@example.com"
+
+  config :t, T.Mailer,
+    adapter: Bamboo.LocalAdapter,
+    our_address: "kindly@example.com"
+
   # For development, we disable any cache and enable
   # debugging.
   #
@@ -134,4 +157,8 @@ if config_env() == :test do
 
   # Print only warnings and errors during test
   config :logger, level: :warn
+
+  config :t, Oban, crontab: false, queues: false, plugins: false
+
+  config :t, T.Mailer, adapter: Bamboo.TestAdapter, our_address: "kindly@example.com"
 end

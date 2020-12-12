@@ -14,9 +14,8 @@ defmodule T.Application do
       # Start the PubSub system
       {Phoenix.PubSub, name: T.PubSub},
       # Start the Endpoint (http/https)
-      TWeb.Endpoint
-      # Start a worker by calling: T.Worker.start_link(arg)
-      # {T.Worker, arg}
+      TWeb.Endpoint,
+      {Oban, oban_config()}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
@@ -30,5 +29,10 @@ defmodule T.Application do
   def config_change(changed, _new, removed) do
     TWeb.Endpoint.config_change(changed, removed)
     :ok
+  end
+
+  # Conditionally disable crontab, queues, or plugins here.
+  defp oban_config do
+    Application.get_env(:t, Oban)
   end
 end

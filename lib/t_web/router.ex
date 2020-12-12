@@ -12,6 +12,11 @@ defmodule TWeb.Router do
     post "/share-phone", ShareController, :phone
   end
 
+  if Mix.env() == :dev do
+    # If using Phoenix
+    forward "/sent_emails", Bamboo.SentEmailViewerPlug
+  end
+
   # Enables LiveDashboard only for development
   #
   # If you want to use the LiveDashboard in production, you should put

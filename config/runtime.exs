@@ -16,6 +16,16 @@ config :logger, :console,
   metadata: [:request_id]
 
 if config_env() == :prod do
+  decode_cert = fn cert ->
+    [{:Certificate, der, _}] = :public_key.pem_decode(cert)
+    der
+  end
+
+  decode_key = fn cert ->
+    [{:RSAPrivateKey, key, :not_encrypted}] = :public_key.pem_decode(cert)
+    {:RSAPrivateKey, key}
+  end
+
   database_url =
     System.get_env("DATABASE_URL") ||
       raise """
@@ -23,8 +33,21 @@ if config_env() == :prod do
       For example: ecto://USER:PASS@HOST/DATABASE
       """
 
+  ca_cert = System.get_env("DATABASE_CA_CERT")
+  client_key = System.get_env("DATABASE_CLIENT_KEY")
+  client_cert = System.get_env("DATABASE_CLIENT_CERT")
+
+  ssl_opts =
+    if ca_cert do
+      [
+        cacerts: [decode_cert.(ca_cert)],
+        key: decode_key.(client_key),
+        cert: decode_cert.(client_cert)
+      ]
+    end
+
   config :t, T.Repo,
-    # ssl: true,
+    ssl_opts: ssl_opts,
     url: database_url,
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10")
 

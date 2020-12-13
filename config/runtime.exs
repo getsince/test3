@@ -91,13 +91,10 @@ if config_env() == :prod do
 end
 
 if config_env() == :dev do
-  # config :t, T.Mailer,
-  #   adapter: Bamboo.SesAdapter,
-  #   ex_aws: [region: "eu-west-1"],
-  #   our_address: "kindly@example.com"
-
   config :t, T.Mailer,
     adapter: Bamboo.LocalAdapter,
+    #   adapter: Bamboo.SesAdapter,
+    #   ex_aws: [region: "eu-central-1"],
     our_address: "kindly@example.com"
 
   # For development, we disable any cache and enable

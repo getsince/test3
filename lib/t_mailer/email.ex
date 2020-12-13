@@ -7,13 +7,13 @@ defmodule T.Mailer.Email do
 
     base_email(receiver_address)
     # TODO
-    |> subject("Кто крайний? Ты крайний")
-    |> render(:added_to_waitlist)
+    |> subject("waitlist")
+    |> render("added_to_waitlist.text")
   end
 
   defp base_email(receiver) do
     new_email()
-    |> to(receiver)
+    |> to({"Наш пользователь", receiver})
     # TODO
     |> from({"Синсь", Mailer.our_address()})
   end

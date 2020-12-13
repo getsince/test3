@@ -23,6 +23,8 @@ config :t, Oban,
 config :ex_aws, json_codec: Jason, region: "eu-central-1"
 
 if config_env() == :prod do
+  config :t, run_migrations_on_start?: true
+
   config :t, T.Mailer,
     adapter: Bamboo.SesAdapter,
     ex_aws: [region: "eu-central-1"]

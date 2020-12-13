@@ -4,19 +4,20 @@ defmodule T.Application do
   @moduledoc false
 
   use Application
+  require Logger
 
   def start(_type, _args) do
-    children = [
-      # Start the Ecto repository
-      T.Repo,
-      # Start the Telemetry supervisor
-      TWeb.Telemetry,
-      # Start the PubSub system
-      {Phoenix.PubSub, name: T.PubSub},
-      # Start the Endpoint (http/https)
-      TWeb.Endpoint,
-      {Oban, oban_config()}
-    ]
+    children =
+      [
+        {Phoenix.PubSub, name: T.PubSub},
+        TWeb.Endpoint,
+        T.Repo,
+        TWeb.Telemetry,
+        maybe_migrator(),
+        {Oban, oban_config()},
+        Supervisor.child_spec({Task, &T.Release.mark_ready/0}, id: :readiness_notifier)
+      ]
+      |> Enum.reject(&is_nil/1)
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
@@ -34,5 +35,12 @@ defmodule T.Application do
   # Conditionally disable crontab, queues, or plugins here.
   defp oban_config do
     Application.get_env(:t, Oban)
+  end
+
+  defp maybe_migrator do
+    if Application.get_env(:t, :run_migrations_on_start?) do
+      Logger.info("Running migrations")
+      T.Release.Migrator
+    end
   end
 end

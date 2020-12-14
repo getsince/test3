@@ -53,7 +53,8 @@ defmodule T.MixProject do
       {:plug_attack, "~> 0.3"},
       {:bamboo_ses, "~> 0.1.6"},
       {:bamboo, "~> 1.6"},
-      {:oban, "~> 2.3"}
+      {:oban, "~> 2.3"},
+      {:remote_ip, "~> 0.2.1"}
     ]
   end
 

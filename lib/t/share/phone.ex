@@ -4,5 +4,7 @@ defmodule T.Share.Phone do
   @primary_key false
   schema "phones" do
     field :phone_number, :string
+    field :meta, :map
+    timestamps(updated_at: false)
   end
 end

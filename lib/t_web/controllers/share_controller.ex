@@ -9,8 +9,18 @@ defmodule TWeb.ShareController do
     end
   end
 
-  def phone(conn, %{"phone" => phone}) do
-    with {:ok, _phone} <- T.Share.save_phone(phone) do
+  def phone(conn, %{"phone" => phone} = attrs) do
+    meta =
+      (attrs["meta"] || %{})
+      |> Map.put("ip", :inet.ntoa(conn.remote_ip))
+      |> Map.put("user-agent", conn |> get_req_header("user-agent") |> List.first())
+
+    attrs =
+      attrs
+      |> Map.put("phone_number", phone)
+      |> Map.put("meta", meta)
+
+    with {:ok, _phone} <- T.Share.save_phone(attrs) do
       send_resp(conn, 201, [])
     end
   end

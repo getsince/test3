@@ -12,9 +12,9 @@ defmodule T.Share do
     |> Repo.insert()
   end
 
-  def save_phone(phone) do
+  def save_phone(attrs) do
     %Phone{}
-    |> cast(%{phone_number: phone}, [:phone_number])
+    |> cast(attrs, [:phone_number, :meta])
     |> validate_required([:phone_number])
     # |> validate_format()
     |> Repo.insert()

@@ -12,7 +12,7 @@ defmodule TWeb.ShareController do
   def phone(conn, %{"phone" => phone} = attrs) do
     meta =
       (attrs["meta"] || %{})
-      |> Map.put("ip", :inet.ntoa(conn.remote_ip))
+      |> Map.put("ip", conn.remote_ip |> :inet.ntoa() |> to_string())
       |> Map.put("user-agent", conn |> get_req_header("user-agent") |> List.first())
 
     attrs =

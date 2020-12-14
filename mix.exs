@@ -4,7 +4,7 @@ defmodule T.MixProject do
   def project do
     [
       app: :t,
-      version: "0.1.3",
+      version: "0.1.4",
       elixir: "~> 1.11",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),

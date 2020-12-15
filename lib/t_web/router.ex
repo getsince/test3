@@ -10,6 +10,7 @@ defmodule TWeb.Router do
 
     post "/share-email", ShareController, :email
     post "/share-phone", ShareController, :phone
+    post "/visited", VisitController, :create
   end
 
   if Mix.env() == :dev do

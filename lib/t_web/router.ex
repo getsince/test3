@@ -1,8 +1,15 @@
 defmodule TWeb.Router do
   use TWeb, :router
 
+  import TWeb.UserAuth
+
   pipeline :api do
     plug :accepts, ["json"]
+    # TODO fetch session or bearer token
+    plug :fetch_session
+    plug :fetch_current_user
+    # TODO protect from forgery
+    # TODO put secure browser headers in sapper
   end
 
   scope "/api", TWeb do
@@ -14,8 +21,7 @@ defmodule TWeb.Router do
   end
 
   if Mix.env() == :dev do
-    # If using Phoenix
-    forward "/sent_emails", Bamboo.SentEmailViewerPlug
+    forward "/sent-emails", Bamboo.SentEmailViewerPlug
   end
 
   # Enables LiveDashboard only for development
@@ -32,5 +38,21 @@ defmodule TWeb.Router do
       pipe_through [:fetch_session, :protect_from_forgery]
       live_dashboard "/dashboard", metrics: TWeb.Telemetry
     end
+  end
+
+  ## Authentication routes
+
+  scope "/api/auth", TWeb do
+    pipe_through [:api, :require_not_authenticated_user]
+
+    post "/request-sms", AuthController, :request_sms
+    post "/verify-phone-number", AuthController, :verify_phone_number
+  end
+
+  scope "/api", TWeb do
+    pipe_through [:api, :require_authenticated_user]
+
+    get "/me", MeController, :me
+    get "/profile", MeController, :profile
   end
 end

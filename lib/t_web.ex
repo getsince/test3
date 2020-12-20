@@ -54,6 +54,7 @@ defmodule TWeb do
   def channel do
     quote do
       use Phoenix.Channel
+      alias TWeb.ChannelHelpers
       import TWeb.Gettext
     end
   end

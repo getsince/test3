@@ -20,7 +20,9 @@ config :t, Oban,
   plugins: [Oban.Plugins.Pruner],
   queues: [default: 10, emails: 20]
 
-config :ex_aws, json_codec: Jason, region: "eu-central-1"
+config :ex_aws,
+  json_codec: Jason,
+  region: "eu-central-1"
 
 if config_env() == :prod do
   config :t, run_migrations_on_start?: true
@@ -90,6 +92,11 @@ if config_env() == :prod do
 
   # Do not print debug messages in production
   config :logger, level: :info
+
+  config :ex_aws,
+    s3: [
+      bucket: System.fetch_env!("AWS_S3_BUCKET")
+    ]
 end
 
 if config_env() == :dev do
@@ -131,6 +138,11 @@ if config_env() == :dev do
 
   # Do not include metadata nor timestamps in development logs
   config :logger, :tonsole, format: "[$level] $message\n"
+
+  config :ex_aws,
+    s3: [
+      bucket: System.fetch_env!("AWS_S3_BUCKET")
+    ]
 end
 
 if config_env() == :test do

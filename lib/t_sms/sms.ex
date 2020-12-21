@@ -1,7 +1,10 @@
 defmodule T.SMS do
   alias ExAws.SNS
 
-  def send_sms(phone_number, message) do
+  @behaviour T.Accounts.UserNotifier
+
+  @impl true
+  def deliver(phone_number, message) do
     message_attributes = [
       %{name: "AWS.SNS.SMS.SMSType", data_type: :string, value: {:string, "Transactional"}}
     ]

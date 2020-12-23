@@ -15,9 +15,11 @@ defmodule TWeb.Router do
   scope "/api", TWeb do
     pipe_through :api
 
-    post "/share-email", ShareController, :email
+    # post "/share-email", ShareController, :email
     post "/share-phone", ShareController, :phone
     post "/visited", VisitController, :create
+    get "/is-code-available/:code", ShareController, :check_if_available
+    post "/save-code", ShareController, :save_code
   end
 
   if Mix.env() == :dev do

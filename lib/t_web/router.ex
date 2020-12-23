@@ -5,11 +5,14 @@ defmodule TWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
+    # TODO put secure browser headers in sapper
+  end
+
+  pipeline :with_session do
     # TODO fetch session or bearer token
     plug :fetch_session
     plug :fetch_current_user
     # TODO protect from forgery
-    # TODO put secure browser headers in sapper
   end
 
   scope "/api", TWeb do
@@ -45,14 +48,14 @@ defmodule TWeb.Router do
   ## Authentication routes
 
   scope "/api/auth", TWeb do
-    pipe_through [:api, :require_not_authenticated_user]
+    pipe_through [:api, :with_session, :require_not_authenticated_user]
 
     post "/request-sms", AuthController, :request_sms
     post "/verify-phone-number", AuthController, :verify_phone_number
   end
 
   scope "/api", TWeb do
-    pipe_through [:api, :require_authenticated_user]
+    pipe_through [:api, :with_session, :require_authenticated_user]
 
     get "/me", MeController, :me
     get "/profile", MeController, :profile

@@ -10,6 +10,7 @@ defmodule T.Application do
     children =
       [
         {Phoenix.PubSub, name: T.PubSub},
+        TWeb.Presence,
         TWeb.Endpoint,
         T.Repo,
         TWeb.Telemetry,

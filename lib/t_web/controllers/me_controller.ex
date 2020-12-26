@@ -5,13 +5,12 @@ defmodule TWeb.MeController do
 
   # TODO params
   def me(conn, _params) do
-    token = get_session(conn, :user_token)
-    %User{id: user_id} = user = Accounts.get_user_by_session_token(token)
+    current_user = conn.assigns.current_user
 
     json(conn, %{
-      me: user_id,
-      next: next(user),
-      token: Phoenix.Token.sign(conn, "Urm6JRcI", user_id)
+      me: current_user.id,
+      next: next(current_user),
+      token: Phoenix.Token.sign(conn, "Urm6JRcI", current_user.id)
     })
   end
 
@@ -32,7 +31,7 @@ defmodule TWeb.MeController do
   end
 
   def profile(conn, _params) do
-    token = get_session(conn, :user_token)
+    current_user = conn.assigns.current_user
 
     %User{
       profile:
@@ -64,7 +63,7 @@ defmodule TWeb.MeController do
           alcohol: alcohol,
           pets: pets
         } = profile
-    } = token |> Accounts.get_user_by_session_token() |> Accounts.ensure_profile()
+    } = Accounts.ensure_profile(current_user)
 
     json(conn, %{
       profile: %{

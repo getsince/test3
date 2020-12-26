@@ -26,12 +26,21 @@ defmodule TWeb.UserAuth do
   def log_in_user(conn, user, params \\ %{}) do
     token = Accounts.generate_user_session_token(user)
 
-    conn
-    |> renew_session()
-    |> put_session(:user_token, token)
-    # |> put_session(:live_socket_id, "users_sessions:#{Base.url_encode64(token)}")
-    |> maybe_write_remember_me_cookie(token, params)
-    |> send_resp(200, [])
+    if params["use_session?"] == false do
+      conn
+      |> put_status(200)
+      |> json(%{token: Base.url_encode64(token, padding: false), id: user.id})
+    else
+      conn
+      # TODO
+      |> put_session(:user_token, token)
+      |> put_session(
+        :live_socket_id,
+        "users_sessions:#{Base.url_encode64(token, padding: false)}"
+      )
+      |> maybe_write_remember_me_cookie(token, params)
+      |> send_resp(200, [])
+    end
   end
 
   # defp maybe_write_remember_me_cookie(conn, token, %{"remember_me" => "true"}) do
@@ -89,10 +98,27 @@ defmodule TWeb.UserAuth do
   end
 
   @doc """
+  Authenticates the user by looking into the authorization header or session
+  and remember me token.
+  """
+  def fetch_current_user_from_header_or_session(conn, _opts) do
+    case get_req_header(conn, "authorization") do
+      ["Bearer " <> token] -> fetch_current_user_from_token(conn, token)
+      [] -> conn |> fetch_session() |> fetch_current_user()
+    end
+  end
+
+  defp fetch_current_user_from_token(conn, token) do
+    token = Base.url_decode64!(token, padding: false)
+    user = Accounts.get_user_by_session_token(token)
+    assign(conn, :current_user, user)
+  end
+
+  @doc """
   Authenticates the user by looking into the session
   and remember me token.
   """
-  def fetch_current_user(conn, _opts) do
+  def fetch_current_user(conn, _opts \\ []) do
     {user_token, conn} = ensure_user_token(conn)
     user = user_token && Accounts.get_user_by_session_token(user_token)
     assign(conn, :current_user, user)

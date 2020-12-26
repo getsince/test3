@@ -3,16 +3,16 @@ defmodule TWeb.AuthController do
 
   def request_sms(conn, %{"phone_number" => phone_number}) do
     case T.Accounts.deliver_user_confirmation_instructions(phone_number) do
-      {:ok, _sent} -> send_resp(conn, 200, [])
+      {:ok, _sent} -> send_resp(conn, 201, [])
       # TODO
       {:error, :invalid_phone_number} -> send_resp(conn, 400, [])
     end
   end
 
-  def verify_phone_number(conn, %{"phone_number" => phone_number, "code" => code}) do
-    case T.Accounts.confirm_and_register_user(phone_number, code) do
+  def verify_phone_number(conn, %{"phone_number" => phone_number, "code" => code} = params) do
+    case T.Accounts.login_or_register_user(phone_number, code) do
       {:ok, user} ->
-        TWeb.UserAuth.log_in_user(conn, user)
+        TWeb.UserAuth.log_in_user(conn, user, params)
 
       :error ->
         # TODO

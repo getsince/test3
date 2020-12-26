@@ -44,7 +44,7 @@ defmodule T.Accounts do
   ## User registration
 
   @doc """
-  Registers a user.
+  Registers a user and their profile.
 
   ## Examples
 
@@ -56,10 +56,22 @@ defmodule T.Accounts do
 
   """
   def register_user(attrs) do
-    %User{}
-    |> User.registration_changeset(attrs)
-    # TODO create profile
-    |> Repo.insert()
+    Ecto.Multi.new()
+    |> Ecto.Multi.insert(:user, User.registration_changeset(%User{}, attrs))
+    |> Ecto.Multi.insert(:profile, fn %{user: user} -> %User.Profile{user_id: user.id} end)
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{user: user}} -> {:ok, user}
+      {:error, :user, %Ecto.Changeset{} = changeset, _changes} -> {:error, changeset}
+    end
+  end
+
+  def get_or_register_user(phone_number) do
+    if u = get_user_by_phone_number(phone_number) do
+      {:ok, u}
+    else
+      register_user(%{phone_number: phone_number})
+    end
   end
 
   @doc """
@@ -136,10 +148,10 @@ defmodule T.Accounts do
 
   If the code matches, the user account is marked as confirmed.
   """
-  def confirm_and_register_user(phone_number, code) do
+  def login_or_register_user(phone_number, code) do
     # TODO normalize phone number
     with :ok <- PasswordlessAuth.verify_code(phone_number, code),
-         {:ok, user} <- register_user(%{phone_number: phone_number}) do
+         {:ok, user} <- get_or_register_user(phone_number) do
       {:ok, user}
     else
       _ -> :error

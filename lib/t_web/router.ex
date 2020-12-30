@@ -24,6 +24,11 @@ defmodule TWeb.Router do
 
   if Mix.env() == :dev do
     forward "/sent-emails", Bamboo.SentEmailViewerPlug
+
+    scope "/api/dev", TWeb do
+      pipe_through :api
+      post "/phone-code", DevController, :get_phone_code
+    end
   end
 
   # Enables LiveDashboard only for development

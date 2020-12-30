@@ -51,16 +51,20 @@ defmodule T.MixProject do
       {:hackney, "~> 1.9"},
       {:sweet_xml, "~> 0.6"},
       {:plug_attack, "~> 0.3"},
+      # TODO
       {:bamboo_ses, "~> 0.1.6"},
       {:bamboo, "~> 1.6"},
       {:oban, "~> 2.3"},
       {:remote_ip, "~> 0.2.1"},
       {:ex_phone_number, "~> 0.2"},
+      # TODO
       {:passwordless_auth, "~> 0.3.0"},
       {:mox, "~> 1.0", only: :test},
       {:ex_machina, "~> 2.4", only: :test},
       {:assertions, "~> 0.18.1", only: :test},
-      {:timex, "~> 3.6"}
+      {:timex, "~> 3.6"},
+      {:pigeon, "~> 1.5"},
+      {:sentry, "~> 8.0"}
     ]
   end
 

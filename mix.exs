@@ -63,7 +63,8 @@ defmodule T.MixProject do
       {:ex_machina, "~> 2.4", only: :test},
       {:assertions, "~> 0.18.1", only: :test},
       {:timex, "~> 3.6"},
-      {:pigeon, "~> 1.5"},
+      {:pigeon, "~> 1.5", runtime: false},
+      {:kadabra, "~> 0.4.4"},
       {:sentry, "~> 8.0"}
     ]
   end
@@ -79,7 +80,8 @@ defmodule T.MixProject do
       setup: ["deps.get", "ecto.setup"],
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
-      test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"]
+      test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
+      sentry_recompile: ["compile", "deps.compile sentry --force"]
     ]
   end
 

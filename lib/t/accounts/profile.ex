@@ -51,29 +51,27 @@ defmodule T.Accounts.User.Profile do
     end)
   end
 
-  def photos_changeset(profile, attrs, opts) do
-    validate? = Keyword.fetch!(opts, :validate?)
+  defp maybe_validate_required(changeset, opts, fun) when is_function(fun, 1) do
+    if opts[:validate_required?], do: fun.(changeset), else: changeset
+  end
 
-    changeset =
-      profile
-      |> cast(attrs, [:photos])
-      |> validate_required([:photos])
-
-    if validate? do
+  def photos_changeset(profile, attrs, opts \\ []) do
+    profile
+    |> cast(attrs, [:photos])
+    |> maybe_validate_required(opts, fn changeset ->
       changeset
       |> force_field_changes([:photos])
       |> validate_length(:photos, min: 3, max: 6)
-    else
-      changeset
-    end
+    end)
+    |> validate_required([:photos])
   end
 
-  def general_info_changeset(profile, attrs) do
-    attrs = prepare_birthdate(attrs)
-
+  def general_info_changeset(profile, attrs, opts \\ []) do
     profile
     |> cast(attrs, [:name, :birthdate, :gender, :height, :home_city])
-    |> validate_required([:name, :birthdate, :gender, :height, :home_city])
+    |> maybe_validate_required(opts, fn changeset ->
+      validate_required(changeset, [:name, :birthdate, :gender, :height, :home_city])
+    end)
     |> validate_inclusion(:gender, ["M", "F"])
     |> validate_number(:height, greater_than: 0, less_than_or_equal_to: 240)
     |> validate_length(:name, min: 3, max: 100)
@@ -92,25 +90,6 @@ defmodule T.Accounts.User.Profile do
     end)
   end
 
-  # TODO
-  defp prepare_birthdate(%{"birthdate" => birthdate} = attrs) do
-    Map.put(attrs, "birthdate", prepare_birthdate(birthdate))
-  end
-
-  defp prepare_birthdate(%{birthdate: birthdate} = attrs) do
-    Map.put(attrs, :birthdate, prepare_birthdate(birthdate))
-  end
-
-  defp prepare_birthdate(birthdate) when is_binary(birthdate) do
-    # TODO don't fail
-    case Timex.parse(birthdate, "{D}/{M}/{YYYY}") do
-      {:ok, date} -> date
-      {:error, _reason} -> birthdate
-    end
-  end
-
-  defp prepare_birthdate(attrs), do: attrs
-
   def work_and_education_changeset(profile, attrs) do
     profile
     |> cast(attrs, [:occupation, :job, :university, :major])
@@ -120,11 +99,14 @@ defmodule T.Accounts.User.Profile do
     |> validate_length(:major, max: 100)
   end
 
-  def about_self_changeset(profile, attrs) do
+  def about_self_changeset(profile, attrs, opts \\ []) do
     profile
     |> cast(attrs, [:most_important_in_life, :interests, :first_date_idea, :free_form])
-    |> validate_required([:most_important_in_life, :interests, :first_date_idea])
-    |> force_field_changes([:interests])
+    |> maybe_validate_required(opts, fn changeset ->
+      changeset
+      |> validate_required([:most_important_in_life, :interests, :first_date_idea])
+      |> force_field_changes([:interests])
+    end)
     |> validate_length(:interests, min: 2, max: 5)
     |> validate_length(:most_important_in_life, max: 100)
     |> validate_length(:first_date_idea, max: 100)
@@ -147,10 +129,10 @@ defmodule T.Accounts.User.Profile do
     :pets
   ]
 
-  def tastes_changeset(profile, attrs) do
+  def tastes_changeset(profile, attrs, opts \\ []) do
     profile
     |> cast(attrs, @tastes)
-    |> at_least_seven_tastes()
+    |> maybe_validate_required(opts, &at_least_seven_tastes/1)
     |> validate_length(:alcohol, max: 100)
     |> validate_length(:smoking, max: 100)
     |> validate_length(:music, min: 1, max: 5)
@@ -183,12 +165,12 @@ defmodule T.Accounts.User.Profile do
     end
   end
 
-  def final_changeset(profile, attrs) do
+  def changeset(profile, attrs, opts \\ []) do
     profile
-    |> photos_changeset(attrs, validate?: true)
-    |> general_info_changeset(attrs)
+    |> photos_changeset(attrs, opts)
+    |> general_info_changeset(attrs, opts)
     |> work_and_education_changeset(attrs)
-    |> about_self_changeset(attrs)
-    |> tastes_changeset(attrs)
+    |> about_self_changeset(attrs, opts)
+    |> tastes_changeset(attrs, opts)
   end
 end

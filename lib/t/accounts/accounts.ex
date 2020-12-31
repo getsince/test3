@@ -7,6 +7,14 @@ defmodule T.Accounts do
   alias T.Repo
   alias T.Accounts.{User, UserToken, UserNotifier}
 
+  # def subscribe_to_new_users do
+  #   Phoenix.PubSub.subscribe(T.PubSub, "new_users")
+  # end
+
+  # def notify_subscribers({:ok, %User{}}, [:new, :user]) do
+  #   Phoenix.PubSub.broadcast()
+  # end
+
   ## Database getters
 
   @doc """
@@ -172,36 +180,6 @@ defmodule T.Accounts do
     %User{user | profile: profile}
   end
 
-  def update_photos(profile, attrs, opts) do
-    profile
-    |> User.Profile.photos_changeset(attrs, opts)
-    |> Repo.update()
-  end
-
-  def update_general_profile_info(profile, attrs) do
-    profile
-    |> User.Profile.general_info_changeset(attrs)
-    |> Repo.update()
-  end
-
-  def update_work_and_education_info(profile, attrs) do
-    profile
-    |> User.Profile.work_and_education_changeset(attrs)
-    |> Repo.update()
-  end
-
-  def update_about_self_info(profile, attrs) do
-    profile
-    |> User.Profile.about_self_changeset(attrs)
-    |> Repo.update()
-  end
-
-  def update_tastes(profile, attrs) do
-    profile
-    |> User.Profile.tastes_changeset(attrs)
-    |> Repo.update()
-  end
-
   def finish_onboarding(user_id) do
     Ecto.Multi.new()
     |> Ecto.Multi.run(:user, fn _repo, _changes ->
@@ -214,7 +192,7 @@ defmodule T.Accounts do
       end
     end)
     |> Ecto.Multi.run(:profile_check, fn _repo, %{user: %{profile: profile}} ->
-      changeset = User.Profile.final_changeset(profile, %{})
+      changeset = User.Profile.changeset(profile, %{}, validate_required?: true)
 
       if changeset.valid? do
         {:ok, nil}
@@ -240,5 +218,43 @@ defmodule T.Accounts do
       {:error, :user, :already_onboarded, _changes} -> {:error, :already_onboarded}
       {:error, :profile_check, %Ecto.Changeset{} = changeset, _changes} -> {:error, changeset}
     end
+
+    # |> notify_subscribers([:user, :new])
+  end
+
+  def update_profile(%User.Profile{} = profile, attrs) do
+    profile
+    |> User.Profile.changeset(attrs)
+    |> Repo.update()
+  end
+
+  def validate_profile_photos(%User.Profile{} = profile) do
+    profile
+    |> User.Profile.photos_changeset(%{}, validate_required?: true)
+    |> Repo.update()
+  end
+
+  def validate_profile_general_info(%User.Profile{} = profile) do
+    profile
+    |> User.Profile.general_info_changeset(%{}, validate_required?: true)
+    |> Repo.update()
+  end
+
+  def validate_profile_work_and_education(%User.Profile{} = profile) do
+    profile
+    |> User.Profile.work_and_education_changeset(%{})
+    |> Repo.update()
+  end
+
+  def validate_profile_about(%User.Profile{} = profile) do
+    profile
+    |> User.Profile.about_self_changeset(%{}, validate_required?: true)
+    |> Repo.update()
+  end
+
+  def validate_profile_tastes(%User.Profile{} = profile) do
+    profile
+    |> User.Profile.tastes_changeset(%{}, validate_required?: true)
+    |> Repo.update()
   end
 end

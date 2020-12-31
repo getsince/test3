@@ -1,36 +1,35 @@
 defmodule TWeb.UserSocket do
   use Phoenix.Socket
+  alias T.Accounts
 
-  ## Channels
-  channel "discover:*", TWeb.DiscoverChannel
+  # feed:<uuid>
+  channel "feed:*", TWeb.FeedChannel
+  # match:<uuid>:<uuid>
   channel "match:*", TWeb.MatchChannel
+  # profile:<uuid>
   channel "profile:*", TWeb.ProfileChannel
+  # notification:<uuid>
   channel "notification:*", TWeb.NotificationChannel
+  # onboarding:<uuid>
   channel "onboarding:*", TWeb.OnboardingChannel
 
   @impl true
-  def connect(%{"token" => token}, socket, connect_info) do
-    IO.inspect(connect_info, label: "connect info")
-    IO.inspect(token, label: "token")
+  def connect(%{"token" => token}, socket, _connect_info) do
+    token = Base.decode64!(token, padding: false)
 
-    case verify_token(socket, token) do
-      {:ok, user} -> {:ok, assign(socket, user: user)}
-      {:error, _reason} -> :error
+    if user = Accounts.get_user_by_session_token(token) do
+      {:ok, assign(socket, current_user: user, token: token)}
+    else
+      :error
     end
-
-    # {:ok, put_in(socket.private[:connect_info], connect_info)}
   end
 
-  defp verify_token(socket, token) do
-    case Phoenix.Token.verify(socket, "Urm6JRcI", token, max_age: 86400) do
-      {:ok, user_id} -> {:ok, T.Accounts.get_user!(user_id)}
-      {:error, _reason} = error -> error
-    end
+  def connect(_params, _socket, _connect_info) do
+    :error
   end
 
   @impl true
   def id(socket) do
-    # TODO per session
-    "user_socket:#{socket.assigns.user.id}"
+    "user_socket:#{socket.assigns.token}"
   end
 end

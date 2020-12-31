@@ -36,10 +36,12 @@ defmodule T.Media do
   end
 
   def presign_config do
+    env = Application.get_all_env(:ex_aws)
+
     %{
       region: Application.fetch_env!(:ex_aws, :region),
-      access_key_id: System.fetch_env!("AWS_ACCESS_KEY_ID"),
-      secret_access_key: System.fetch_env!("AWS_SECRET_ACCESS_KEY")
+      access_key_id: env[:access_key_id] || System.fetch_env!("AWS_ACCESS_KEY_ID"),
+      secret_access_key: env[:secret_access_key] || System.fetch_env!("AWS_SECRET_ACCESS_KEY")
     }
   end
 

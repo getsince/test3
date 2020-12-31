@@ -15,16 +15,39 @@ config :logger, :console,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]
 
+config :logger,
+  backends: [:console, Sentry.LoggerBackend]
+
+config :sentry,
+  environment_name: config_env(),
+  included_environments: [:prod]
+
+config :logger, Sentry.LoggerBackend,
+  level: :warn,
+  capture_log_messages: true
+
 config :t, Oban,
   repo: T.Repo,
   plugins: [Oban.Plugins.Pruner],
-  queues: [default: 10, emails: 20]
+  queues: [default: 10, emails: 20, sms: 20]
 
 config :ex_aws,
   json_codec: Jason,
   region: "eu-central-1"
 
 if config_env() == :prod do
+  config :sentry,
+    dsn: System.fetch_env!("SENTRY_DSN")
+
+  config :pigeon, :apns,
+    apns_default: %{
+      key: System.fetch_env!("APNS_KEY"),
+      key_identifier: System.fetch_env!("APNS_KEY_ID"),
+      team_id: System.fetch_env!("APNS_TEAM_ID"),
+      # TODO
+      mode: :dev
+    }
+
   config :t, run_migrations_on_start?: true
 
   config :t, T.Mailer,
@@ -172,4 +195,11 @@ if config_env() == :test do
   config :t, Oban, crontab: false, queues: false, plugins: false
 
   config :t, T.Mailer, adapter: Bamboo.TestAdapter, our_address: "kindly@example.com"
+
+  config :ex_aws,
+    access_key_id: "AWS_ACCESS_KEY_ID",
+    secret_access_key: "AWS_SECRET_ACCESS_KEY",
+    s3: [
+      bucket: "pretend-this-is-real"
+    ]
 end

@@ -22,6 +22,9 @@ defmodule TWeb.ChannelCase do
       # Import conveniences for testing with channels
       import Phoenix.ChannelTest
       import TWeb.ChannelCase
+      import T.Factory
+
+      alias T.Repo
 
       # The default endpoint for testing
       @endpoint TWeb.Endpoint

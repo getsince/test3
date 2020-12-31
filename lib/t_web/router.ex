@@ -12,6 +12,18 @@ defmodule TWeb.Router do
     # TODO protect from forgery
   end
 
+  # TODO add app routes
+  # TODO /onboarding
+  # /login
+  # /profile/<uuid>
+  # /profile
+  # /match
+  # /feed
+  # TODO add channel api explorer
+  # TODO add admin interface with impersonation and bird view
+  # TODO add reports endpoint
+
+  # TODO https://hexdocs.pm/sentry/Sentry.Context.html#content
   scope "/api", TWeb do
     pipe_through :api
 
@@ -31,6 +43,7 @@ defmodule TWeb.Router do
     end
   end
 
+  # TODO allow in prod under basic auth
   # Enables LiveDashboard only for development
   #
   # If you want to use the LiveDashboard in production, you should put

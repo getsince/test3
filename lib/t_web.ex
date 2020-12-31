@@ -56,6 +56,7 @@ defmodule TWeb do
       use Phoenix.Channel
       alias TWeb.ChannelHelpers
       import TWeb.Gettext
+      import Phoenix.View
     end
   end
 

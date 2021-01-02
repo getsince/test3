@@ -63,9 +63,10 @@ defmodule T.MixProject do
       {:ex_machina, "~> 2.4", only: :test},
       {:assertions, "~> 0.18.1", only: :test},
       {:timex, "~> 3.6"},
-      {:pigeon, "~> 1.5", runtime: false},
-      {:kadabra, "~> 0.4.4"},
-      {:sentry, "~> 8.0"}
+      {:httpoison, "~> 1.7"},
+      # {:pigeon, "~> 1.5", runtime: false},
+      # {:kadabra, "~> 0.4.4"},
+      {:sentry, "~> 8.0", runtime: false}
     ]
   end
 

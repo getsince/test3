@@ -1,5 +1,5 @@
 defmodule TWeb.Endpoint do
-  use Sentry.PlugCapture
+  # use Sentry.PlugCapture
   use Phoenix.Endpoint, otp_app: :t
 
   # The session will be stored in the cookie and signed,
@@ -42,6 +42,6 @@ defmodule TWeb.Endpoint do
   plug Plug.Head
   plug Plug.Session, @session_options
   plug RemoteIp
-  plug Sentry.PlugContext
+  # plug Sentry.PlugContext
   plug TWeb.Router
 end

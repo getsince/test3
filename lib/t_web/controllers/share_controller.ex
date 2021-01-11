@@ -15,23 +15,12 @@ defmodule TWeb.ShareController do
 
   def save_code(conn, %{"code" => _code} = attrs) do
     # TODO rate limit
-    attrs = Map.put(attrs, "meta", build_meta(conn, attrs))
+    attrs = Map.put(attrs, "meta", ControllerHelpers.build_meta(conn, attrs))
 
     with {:ok, _code} <- Share.save_code(attrs) do
       send_resp(conn, 201, [])
     end
   end
-
-  defp build_meta(conn, attrs) do
-    (attrs["meta"] || %{})
-    |> Map.put("ip", conn.remote_ip |> :inet.ntoa() |> to_string())
-    |> Map.put("user-agent", conn |> get_req_header("user-agent") |> List.first())
-    |> maybe_put("ref", attrs["ref"])
-    |> maybe_put("click_id", attrs["click_id"])
-  end
-
-  defp maybe_put(map, _key, nil), do: map
-  defp maybe_put(map, key, value), do: Map.put(map, key, value)
 
   def email(conn, %{"email" => email}) do
     with {:ok, _email} <- Share.save_email(email) do
@@ -43,7 +32,7 @@ defmodule TWeb.ShareController do
     attrs =
       attrs
       |> Map.put("phone_number", phone)
-      |> Map.put("meta", build_meta(conn, attrs))
+      |> Map.put("meta", ControllerHelpers.build_meta(conn, attrs))
 
     maybe_postback(attrs)
 

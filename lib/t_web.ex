@@ -24,6 +24,7 @@ defmodule TWeb do
       import Plug.Conn
       import TWeb.Gettext
       alias TWeb.Router.Helpers, as: Routes
+      alias TWeb.ControllerHelpers
     end
   end
 

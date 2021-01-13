@@ -4,8 +4,9 @@ defmodule T.Accounts do
   """
 
   import Ecto.Query, warn: false
-  alias T.Repo
-  alias T.Accounts.{User, UserToken, UserNotifier}
+  alias T.{Repo, Media}
+  alias T.Accounts.{User, Profile, UserToken, UserNotifier}
+  alias T.Feeds.PersonalityOverlapJob
 
   # def subscribe_to_new_users do
   #   Phoenix.PubSub.subscribe(T.PubSub, "new_users")
@@ -17,82 +18,48 @@ defmodule T.Accounts do
 
   ## Database getters
 
-  @doc """
-  Gets a user by phone number.
-
-  ## Examples
-
-      iex> get_user_by_phone_number("+79161231234")
-      %User{}
-
-      iex> get_user_by_phone_number("+11111111111")
-      nil
-
-  """
   def get_user_by_phone_number(phone_number) when is_binary(phone_number) do
     Repo.get_by(User, phone_number: phone_number)
   end
 
-  @doc """
-  Gets a single user.
-
-  Raises `Ecto.NoResultsError` if the User does not exist.
-
-  ## Examples
-
-      iex> get_user!(123)
-      %User{}
-
-      iex> get_user!(456)
-      ** (Ecto.NoResultsError)
-
-  """
   def get_user!(id), do: Repo.get!(User, id)
+
+  def user_onboarded?(id) do
+    User
+    |> where(id: ^id)
+    |> where([u], not is_nil(u.onboarded_at))
+    |> Repo.exists?()
+  end
 
   ## User registration
 
-  @doc """
-  Registers a user and their profile.
-
-  ## Examples
-
-      iex> register_user(%{field: value})
-      {:ok, %User{}}
-
-      iex> register_user(%{field: bad_value})
-      {:error, %Ecto.Changeset{}}
-
-  """
+  @doc false
   def register_user(attrs) do
     Ecto.Multi.new()
     |> Ecto.Multi.insert(:user, User.registration_changeset(%User{}, attrs))
-    |> Ecto.Multi.insert(:profile, fn %{user: user} -> %User.Profile{user_id: user.id} end)
+    |> Ecto.Multi.insert(
+      :profile,
+      fn %{user: user} ->
+        %Profile{
+          user_id: user.id,
+          last_active: DateTime.truncate(DateTime.utc_now(), :second)
+        }
+      end,
+      returning: [:hidden?]
+    )
     |> Repo.transaction()
     |> case do
-      {:ok, %{user: user}} -> {:ok, user}
+      {:ok, %{user: user, profile: profile}} -> {:ok, %User{user | profile: profile}}
       {:error, :user, %Ecto.Changeset{} = changeset, _changes} -> {:error, changeset}
     end
   end
 
-  def get_or_register_user(phone_number) do
+  defp get_or_register_user(phone_number) do
     if u = get_user_by_phone_number(phone_number) do
       {:ok, u}
     else
       register_user(%{phone_number: phone_number})
     end
-  end
-
-  @doc """
-  Returns an `%Ecto.Changeset{}` for tracking user changes.
-
-  ## Examples
-
-      iex> change_user_registration(user)
-      %Ecto.Changeset{data: %User{}}
-
-  """
-  def change_user_registration(%User{} = user, attrs \\ %{}) do
-    User.registration_changeset(user, attrs)
   end
 
   ## Session
@@ -117,8 +84,8 @@ defmodule T.Accounts do
   @doc """
   Deletes the signed token with the given context.
   """
-  def delete_session_token(token) do
-    Repo.delete_all(UserToken.token_and_context_query(token, "session"))
+  def delete_session_token(token, context \\ "session") do
+    Repo.delete_all(UserToken.token_and_context_query(token, context))
     :ok
   end
 
@@ -151,110 +118,155 @@ defmodule T.Accounts do
     end
   end
 
-  @doc """
-  Confirms a user by the given code.
-
-  If the code matches, the user account is marked as confirmed.
-  """
   def login_or_register_user(phone_number, code) do
     # TODO normalize phone number
-    with :ok <- PasswordlessAuth.verify_code(phone_number, code),
-         {:ok, user} <- get_or_register_user(phone_number) do
-      {:ok, user}
+    with {:phone, :ok} <- {:phone, PasswordlessAuth.verify_code(phone_number, code)},
+         {:reg, {:ok, _user} = success} <- {:reg, get_or_register_user(phone_number)} do
+      success
     else
-      _ -> :error
+      {:phone, error} -> error
+      {:reg, error} -> error
     end
   end
 
-  def save_photo(%User{id: user_id}, s3_key) do
-    User.Profile
+  # TODO test
+  def block_user(user_id) do
+    Repo.transaction(fn ->
+      User
+      |> where(id: ^user_id)
+      |> update([u], set: [blocked_at?: fragment("now()")])
+      |> Repo.update_all([])
+
+      hide_profile(user_id)
+    end)
+
+    :ok
+  end
+
+  defp hide_profile(user_id) do
+    Profile
     |> where(user_id: ^user_id)
-    |> update([p], push: [photos: ^s3_key])
+    |> Repo.update_all(set: [hidden?: true])
+  end
+
+  # TODO test
+  def delete_user(user_id) do
+    # TODO schedule for deletion
+    Repo.transaction(fn ->
+      User
+      |> where(id: ^user_id)
+      |> update([u], set: [deleted_at?: fragment("now()")])
+      |> Repo.update_all([])
+
+      hide_profile(user_id)
+    end)
+
+    :ok
+  end
+
+  def save_photo(%User{id: user_id}, s3_key) do
+    Profile
+    |> where(user_id: ^user_id)
     |> select([p], p.photos)
-    |> Repo.update_all([])
+    |> Repo.update_all(push: [photos: s3_key])
   end
 
-  # TODO do this when creating user account
-  def ensure_profile(%User{id: user_id} = user) do
-    profile = Repo.get(User.Profile, user_id) || Repo.insert!(%User.Profile{user_id: user_id})
-    %User{user | profile: profile}
+  def photo_upload_form(content_type) do
+    Media.sign_form_upload(
+      key: Ecto.UUID.generate(),
+      content_type: content_type,
+      max_file_size: 8_000_000,
+      expires_in: :timer.hours(1)
+    )
   end
 
-  def finish_onboarding(user_id) do
+  def photo_s3_url do
+    Media.url()
+  end
+
+  def get_profile!(%User{id: user_id}) do
+    get_profile!(user_id)
+  end
+
+  def get_profile!(user_id) when is_binary(user_id) do
+    Repo.get!(Profile, user_id)
+  end
+
+  def onboard_profile(%Profile{user_id: user_id}, attrs) do
     Ecto.Multi.new()
-    |> Ecto.Multi.run(:user, fn _repo, _changes ->
-      user = User |> Repo.get!(user_id) |> Repo.preload(:profile)
+    |> Ecto.Multi.run(:user, fn repo, _changes ->
+      user = repo.get!(User, user_id)
 
       if user.onboarded_at do
         {:error, :already_onboarded}
       else
-        {:ok, user}
+        {:ok, repo.preload(user, :profile)}
       end
     end)
-    |> Ecto.Multi.run(:profile_check, fn _repo, %{user: %{profile: profile}} ->
-      changeset = User.Profile.changeset(profile, %{}, validate_required?: true)
-
-      if changeset.valid? do
-        {:ok, nil}
-      else
-        {:error, changeset}
-      end
+    |> Ecto.Multi.update(:profile, fn %{user: %{profile: profile}} ->
+      Profile.changeset(profile, attrs, validate_required?: true)
     end)
-    |> Ecto.Multi.run(:mark_onboarded, fn _repo, %{user: user} ->
+    |> Ecto.Multi.run(:mark_onboarded, fn repo, %{user: user} ->
       {1, nil} =
         User
         |> where(id: ^user.id)
         |> update([u], set: [onboarded_at: fragment("now()")])
-        |> Repo.update_all([])
+        |> repo.update_all([])
 
       {:ok, nil}
     end)
-    |> Ecto.Multi.run(:load_user, fn _repo, %{user: user} ->
-      {:ok, User |> Repo.get!(user.id) |> Repo.preload(:profile)}
+    |> Ecto.Multi.run(:show_profile, fn repo, %{user: user} ->
+      {1, nil} =
+        Profile
+        |> where(user_id: ^user.id)
+        |> repo.update_all(set: [hidden?: false])
+
+      {:ok, nil}
     end)
+    |> Oban.insert(:schedule_overlap_job, PersonalityOverlapJob.new(%{"user_id" => user_id}))
     |> Repo.transaction()
     |> case do
-      {:ok, %{load_user: %User{} = user}} -> {:ok, user}
+      {:ok, %{profile: %Profile{} = profile}} -> {:ok, profile}
       {:error, :user, :already_onboarded, _changes} -> {:error, :already_onboarded}
-      {:error, :profile_check, %Ecto.Changeset{} = changeset, _changes} -> {:error, changeset}
+      {:error, :profile, %Ecto.Changeset{} = changeset, _changes} -> {:error, changeset}
     end
 
     # |> notify_subscribers([:user, :new])
   end
 
-  def update_profile(%User.Profile{} = profile, attrs) do
+  def update_profile(%Profile{} = profile, attrs, opts \\ []) do
     profile
-    |> User.Profile.changeset(attrs)
+    |> Profile.changeset(attrs, opts)
     |> Repo.update()
   end
 
-  def validate_profile_photos(%User.Profile{} = profile) do
+  def validate_profile_photos(%Profile{} = profile) do
     profile
-    |> User.Profile.photos_changeset(%{}, validate_required?: true)
+    |> Profile.photos_changeset(%{}, validate_required?: true)
     |> Repo.update()
   end
 
-  def validate_profile_general_info(%User.Profile{} = profile) do
+  def validate_profile_general_info(%Profile{} = profile) do
     profile
-    |> User.Profile.general_info_changeset(%{}, validate_required?: true)
+    |> Profile.general_info_changeset(%{}, validate_required?: true)
     |> Repo.update()
   end
 
-  def validate_profile_work_and_education(%User.Profile{} = profile) do
+  def validate_profile_work_and_education(%Profile{} = profile) do
     profile
-    |> User.Profile.work_and_education_changeset(%{})
+    |> Profile.work_and_education_changeset(%{})
     |> Repo.update()
   end
 
-  def validate_profile_about(%User.Profile{} = profile) do
+  def validate_profile_about(%Profile{} = profile) do
     profile
-    |> User.Profile.about_self_changeset(%{}, validate_required?: true)
+    |> Profile.about_self_changeset(%{}, validate_required?: true)
     |> Repo.update()
   end
 
-  def validate_profile_tastes(%User.Profile{} = profile) do
+  def validate_profile_tastes(%Profile{} = profile) do
     profile
-    |> User.Profile.tastes_changeset(%{}, validate_required?: true)
+    |> Profile.tastes_changeset(%{}, validate_required?: true)
     |> Repo.update()
   end
 end

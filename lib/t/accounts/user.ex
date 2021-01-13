@@ -2,19 +2,20 @@ defmodule T.Accounts.User do
   use Ecto.Schema
   import Ecto.Changeset
   import TWeb.Gettext
+  alias T.Accounts.Profile
 
   # https://hexdocs.pm/pow/lock_users.html#content
 
-  @primary_key {:id, Ecto.UUID, autogenerate: true}
-  @foreign_key_type Ecto.UUID
+  @primary_key {:id, Ecto.Bigflake.UUID, autogenerate: true}
+  @foreign_key_type Ecto.Bigflake.UUID
   schema "users" do
     field :phone_number, :string
-    # field :confirmed_at, :naive_datetime
-    field :blocked_at, :utc_datetime
+
     field :onboarded_at, :utc_datetime
+    field :deleted_at, :utc_datetime
+    field :blocked_at, :utc_datetime
 
-    has_one :profile, __MODULE__.Profile
-
+    has_one :profile, Profile
     timestamps()
   end
 

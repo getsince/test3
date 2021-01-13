@@ -9,10 +9,6 @@ defmodule T.Media do
     url
   end
 
-  def public_key(filename \\ Ecto.UUID.generate()) do
-    "public/#{filename}"
-  end
-
   def url do
     "https://#{bucket()}.s3.amazonaws.com"
   end

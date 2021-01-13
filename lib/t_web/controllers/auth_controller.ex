@@ -9,12 +9,12 @@ defmodule TWeb.AuthController do
     end
   end
 
-  def verify_phone_number(conn, %{"phone_number" => phone_number, "code" => code} = params) do
+  def verify_phone_number(conn, %{"phone_number" => phone_number, "code" => code}) do
     case T.Accounts.login_or_register_user(phone_number, code) do
       {:ok, user} ->
-        TWeb.UserAuth.log_in_user(conn, user, params)
+        TWeb.UserAuth.log_in_phone_user(conn, user)
 
-      :error ->
+      {:error, _reason} ->
         # TODO
         send_resp(conn, 400, [])
     end

@@ -8,8 +8,8 @@ defmodule T.Accounts.UserToken do
   @confirm_validity_in_seconds 300
   @session_validity_in_days 60
 
-  @primary_key {:id, Ecto.UUID, autogenerate: true}
-  @foreign_key_type Ecto.UUID
+  @primary_key {:id, Ecto.Bigflake.UUID, autogenerate: true}
+  @foreign_key_type Ecto.Bigflake.UUID
   schema "users_tokens" do
     field :token, :binary
     field :context, :string

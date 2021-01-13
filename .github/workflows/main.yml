@@ -45,5 +45,7 @@ jobs:
         run: MIX_ENV=test mix compile --warnings-as-errors
       - name: Run tests
         run: mix test
+      # - name: Build container
+      #   run: 
       # - name: Build release
       #   run: MIX_ENV=test mix release

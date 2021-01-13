@@ -1,15 +1,16 @@
 defmodule TWeb.ProfileView do
   use TWeb, :view
-  alias T.Accounts.User
+  alias T.Accounts.Profile
 
-  def render("show.json", %{profile: %User.Profile{} = profile}) do
+  def render("show.json", %{profile: %Profile{} = profile}) do
     Map.take(profile, [
+      :user_id,
       :photos,
       :name,
       :gender,
       :birthdate,
       :height,
-      :home_city,
+      :city,
       :occupation,
       :job,
       :university,
@@ -18,19 +19,7 @@ defmodule TWeb.ProfileView do
       :interests,
       :first_date_idea,
       :free_form,
-      :music,
-      :sports,
-      :alcohol,
-      :smoking,
-      :books,
-      :currently_studying,
-      :tv_shows,
-      :languages,
-      :musical_instruments,
-      :movies,
-      :social_networks,
-      :cuisines,
-      :pets
+      :tastes
     ])
   end
 end

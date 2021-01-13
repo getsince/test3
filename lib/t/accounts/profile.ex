@@ -1,21 +1,30 @@
-defmodule T.Accounts.User.Profile do
+defmodule T.Accounts.Profile do
   use Ecto.Schema
   import TWeb.Gettext
   import Ecto.Changeset
 
   @primary_key false
-  @foreign_key_type Ecto.UUID
+  @foreign_key_type Ecto.Bigflake.UUID
   schema "profiles" do
     belongs_to :user, T.Accounts.User, primary_key: true
 
     field :photos, {:array, :string}
+    field :times_liked, :integer
+
+    # TODO move to users
+    field :last_active, :utc_datetime
+
+    # matched? not yet onboarded? deleted!? BLOCKED?
+    field :hidden?, :boolean
 
     # general info
     field :name, :string
     field :gender, :string
     field :birthdate, :date
     field :height, :integer
-    field :home_city, :string
+
+    # TODO replace with location?
+    field :city, :string
 
     # work and education
     field :occupation, :string
@@ -30,22 +39,12 @@ defmodule T.Accounts.User.Profile do
     field :free_form, :string
 
     # tastes
-    field :music, {:array, :string}
-    field :sports, {:array, :string}
-    field :alcohol, :string
-    field :smoking, :string
-    field :books, {:array, :string}
-    field :currently_studying, {:array, :string}
-    field :tv_shows, {:array, :string}
-    field :languages, {:array, :string}
-    field :musical_instruments, {:array, :string}
-    field :movies, {:array, :string}
-    field :social_networks, {:array, :string}
-    field :cuisines, {:array, :string}
-    field :pets, {:array, :string}
+    # field :tastes_list, {:array, :map}, virtual: true
+    field :tastes, :map
+    field :feed_reason, :string, virtual: true
   end
 
-  defp force_field_changes(changeset, fields) do
+  defp force_field_changes(changeset, fields) when is_list(fields) do
     Enum.reduce(fields, changeset, fn field, changeset ->
       force_change(changeset, field, get_field(changeset, field))
     end)
@@ -61,16 +60,16 @@ defmodule T.Accounts.User.Profile do
     |> maybe_validate_required(opts, fn changeset ->
       changeset
       |> force_field_changes([:photos])
-      |> validate_length(:photos, min: 3, max: 6)
+      |> validate_length(:photos, is: 4)
     end)
     |> validate_required([:photos])
   end
 
   def general_info_changeset(profile, attrs, opts \\ []) do
     profile
-    |> cast(attrs, [:name, :birthdate, :gender, :height, :home_city])
+    |> cast(attrs, [:name, :birthdate, :gender, :height, :city])
     |> maybe_validate_required(opts, fn changeset ->
-      validate_required(changeset, [:name, :birthdate, :gender, :height, :home_city])
+      validate_required(changeset, [:name, :birthdate, :gender, :height, :city])
     end)
     |> validate_inclusion(:gender, ["M", "F"])
     |> validate_number(:height, greater_than: 0, less_than_or_equal_to: 240)
@@ -90,9 +89,12 @@ defmodule T.Accounts.User.Profile do
     end)
   end
 
-  def work_and_education_changeset(profile, attrs) do
+  def work_and_education_changeset(profile, attrs, opts \\ []) do
     profile
     |> cast(attrs, [:occupation, :job, :university, :major])
+    |> maybe_validate_required(opts, fn changeset ->
+      validate_required(changeset, [:occupation, :job])
+    end)
     |> validate_length(:occupation, max: 100)
     |> validate_length(:job, max: 100)
     |> validate_length(:university, max: 100)
@@ -113,6 +115,14 @@ defmodule T.Accounts.User.Profile do
     |> validate_length(:free_form, max: 1000)
   end
 
+  # defmodule Tastes do
+  #   use Ecto.Schema
+
+  #   embedded_schema do
+  #     field :music,
+  #   end
+  # end
+
   @tastes [
     :music,
     :sports,
@@ -129,41 +139,68 @@ defmodule T.Accounts.User.Profile do
     :pets
   ]
 
+  @known_tastes @tastes ++ Enum.map(@tastes, &to_string/1)
+
+  defp filter_tastes(tastes) do
+    tastes
+    |> Enum.filter(fn {k, _} -> k in @known_tastes end)
+    |> Map.new(fn {k, v} -> {k, filter_taste_values(to_string(k), v)} end)
+  end
+
+  defp filter_taste_values("alcohol", v), do: v
+  defp filter_taste_values("smoking", v), do: v
+  defp filter_taste_values(_k, v), do: Enum.filter(v, &is_binary/1)
+
   def tastes_changeset(profile, attrs, opts \\ []) do
     profile
-    |> cast(attrs, @tastes)
-    |> maybe_validate_required(opts, &at_least_seven_tastes/1)
-    |> validate_length(:alcohol, max: 100)
-    |> validate_length(:smoking, max: 100)
-    |> validate_length(:music, min: 1, max: 5)
-    |> validate_length(:sports, min: 1, max: 5)
-    |> validate_length(:books, min: 1, max: 5)
-    |> validate_length(:currently_studying, min: 1, max: 5)
-    |> validate_length(:tv_shows, min: 1, max: 5)
-    |> validate_length(:languages, min: 1, max: 5)
-    |> validate_length(:musical_instruments, min: 1, max: 5)
-    |> validate_length(:movies, min: 1, max: 5)
-    |> validate_length(:social_networks, min: 1, max: 5)
-    |> validate_length(:cuisines, min: 1, max: 5)
-    |> validate_length(:pets, min: 1, max: 5)
-  end
-
-  defp at_least_seven_tastes(changeset) do
-    provided_tastes =
-      @tastes
-      |> Enum.map(&get_field(changeset, &1))
-      |> Enum.reject(fn
-        nil -> true
-        [] -> true
-        _other -> false
-      end)
-
-    if length(provided_tastes) < 7 do
-      add_error(changeset, :tastes, dgettext("errors", "should have at least 7 tastes"))
-    else
+    |> cast(attrs, [:tastes])
+    |> maybe_validate_required(opts, fn changeset ->
       changeset
-    end
+      |> validate_required([:tastes])
+      |> force_field_changes([:tastes])
+    end)
+    |> validate_change(:tastes, fn :tastes, tastes ->
+      tastes = filter_tastes(tastes)
+
+      if length(Map.keys(tastes)) >= 7 do
+        []
+      else
+        [tastes: dgettext("errors", "should have at least 7 tastes")]
+      end
+    end)
+
+    # |> maybe_validate_required(opts, &at_least_seven_tastes/1)
+    # |> validate_length(:alcohol, max: 100)
+    # |> validate_length(:smoking, max: 100)
+    # |> validate_length(:music, min: 1, max: 5)
+    # |> validate_length(:sports, min: 1, max: 5)
+    # |> validate_length(:books, min: 1, max: 5)
+    # |> validate_length(:currently_studying, min: 1, max: 5)
+    # |> validate_length(:tv_shows, min: 1, max: 5)
+    # |> validate_length(:languages, min: 1, max: 5)
+    # |> validate_length(:musical_instruments, min: 1, max: 5)
+    # |> validate_length(:movies, min: 1, max: 5)
+    # |> validate_length(:social_networks, min: 1, max: 5)
+    # |> validate_length(:cuisines, min: 1, max: 5)
+    # |> validate_length(:pets, min: 1, max: 5)
   end
+
+  # defp at_least_seven_tastes(changeset) do
+  #   provided_tastes =
+  #     @tastes
+  #     |> Enum.map(&get_field(changeset, &1))
+  #     |> Enum.reject(fn
+  #       nil -> true
+  #       [] -> true
+  #       _other -> false
+  #     end)
+
+  #   if length(provided_tastes) < 7 do
+  #     add_error(changeset, :tastes, dgettext("errors", "should have at least 7 tastes"))
+  #   else
+  #     changeset
+  #   end
+  # end
 
   def changeset(profile, attrs, opts \\ []) do
     profile

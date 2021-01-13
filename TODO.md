@@ -1,1 +1,7 @@
-- insert profile when creating user
+- create fake users
+- delete, block profiles, handle hidden?
+- setup phoenix dashboard
+- benchmark
+- push notifications
+- plug attack
+- build and push container to docker hub from github actions https://www.docker.com/blog/docker-github-actions/ https://docs.github.com/en/actions/creating-actions/creating-a-docker-container-action https://sethetter.com/posts/github-actions-with-docker/

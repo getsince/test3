@@ -3,6 +3,8 @@ defmodule T.SMS do
 
   @behaviour T.Accounts.UserNotifier
 
+  # TODO oban
+
   @impl true
   def deliver(phone_number, message) do
     message_attributes = [

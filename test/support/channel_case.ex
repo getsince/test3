@@ -21,8 +21,9 @@ defmodule TWeb.ChannelCase do
     quote do
       # Import conveniences for testing with channels
       import Phoenix.ChannelTest
+      import Phoenix.View
       import TWeb.ChannelCase
-      import T.Factory
+      import T.{Factory, DataCase}
 
       alias T.Repo
 

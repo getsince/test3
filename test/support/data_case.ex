@@ -52,4 +52,91 @@ defmodule T.DataCase do
       end)
     end)
   end
+
+  alias T.Repo
+  alias T.Feeds.{SeenProfile, ProfileLike, ProfileDislike}
+  alias T.Accounts.Profile
+
+  import Ecto.Query
+  import Assertions
+  import T.Factory
+
+  def assert_seen(opts) do
+    assert SeenProfile |> where(^opts) |> Repo.one!()
+  end
+
+  def assert_liked(opts) do
+    assert ProfileLike |> where(^opts) |> Repo.one!()
+  end
+
+  def assert_disliked(opts) do
+    assert ProfileDislike |> where(^opts) |> Repo.one!()
+  end
+
+  def assert_hidden(user_ids) do
+    Profile
+    |> where([p], p.user_id in ^user_ids)
+    |> Repo.all()
+    |> Enum.each(fn profile ->
+      assert profile.hidden?
+    end)
+  end
+
+  def refute_hidden(user_ids) do
+    Profile
+    |> where([p], p.user_id in ^user_ids)
+    |> Repo.all()
+    |> Enum.each(fn profile ->
+      refute profile.hidden?
+    end)
+  end
+
+  def times_liked(user_id) do
+    Profile
+    |> where(user_id: ^user_id)
+    |> select([p], p.times_liked)
+    |> Repo.one()
+  end
+
+  def assert_feed_has_profile(feed, profile) do
+    feed_ids = Enum.map(feed, & &1.user_id)
+    assert profile.user_id in feed_ids
+  end
+
+  def most_liked(profiles, likes) do
+    profiles
+    |> Enum.shuffle()
+    |> Enum.zip(likes)
+    |> Enum.map(fn {profile, likes} ->
+      {1, nil} =
+        Profile
+        |> where(user_id: ^profile.user_id)
+        |> Repo.update_all(set: [times_liked: likes])
+
+      %Profile{profile | times_liked: likes}
+    end)
+  end
+
+  def personality_overlap(profiles, me, scores) do
+    profiles
+    |> Enum.shuffle()
+    |> Enum.zip(scores)
+    |> Enum.map(fn {profile, score} ->
+      insert(:personality_overlap,
+        score: score,
+        user_id_1: profile.user_id,
+        user_id_2: me.user_id
+      )
+
+      profile
+    end)
+  end
+
+  def assert_reasons(feed, reasons) do
+    assert_lists_equal(Enum.map(feed, & &1.feed_reason), reasons)
+  end
+
+  def assert_unique_profiles(feed) do
+    assert length(feed) == feed |> Enum.uniq_by(& &1.user_id) |> length()
+  end
 end

@@ -29,7 +29,7 @@ config :logger, :console,
 config :t, Oban,
   repo: T.Repo,
   plugins: [Oban.Plugins.Pruner],
-  queues: [default: 10, emails: 20, sms: 20]
+  queues: [default: 10, emails: 20, sms: 20, personality: 20]
 
 config :ex_aws,
   json_codec: Jason,

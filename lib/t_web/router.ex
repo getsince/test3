@@ -68,11 +68,4 @@ defmodule TWeb.Router do
     post "/request-sms", AuthController, :request_sms
     post "/verify-phone-number", AuthController, :verify_phone_number
   end
-
-  scope "/api", TWeb do
-    pipe_through [:api, :with_current_user, :require_authenticated_user]
-
-    get "/me", MeController, :me
-    get "/profile", MeController, :profile
-  end
 end

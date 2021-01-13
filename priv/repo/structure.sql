@@ -59,11 +59,73 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
+-- Name: disliked_profiles; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.disliked_profiles (
+    by_user_id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    inserted_at timestamp(0) without time zone NOT NULL
+);
+
+
+--
 -- Name: emails; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.emails (
     email character varying(255) NOT NULL
+);
+
+
+--
+-- Name: interests_overlap; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.interests_overlap (
+    user_id_1 uuid NOT NULL,
+    user_id_2 uuid NOT NULL,
+    score integer NOT NULL,
+    inserted_at timestamp(0) without time zone NOT NULL,
+    updated_at timestamp(0) without time zone NOT NULL
+);
+
+
+--
+-- Name: liked_profiles; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.liked_profiles (
+    by_user_id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    inserted_at timestamp(0) without time zone NOT NULL
+);
+
+
+--
+-- Name: match_messages; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.match_messages (
+    match_id uuid NOT NULL,
+    id uuid NOT NULL,
+    author_id uuid NOT NULL,
+    kind character varying(255) NOT NULL,
+    data jsonb NOT NULL,
+    inserted_at timestamp(0) without time zone NOT NULL
+);
+
+
+--
+-- Name: matches; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.matches (
+    id uuid NOT NULL,
+    user_id_1 uuid NOT NULL,
+    user_id_2 uuid NOT NULL,
+    "alive?" boolean DEFAULT true NOT NULL,
+    inserted_at timestamp(0) without time zone NOT NULL
 );
 
 
@@ -149,6 +211,18 @@ CREATE TABLE public.phones (
 
 
 --
+-- Name: profile_feeds; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.profile_feeds (
+    user_id uuid NOT NULL,
+    date date NOT NULL,
+    profiles jsonb NOT NULL,
+    inserted_at timestamp(0) without time zone NOT NULL
+);
+
+
+--
 -- Name: profiles; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -159,7 +233,7 @@ CREATE TABLE public.profiles (
     gender text,
     birthdate date,
     height integer,
-    home_city text,
+    city text,
     occupation text,
     job text,
     university text,
@@ -168,19 +242,10 @@ CREATE TABLE public.profiles (
     interests text[] DEFAULT ARRAY[]::text[],
     first_date_idea text,
     free_form text,
-    music text[] DEFAULT ARRAY[]::text[],
-    sports text[] DEFAULT ARRAY[]::text[],
-    alcohol text,
-    smoking text,
-    books text[] DEFAULT ARRAY[]::text[],
-    currently_studying text[] DEFAULT ARRAY[]::text[],
-    tv_shows text[] DEFAULT ARRAY[]::text[],
-    languages text[] DEFAULT ARRAY[]::text[],
-    musical_instruments text[] DEFAULT ARRAY[]::text[],
-    movies text[] DEFAULT ARRAY[]::text[],
-    social_networks text[] DEFAULT ARRAY[]::text[],
-    cuisines text[] DEFAULT ARRAY[]::text[],
-    pets text[] DEFAULT ARRAY[]::text[]
+    tastes jsonb DEFAULT '{}'::jsonb NOT NULL,
+    times_liked integer DEFAULT 0 NOT NULL,
+    "hidden?" boolean DEFAULT true NOT NULL,
+    last_active timestamp(0) without time zone NOT NULL
 );
 
 
@@ -206,6 +271,17 @@ CREATE TABLE public.schema_migrations (
 
 
 --
+-- Name: seen_profiles; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.seen_profiles (
+    by_user_id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    inserted_at timestamp(0) without time zone NOT NULL
+);
+
+
+--
 -- Name: users; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -215,7 +291,8 @@ CREATE TABLE public.users (
     inserted_at timestamp(0) without time zone NOT NULL,
     updated_at timestamp(0) without time zone NOT NULL,
     blocked_at timestamp(0) without time zone,
-    onboarded_at timestamp(0) without time zone
+    onboarded_at timestamp(0) without time zone,
+    deleted_at timestamp with time zone
 );
 
 
@@ -252,11 +329,59 @@ ALTER TABLE ONLY public.oban_jobs ALTER COLUMN id SET DEFAULT nextval('public.ob
 
 
 --
+-- Name: disliked_profiles disliked_profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.disliked_profiles
+    ADD CONSTRAINT disliked_profiles_pkey PRIMARY KEY (by_user_id, user_id);
+
+
+--
+-- Name: interests_overlap interests_overlap_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.interests_overlap
+    ADD CONSTRAINT interests_overlap_pkey PRIMARY KEY (user_id_1, user_id_2);
+
+
+--
+-- Name: liked_profiles liked_profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.liked_profiles
+    ADD CONSTRAINT liked_profiles_pkey PRIMARY KEY (by_user_id, user_id);
+
+
+--
+-- Name: match_messages match_messages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.match_messages
+    ADD CONSTRAINT match_messages_pkey PRIMARY KEY (match_id, id);
+
+
+--
+-- Name: matches matches_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.matches
+    ADD CONSTRAINT matches_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: oban_jobs oban_jobs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.oban_jobs
     ADD CONSTRAINT oban_jobs_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: profile_feeds profile_feeds_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.profile_feeds
+    ADD CONSTRAINT profile_feeds_pkey PRIMARY KEY (user_id, date);
 
 
 --
@@ -284,6 +409,14 @@ ALTER TABLE ONLY public.schema_migrations
 
 
 --
+-- Name: seen_profiles seen_profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.seen_profiles
+    ADD CONSTRAINT seen_profiles_pkey PRIMARY KEY (by_user_id, user_id);
+
+
+--
 -- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -297,6 +430,20 @@ ALTER TABLE ONLY public.users
 
 ALTER TABLE ONLY public.users_tokens
     ADD CONSTRAINT users_tokens_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: disliked_profiles_user_id_by_user_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX disliked_profiles_user_id_by_user_id_index ON public.disliked_profiles USING btree (user_id, by_user_id);
+
+
+--
+-- Name: liked_profiles_user_id_by_user_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX liked_profiles_user_id_by_user_id_index ON public.liked_profiles USING btree (user_id, by_user_id);
 
 
 --
@@ -318,6 +465,41 @@ CREATE INDEX oban_jobs_attempted_at_id_index ON public.oban_jobs USING btree (at
 --
 
 CREATE INDEX oban_jobs_queue_state_priority_scheduled_at_id_index ON public.oban_jobs USING btree (queue, state, priority, scheduled_at, id);
+
+
+--
+-- Name: profiles_date_trunc__day___last_active__timestamp_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX profiles_date_trunc__day___last_active__timestamp_index ON public.profiles USING btree (date_trunc('day'::text, last_active));
+
+
+--
+-- Name: profiles_gender_hidden_times_liked_desc_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX profiles_gender_hidden_times_liked_desc_index ON public.profiles USING btree (gender, "hidden?", times_liked DESC) WHERE ("hidden?" = false);
+
+
+--
+-- Name: seen_profiles_user_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX seen_profiles_user_id_index ON public.seen_profiles USING btree (user_id);
+
+
+--
+-- Name: user_id_1_alive_match; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX user_id_1_alive_match ON public.matches USING btree (user_id_1, "alive?") WHERE ("alive?" = true);
+
+
+--
+-- Name: user_id_2_alive_match; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX user_id_2_alive_match ON public.matches USING btree (user_id_2, "alive?") WHERE ("alive?" = true);
 
 
 --
@@ -349,11 +531,115 @@ CREATE TRIGGER oban_notify AFTER INSERT ON public.oban_jobs FOR EACH ROW EXECUTE
 
 
 --
+-- Name: disliked_profiles disliked_profiles_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.disliked_profiles
+    ADD CONSTRAINT disliked_profiles_by_user_id_fkey FOREIGN KEY (by_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: disliked_profiles disliked_profiles_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.disliked_profiles
+    ADD CONSTRAINT disliked_profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: interests_overlap interests_overlap_user_id_1_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.interests_overlap
+    ADD CONSTRAINT interests_overlap_user_id_1_fkey FOREIGN KEY (user_id_1) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: interests_overlap interests_overlap_user_id_2_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.interests_overlap
+    ADD CONSTRAINT interests_overlap_user_id_2_fkey FOREIGN KEY (user_id_2) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: liked_profiles liked_profiles_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.liked_profiles
+    ADD CONSTRAINT liked_profiles_by_user_id_fkey FOREIGN KEY (by_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: liked_profiles liked_profiles_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.liked_profiles
+    ADD CONSTRAINT liked_profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: match_messages match_messages_author_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.match_messages
+    ADD CONSTRAINT match_messages_author_id_fkey FOREIGN KEY (author_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: match_messages match_messages_match_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.match_messages
+    ADD CONSTRAINT match_messages_match_id_fkey FOREIGN KEY (match_id) REFERENCES public.matches(id) ON DELETE CASCADE;
+
+
+--
+-- Name: matches matches_user_id_1_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.matches
+    ADD CONSTRAINT matches_user_id_1_fkey FOREIGN KEY (user_id_1) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: matches matches_user_id_2_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.matches
+    ADD CONSTRAINT matches_user_id_2_fkey FOREIGN KEY (user_id_2) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: profile_feeds profile_feeds_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.profile_feeds
+    ADD CONSTRAINT profile_feeds_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: profiles profiles_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.profiles
     ADD CONSTRAINT profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: seen_profiles seen_profiles_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.seen_profiles
+    ADD CONSTRAINT seen_profiles_by_user_id_fkey FOREIGN KEY (by_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: seen_profiles seen_profiles_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.seen_profiles
+    ADD CONSTRAINT seen_profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
@@ -376,3 +662,14 @@ INSERT INTO public."schema_migrations" (version) VALUES (20201215141153);
 INSERT INTO public."schema_migrations" (version) VALUES (20201219095342);
 INSERT INTO public."schema_migrations" (version) VALUES (20201219112614);
 INSERT INTO public."schema_migrations" (version) VALUES (20201223080010);
+INSERT INTO public."schema_migrations" (version) VALUES (20201231001626);
+INSERT INTO public."schema_migrations" (version) VALUES (20201231002022);
+INSERT INTO public."schema_migrations" (version) VALUES (20201231002323);
+INSERT INTO public."schema_migrations" (version) VALUES (20210113151632);
+INSERT INTO public."schema_migrations" (version) VALUES (20210113151839);
+INSERT INTO public."schema_migrations" (version) VALUES (20210113153633);
+INSERT INTO public."schema_migrations" (version) VALUES (20210113212327);
+INSERT INTO public."schema_migrations" (version) VALUES (20210113220005);
+INSERT INTO public."schema_migrations" (version) VALUES (20210113224758);
+INSERT INTO public."schema_migrations" (version) VALUES (20210113230120);
+INSERT INTO public."schema_migrations" (version) VALUES (20210114212305);

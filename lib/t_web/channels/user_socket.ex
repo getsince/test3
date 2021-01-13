@@ -10,8 +10,6 @@ defmodule TWeb.UserSocket do
   channel "profile:*", TWeb.ProfileChannel
   # notification:<uuid>
   channel "notification:*", TWeb.NotificationChannel
-  # onboarding:<uuid>
-  channel "onboarding:*", TWeb.OnboardingChannel
 
   @impl true
   def connect(%{"token" => token}, socket, _connect_info) do

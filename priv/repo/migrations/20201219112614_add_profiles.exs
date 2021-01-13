@@ -14,7 +14,7 @@ defmodule T.Repo.Migrations.AddProfiles do
       add :gender, :text
       add :birthdate, :date
       add :height, :integer
-      add :home_city, :text
+      add :city, :text
       add :occupation, :text
       add :job, :text
       add :university, :text

@@ -27,6 +27,7 @@ defmodule T.MixProject do
 
   # Specifies which paths to compile per environment.
   defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(:dev), do: ["lib", "dev"]
   defp elixirc_paths(_), do: ["lib"]
 
   # Specifies your project dependencies.
@@ -67,7 +68,8 @@ defmodule T.MixProject do
       # {:pigeon, "~> 1.5", runtime: false},
       # {:kadabra, "~> 0.4.4"},
       {:sentry, "~> 8.0", runtime: false},
-      {:bigflake, "0.5.0"}
+      {:bigflake, "0.5.0"},
+      {:nimble_csv, "~> 1.1"}
     ]
   end
 

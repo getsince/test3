@@ -1,9 +1,11 @@
 defmodule TWeb.ProfileView do
   use TWeb, :view
   alias T.Accounts.Profile
+  alias T.Media
 
   def render("show.json", %{profile: %Profile{} = profile}) do
-    Map.take(profile, [
+    profile
+    |> Map.take([
       :user_id,
       :photos,
       :name,
@@ -21,5 +23,8 @@ defmodule TWeb.ProfileView do
       :free_form,
       :tastes
     ])
+    |> Map.update!(:photos, fn photos ->
+      Enum.map(photos, fn key -> Media.presigned_url(:get, key) end)
+    end)
   end
 end

@@ -26,7 +26,7 @@ defmodule T.Feeds.PersonalityOverlapJob do
         {after_id, _tastes} = List.last(other_tastes)
 
         %{user_id: my_user_id, after_id: after_id}
-        |> new(schedule_in: 5)
+        |> new(schedule_in: 1)
         |> Oban.insert()
       else
         {:ok, %{updated: updated}}

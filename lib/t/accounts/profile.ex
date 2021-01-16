@@ -97,7 +97,7 @@ defmodule T.Accounts.Profile do
     end)
     |> validate_length(:occupation, max: 100)
     |> validate_length(:job, max: 100)
-    |> validate_length(:university, max: 100)
+    |> validate_length(:university, max: 200)
     |> validate_length(:major, max: 100)
   end
 

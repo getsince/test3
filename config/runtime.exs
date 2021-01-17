@@ -117,6 +117,10 @@ if config_env() == :prod do
   # Do not print debug messages in production
   config :logger, level: :info
 
+  config :t, :dashboard,
+    username: System.fetch_env!("DASHBOARD_USERNAME"),
+    password: System.fetch_env!("DASHBOARD_PASSWORD")
+
   config :ex_aws,
     s3: [
       bucket: System.fetch_env!("AWS_S3_BUCKET")
@@ -132,6 +136,8 @@ if config_env() == :dev do
       topic: System.fetch_env!("APNS_TOPIC"),
       mode: :dev
     }
+
+  config :t, :dashboard, username: "test", password: "test"
 
   config :t, T.Mailer,
     adapter: Bamboo.LocalAdapter,

@@ -34,21 +34,19 @@ defmodule TWeb.Router do
     # end
   end
 
-  # TODO allow in prod under basic auth
-  # Enables LiveDashboard only for development
-  #
-  # If you want to use the LiveDashboard in production, you should put
-  # it behind authentication and allow only admins to access it.
-  # If your application does not have an admins-only section yet,
-  # you can use Plug.BasicAuth to set up some basic authentication
-  # as long as you are also using SSL (which you should anyway).
-  if Mix.env() in [:dev, :test] do
-    import Phoenix.LiveDashboard.Router
+  import Phoenix.LiveDashboard.Router
 
-    scope "/" do
-      pipe_through [:fetch_session, :protect_from_forgery]
-      live_dashboard "/dashboard", metrics: TWeb.Telemetry
-    end
+  scope "/" do
+    pipe_through [
+      :fetch_session,
+      :protect_from_forgery,
+      :put_secure_browser_headers,
+      :dashboard_auth
+    ]
+
+    live_dashboard "/api/dashboard",
+      metrics: TWeb.Telemetry,
+      ecto_repos: [T.Repo]
   end
 
   ## Authentication routes
@@ -64,12 +62,8 @@ defmodule TWeb.Router do
     plug :accepts, ["json"]
   end
 
-  pipeline :with_current_user_from_bearer_token do
-    plug :fetch_current_user_from_bearer_token
-  end
-
   scope "/mobile/api/auth", TWeb do
-    pipe_through [:api, :with_current_user_from_bearer_token, :require_not_authenticated_user]
+    pipe_through [:api, :fetch_current_user_from_bearer_token, :require_not_authenticated_user]
     post "/request-sms", MobileAuthController, :request_sms
     post "/verify-phone-number", MobileAuthController, :verify_phone_number
   end

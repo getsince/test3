@@ -67,6 +67,11 @@ defmodule TWeb.UserAuth do
     end
   end
 
+  def dashboard_auth(conn, _opts) do
+    dashboard_auth_opts = Application.fetch_env!(:t, :dashboard)
+    Plug.BasicAuth.basic_auth(conn, dashboard_auth_opts)
+  end
+
   # Make the remember me cookie valid for 60 days.
   # If you want bump or reduce this value, also change
   # the token expiry itself in UserToken.

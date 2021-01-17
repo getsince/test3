@@ -53,6 +53,24 @@ defmodule TWeb.FeedChannel do
     {:reply, :ok, socket}
   end
 
+  # TODO test
+  def handle_in(
+        "report",
+        %{"report" => %{"reason" => reason, "profile_id" => reported_user_id}},
+        socket
+      ) do
+    %{current_user: reporter} = socket.assigns
+
+    case Accounts.report_user(reporter.id, reported_user_id, reason) do
+      :ok ->
+        {:reply, :ok, socket}
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:reply, {:error, %{report: render(ErrorView, "changeset.json", changeset: changeset)}},
+         socket}
+    end
+  end
+
   # TODO fetch feed
 
   @impl true

@@ -2,7 +2,6 @@
 - delete, block profiles, handle hidden?
 - schedule push notifications with oban
 - add "typing ..."
-- setup phoenix dashboard
 - benchmark
 - plug attack
 - build and push container to docker hub from github actions https://www.docker.com/blog/docker-github-actions/ https://docs.github.com/en/actions/creating-actions/creating-a-docker-container-action https://sethetter.com/posts/github-actions-with-docker/
@@ -14,3 +13,5 @@
 - connect rest of the ios app to backend, test push notifications
 - deploy backend
 - remove unused indexes (dislike, seen)
+- add sentry
+- multiple nomad nodes, distributed within the same vpc

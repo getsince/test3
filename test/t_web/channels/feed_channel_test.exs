@@ -95,7 +95,7 @@ defmodule TWeb.FeedChannelTest do
 
       ref = push(socket, "like", %{"profile_id" => p.user_id})
 
-      assert_reply ref, :ok, reply
+      assert_reply ref, :ok, reply, 1000
       assert reply == %{}
       assert_push "matched", payload
       assert %{id: match_id} = Matches.get_current_match(user.id)
@@ -133,7 +133,7 @@ defmodule TWeb.FeedChannelTest do
     test "nothing happens", %{socket: socket, profile: p} do
       ref = push(socket, "dislike", %{"profile_id" => p.user_id})
 
-      assert_reply ref, :ok, reply
+      assert_reply ref, :ok, reply, 1000
       assert reply == %{}
       refute_push _event, _payload
     end

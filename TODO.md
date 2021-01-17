@@ -1,7 +1,10 @@
-- create fake users
 - delete, block profiles, handle hidden?
+- report profiles
 - setup phoenix dashboard
 - benchmark
 - push notifications
 - plug attack
 - build and push container to docker hub from github actions https://www.docker.com/blog/docker-github-actions/ https://docs.github.com/en/actions/creating-actions/creating-a-docker-container-action https://sethetter.com/posts/github-actions-with-docker/
+- if already in match and someone likes us, create a "pending" match once the other user is unmatched, they should check for pending matches
+- add new devices table for user devices and push notifications (tie with tokens somehow)
+- add "typing ..."

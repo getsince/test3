@@ -175,7 +175,7 @@ defmodule TWeb.MatchChannelTest do
 
     test "it's broadcasted", %{socket: socket} do
       ref = push(socket, "unmatch", %{})
-      assert_reply ref, :ok, reply
+      assert_reply ref, :ok, reply, 1000
       assert reply == %{}
       assert_broadcast "unmatched", broadcast
       assert broadcast == %{}

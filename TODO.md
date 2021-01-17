@@ -1,14 +1,21 @@
+- if already in match and someone likes us, create a "pending" match once the other user is unmatched, they should check for pending matches
 - delete, block profiles, handle hidden?
 - report profiles
+- schedule push notifications with oban
+- add "typing ..."
 - setup phoenix dashboard
 - benchmark
 - push notifications
 - plug attack
 - build and push container to docker hub from github actions https://www.docker.com/blog/docker-github-actions/ https://docs.github.com/en/actions/creating-actions/creating-a-docker-container-action https://sethetter.com/posts/github-actions-with-docker/
-- if already in match and someone likes us, create a "pending" match once the other user is unmatched, they should check for pending matches
 - add new devices table for user devices and push notifications (tie with tokens somehow)
-- add "typing ..."
 - maybe limit # of times a profile is shown in feeds to limit superstars
 - test https://github.com/ruslandoga/test3/pull/10/files
 - test new (ios) auth
 - test push notifications
+- todo delete ios token on log out
+- on ios, make it run on ios10
+- finish onboarding, fix images picker, add push notifications screen, connect to backend, save profile to sqlite on each change
+- connect rest of the ios app to backend, test push notifications
+- deploy backend
+- remove unused indexes (dislike, seen)

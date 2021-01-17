@@ -5,9 +5,7 @@ defmodule TWeb.MatchChannelTest do
 
   setup do
     {:ok, %User{} = user} = Accounts.register_user(%{phone_number: phone_number()})
-    token = user |> Accounts.generate_user_session_token() |> Base.encode64(padding: false)
-    {:ok, socket} = connect(TWeb.UserSocket, %{"token" => token}, %{})
-    {:ok, user: Repo.preload(user, :profile), socket: socket}
+    {:ok, user: Repo.preload(user, :profile), socket: connected_socket(user)}
   end
 
   describe "join a match with no messages" do

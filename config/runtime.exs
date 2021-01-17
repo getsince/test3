@@ -203,7 +203,6 @@ if config_env() == :test do
   config :logger, level: :warn
 
   config :t, Oban, crontab: false, queues: false, plugins: false
-
   config :t, T.Mailer, adapter: Bamboo.TestAdapter, our_address: "kindly@example.com"
 
   config :ex_aws,

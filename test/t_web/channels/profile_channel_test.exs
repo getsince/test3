@@ -46,8 +46,10 @@ defmodule TWeb.ProfileChannelTest do
       {:ok, _profile} =
         Accounts.update_profile(user.profile, %{"name" => "Jojaresum", "photos" => ["photo.jpg"]})
 
-      assert {:ok, %{profile: %{name: "Jojaresum", photos: ["photo.jpg"]}}, _socket} =
+      assert {:ok, %{profile: %{name: "Jojaresum", photos: [photo]}}, _socket} =
                subscribe_and_join(socket, "profile:" <> user.id, %{})
+
+      assert String.contains?(photo, "photo.jpg")
     end
   end
 
@@ -124,7 +126,7 @@ defmodule TWeb.ProfileChannelTest do
                  most_important_in_life: "благочестие",
                  name: "hey that's me CLARISA",
                  occupation: nil,
-                 photos: ["a", "b", "c", "d"],
+                 photos: reply.profile.photos,
                  tastes: %{
                    "books" => ["asdfasdf"],
                    "cuisines" => ["italian"],
@@ -137,6 +139,8 @@ defmodule TWeb.ProfileChannelTest do
                  university: nil
                }
              }
+
+      assert length(reply.profile.photos) == 4
 
       user = User |> Repo.get(user.id) |> Repo.preload([:profile])
       assert user.profile.hidden? == false

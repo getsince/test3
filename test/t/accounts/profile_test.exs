@@ -143,9 +143,9 @@ defmodule T.Accounts.ProfileTest do
       refute errors_on(changeset)[:university]
 
       changeset =
-        Profile.work_and_education_changeset(%Profile{}, %{university: String.duplicate("a", 101)})
+        Profile.work_and_education_changeset(%Profile{}, %{university: String.duplicate("a", 201)})
 
-      assert errors_on(changeset).university == ["should be at most 100 character(s)"]
+      assert errors_on(changeset).university == ["should be at most 200 character(s)"]
     end
 
     test "major should be less than 100 chars" do

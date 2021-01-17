@@ -39,14 +39,15 @@ if config_env() == :prod do
   # config :sentry,
   #   dsn: System.fetch_env!("SENTRY_DSN")
 
-  # config :pigeon, :apns,
-  #   apns_default: %{
-  #     key: System.fetch_env!("APNS_KEY"),
-  #     key_identifier: System.fetch_env!("APNS_KEY_ID"),
-  #     team_id: System.fetch_env!("APNS_TEAM_ID"),
-  #     # TODO
-  #     mode: :dev
-  #   }
+  config :pigeon, :apns,
+    apns_default: %{
+      key: System.fetch_env!("APNS_KEY"),
+      key_identifier: System.fetch_env!("APNS_KEY_ID"),
+      team_id: System.fetch_env!("APNS_TEAM_ID"),
+      topic: System.fetch_env!("APNS_TOPIC"),
+      # TODO
+      mode: :dev
+    }
 
   config :t, run_migrations_on_start?: true
 
@@ -123,6 +124,15 @@ if config_env() == :prod do
 end
 
 if config_env() == :dev do
+  config :pigeon, :apns,
+    apns_default: %{
+      key: System.fetch_env!("APNS_KEY"),
+      key_identifier: System.fetch_env!("APNS_KEY_ID"),
+      team_id: System.fetch_env!("APNS_TEAM_ID"),
+      topic: System.fetch_env!("APNS_TOPIC"),
+      mode: :dev
+    }
+
   config :t, T.Mailer,
     adapter: Bamboo.LocalAdapter,
     #   adapter: Bamboo.SesAdapter,

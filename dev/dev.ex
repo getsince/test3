@@ -1,6 +1,33 @@
 defmodule Dev do
   alias T.{Media, Accounts}
   alias T.Accounts.{Profile}
+  alias Pigeon.APNS
+  alias Pigeon.APNS.Notification
+
+  def push_notification(
+        dev_id \\ "8DD777E4366CAA4CE148B8BC77ECF37673A603C78B3D2F2E91C09F1EE07DE178"
+      ) do
+    message = ""
+
+    # dev_id = "jdd35DZsqkzhSLi8d+zzdnOmA8eLPS8ukcCfHuB94Xg="
+    topic = Application.fetch_env!(:pigeon, :apns)[:apns_default].topic
+
+    message
+    |> Notification.new(dev_id, topic)
+    |> Notification.put_alert(%{
+      "title" => "Это матч!",
+      # "subtitle" => "Five Card Draw",
+      "body" => "Вася пупкин ждёт тебя!"
+    })
+    |> Notification.put_custom(%{"thread_id" => "1"})
+    |> Notification.put_badge(1)
+    # |> Notification.put_category()
+    # |> Notification.put_content_available()
+    # |> Notification.put_custom()
+    # |> Notification.put_mutable_content()
+    # |> Map.put(:collapse_id, "1")
+    |> APNS.push()
+  end
 
   def bucket do
     Media.bucket()

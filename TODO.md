@@ -9,3 +9,6 @@
 - add new devices table for user devices and push notifications (tie with tokens somehow)
 - add "typing ..."
 - maybe limit # of times a profile is shown in feeds to limit superstars
+- test https://github.com/ruslandoga/test3/pull/10/files
+- test new (ios) auth
+- test push notifications

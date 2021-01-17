@@ -5,9 +5,7 @@ defmodule TWeb.ProfileChannelTest do
 
   setup do
     {:ok, %User{} = user} = Accounts.register_user(%{phone_number: phone_number()})
-    token = user |> Accounts.generate_user_session_token() |> Base.encode64(padding: false)
-    {:ok, socket} = connect(TWeb.UserSocket, %{"token" => token}, %{})
-    {:ok, user: Repo.preload(user, :profile), socket: socket}
+    {:ok, user: Repo.preload(user, :profile), socket: connected_socket(user)}
   end
 
   describe "join" do
@@ -155,9 +153,6 @@ defmodule TWeb.ProfileChannelTest do
       ref = push(socket, "upload-preflight", %{"photo" => %{"content-type" => "image/jpeg"}})
       assert_reply ref, :ok, reply, 1000
 
-      expected_credential =
-        "AWS_ACCESS_KEY_ID/#{Date.utc_today() |> Date.to_iso8601() |> String.replace("-", "")}/eu-central-1/s3/aws4_request"
-
       assert %{
                fields: %{
                  "acl" => "private",
@@ -165,7 +160,7 @@ defmodule TWeb.ProfileChannelTest do
                  "key" => key,
                  "policy" => _policy,
                  "x-amz-algorithm" => "AWS4-HMAC-SHA256",
-                 "x-amz-credential" => ^expected_credential,
+                 "x-amz-credential" => _credential,
                  "x-amz-date" => _date,
                  "x-amz-server-side-encryption" => "AES256",
                  "x-amz-signature" => _signature

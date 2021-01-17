@@ -3,15 +3,6 @@ defmodule TWeb.Router do
 
   import TWeb.UserAuth
 
-  pipeline :api do
-    plug :accepts, ["json"]
-  end
-
-  pipeline :with_current_user do
-    plug :fetch_current_user_from_header_or_session
-    # TODO protect from forgery
-  end
-
   # TODO add app routes
   # TODO /onboarding
   # /login
@@ -37,10 +28,10 @@ defmodule TWeb.Router do
   if Mix.env() == :dev do
     forward "/sent-emails", Bamboo.SentEmailViewerPlug
 
-    scope "/api/dev", TWeb do
-      pipe_through :api
-      post "/phone-code", DevController, :get_phone_code
-    end
+    # scope "/api/dev", TWeb do
+    #   pipe_through :api
+    #   post "/phone-code", DevController, :get_phone_code
+    # end
   end
 
   # TODO allow in prod under basic auth
@@ -62,10 +53,24 @@ defmodule TWeb.Router do
 
   ## Authentication routes
 
-  scope "/api/auth", TWeb do
-    pipe_through [:api, :with_current_user, :require_not_authenticated_user]
+  # scope "/api/auth", TWeb do
+  #   pipe_through [:api, :with_current_user, :require_not_authenticated_user]
 
-    post "/request-sms", AuthController, :request_sms
-    post "/verify-phone-number", AuthController, :verify_phone_number
+  #   post "/request-sms", AuthController, :request_sms
+  #   post "/verify-phone-number", AuthController, :verify_phone_number
+  # end
+
+  pipeline :api do
+    plug :accepts, ["json"]
+  end
+
+  pipeline :with_current_user_from_bearer_token do
+    plug :fetch_current_user_from_bearer_token
+  end
+
+  scope "/mobile/api/auth", TWeb do
+    pipe_through [:api, :with_current_user_from_bearer_token, :require_not_authenticated_user]
+    post "/request-sms", MobileAuthController, :request_sms
+    post "/verify-phone-number", MobileAuthController, :verify_phone_number
   end
 end

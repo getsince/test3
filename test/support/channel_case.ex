@@ -41,4 +41,19 @@ defmodule TWeb.ChannelCase do
 
     :ok
   end
+
+  alias T.Accounts
+  import Phoenix.ChannelTest
+
+  @endpoint TWeb.Endpoint
+
+  def connected_socket(user) do
+    token =
+      user
+      |> Accounts.generate_user_session_token("mobile")
+      |> Accounts.UserToken.encoded_token()
+
+    {:ok, socket} = connect(TWeb.UserSocket, %{"token" => token}, %{})
+    socket
+  end
 end

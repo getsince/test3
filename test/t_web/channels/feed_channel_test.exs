@@ -28,9 +28,7 @@ defmodule TWeb.FeedChannelTest do
         }
       })
 
-    token = user |> Accounts.generate_user_session_token() |> Base.encode64(padding: false)
-    {:ok, socket} = connect(TWeb.UserSocket, %{"token" => token}, %{})
-    {:ok, user: Repo.preload(user, :profile), socket: socket}
+    {:ok, user: Repo.preload(user, :profile), socket: connected_socket(user)}
   end
 
   describe "join" do

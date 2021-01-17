@@ -2,10 +2,7 @@ defmodule T.Accounts.UserToken do
   use Ecto.Schema
   import Ecto.Query
 
-  @hash_algorithm :sha256
   @rand_size 32
-
-  @confirm_validity_in_seconds 300
   @session_validity_in_days 60
 
   @primary_key {:id, Ecto.Bigflake.UUID, autogenerate: true}
@@ -19,14 +16,28 @@ defmodule T.Accounts.UserToken do
     timestamps(updated_at: false)
   end
 
+  @doc false
+  def raw_token(<<_::@rand_size-bytes>> = token), do: token
+
+  def raw_token(<<_::43-bytes>> = token) do
+    Base.decode64!(token, padding: false)
+  end
+
+  @doc false
+  def encoded_token(<<_::43-bytes>> = token), do: token
+
+  def encoded_token(<<_::@rand_size-bytes>> = token) do
+    Base.encode64(token, padding: false)
+  end
+
   @doc """
   Generates a token that will be stored in a signed place,
-  such as session or cookie. As they are signed, those
+  such as session or cookie or keychain. As they are signed, those
   tokens do not need to be hashed.
   """
-  def build_session_token(user) do
+  def build_token(user, context) when context in ["session", "mobile"] do
     token = :crypto.strong_rand_bytes(@rand_size)
-    {token, %T.Accounts.UserToken{token: token, context: "session", user_id: user.id}}
+    {token, %T.Accounts.UserToken{token: token, context: context, user_id: user.id}}
   end
 
   @doc """
@@ -44,37 +55,21 @@ defmodule T.Accounts.UserToken do
     {:ok, query}
   end
 
-  @doc """
-  Checks if the token is valid and returns its underlying lookup query.
+  def verify_mobile_token_query(token) do
+    query =
+      from token in token_and_context_query(token, "mobile"),
+        join: user in assoc(token, :user),
+        # TODO expire after > 3 months of inactivity?
+        select: user
 
-  The query returns the user found by the token.
-  """
-  def verify_email_token_query(token, "confirm" = context) do
-    case Base.url_decode64(token, padding: false) do
-      {:ok, decoded_token} ->
-        hashed_token = :crypto.hash(@hash_algorithm, decoded_token)
-        seconds = seconds_for_context(context)
-
-        query =
-          from token in token_and_context_query(hashed_token, context),
-            join: user in assoc(token, :user),
-            where: token.inserted_at > ago(^seconds, "second") and token.sent_to == user.email,
-            select: user
-
-        {:ok, query}
-
-      :error ->
-        :error
-    end
+    {:ok, query}
   end
-
-  defp seconds_for_context("confirm"), do: @confirm_validity_in_seconds
 
   @doc """
   Returns the given token with the given context.
   """
   def token_and_context_query(token, context) do
-    from T.Accounts.UserToken, where: [token: ^token, context: ^context]
+    from T.Accounts.UserToken, where: [token: ^raw_token(token), context: ^context]
   end
 
   @doc """

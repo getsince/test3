@@ -6,7 +6,7 @@ defmodule T.Accounts do
   import Ecto.Query, warn: false
   import Ecto.Changeset
   alias T.{Repo, Media}
-  alias T.Accounts.{User, Profile, UserToken, UserNotifier, UserReport}
+  alias T.Accounts.{User, Profile, UserToken, UserNotifier, UserReport, APNSDevice}
   alias T.Feeds.PersonalityOverlapJob
 
   # def subscribe_to_new_users do
@@ -103,13 +103,24 @@ defmodule T.Accounts do
     end)
   end
 
+  def save_apns_device_id(user_id, token, device_id) do
+    %UserToken{id: token_id} = token |> UserToken.token_and_context_query("mobile") |> Repo.one!()
+
+    Repo.insert!(%APNSDevice{user_id: user_id, token_id: token_id, device_id: device_id},
+      on_conflict: {:replace, [:device_id, :updated_at]},
+      conflict_target: [:user_id, :token_id]
+    )
+
+    :ok
+  end
+
   ## Session
 
   @doc """
-  Generates a session token.
+  Generates a session token for a user.
   """
-  def generate_user_session_token(user) do
-    {token, user_token} = UserToken.build_session_token(user)
+  def generate_user_session_token(user, context) do
+    {token, user_token} = UserToken.build_token(user, context)
     Repo.insert!(user_token)
     token
   end
@@ -117,15 +128,20 @@ defmodule T.Accounts do
   @doc """
   Gets the user with the given signed token.
   """
-  def get_user_by_session_token(token) do
-    {:ok, query} = UserToken.verify_session_token_query(token)
+  def get_user_by_session_token(token, context) do
+    {:ok, query} =
+      case context do
+        "session" -> UserToken.verify_session_token_query(token)
+        "mobile" -> UserToken.verify_mobile_token_query(token)
+      end
+
     Repo.one(query)
   end
 
   @doc """
   Deletes the signed token with the given context.
   """
-  def delete_session_token(token, context \\ "session") do
+  def delete_session_token(token, context) do
     Repo.delete_all(UserToken.token_and_context_query(token, context))
     :ok
   end

@@ -1,6 +1,7 @@
 defmodule T.AccountsTest do
   use T.DataCase, async: true
   use Oban.Testing, repo: Repo
+
   alias T.Accounts
   alias T.Accounts.Profile
   alias T.Feeds.PersonalityOverlapJob

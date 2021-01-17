@@ -2,20 +2,20 @@ defmodule TWeb.UserSocket do
   use Phoenix.Socket
   alias T.Accounts
 
-  # feed:<uuid>
+  # feed:<user-id>
   channel "feed:*", TWeb.FeedChannel
-  # match:<uuid>:<uuid>
+  # match:<match-id>
   channel "match:*", TWeb.MatchChannel
-  # profile:<uuid>
+  # profile:<user-id>
   channel "profile:*", TWeb.ProfileChannel
-  # notification:<uuid>
+  # notification:<user-id>
   channel "notification:*", TWeb.NotificationChannel
+  # # user:<uuid>
+  # channel "user:*", TWeb.UserChannel
 
   @impl true
   def connect(%{"token" => token}, socket, _connect_info) do
-    token = Base.decode64!(token, padding: false)
-
-    if user = Accounts.get_user_by_session_token(token) do
+    if user = Accounts.get_user_by_session_token(token, "mobile") do
       {:ok, assign(socket, current_user: user, token: token)}
     else
       :error
@@ -28,6 +28,7 @@ defmodule TWeb.UserSocket do
 
   @impl true
   def id(socket) do
-    "user_socket:#{socket.assigns.token}"
+    token = Accounts.UserToken.encoded_token(socket.assigns.token)
+    "user_socket:#{token}"
   end
 end

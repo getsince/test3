@@ -8,3 +8,4 @@
 - if already in match and someone likes us, create a "pending" match once the other user is unmatched, they should check for pending matches
 - add new devices table for user devices and push notifications (tie with tokens somehow)
 - add "typing ..."
+- maybe limit # of times a profile is shown in feeds to limit superstars

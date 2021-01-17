@@ -1,7 +1,7 @@
 defmodule TWeb.MatchChannel do
   use TWeb, :channel
   alias TWeb.{ErrorView, MatchView}
-  alias T.Matches
+  alias T.{Matches, Accounts}
 
   @impl true
   def join("match:" <> match_id, params, socket) do
@@ -65,11 +65,6 @@ defmodule TWeb.MatchChannel do
     {:reply, :ok, socket}
   end
 
-  # TODO
-  # def handle_in("report", %{"reason" => _reason}, socket) do
-  #   {:reply, :ok, socket}
-  # end
-
   def handle_in("upload-preflight", %{"media" => %{"content-type" => content_type}}, socket) do
     {:ok, %{"key" => key} = fields} = Matches.media_upload_form(content_type)
     url = Matches.media_s3_url()
@@ -79,6 +74,22 @@ defmodule TWeb.MatchChannel do
 
     # TODO check key afterwards
     {:reply, {:ok, %{url: url, key: key, fields: fields}}, socket}
+  end
+
+  # TODO test
+  def handle_in("report", %{"report" => %{"reason" => reason}}, socket) do
+    %{current_user: reporter, match: match} = socket.assigns
+    match_user_ids = [match.user_id_1, match.user_id_2]
+    reported_user_id = ChannelHelpers.other_user_id(socket, match_user_ids)
+
+    case Accounts.report_user(reporter.id, reported_user_id, reason) do
+      :ok ->
+        {:reply, :ok, socket}
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:reply, {:error, %{report: render(ErrorView, "changeset.json", changeset: changeset)}},
+         socket}
+    end
   end
 
   # TODO

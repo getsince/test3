@@ -4,8 +4,9 @@ defmodule T.Accounts do
   """
 
   import Ecto.Query, warn: false
+  import Ecto.Changeset
   alias T.{Repo, Media}
-  alias T.Accounts.{User, Profile, UserToken, UserNotifier}
+  alias T.Accounts.{User, Profile, UserToken, UserNotifier, UserReport}
   alias T.Feeds.PersonalityOverlapJob
 
   # def subscribe_to_new_users do
@@ -60,6 +61,46 @@ defmodule T.Accounts do
     else
       register_user(%{phone_number: phone_number})
     end
+  end
+
+  # TODO test
+  def report_user(from_user_id, on_user_id, reason) do
+    report_changeset =
+      %UserReport{from_user_id: from_user_id, on_user_id: on_user_id}
+      |> cast(%{reason: reason}, [:reason])
+      |> validate_required([:reason])
+      |> validate_length(:reason, max: 500)
+
+    Ecto.Multi.new()
+    |> Ecto.Multi.insert(:report, report_changeset)
+    |> maybe_block_user_multi(on_user_id)
+    |> Repo.transaction()
+    |> case do
+      {:ok, _changes} -> :ok
+      {:error, :report, %Ecto.Changeset{} = changeset, _changes} -> {:error, changeset}
+    end
+  end
+
+  @doc false
+  def maybe_block_user_multi(multi, reported_user_id) do
+    Ecto.Multi.run(multi, :block, fn repo, _changes ->
+      reports_count =
+        UserReport |> where(on_user_id: ^reported_user_id) |> select([r], count()) |> Repo.one!()
+
+      blocked? =
+        if reports_count >= 3 do
+          User
+          |> where(id: ^reported_user_id)
+          |> update([u], set: [blocked_at: fragment("now()")])
+          |> repo.update_all([])
+
+          Profile
+          |> where(user_id: ^reported_user_id)
+          |> repo.update_all(set: [hidden?: true])
+        end
+
+      {:ok, !!blocked?}
+    end)
   end
 
   ## Session

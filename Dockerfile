@@ -1,4 +1,4 @@
-FROM hexpm/elixir:1.11.2-erlang-23.1.5-alpine-3.12.1 as build
+FROM hexpm/elixir:1.11.3-erlang-23.2.2-alpine-3.12.1 as build
 
 # install build dependencies
 RUN apk add --no-cache --update git build-base

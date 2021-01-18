@@ -2,6 +2,7 @@ import Config
 
 config :t, ecto_repos: [T.Repo]
 config :phoenix, :json_library, Jason
+config :pigeon, json_library: Jason
 
 config :sentry,
   enable_source_code_context: true,

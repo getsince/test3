@@ -1,11 +1,11 @@
 defmodule T.MatchesTest do
   use T.DataCase, async: true
   alias T.Accounts.Profile
-  alias T.Matches
+  alias T.{Matches, Feeds}
   alias Matches.{Match, Message}
 
   describe "unmatch" do
-    test "match no longer, hidden no longer, heartbreak broadcasted" do
+    test "match no longer, hidden no longer (if no pending matches), unmatched broadcasted" do
       [p1, p2] = insert_list(2, :profile, hidden?: true)
 
       %Match{id: match_id} =
@@ -25,6 +25,70 @@ defmodule T.MatchesTest do
 
       refute Matches.get_current_match(p1.user_id)
       refute Matches.get_current_match(p2.user_id)
+    end
+
+    test "transition to pending match if the other user is available" do
+      [p1, p2, p3, p4] = insert_list(4, :profile)
+
+      Feeds.subscribe(p1.user_id)
+      Feeds.subscribe(p2.user_id)
+      Feeds.subscribe(p3.user_id)
+
+      assert {:ok, nil} = Feeds.like_profile(p1.user_id, p2.user_id)
+      assert {:ok, nil} = Feeds.like_profile(p1.user_id, p3.user_id)
+      assert {:ok, nil} = Feeds.like_profile(p1.user_id, p4.user_id)
+
+      assert {:ok, %Match{id: match_id, alive?: true}} =
+               Feeds.like_profile(p2.user_id, p1.user_id)
+
+      assert_receive {Feeds, [:matched], %Match{id: ^match_id}}
+      assert_receive {Feeds, [:matched], %Match{id: ^match_id}}
+
+      assert {:ok, %Match{id: pending_match_id, alive?: false, pending?: true}} =
+               Feeds.like_profile(p3.user_id, p1.user_id)
+
+      assert {:ok, %Match{id: _pending_match_id, alive?: false, pending?: true}} =
+               Feeds.like_profile(p4.user_id, p1.user_id)
+
+      assert {:ok, _changes} = Matches.unmatch(p1.user_id, match_id)
+      assert_receive {Matches, [:pending_match_activated], %Match{id: ^pending_match_id}}
+      assert_receive {Matches, [:pending_match_activated], %Match{id: ^pending_match_id}}
+      refute_receive _anything
+    end
+
+    test "no transition to pending match if the other user is not avialable" do
+      [p1, p2, p3, p4] = insert_list(4, :profile)
+
+      Feeds.subscribe(p1.user_id)
+      Feeds.subscribe(p2.user_id)
+      Feeds.subscribe(p3.user_id)
+      Feeds.subscribe(p4.user_id)
+
+      assert {:ok, nil} = Feeds.like_profile(p1.user_id, p2.user_id)
+      assert {:ok, nil} = Feeds.like_profile(p1.user_id, p3.user_id)
+      assert {:ok, nil} = Feeds.like_profile(p3.user_id, p4.user_id)
+
+      assert {:ok, %Match{id: m1, alive?: true}} = Feeds.like_profile(p2.user_id, p1.user_id)
+
+      assert_receive {Feeds, [:matched], %Match{id: ^m1}}
+      assert_receive {Feeds, [:matched], %Match{id: ^m1}}
+
+      assert {:ok, %Match{id: _p1, alive?: false, pending?: true}} =
+               Feeds.like_profile(p3.user_id, p1.user_id)
+
+      assert {:ok, %Match{id: m2, alive?: true}} = Feeds.like_profile(p4.user_id, p3.user_id)
+
+      assert_receive {Feeds, [:matched], %Match{id: ^m2}}
+      assert_receive {Feeds, [:matched], %Match{id: ^m2}}
+
+      assert {:ok, changes} = Matches.unmatch(p1.user_id, m1)
+
+      assert changes.maybe_activate_pending_matches == %{
+               p1.user_id => nil,
+               p2.user_id => nil
+             }
+
+      refute_receive _anything
     end
   end
 

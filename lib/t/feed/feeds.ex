@@ -8,7 +8,8 @@ defmodule T.Feeds do
   @pubsub T.PubSub
   @topic to_string(__MODULE__)
 
-  defp topic(user_id) do
+  @doc false
+  def topic(user_id) do
     @topic <> ":" <> user_id
   end
 
@@ -22,7 +23,7 @@ defmodule T.Feeds do
   end
 
   defp notify_subscribers(
-         {:ok, %Match{user_id_1: uid1, user_id_2: uid2} = match} = success,
+         {:ok, %Match{user_id_1: uid1, user_id_2: uid2, alive?: true} = match} = success,
          [:matched]
        ) do
     for topic <- [topic(uid1), topic(uid2)] do
@@ -32,8 +33,12 @@ defmodule T.Feeds do
     success
   end
 
-  defp notify_subscribers({:ok, nil} = no_match, [:matched]) do
-    no_match
+  defp notify_subscribers({:ok, %Match{pending?: true}} = pending, [:matched]) do
+    pending
+  end
+
+  defp notify_subscribers({:ok, _other} = no_active_match, [:matched]) do
+    no_active_match
   end
 
   # TODO auth, check they are in our feed, check no more 5 per day
@@ -50,21 +55,29 @@ defmodule T.Feeds do
       {:ok, nil}
     end)
     |> Ecto.Multi.run(:maybe_match, fn repo, _changes ->
-      liked? =
-        ProfileLike
-        |> where(user_id: ^by_user_id)
-        |> where(by_user_id: ^user_id)
-        |> repo.exists?()
+      ProfileLike
+      |> where(user_id: ^by_user_id)
+      |> where(by_user_id: ^user_id)
+      |> join(:inner, [pl], p in Profile, on: p.user_id == pl.by_user_id)
+      |> select([..., p], p.hidden?)
+      |> repo.one()
+      |> case do
+        # nobody likes me, sad
+        nil ->
+          {:ok, nil}
 
-      if liked? do
-        {2, nil} =
-          Profile
-          |> where([p], p.user_id in ^[by_user_id, user_id])
-          |> repo.update_all(set: [hidden?: true])
+        # someone likes me, and they are not hidden! -> not in match, not deleted, not blocked
+        false ->
+          {2, nil} =
+            Profile
+            |> where([p], p.user_id in ^[by_user_id, user_id])
+            |> repo.update_all(set: [hidden?: true])
 
-        create_match(repo, [by_user_id, user_id])
-      else
-        {:ok, nil}
+          create_active_match(repo, [by_user_id, user_id])
+
+        # somebody likes me, but they are hidden (maybe in match, maybe blocked or deleted)
+        true ->
+          create_pending_match(repo, [by_user_id, user_id])
       end
     end)
     |> Repo.transaction()
@@ -75,9 +88,14 @@ defmodule T.Feeds do
     |> notify_subscribers([:matched])
   end
 
-  defp create_match(repo, user_ids) do
+  defp create_active_match(repo, user_ids) do
     [user_id_1, user_id_2] = Enum.sort(user_ids)
     repo.insert(%Match{user_id_1: user_id_1, user_id_2: user_id_2, alive?: true})
+  end
+
+  defp create_pending_match(repo, user_ids) do
+    [user_id_1, user_id_2] = Enum.sort(user_ids)
+    repo.insert(%Match{user_id_1: user_id_1, user_id_2: user_id_2, alive?: false, pending?: true})
   end
 
   # TODO check if user_id is in feed, check no more 5 per day

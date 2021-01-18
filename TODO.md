@@ -15,3 +15,4 @@
 - remove unused indexes (dislike, seen)
 - add sentry
 - multiple nomad nodes, distributed within the same vpc
+- loki

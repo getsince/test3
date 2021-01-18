@@ -16,3 +16,4 @@
 - add sentry
 - multiple nomad nodes, distributed within the same vpc
 - loki
+- tracing

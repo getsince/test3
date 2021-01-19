@@ -1,5 +1,3 @@
-- if already in match and someone likes us, create a "pending" match once the other user is unmatched, they should check for pending matches
-- check for other match when activating a pending match as well
 - delete, block profiles, handle hidden?
 - schedule push notifications with oban
 - timezone based feed

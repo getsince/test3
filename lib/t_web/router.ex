@@ -60,6 +60,7 @@ defmodule TWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
+    plug TWeb.Plugs.Attack
   end
 
   scope "/mobile/api/auth", TWeb do

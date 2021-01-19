@@ -10,6 +10,8 @@ defmodule T.Application do
     children =
       [
         {Phoenix.PubSub, name: T.PubSub},
+        TWeb.RateLimitPubSub,
+        {PlugAttack.Storage.Ets, name: TWeb.Plugs.Attack.Storage, clean_period: 60_000},
         TWeb.Presence,
         TWeb.Endpoint,
         T.Repo,

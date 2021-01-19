@@ -18,6 +18,7 @@ defmodule TWeb.UserSocket do
     if user = Accounts.get_user_by_session_token(token, "mobile") do
       {:ok, assign(socket, current_user: user, token: token)}
     else
+      # TODO return reason (like user deleted, or invalid token)
       :error
     end
   end

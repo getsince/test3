@@ -9,7 +9,6 @@ defmodule Dev do
       ) do
     message = ""
 
-    # dev_id = "jdd35DZsqkzhSLi8d+zzdnOmA8eLPS8ukcCfHuB94Xg="
     topic = Application.fetch_env!(:pigeon, :apns)[:apns_default].topic
 
     message

@@ -1,4 +1,3 @@
-- delete, block profiles, handle hidden?
 - schedule push notifications with oban
 - add "typing ..."
 - benchmark

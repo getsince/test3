@@ -49,4 +49,35 @@ defmodule T.Factory do
     rand = to_string(:rand.uniform(9_999_999))
     "+7916" <> String.pad_leading(rand, 7, "0")
   end
+
+  def onboarding_attrs do
+    %{
+      birthdate: "1992-12-12",
+      city: "Moscow",
+      first_date_idea: "asdf",
+      gender: "M",
+      height: 120,
+      interests: ["this", "that"],
+      most_important_in_life: "this",
+      name: "that",
+      photos: ["a", "b", "c", "d"],
+      tastes: %{
+        music: ["rice"],
+        sports: ["bottles"],
+        alcohol: "not really",
+        smoking: "nah",
+        books: ["lol no"],
+        tv_shows: ["no"],
+        currently_studying: ["nah"]
+      }
+    }
+  end
+
+  alias T.Accounts
+
+  def onboarded_user do
+    {:ok, user} = Accounts.register_user(%{"phone_number" => phone_number()})
+    {:ok, profile} = Accounts.onboard_profile(user.profile, onboarding_attrs())
+    %Accounts.User{user | profile: profile}
+  end
 end

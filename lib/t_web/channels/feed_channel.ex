@@ -79,4 +79,11 @@ defmodule TWeb.FeedChannel do
     push(socket, "matched", %{match: render_match(match, other_profile)})
     {:noreply, socket}
   end
+
+  # TODO test
+  def handle_info({Matches, [:pending_match_activated], match}, socket) do
+    other_profile = Matches.get_other_profile_for_match!(match, socket.assigns.current_user.id)
+    push(socket, "matched", %{match: render_match(match, other_profile)})
+    {:noreply, socket}
+  end
 end

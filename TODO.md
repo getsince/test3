@@ -5,6 +5,7 @@
 - timezone based feed
 - add "typing ..."
 - benchmark
+- return feed from profile channel
 - plug attack
 - build and push container to docker hub from github actions https://www.docker.com/blog/docker-github-actions/ https://docs.github.com/en/actions/creating-actions/creating-a-docker-container-action https://sethetter.com/posts/github-actions-with-docker/
 - maybe limit # of times a profile is shown in feeds to limit superstars

@@ -8,6 +8,7 @@ defmodule T.Matches.Match do
     field :user_id_1, Ecto.Bigflake.UUID
     field :user_id_2, Ecto.Bigflake.UUID
     field :alive?, :boolean
+    field :pending?, :boolean
     timestamps(updated_at: false)
   end
 end

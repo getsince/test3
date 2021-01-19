@@ -13,22 +13,43 @@ defmodule T.FeedsTest do
       {:ok, profiles: [p1, p2]}
     end
 
-    test "creates match if user is already liked", %{profiles: [p1, p2]} do
+    test "creates match if user is already liked and the liker is not hidden", %{
+      profiles: [p1, p2]
+    } do
       insert(:like, user: p1.user, by_user: p2.user)
 
-      assert {:ok, %Match{id: match_id} = match} = Feeds.like_profile(p1.user_id, p2.user_id)
+      assert {:ok, %Match{id: match_id, alive?: true, pending?: nil} = match} =
+               Feeds.like_profile(p1.user_id, p2.user_id)
 
       assert times_liked(p2.user_id) == 1
       assert_seen(by_user_id: p1.user_id, user_id: p2.user_id)
       assert_liked(by_user_id: p1.user_id, user_id: p2.user_id)
       assert_hidden([p1.user_id, p2.user_id])
 
-      assert match.alive?
       assert p1.user_id in [match.user_id_1, match.user_id_2]
       assert p2.user_id in [match.user_id_1, match.user_id_2]
 
       assert_receive {Feeds, [:matched], %Match{id: ^match_id}}
       assert_receive {Feeds, [:matched], %Match{id: ^match_id}}
+    end
+
+    test "creates pending match if the other user is hidden", %{profiles: [p1, p2]} do
+      p3 = insert(:profile)
+      insert(:like, user: p3.user, by_user: p2.user)
+      insert(:like, user: p1.user, by_user: p2.user)
+
+      # oh my, p3 likes p2 and they match
+      assert {:ok, %Match{id: match_id, alive?: true, pending?: nil}} =
+               Feeds.like_profile(p3.user_id, p2.user_id)
+
+      assert_hidden([p2.user_id, p3.user_id])
+      assert_receive {Feeds, [:matched], %Match{id: ^match_id}}
+
+      assert {:ok, %Match{id: _pending_match_id, alive?: false, pending?: true}} =
+               Feeds.like_profile(p1.user_id, p2.user_id)
+
+      refute_hidden([p1.user_id])
+      refute_receive _anything
     end
 
     test "doesn't create match if not yet liked", %{profiles: [p1, p2]} do

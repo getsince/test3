@@ -7,8 +7,9 @@ defmodule T.Matches do
   """
   import Ecto.Query
   alias T.{Repo, Media, Accounts}
-  alias T.Accounts.Profile
+  alias T.Accounts.{User, Profile}
   alias T.Matches.{Match, Message}
+  alias T.Feeds
 
   @pubsub T.PubSub
   @topic to_string(__MODULE__)
@@ -36,8 +37,20 @@ defmodule T.Matches do
     success
   end
 
-  # TODO test can unmatch, unmatches the other user, and that there is a broadcast
-  # TODO test profiles are marked unmatched as well
+  defp notify_subscribers({:ok, changes} = success, [:pending_match_activated] = event) do
+    %{maybe_activate_pending_matches: matches} = changes
+
+    for {_user_id, maybe_match} <- matches do
+      if match = maybe_match do
+        for user_id <- [match.user_id_1, match.user_id_2] do
+          Phoenix.PubSub.broadcast(@pubsub, Feeds.topic(user_id), {__MODULE__, event, match})
+        end
+      end
+    end
+
+    success
+  end
+
   def unmatch(user_id, match_id) do
     Ecto.Multi.new()
     |> Ecto.Multi.run(:unmatch, fn repo, _changes ->
@@ -53,11 +66,22 @@ defmodule T.Matches do
         {0, _} -> {:error, :no_match}
       end
     end)
-    |> Ecto.Multi.run(:unhide, fn repo, %{unmatch: user_ids} ->
-      Profile
-      |> where([p], p.user_id in ^user_ids)
-      # TODO what if blocked or deleted?
-      |> repo.update_all(set: [hidden?: false])
+    |> Ecto.Multi.run(:maybe_activate_pending_matches, fn repo, %{unmatch: user_ids} ->
+      activated_matches =
+        Map.new(user_ids, fn user_id ->
+          {user_id, maybe_activate_pending_match(repo, user_id)}
+        end)
+
+      {:ok, activated_matches}
+    end)
+    |> Ecto.Multi.run(:maybe_unhide, fn repo, changes ->
+      %{maybe_activate_pending_matches: activated_matches} = changes
+
+      for {user_id, maybe_match} <- activated_matches do
+        unless maybe_match do
+          unhide_profile_if_not_blocked_or_deleted(repo, user_id)
+        end
+      end
 
       {:ok, nil}
     end)
@@ -67,6 +91,46 @@ defmodule T.Matches do
       {:error, :unmatch, reason, _changes} -> {:error, reason}
     end
     |> notify_subscribers([:unmatched, match_id])
+    |> notify_subscribers([:pending_match_activated])
+  end
+
+  defp unhide_profile_if_not_blocked_or_deleted(repo, user_id) do
+    not_blocked_or_deleted_user =
+      User
+      |> where([u], is_nil(u.blocked_at))
+      |> where([u], is_nil(u.deleted_at))
+      |> where(id: ^user_id)
+
+    Profile
+    |> where(user_id: ^user_id)
+    |> join(:inner, [p], u in subquery(not_blocked_or_deleted_user), on: u.id == p.user_id)
+    |> repo.update_all(set: [hidden?: false])
+  end
+
+  defp maybe_activate_pending_match(repo, user_id) do
+    # TODO check which is faster, single query (below) or three separate queries
+    # (1. to fetch pending matches, 2. then unhidden profiles, and 3. merge profiles with matches,
+    # and set for the first valid match pending=false, alive=true)
+
+    unhidden_profiles = Profile |> where([p], p.user_id != ^user_id) |> where(hidden?: false)
+
+    activatable_pending_match =
+      Match
+      |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
+      |> where(pending?: true)
+      |> join(:inner, [m], p in subquery(unhidden_profiles),
+        on: p.user_id == m.user_id_1 or p.user_id == m.user_id_2
+      )
+      |> limit(1)
+
+    Match
+    |> join(:inner, [m], am in subquery(activatable_pending_match), on: m.id == am.id)
+    |> select([m], m)
+    |> repo.update_all(set: [pending?: false, alive?: true])
+    |> case do
+      {1, [match]} -> match
+      {0, _} -> nil
+    end
   end
 
   def get_current_match(user_id) do

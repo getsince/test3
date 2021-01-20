@@ -6,6 +6,8 @@ import Config
 # and secrets from environment variables or elsewhere. Do not define
 # any compile-time configuration in here, as it won't be applied.
 
+config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase
+
 config :t, TWeb.Endpoint,
   render_errors: [view: TWeb.ErrorView, accepts: ~w(html json), layout: false],
   pubsub_server: T.PubSub,

@@ -35,7 +35,9 @@ defmodule TWeb.FeedChannelTest do
     test "with current match, get match", %{socket: socket, user: user} do
       p2 = insert(:profile, hidden?: true, gender: "F")
       match = insert(:match, user_id_1: user.id, user_id_2: p2.user_id, alive?: true)
-      assert {:ok, reply, _socket} = subscribe_and_join(socket, "feed:" <> user.id, %{})
+
+      assert {:ok, reply, _socket} =
+               subscribe_and_join(socket, "feed:" <> user.id, %{"timezone" => "Europe/Moscow"})
 
       assert reply == %{
                match: %{
@@ -71,7 +73,9 @@ defmodule TWeb.FeedChannelTest do
       [_place3 | [place4 | _rest]] = personality_overlap(profiles, me, 30..10)
       insert(:like, by_user_id: place4.user_id, user_id: me.user_id)
 
-      assert {:ok, reply, _socket} = subscribe_and_join(socket, "feed:" <> user.id, %{})
+      assert {:ok, reply, _socket} =
+               subscribe_and_join(socket, "feed:" <> user.id, %{"timezone" => "Europe/Moscow"})
+
       assert length(reply.feed) == 5
     end
   end
@@ -142,7 +146,9 @@ defmodule TWeb.FeedChannelTest do
   end
 
   defp subscribe_and_join(%{user: user, socket: socket}) do
-    assert {:ok, _reply, socket} = subscribe_and_join(socket, "feed:" <> user.id, %{})
+    assert {:ok, _reply, socket} =
+             subscribe_and_join(socket, "feed:" <> user.id, %{"timezone" => "Europe/Moscow"})
+
     {:ok, socket: socket}
   end
 end

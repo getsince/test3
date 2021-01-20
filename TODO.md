@@ -1,6 +1,5 @@
 - delete, block profiles, handle hidden?
 - schedule push notifications with oban
-- timezone based feed
 - add "typing ..."
 - benchmark
 - return feed from profile channel

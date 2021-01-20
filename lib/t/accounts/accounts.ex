@@ -6,7 +6,17 @@ defmodule T.Accounts do
   import Ecto.Query, warn: false
   import Ecto.Changeset
   alias T.{Repo, Media}
-  alias T.Accounts.{User, Profile, UserToken, UserNotifier, UserReport, APNSDevice}
+
+  alias T.Accounts.{
+    User,
+    Profile,
+    UserToken,
+    UserNotifier,
+    UserReport,
+    UserDeletionJob,
+    APNSDevice
+  }
+
   alias T.Feeds.PersonalityOverlapJob
 
   # def subscribe_to_new_users do
@@ -55,9 +65,14 @@ defmodule T.Accounts do
     end
   end
 
+  # TODO test when deleted
   defp get_or_register_user(phone_number) do
     if u = get_user_by_phone_number(phone_number) do
-      {:ok, u}
+      if u.deleted_at do
+        {:error, :user_deleted}
+      else
+        {:ok, u}
+      end
     else
       register_user(%{phone_number: phone_number})
     end
@@ -74,6 +89,31 @@ defmodule T.Accounts do
     Ecto.Multi.new()
     |> Ecto.Multi.insert(:report, report_changeset)
     |> maybe_block_user_multi(on_user_id)
+    |> Ecto.Multi.insert(
+      :seen,
+      %T.Feeds.SeenProfile{
+        by_user_id: from_user_id,
+        user_id: on_user_id
+      },
+      on_conflict: :nothing
+    )
+    |> Ecto.Multi.run(:unmatch, fn repo, _changes ->
+      [u1, u2] = Enum.sort([from_user_id, on_user_id])
+
+      match_id =
+        T.Matches.Match
+        |> where(alive?: true)
+        |> where(user_id_1: ^u1)
+        |> where(user_id_2: ^u2)
+        |> select([m], m.id)
+        |> repo.one()
+
+      if match_id do
+        T.Matches.unmatch(from_user_id, match_id)
+      else
+        {:ok, nil}
+      end
+    end)
     |> Repo.transaction()
     |> case do
       {:ok, _changes} -> :ok
@@ -81,17 +121,16 @@ defmodule T.Accounts do
     end
   end
 
-  @doc false
-  def maybe_block_user_multi(multi, reported_user_id) do
+  # TODO test, unmatch
+  defp maybe_block_user_multi(multi, reported_user_id) do
     Ecto.Multi.run(multi, :block, fn repo, _changes ->
       reports_count =
         UserReport |> where(on_user_id: ^reported_user_id) |> select([r], count()) |> Repo.one!()
 
       blocked? =
         if reports_count >= 3 do
-          User
-          |> where(id: ^reported_user_id)
-          |> update([u], set: [blocked_at: fragment("now()")])
+          reported_user_id
+          |> block_user_q()
           |> repo.update_all([])
 
           Profile
@@ -101,6 +140,104 @@ defmodule T.Accounts do
 
       {:ok, !!blocked?}
     end)
+  end
+
+  defp block_user_q(user_id) do
+    User
+    |> where(id: ^user_id)
+    |> update([u], set: [blocked_at: fragment("now()")])
+  end
+
+  # TODO test
+  # TODO unmatch
+  def block_user(user_id) do
+    Ecto.Multi.new()
+    |> Ecto.Multi.run(:block, fn repo, _changes ->
+      user_id |> block_user_q() |> repo.update_all([])
+
+      Profile
+      |> where(user_id: ^user_id)
+      |> repo.update_all(set: [hidden?: true])
+
+      {:ok, nil}
+    end)
+    |> Ecto.Multi.run(:unmatch, fn repo, _changes ->
+      match_id =
+        T.Matches.Match
+        |> where(alive?: true)
+        |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
+        |> select([m], m.id)
+        |> repo.one()
+
+      if match_id do
+        T.Matches.unmatch(user_id, match_id)
+      else
+        {:ok, nil}
+      end
+    end)
+    |> Repo.transaction()
+    |> case do
+      {:ok, _changes} -> :ok
+    end
+  end
+
+  defp hide_profile(repo, user_id) do
+    Profile
+    |> where(user_id: ^user_id)
+    |> repo.update_all(set: [hidden?: true])
+  end
+
+  defp delete_user_q(user_id) do
+    User
+    |> where(id: ^user_id)
+    |> update([u], set: [deleted_at: fragment("now()")])
+  end
+
+  @two_days_in_seconds 2 * 24 * 60 * 60
+
+  def delete_user(user_id) do
+    Ecto.Multi.new()
+    |> Ecto.Multi.run(:delete_user, fn repo, _changes ->
+      {1, nil} = repo.update_all(delete_user_q(user_id), [])
+      {:ok, nil}
+    end)
+    |> Ecto.Multi.run(:hide_profile, fn repo, _changes ->
+      hide_profile(repo, user_id)
+      {:ok, nil}
+    end)
+    |> Ecto.Multi.run(:delete_sessions, fn repo, _changes ->
+      {_, tokens} =
+        UserToken
+        |> where(user_id: ^user_id)
+        |> select([t], t.token)
+        |> repo.delete_all()
+
+      for token <- tokens do
+        encoded_token = UserToken.encoded_token(token)
+        # TODO no web in here
+        TWeb.Endpoint.broadcast("user_socket:#{encoded_token}", "disconnect", %{})
+      end
+
+      {:ok, tokens}
+    end)
+    |> Ecto.Multi.run(:unmatch, fn repo, _changes ->
+      match_id =
+        T.Matches.Match
+        |> where([m], m.user_id_1 == ^user_id or m.user_id_1 == ^user_id)
+        |> where(alive?: true)
+        |> select([m], m.id)
+        |> repo.one()
+
+      if match_id do
+        T.Matches.unmatch(user_id, match_id)
+      end
+
+      {:ok, nil}
+    end)
+    |> Oban.insert(:deletion_job, fn _ ->
+      UserDeletionJob.new(%{"user_id" => user_id}, schedule_in: @two_days_in_seconds)
+    end)
+    |> Repo.transaction()
   end
 
   def save_apns_device_id(user_id, token, device_id) do
@@ -159,6 +296,7 @@ defmodule T.Accounts do
   """
   def deliver_user_confirmation_instructions(phone_number) when is_binary(phone_number) do
     # TODO rate limit
+    # TODO check if phone number belongs to someone deleted?
     if valid_number?(phone_number) do
       code = PasswordlessAuth.generate_code(phone_number)
       UserNotifier.deliver_confirmation_instructions(phone_number, code)
@@ -184,41 +322,6 @@ defmodule T.Accounts do
       {:phone, error} -> error
       {:reg, error} -> error
     end
-  end
-
-  # TODO test
-  def block_user(user_id) do
-    Repo.transaction(fn ->
-      User
-      |> where(id: ^user_id)
-      |> update([u], set: [blocked_at?: fragment("now()")])
-      |> Repo.update_all([])
-
-      hide_profile(user_id)
-    end)
-
-    :ok
-  end
-
-  defp hide_profile(user_id) do
-    Profile
-    |> where(user_id: ^user_id)
-    |> Repo.update_all(set: [hidden?: true])
-  end
-
-  # TODO test
-  def delete_user(user_id) do
-    # TODO schedule for deletion
-    Repo.transaction(fn ->
-      User
-      |> where(id: ^user_id)
-      |> update([u], set: [deleted_at?: fragment("now()")])
-      |> Repo.update_all([])
-
-      hide_profile(user_id)
-    end)
-
-    :ok
   end
 
   def save_photo(%User{id: user_id}, s3_key) do
@@ -283,7 +386,7 @@ defmodule T.Accounts do
     |> Oban.insert(:schedule_overlap_job, PersonalityOverlapJob.new(%{"user_id" => user_id}))
     |> Repo.transaction()
     |> case do
-      {:ok, %{profile: %Profile{} = profile}} -> {:ok, profile}
+      {:ok, %{profile: %Profile{} = profile}} -> {:ok, %Profile{profile | hidden?: false}}
       {:error, :user, :already_onboarded, _changes} -> {:error, :already_onboarded}
       {:error, :profile, %Ecto.Changeset{} = changeset, _changes} -> {:error, changeset}
     end

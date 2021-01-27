@@ -17,14 +17,19 @@ defmodule TWeb.ProfileChannel do
 
   @impl true
   def handle_in("upload-preflight", %{"photo" => %{"content-type" => content_type}}, socket) do
-    {:ok, %{"key" => key} = fields} = Accounts.photo_upload_form(content_type)
-    url = Accounts.photo_s3_url()
+    # {:ok, %{"key" => key} = fields} = Accounts.photo_upload_form(content_type)
+    # url = Accounts.photo_s3_url()
 
+    # T.Media.presigned_url(:put, Ecto.UUID.generate())
+
+    key = Ecto.UUID.generate()
     uploads = socket.assigns.uploads
     socket = assign(socket, uploads: Map.put(uploads, key, nil))
 
     # TODO check key afterwards
-    {:reply, {:ok, %{url: url, key: key, fields: fields}}, socket}
+    # {:reply, {:ok, %{url: url, key: key, fields: fields}}, socket}
+
+    {:reply, {:ok, %{url: T.Media.presigned_url(:put, key), key: key}}, socket}
   end
 
   # TODO test

@@ -298,7 +298,7 @@ defmodule T.Accounts do
     # TODO rate limit
     # TODO check if phone number belongs to someone deleted?
     if valid_number?(phone_number) do
-      code = PasswordlessAuth.generate_code(phone_number)
+      code = PasswordlessAuth.generate_code(phone_number, 4)
       UserNotifier.deliver_confirmation_instructions(phone_number, code)
     else
       {:error, :invalid_phone_number}

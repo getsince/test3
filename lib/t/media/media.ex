@@ -113,7 +113,7 @@ defmodule T.Media do
 
     fields = %{
       "key" => key,
-      "acl" => "private",
+      "acl" => "public",
       "content-type" => content_type,
       "x-amz-server-side-encryption" => "AES256",
       "x-amz-credential" => credential,

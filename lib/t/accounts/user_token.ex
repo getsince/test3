@@ -20,14 +20,14 @@ defmodule T.Accounts.UserToken do
   def raw_token(<<_::@rand_size-bytes>> = token), do: token
 
   def raw_token(<<_::43-bytes>> = token) do
-    Base.decode64!(token, padding: false)
+    Base.url_decode64!(token, padding: false)
   end
 
   @doc false
   def encoded_token(<<_::43-bytes>> = token), do: token
 
   def encoded_token(<<_::@rand_size-bytes>> = token) do
-    Base.encode64(token, padding: false)
+    Base.url_encode64(token, padding: false)
   end
 
   @doc """

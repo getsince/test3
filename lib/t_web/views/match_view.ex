@@ -5,7 +5,7 @@ defmodule TWeb.MatchView do
 
   def render("message.json", %{message: %Message{} = message}) do
     message
-    |> Map.take([:id, :author_id, :timestamp, :kind, :data])
+    |> Map.take([:id, :author_id, :inserted_at, :kind, :data])
     |> maybe_render_s3_url()
   end
 

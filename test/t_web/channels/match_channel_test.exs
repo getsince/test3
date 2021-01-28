@@ -50,21 +50,21 @@ defmodule TWeb.MatchChannelTest do
                    data: %{"text" => "hey"},
                    id: m1.id,
                    kind: "text",
-                   inserted_at: m1.inserted_at
+                   timestamp: DateTime.from_naive!(m1.inserted_at, "Etc/UTC")
                  },
                  %{
                    author_id: user.id,
                    data: %{"text" => "hoi"},
                    id: m2.id,
                    kind: "text",
-                   inserted_at: m2.inserted_at
+                   timestamp: DateTime.from_naive!(m2.inserted_at, "Etc/UTC")
                  },
                  %{
                    author_id: user.id,
                    data: %{"text" => "let's go"},
                    id: m3.id,
                    kind: "text",
-                   inserted_at: m3.inserted_at
+                   timestamp: DateTime.from_naive!(m3.inserted_at, "Etc/UTC")
                  }
                ]
              }
@@ -86,7 +86,7 @@ defmodule TWeb.MatchChannelTest do
                    data: %{"text" => "let's go"},
                    id: m3.id,
                    kind: "text",
-                   inserted_at: m3.inserted_at
+                   timestamp: DateTime.from_naive!(m3.inserted_at, "Etc/UTC")
                  }
                ]
              }
@@ -133,7 +133,7 @@ defmodule TWeb.MatchChannelTest do
                  data: %{"text" => "hey"},
                  id: id,
                  kind: "text",
-                 inserted_at: inserted_at
+                 timestamp: DateTime.from_naive!(inserted_at, "Etc/UTC")
                }
              }
     end

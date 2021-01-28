@@ -49,19 +49,22 @@ defmodule TWeb.MatchChannelTest do
                    author_id: user.id,
                    data: %{"text" => "hey"},
                    id: m1.id,
-                   kind: "text"
+                   kind: "text",
+                   inserted_at: m1.inserted_at
                  },
                  %{
                    author_id: user.id,
                    data: %{"text" => "hoi"},
                    id: m2.id,
-                   kind: "text"
+                   kind: "text",
+                   inserted_at: m2.inserted_at
                  },
                  %{
                    author_id: user.id,
                    data: %{"text" => "let's go"},
                    id: m3.id,
-                   kind: "text"
+                   kind: "text",
+                   inserted_at: m3.inserted_at
                  }
                ]
              }
@@ -82,7 +85,8 @@ defmodule TWeb.MatchChannelTest do
                    author_id: user.id,
                    data: %{"text" => "let's go"},
                    id: m3.id,
-                   kind: "text"
+                   kind: "text",
+                   inserted_at: m3.inserted_at
                  }
                ]
              }
@@ -121,14 +125,15 @@ defmodule TWeb.MatchChannelTest do
       assert reply == %{}
       assert_broadcast "message:new", broadcast
 
-      [%{id: id}] = Matches.list_messages(match.id)
+      [%{id: id, inserted_at: inserted_at}] = Matches.list_messages(match.id)
 
       assert broadcast == %{
                message: %{
                  author_id: user.id,
                  data: %{"text" => "hey"},
                  id: id,
-                 kind: "text"
+                 kind: "text",
+                 inserted_at: inserted_at
                }
              }
     end
@@ -149,7 +154,7 @@ defmodule TWeb.MatchChannelTest do
 
       assert %{
                fields: %{
-                 "acl" => "private",
+                 "acl" => "public",
                  "content-type" => "audio/aac",
                  "key" => key,
                  "policy" => _policy,

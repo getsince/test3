@@ -8,7 +8,7 @@ defmodule TWeb.MobileAuthControllerTest do
       code = PasswordlessAuth.generate_code(phone_number)
 
       conn =
-        post(conn, "/mobile/api/auth/verify-phone-number", %{
+        post(conn, "/api/mobile/auth/verify-phone", %{
           code: code,
           phone_number: phone_number
         })

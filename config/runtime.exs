@@ -9,7 +9,7 @@ import Config
 config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase
 
 config :t, TWeb.Endpoint,
-  render_errors: [view: TWeb.ErrorView, accepts: ~w(html json), layout: false],
+  render_errors: [view: TWeb.ErrorView, accepts: ~w(json html), layout: false],
   pubsub_server: T.PubSub,
   live_view: [signing_salt: "Urm6JRcI"]
 

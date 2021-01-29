@@ -126,11 +126,15 @@ defmodule T.Feeds do
     if feed, do: load_users_for_feed(feed, profile, date)
   end
 
-  defp load_users_for_feed(%Feed{profiles: profiles}, _profile, _date)
+  # TODO test seen profiles are not loaded
+  defp load_users_for_feed(%Feed{profiles: profiles}, profile, _date)
        when is_map(profiles) do
+    seen = SeenProfile |> where(by_user_id: ^profile.user_id) |> select([s], s.user_id)
+
     profiles =
       Profile
       |> where([p], p.user_id in ^Map.keys(profiles))
+      |> where([p], p.user_id not in subquery(seen))
       |> Repo.all()
       |> Enum.map(fn profile ->
         %Profile{profile | feed_reason: profiles[profile.user_id]}

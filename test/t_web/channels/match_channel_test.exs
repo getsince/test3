@@ -96,7 +96,9 @@ defmodule TWeb.MatchChannelTest do
   describe "wrong join" do
     test "a match when we are not in a match", %{socket: socket, user: user} do
       refute Matches.get_current_match(user.id)
-      assert {:error, _socket} = subscribe_and_join(socket, "match:" <> Ecto.UUID.generate(), %{})
+
+      assert {:error, %{reason: "match not found", status: 404}} =
+               subscribe_and_join(socket, "match:" <> Ecto.UUID.generate(), %{})
     end
 
     test "a wrong match (we are in a match but this one's not ours)", %{
@@ -105,7 +107,9 @@ defmodule TWeb.MatchChannelTest do
     } do
       p2 = insert(:profile, hidden?: true)
       insert(:match, user_id_1: user.id, user_id_2: p2.user_id, alive?: true)
-      assert {:error, _socket} = subscribe_and_join(socket, "match:" <> Ecto.UUID.generate(), %{})
+
+      assert {:error, %{reason: "match not found", status: 404}} =
+               subscribe_and_join(socket, "match:" <> Ecto.UUID.generate(), %{})
     end
   end
 

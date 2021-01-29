@@ -25,7 +25,7 @@ defmodule TWeb.MatchChannel do
         # TODO get latest messages read, latest timestamp, and fetch
         {:ok, %{messages: render_messages(messages)}, assign(socket, match: match)}
       end
-    end || {:error, socket}
+    end || {:error, %{status: 404, reason: "match not found"}}
   end
 
   defp render_messages(messages) do

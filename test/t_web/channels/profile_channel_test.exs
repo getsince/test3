@@ -171,8 +171,19 @@ defmodule TWeb.ProfileChannelTest do
       #        } = reply
 
       assert %{
-               key: _key,
-               url: "https://s3.eu-central-1.amazonaws.com/pretend-this-is-real/" <> _rest
+               key: key,
+               url: "https://pretend-this-is-real.s3.amazonaws.com",
+               fields: %{
+                 "acl" => "public-read",
+                 "content-type" => "image/jpeg",
+                 "key" => key,
+                 "policy" => _policy,
+                 "x-amz-algorithm" => "AWS4-HMAC-SHA256",
+                 "x-amz-credential" => _creds,
+                 "x-amz-date" => _date,
+                 "x-amz-server-side-encryption" => "AES256",
+                 "x-amz-signature" => _signature
+               }
              } = reply
     end
   end

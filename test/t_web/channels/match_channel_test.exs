@@ -154,7 +154,7 @@ defmodule TWeb.MatchChannelTest do
 
       assert %{
                fields: %{
-                 "acl" => "public",
+                 "acl" => "public-read",
                  "content-type" => "audio/aac",
                  "key" => key,
                  "policy" => _policy,

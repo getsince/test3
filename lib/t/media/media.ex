@@ -100,7 +100,7 @@ defmodule T.Media do
         "conditions": [
           {"bucket": "#{bucket}"},
           ["eq", "$key", "#{key}"],
-          {"acl": "private"},
+          {"acl": "public-read"},
           ["eq", "$Content-Type", "#{content_type}"],
           ["content-length-range", 0, #{max_file_size}],
           {"x-amz-server-side-encryption": "AES256"},
@@ -113,7 +113,7 @@ defmodule T.Media do
 
     fields = %{
       "key" => key,
-      "acl" => "public",
+      "acl" => "public-read",
       "content-type" => content_type,
       "x-amz-server-side-encryption" => "AES256",
       "x-amz-credential" => credential,

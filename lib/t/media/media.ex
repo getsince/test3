@@ -46,20 +46,6 @@ defmodule T.Media do
 
   # https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-post-example.html
 
-  @spec sign_form_upload(
-          %{
-            access_key_id: any,
-            region:
-              binary
-              | maybe_improper_list(
-                  binary | maybe_improper_list(any, binary | []) | byte,
-                  binary | []
-                ),
-            secret_access_key: binary
-          },
-          any,
-          keyword
-        ) :: {:ok, %{optional(<<_::24, _::_*8>>) => any}}
   @doc """
   Signs a form upload.
 

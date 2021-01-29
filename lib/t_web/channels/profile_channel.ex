@@ -16,7 +16,14 @@ defmodule TWeb.ProfileChannel do
   end
 
   @impl true
-  def handle_in("upload-preflight", %{"photo" => %{"content-type" => content_type}}, socket) do
+  def handle_in("upload-preflight", %{"media" => params}, socket) do
+    "image/" <> _rest =
+      content_type =
+      case params do
+        %{"content-type" => content_type} -> content_type
+        %{"extension" => extension} -> MIME.type(extension)
+      end
+
     {:ok, %{"key" => key} = fields} = Accounts.photo_upload_form(content_type)
     url = Accounts.photo_s3_url()
 

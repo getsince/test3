@@ -150,7 +150,7 @@ defmodule TWeb.ProfileChannelTest do
     setup :subscribe_and_join
 
     test "it works", %{socket: socket} do
-      ref = push(socket, "upload-preflight", %{"photo" => %{"content-type" => "image/jpeg"}})
+      ref = push(socket, "upload-preflight", %{"media" => %{"content-type" => "image/jpeg"}})
       assert_reply ref, :ok, reply, 1000
 
       # TODO use forms

@@ -66,7 +66,13 @@ defmodule TWeb.MatchChannel do
     {:reply, :ok, socket}
   end
 
-  def handle_in("upload-preflight", %{"media" => %{"content-type" => content_type}}, socket) do
+  def handle_in("upload-preflight", %{"media" => params}, socket) do
+    content_type =
+      case params do
+        %{"content-type" => content_type} -> content_type
+        %{"extension" => extension} -> MIME.type(extension)
+      end
+
     {:ok, %{"key" => key} = fields} = Matches.media_upload_form(content_type)
     url = Matches.media_s3_url()
 

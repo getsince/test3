@@ -31,11 +31,10 @@ defmodule T.Accounts.User do
   defp validate_phone_number(changeset) do
     changeset
     |> validate_required([:phone_number])
-    |> validate_change(:phone_number, fn :phone_number, phone_number ->
-      if T.Accounts.valid_number?(phone_number) do
-        []
-      else
-        [phone_number: dgettext("errors", "is invalid")]
+    |> validate_change(:phone_number, fn :phone_number, number ->
+      case T.Accounts.formatted_phone_number(number) do
+        {:ok, ^number} -> []
+        _other -> [phone_number: dgettext("errors", "is invalid")]
       end
     end)
     |> unsafe_validate_unique(:phone_number, T.Repo)

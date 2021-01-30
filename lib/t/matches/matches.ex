@@ -140,6 +140,13 @@ defmodule T.Matches do
     |> Repo.one()
   end
 
+  def get_match_for_user(match_id, user_id) do
+    Match
+    |> where(id: ^match_id)
+    |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
+    |> Repo.one()
+  end
+
   def get_other_profile_for_match!(%Match{user_id_1: id1, user_id_2: id2}, user_id) do
     [other_user_id] = [id1, id2] -- [user_id]
     Accounts.get_profile!(other_user_id)

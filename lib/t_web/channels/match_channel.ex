@@ -5,27 +5,34 @@ defmodule TWeb.MatchChannel do
 
   @impl true
   def join("match:" <> match_id, params, socket) do
-    if match = Matches.get_current_match(socket.assigns.current_user.id) do
-      if match.id == match_id do
-        # match_user_ids = [match.user_id_1, match.user_id_2]
-        # ChannelHelpers.verify_user_id(socket, match_user_ids)
-        # other_user_id = ChannelHelpers.other_user_id(socket, match_user_ids)
-        # TODO
-        # other_user_online? = ChannelHelpers.user_online?(other_user_id)
-        # Matches.subscribe(match.id)
+    %Accounts.User{id: user_id} = ChannelHelpers.current_user(socket)
 
-        # TODO paginate
-        messages =
-          if last_message_id = params["last_message_id"] do
-            Matches.list_messages(match_id, after: last_message_id)
-          else
-            Matches.list_messages(match_id)
-          end
+    if match = Matches.get_match_for_user(match_id, user_id) do
+      # match_user_ids = [match.user_id_1, match.user_id_2]
+      # ChannelHelpers.verify_user_id(socket, match_user_ids)
+      # other_user_id = ChannelHelpers.other_user_id(socket, match_user_ids)
+      # other_user_online? = ChannelHelpers.user_online?(other_user_id)
+      # Matches.subscribe(match.id)
 
-        # TODO get latest messages read, latest timestamp, and fetch
-        {:ok, %{messages: render_messages(messages)}, assign(socket, match: match)}
+      %Matches.Match{id: match_id, alive?: alive?} = match
+
+      # TODO paginate
+      messages =
+        if last_message_id = params["last_message_id"] do
+          Matches.list_messages(match_id, after: last_message_id)
+        else
+          Matches.list_messages(match_id)
+        end
+
+      unless alive? do
+        send(self(), :unmatched)
       end
-    end || {:error, %{status: 404, reason: "match not found"}}
+
+      # TODO get latest messages read, latest timestamp, and fetch
+      {:ok, %{messages: render_messages(messages)}, assign(socket, match: match)}
+    else
+      {:error, %{reason: "match not found"}}
+    end
   end
 
   defp render_messages(messages) do
@@ -58,14 +65,6 @@ defmodule TWeb.MatchChannel do
   # TODO message read
   # def handle_in("")
 
-  def handle_in("unmatch", _params, socket) do
-    %{match: match, current_user: user} = socket.assigns
-    # TODO reply here that we have another match?
-    {:ok, _changes} = Matches.unmatch(user.id, match.id)
-    broadcast_from!(socket, "unmatched", %{})
-    {:reply, :ok, socket}
-  end
-
   def handle_in("upload-preflight", %{"media" => params}, socket) do
     content_type =
       case params do
@@ -97,6 +96,22 @@ defmodule TWeb.MatchChannel do
         {:reply, {:error, %{report: render(ErrorView, "changeset.json", changeset: changeset)}},
          socket}
     end
+  end
+
+  def handle_in("unmatch", _params, socket) do
+    %{match: match, current_user: user} = socket.assigns
+    # TODO reply here that we have another match?
+    {:ok, _changes} = Matches.unmatch(user.id, match.id)
+    broadcast_from!(socket, "unmatched", %{})
+    {:reply, :ok, socket}
+  end
+
+  # TODO don't allow posting when not match.alive?
+  # TODO test
+  @impl true
+  def handle_info(:unmatched, socket) do
+    push(socket, "unmatched", %{})
+    {:noreply, socket}
   end
 
   # TODO

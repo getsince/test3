@@ -138,7 +138,8 @@ CREATE TABLE public.matches (
     user_id_1 uuid NOT NULL,
     user_id_2 uuid NOT NULL,
     "alive?" boolean DEFAULT true NOT NULL,
-    inserted_at timestamp(0) without time zone NOT NULL
+    inserted_at timestamp(0) without time zone NOT NULL,
+    "pending?" boolean
 );
 
 
@@ -475,10 +476,17 @@ ALTER TABLE ONLY public.users_tokens
 
 
 --
--- Name: disliked_profiles_user_id_by_user_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: interests_overlap_user_id_1_user_id_2_score_desc_index; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX disliked_profiles_user_id_by_user_id_index ON public.disliked_profiles USING btree (user_id, by_user_id);
+CREATE INDEX interests_overlap_user_id_1_user_id_2_score_desc_index ON public.interests_overlap USING btree (user_id_1, user_id_2, score DESC) WHERE (score > 0);
+
+
+--
+-- Name: interests_overlap_user_id_2_user_id_1_score_desc_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX interests_overlap_user_id_2_user_id_1_score_desc_index ON public.interests_overlap USING btree (user_id_2, user_id_1, score DESC) WHERE (score > 0);
 
 
 --
@@ -486,6 +494,27 @@ CREATE INDEX disliked_profiles_user_id_by_user_id_index ON public.disliked_profi
 --
 
 CREATE INDEX liked_profiles_user_id_by_user_id_index ON public.liked_profiles USING btree (user_id, by_user_id);
+
+
+--
+-- Name: matches_user_id_1_pending_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX matches_user_id_1_pending_index ON public.matches USING btree (user_id_1, "pending?") WHERE ("pending?" = true);
+
+
+--
+-- Name: matches_user_id_1_user_id_2_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX matches_user_id_1_user_id_2_index ON public.matches USING btree (user_id_1, user_id_2);
+
+
+--
+-- Name: matches_user_id_2_pending_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX matches_user_id_2_pending_index ON public.matches USING btree (user_id_2, "pending?") WHERE ("pending?" = true);
 
 
 --
@@ -521,13 +550,6 @@ CREATE INDEX profiles_date_trunc__day___last_active__timestamp_index ON public.p
 --
 
 CREATE INDEX profiles_gender_hidden_times_liked_desc_index ON public.profiles USING btree (gender, "hidden?", times_liked DESC) WHERE ("hidden?" = false);
-
-
---
--- Name: seen_profiles_user_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX seen_profiles_user_id_index ON public.seen_profiles USING btree (user_id);
 
 
 --
@@ -748,3 +770,7 @@ INSERT INTO public."schema_migrations" (version) VALUES (20210113230120);
 INSERT INTO public."schema_migrations" (version) VALUES (20210114212305);
 INSERT INTO public."schema_migrations" (version) VALUES (20210117175420);
 INSERT INTO public."schema_migrations" (version) VALUES (20210117182435);
+INSERT INTO public."schema_migrations" (version) VALUES (20210118001343);
+INSERT INTO public."schema_migrations" (version) VALUES (20210130101400);
+INSERT INTO public."schema_migrations" (version) VALUES (20210130101533);
+INSERT INTO public."schema_migrations" (version) VALUES (20210130101812);

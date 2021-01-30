@@ -179,7 +179,9 @@ defmodule T.Feeds do
     most_overlap =
       common_q
       |> join(:inner, [p], po in PersonalityOverlap,
-        on: p.user_id == po.user_id_1 or p.user_id == po.user_id_2
+        on:
+          (p.user_id == po.user_id_1 and po.user_id_2 == ^profile.user_id) or
+            (p.user_id == po.user_id_2 and po.user_id_1 == ^profile.user_id)
       )
       |> order_by([p, po], desc: po.score)
       |> where([p], p.user_id not in ^filter_out_ids)
@@ -212,7 +214,9 @@ defmodule T.Feeds do
       |> where([p], p.times_liked == 0)
       |> where([p], p.user_id not in ^filter_out_ids)
       |> join(:left, [p], po in PersonalityOverlap,
-        on: p.user_id == po.user_id_1 or p.user_id == po.user_id_2
+        on:
+          (p.user_id == po.user_id_1 and po.user_id_2 == ^profile.user_id) or
+            (p.user_id == po.user_id_2 and po.user_id_1 == ^profile.user_id)
       )
       |> order_by([p, po], desc_nulls_last: po.score)
       |> limit(2)

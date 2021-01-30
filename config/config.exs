@@ -4,6 +4,8 @@ config :t, ecto_repos: [T.Repo]
 config :phoenix, :json_library, Jason
 config :pigeon, json_library: Jason
 
+config :t, T.Media.RemoteStorage, adapter: T.Media.RemoteStorage.S3
+
 config :sentry,
   enable_source_code_context: true,
   root_source_code_paths: [File.cwd!()]

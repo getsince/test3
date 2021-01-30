@@ -21,14 +21,10 @@ defmodule T.Media do
     if presigned_url, do: URI.to_string(%URI{URI.parse(presigned_url) | query: nil})
   end
 
+  @remote_storage_adapter Application.compile_env!(__MODULE__.RemoteStorage, :adapter)
+
   def file_exists?(key) do
-    bucket()
-    |> ExAws.S3.head_object(key)
-    |> ExAws.request()
-    |> case do
-      {:ok, %{status_code: 200}} -> true
-      {:error, {:http_error, 404, %{status_code: 404}}} -> false
-    end
+    @remote_storage_adapter.file_exists?(key)
   end
 
   def presign_config do

@@ -48,7 +48,7 @@ defmodule TWeb.ProfileChannel do
   def handle_in("submit", %{"profile" => params}, socket) do
     %{profile: profile, current_user: user} = socket.assigns
 
-    # TODO check photos exist in s3
+    # TODO check photos exist in s3 (NOW)
     f =
       if Accounts.user_onboarded?(user.id) do
         fn -> Accounts.update_profile(profile, params) end

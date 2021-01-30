@@ -40,6 +40,7 @@ defmodule TWeb.MatchChannel do
   def handle_in("message", %{"message" => params}, socket) do
     %{match: match, current_user: user} = socket.assigns
 
+    # TODO check media exists
     case Matches.add_message(match.id, user.id, params) do
       {:ok, message} ->
         broadcast_from!(socket, "message:new", %{message: render_message(message)})

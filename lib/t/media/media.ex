@@ -21,7 +21,7 @@ defmodule T.Media do
     if presigned_url, do: URI.to_string(%URI{URI.parse(presigned_url) | query: nil})
   end
 
-  @remote_storage_adapter Application.compile_env!(__MODULE__.RemoteStorage, :adapter)
+  @remote_storage_adapter Application.compile_env!(:t, [__MODULE__.RemoteStorage, :adapter])
 
   def file_exists?(key) do
     @remote_storage_adapter.file_exists?(key)

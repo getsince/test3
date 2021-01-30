@@ -483,13 +483,6 @@ CREATE INDEX interests_overlap_user_id_1_user_id_2_score_desc_index ON public.in
 
 
 --
--- Name: interests_overlap_user_id_2_user_id_1_score_desc_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX interests_overlap_user_id_2_user_id_1_score_desc_index ON public.interests_overlap USING btree (user_id_2, user_id_1, score DESC) WHERE (score > 0);
-
-
---
 -- Name: liked_profiles_user_id_by_user_id_index; Type: INDEX; Schema: public; Owner: -
 --
 

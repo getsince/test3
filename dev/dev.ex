@@ -284,6 +284,7 @@ defmodule Chatter do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
 
+  @impl true
   def init("match:" <> match_id = topic) do
     TWeb.Endpoint.subscribe(topic)
     match = T.Repo.get!(T.Matches.Match, match_id)
@@ -326,18 +327,13 @@ defmodule Chatter do
     {:reply, result, state}
   end
 
-  def handle_call({:text, text}, _from, %{match: match} = state) do
-    match = state.match
-    me = other_user_id(match)
-    add_and_broadcast_message(match.id, me, %{"kind" => "text", "data" => %{"text" => text}})
+  def handle_call({:text, text}, _from, state) do
+    add_and_broadcast_message(state, %{"kind" => "text", "data" => %{"text" => text}})
     {:reply, :ok, state}
   end
 
   def handle_call({:photo, s3_key}, _from, state) do
-    match = state.match
-    me = other_user_id(match)
-
-    add_and_broadcast_message(match.id, me, %{
+    add_and_broadcast_message(state, %{
       "kind" => "photo",
       "data" => %{"s3_key" => s3_key}
     })
@@ -346,10 +342,7 @@ defmodule Chatter do
   end
 
   def handle_call({:audio, s3_key}, _from, state) do
-    match = state.match
-    me = other_user_id(match)
-
-    add_and_broadcast_message(match.id, me, %{
+    add_and_broadcast_message(state, %{
       "kind" => "audio",
       "data" => %{"s3_key" => s3_key}
     })
@@ -357,11 +350,11 @@ defmodule Chatter do
     {:reply, :ok, state}
   end
 
-  defp add_and_broadcast_message(match_id, user_id, attrs) do
-    {:ok, message} = T.Matches.add_message(match_id, user_id, attrs)
+  defp add_and_broadcast_message(%{match: match}, attrs) do
+    {:ok, message} = T.Matches.add_message(match.id, other_user_id(match), attrs)
 
     TWeb.Endpoint.broadcast!(
-      "match:#{match_id}",
+      "match:#{match.id}",
       "message:new",
       %{message: TWeb.MatchView.render("message.json", %{message: message})}
     )

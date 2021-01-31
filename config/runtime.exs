@@ -107,7 +107,6 @@ if config_env() == :prod do
     # to something meaningful, Phoenix uses this information
     # when generating URLs.
     url: [host: host, port: 80],
-    check_origin: ["//" <> host],
     http: [
       # Enable IPv6 and bind on all interfaces.
       # Set it to {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.

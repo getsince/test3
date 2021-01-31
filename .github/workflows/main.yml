@@ -24,28 +24,65 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+      
       - name: Set up Elixir
         uses: actions/setup-elixir@v1
         with:
           elixir-version: "1.11.2"
           otp-version: "23.1.5"
+      
       - name: Restore dependencies cache
         uses: actions/cache@v2
         with:
           path: |
             deps
             _build
+
           key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
           restore-keys: ${{ runner.os }}-mix-
+      
       - name: Install dependencies
         run: mix deps.get
+      
       - name: Check formatted
         run: mix format --check-formatted
+      
       - name: Compile (warnings as errors)
         run: MIX_ENV=test mix compile --warnings-as-errors
+      
       - name: Run tests
         run: mix test
-      # - name: Build container
-      #   run: 
-      # - name: Build release
-      #   run: MIX_ENV=test mix release
+      
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Cache Docker layers
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+      
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Build and push
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          context: ./
+          file: ./Dockerfile
+          push: true
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache
+          tags: |
+            ruslandoga/test3:latest
+            ruslandoga/test3:${{ github.sha }}
+
+      - name: Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }}

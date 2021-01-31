@@ -296,6 +296,20 @@ CREATE TABLE public.seen_profiles (
 
 
 --
+-- Name: support_messages; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.support_messages (
+    user_id uuid NOT NULL,
+    id uuid NOT NULL,
+    author_id uuid NOT NULL,
+    kind character varying(255) NOT NULL,
+    data jsonb NOT NULL,
+    inserted_at timestamp(0) without time zone NOT NULL
+);
+
+
+--
 -- Name: user_reports; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -452,6 +466,14 @@ ALTER TABLE ONLY public.seen_profiles
 
 
 --
+-- Name: support_messages support_messages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.support_messages
+    ADD CONSTRAINT support_messages_pkey PRIMARY KEY (user_id, id);
+
+
+--
 -- Name: user_reports user_reports_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -480,6 +502,13 @@ ALTER TABLE ONLY public.users_tokens
 --
 
 CREATE INDEX interests_overlap_user_id_1_user_id_2_score_desc_index ON public.interests_overlap USING btree (user_id_1, user_id_2, score DESC) WHERE (score > 0);
+
+
+--
+-- Name: interests_overlap_user_id_2_user_id_1_score_desc_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX interests_overlap_user_id_2_user_id_1_score_desc_index ON public.interests_overlap USING btree (user_id_2, user_id_1, score DESC) WHERE (score > 0);
 
 
 --
@@ -716,6 +745,22 @@ ALTER TABLE ONLY public.seen_profiles
 
 
 --
+-- Name: support_messages support_messages_author_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.support_messages
+    ADD CONSTRAINT support_messages_author_id_fkey FOREIGN KEY (author_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: support_messages support_messages_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.support_messages
+    ADD CONSTRAINT support_messages_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: user_reports user_reports_from_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -767,3 +812,4 @@ INSERT INTO public."schema_migrations" (version) VALUES (20210118001343);
 INSERT INTO public."schema_migrations" (version) VALUES (20210130101400);
 INSERT INTO public."schema_migrations" (version) VALUES (20210130101533);
 INSERT INTO public."schema_migrations" (version) VALUES (20210130101812);
+INSERT INTO public."schema_migrations" (version) VALUES (20210131190658);

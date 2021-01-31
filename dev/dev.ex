@@ -356,7 +356,7 @@ defmodule Chatter do
     TWeb.Endpoint.broadcast!(
       "match:#{match.id}",
       "message:new",
-      %{message: TWeb.MatchView.render("message.json", %{message: message})}
+      %{message: TWeb.MessageView.render("show.json", %{message: message})}
     )
   end
 

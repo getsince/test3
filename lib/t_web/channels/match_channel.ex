@@ -1,6 +1,6 @@
 defmodule TWeb.MatchChannel do
   use TWeb, :channel
-  alias TWeb.{ErrorView, MatchView}
+  alias TWeb.{ErrorView, MessageView}
   alias T.{Matches, Accounts}
 
   @impl true
@@ -40,7 +40,7 @@ defmodule TWeb.MatchChannel do
   end
 
   defp render_message(message) do
-    render(MatchView, "message.json", message: message)
+    render(MessageView, "show.json", message: message)
   end
 
   @impl true

@@ -10,6 +10,8 @@ defmodule TWeb.UserSocket do
   channel "profile:*", TWeb.ProfileChannel
   # notification:<user-id>
   channel "notification:*", TWeb.NotificationChannel
+  # support:<user-id>
+  channel "support:*", TWeb.SupportChannel
   # # user:<uuid>
   # channel "user:*", TWeb.UserChannel
 

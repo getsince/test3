@@ -31,8 +31,14 @@ defmodule TWeb.SupportLive.Index do
   end
 
   defp apply_action(%{"user_id" => user_id}, :show, socket) do
-    messages = Support.list_messages(user_id)
-    assign(socket, messages: messages, user_id: user_id)
+    case Support.list_messages(user_id) do
+      [] ->
+        path = Routes.support_index_path(socket, :index)
+        push_patch(socket, to: path, replace: true)
+
+      messages ->
+        assign(socket, messages: messages, user_id: user_id)
+    end
   end
 
   @impl true
@@ -40,11 +46,12 @@ defmodule TWeb.SupportLive.Index do
     side_panel = update_side_panel(socket.assigns.side_panel, message)
     socket = assign(socket, side_panel: side_panel)
 
-    if message.user_id == socket.assigns.user_id do
-      assign(socket, messages: [message])
-    else
-      socket
-    end
+    socket =
+      if message.user_id == socket.assigns.user_id do
+        assign(socket, messages: [message])
+      else
+        socket
+      end
 
     {:noreply, socket}
   end
@@ -85,7 +92,7 @@ defmodule TWeb.SupportLive.Index do
 
   defp render_message(%Support.Message{kind: "photo", data: %{"s3_key" => s3_key}}) do
     ~E"""
-    <img src="<%= Media.url(s3_key) %>" class="mt-2 w-64 rounded border border-gray-800" />
+    <img src="<%= Media.url(s3_key) %>" class="w-64 mt-2 border border-gray-800 rounded" />
     """
   end
 
@@ -107,7 +114,9 @@ defmodule TWeb.SupportLive.Index do
     "*audio*"
   end
 
-  defp admin_id do
-    "00000000-0000-4000-0000-000000000000"
-  end
+  @admin_id "00000000-0000-4000-0000-000000000000"
+  defp render_author(@admin_id), do: ~E[<span class="text-green-400">admin</span>]
+  defp render_author(_user_id), do: ~E[<span class="text-yellow-400">user</span>]
+
+  defp admin_id, do: @admin_id
 end

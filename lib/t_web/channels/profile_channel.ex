@@ -34,6 +34,11 @@ defmodule TWeb.ProfileChannel do
     {:reply, {:ok, %{url: url, key: key, fields: fields}}, socket}
   end
 
+  def handle_in("get-me", _params, socket) do
+    %Profile{} = profile = Accounts.get_profile!(socket.assigns.current_user)
+    {:reply, {:ok, %{profile: render_profile(profile)}}, assign(socket, profile: profile)}
+  end
+
   # TODO test
   def handle_in(
         "save-device-id",

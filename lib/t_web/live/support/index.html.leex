@@ -1,0 +1,36 @@
+<div class="flex w-full h-screen overflow-hidden text-gray-300 bg-gray-900">
+  <%# users %>
+  <div class="flex-none w-64 h-full overflow-y-auto border-r border-gray-800">
+  <%= for message <- @side_panel do %>
+    <div class="w-full h-20 p-4 transition border-b border-gray-800 cursor-pointer hover:bg-gray-800">
+      <div class="font-semibold text-gray-700 truncate whitespace-nowrap"><%= message.user_id %></div>
+      <div class="text-gray-500 truncate whitespace-nowrap"><%= render_side_panel_message(message) %></div>
+    </div>
+  <% end %>
+  </div>
+  <%# /users %>
+
+  <%# messages %>
+  <div class="flex flex-col flex-1 overflow-y-hidden">
+    <%# list %>
+    <div id="support-messages" class="flex-1 overflow-y-auto" phx-update="append" phx-hook="ScrollDownOnUpdate">
+    <%= for message <- @messages do %>
+      <div id="<%= message.id %>" class="w-full px-3 py-1.5">
+        <div class="p-2 text-sm bg-gray-900">
+          <div class="font-semibold text-gray-400"><%= render_author(message.author_id) %><span class="ml-2 text-xs font-normal text-gray-600"><%= message.inserted_at %></span></div>
+          <div class="text-gray-400"><%= render_message(message) %></div>
+        </div>
+      </div>
+    <% end %>
+    </div>
+    <%# /list %>
+    <%# input %>
+    <div class="flex items-center flex-none h-16 p-2 border-t border-gray-800">
+      <form phx-submit="send-message" action="#" class="w-full" x-data="{text: ''}" x-on:submit="text = ''">
+        <input type="text" name="message[text]" class="w-full bg-gray-800 rounded" x-model:value="text">
+      </form>
+    </div>
+    <%# /input %>
+  </div>
+  <%# /messages %>
+</div>

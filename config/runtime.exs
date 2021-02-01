@@ -9,7 +9,7 @@ import Config
 config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase
 
 config :t, TWeb.Endpoint,
-  render_errors: [view: TWeb.ErrorView, accepts: ~w(json html), layout: false],
+  render_errors: [view: TWeb.ErrorView, accepts: ~w(json), layout: false],
   pubsub_server: T.PubSub,
   live_view: [signing_salt: "Urm6JRcI"]
 
@@ -162,20 +162,35 @@ if config_env() == :dev do
     # Watch static and templates for browser reloading.
     live_reload: [
       patterns: [
+        ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
         ~r"priv/gettext/.*(po)$",
-        ~r"lib/t_web/views/.*(ex)$",
+        ~r"lib/t_web/(live|views)/.*(ex)$",
         ~r"lib/t_web/templates/.*(eex)$"
+      ]
+    ],
+    watchers: [
+      node: [
+        "node_modules/webpack/bin/webpack.js",
+        "--mode",
+        "development",
+        "--watch-stdin",
+        cd: Path.expand("../assets", __DIR__)
       ]
     ]
 
   # Configure your database
   config :t, T.Repo,
-    username: "postgres",
-    password: "postgres",
-    database: "t_dev",
-    hostname: "localhost",
+    # username: "postgres",
+    # password: "postgres",
+    # database: "t_dev",
+    # hostname: "localhost",
+    url: System.fetch_env!("DATABASE_URL"),
     show_sensitive_data_on_connection_error: true,
     pool_size: 10
+
+  config :t, :dashboard,
+    username: System.fetch_env!("DASHBOARD_USERNAME"),
+    password: System.fetch_env!("DASHBOARD_PASSWORD")
 
   # Do not include metadata nor timestamps in development logs
   config :logger, :tonsole, format: "[$level] $message\n"

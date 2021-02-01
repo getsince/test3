@@ -24,7 +24,9 @@ defmodule TWeb.ProfileView do
       :tastes
     ])
     |> Map.update!(:photos, fn photos ->
-      Enum.map(photos, fn key -> Media.url(key) end)
+      photos
+      |> Enum.reject(&is_nil/1)
+      |> Enum.map(fn key -> Media.url(key) end)
     end)
   end
 end

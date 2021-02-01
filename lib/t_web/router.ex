@@ -80,6 +80,7 @@ defmodule TWeb.Router do
   scope "/api", TWeb do
     pipe_through [:api, :fetch_current_user_from_bearer_token, :require_authenticated_user]
     post "/upload-preflight", MediaController, :create_upload_form
+    resources "/profile", ProfileController, singleton: true, only: [:update]
   end
 
   scope "/admin", TWeb do

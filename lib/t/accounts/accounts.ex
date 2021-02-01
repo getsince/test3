@@ -437,6 +437,16 @@ defmodule T.Accounts do
     |> Repo.update()
   end
 
+  # TODO
+  def update_profile_photo_at_position(user_id, s3_key, position) when position in [1, 2, 3, 4] do
+    sql = "update profiles set photos[$1] = $2 where user_id = $3"
+
+    %Postgrex.Result{num_rows: 1} =
+      Repo.query!(sql, [position, s3_key, Ecto.Bigflake.UUID.dump!(user_id)])
+
+    :ok
+  end
+
   def validate_profile_photos(%Profile{} = profile) do
     profile
     |> Profile.photos_changeset(%{}, validate_required?: true)

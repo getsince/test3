@@ -366,3 +366,83 @@ defmodule Chatter do
     other_id
   end
 end
+
+defmodule Support do
+  use GenServer
+
+  def start_link(args) do
+    GenServer.start_link(__MODULE__, args, name: __MODULE__)
+  end
+
+  @impl true
+  def init("support:" <> user_id = topic) do
+    TWeb.Endpoint.subscribe(topic)
+    {:ok, %{id: user_id}}
+  end
+
+  def text(text) do
+    GenServer.call(__MODULE__, {:text, text})
+  end
+
+  def photo(s3_key) do
+    GenServer.call(__MODULE__, {:photo, s3_key})
+  end
+
+  def audio(s3_key) do
+    GenServer.call(__MODULE__, {:audio, s3_key})
+  end
+
+  def unmatch do
+    GenServer.call(__MODULE__, :unmatch)
+  end
+
+  @impl true
+  def handle_info(
+        %Phoenix.Socket.Broadcast{
+          event: "message:new",
+          payload: payload
+        },
+        state
+      ) do
+    IO.inspect(payload)
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_call({:text, text}, _from, state) do
+    add_and_broadcast_message(state, %{"kind" => "text", "data" => %{"text" => text}})
+    {:reply, :ok, state}
+  end
+
+  def handle_call({:photo, s3_key}, _from, state) do
+    add_and_broadcast_message(state, %{
+      "kind" => "photo",
+      "data" => %{"s3_key" => s3_key}
+    })
+
+    {:reply, :ok, state}
+  end
+
+  def handle_call({:audio, s3_key}, _from, state) do
+    add_and_broadcast_message(state, %{
+      "kind" => "audio",
+      "data" => %{"s3_key" => s3_key}
+    })
+
+    {:reply, :ok, state}
+  end
+
+  defp add_and_broadcast_message(%{id: user_id}, attrs) do
+    {:ok, message} = T.Support.add_message(user_id, admin_id(), attrs)
+
+    TWeb.Endpoint.broadcast!(
+      "support:#{user_id}",
+      "message:new",
+      %{message: TWeb.MessageView.render("show.json", %{message: message})}
+    )
+  end
+
+  defp admin_id do
+    "00000000-0000-4000-0000-000000000000"
+  end
+end

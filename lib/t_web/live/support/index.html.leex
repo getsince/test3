@@ -1,0 +1,36 @@
+<div class="flex bg-gray-900 text-gray-300 h-screen w-full overflow-hidden">
+  <%# users %>
+  <div class="w-64 flex-none overflow-y-auto h-full border-r border-gray-800">
+  <%= for message <- @side_panel do %>
+    <div class="h-20 w-full p-4 border-b border-gray-800 hover:bg-gray-800 transition cursor-pointer">
+      <div class="text-gray-700 font-semibold whitespace-nowrap truncate"><%= message.user_id %></div>
+      <div class="whitespace-nowrap truncate text-gray-500"><%= render_side_panel_message(message) %></div>
+    </div>
+  <% end %>
+  </div>
+  <%# /users %>
+
+  <%# messages %>
+  <div class="flex flex-col flex-1 overflow-y-hidden">
+    <%# list %>
+    <div id="support-messages" class="flex-1 overflow-y-auto" phx-update="append">
+    <%= for message <- @messages do %>
+      <div id="<%= message.id %>" class="w-full px-3 py-1.5">
+        <div class="bg-gray-900 p-2 text-sm">
+          <div class="text-gray-400 font-semibold"><%= message.author_id %> <span class="ml-2 text-gray-600 font-normal text-xs"><%= message.inserted_at %></span></div>
+          <div class="text-gray-400"><%= render_message(message) %></div>
+        </div>
+      </div>
+    <% end %>
+    </div>
+    <%# /list %>
+    <%# input %>
+    <div class="flex-none h-16 border-t border-gray-800 p-2 flex items-center">
+      <form phx-submit="send-message" class="w-full" x-data="{value: ''}" x-on:submit="value = ''">
+        <input type="text" name="message[text]" class="w-full bg-gray-800 rounded" x-bind:value="value">
+      </form>
+    </div>
+    <%# /input %>
+  </div>
+  <%# /messages %>
+</div>

@@ -1,0 +1,40 @@
+{
+  "repository": {},
+  "description": " ",
+  "license": "MIT",
+  "scripts": {
+    "deploy": "NODE_ENV=production webpack --mode production",
+    "deploy.analyze": "yarn deploy --env.ANALYZE=1",
+    "build": "webpack --mode development",
+    "watch": "yarn build --watch-stdin"
+  },
+  "dependencies": {
+    "phoenix": "file:../deps/phoenix",
+    "phoenix_html": "file:../deps/phoenix_html",
+    "phoenix_live_view": "file:../deps/phoenix_live_view"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.0.0",
+    "@babel/plugin-syntax-dynamic-import": "^7.8.3",
+    "@babel/plugin-transform-runtime": "^7.12.10",
+    "@babel/preset-env": "^7.0.0",
+    "alpinejs": "^2.8.0",
+    "babel-loader": "^8.0.0",
+    "compression-webpack-plugin": "^6.0.3",
+    "copy-webpack-plugin": "^5.1.1",
+    "css-loader": "^3.4.2",
+    "mini-css-extract-plugin": "^0.9.0",
+    "optimize-css-assets-webpack-plugin": "^5.0.1",
+    "postcss": "^8.2.4",
+    "postcss-import": "^12.0.1",
+    "postcss-loader": "^4.2.0",
+    "tailwindcss": "^2.0.2",
+    "@tailwindcss/forms": "^0.2.1",
+    "autoprefixer": "^10.0.4",
+    "terser-webpack-plugin": "^2.3.2",
+    "webpack": "4.41.5",
+    "webpack-cli": "^3.3.2",
+    "webpack-bundle-analyzer": "^3.9.0",
+    "nprogress": "^0.2.0"
+  }
+}

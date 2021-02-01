@@ -3,6 +3,19 @@ defmodule TWeb.Router do
 
   import TWeb.UserAuth
 
+  pipeline :browser do
+    plug :accepts, ["html"]
+    plug :fetch_session
+    plug :fetch_live_flash
+    plug :put_root_layout, {TWeb.LayoutView, :root}
+    plug :protect_from_forgery
+    plug :put_secure_browser_headers
+  end
+
+  pipeline :api do
+    plug :accepts, ["json"]
+  end
+
   # TODO add app routes
   # TODO /onboarding
   # /login
@@ -58,10 +71,6 @@ defmodule TWeb.Router do
   #   post "/verify-phone-number", AuthController, :verify_phone_number
   # end
 
-  pipeline :api do
-    plug :accepts, ["json"]
-  end
-
   scope "/api/mobile/auth", TWeb do
     pipe_through [:api, :fetch_current_user_from_bearer_token, :require_not_authenticated_user]
     post "/request-sms", MobileAuthController, :request_sms
@@ -71,5 +80,12 @@ defmodule TWeb.Router do
   scope "/api", TWeb do
     pipe_through [:api, :fetch_current_user_from_bearer_token, :require_authenticated_user]
     post "/upload-preflight", MediaController, :create_upload_form
+  end
+
+  scope "/admin", TWeb do
+    pipe_through [:browser, :dashboard_auth]
+
+    live "/support", SupportLive.Index, :index
+    live "/support/:user_id", SupportLive.Index, :show
   end
 end

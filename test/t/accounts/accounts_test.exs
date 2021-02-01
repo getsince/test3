@@ -317,4 +317,32 @@ defmodule T.AccountsTest do
       # assert onboarded_at
     end
   end
+
+  describe "update_profile_photo_at_position/3" do
+    defp photos(user_id) do
+      Profile
+      |> where(user_id: ^user_id)
+      |> select([p], p.photos)
+      |> Repo.one!()
+    end
+
+    test "it works" do
+      {:ok, %{profile: %Profile{user_id: user_id, photos: photos}}} =
+        Accounts.register_user(%{phone_number: phone_number()})
+
+      refute photos
+
+      assert :ok = Accounts.update_profile_photo_at_position(user_id, "photo-2", 2)
+      assert photos(user_id) == ["photo-2"]
+
+      assert :ok = Accounts.update_profile_photo_at_position(user_id, "photo-1", 1)
+      assert photos(user_id) == ["photo-1", "photo-2"]
+
+      assert :ok = Accounts.update_profile_photo_at_position(user_id, "photo-4", 4)
+      assert photos(user_id) == ["photo-1", "photo-2", nil, "photo-4"]
+
+      assert :ok = Accounts.update_profile_photo_at_position(user_id, "photo-3", 3)
+      assert photos(user_id) == ["photo-1", "photo-2", "photo-3", "photo-4"]
+    end
+  end
 end

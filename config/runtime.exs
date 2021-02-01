@@ -9,7 +9,7 @@ import Config
 config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase
 
 config :t, TWeb.Endpoint,
-  render_errors: [view: TWeb.ErrorView, accepts: ~w(json html), layout: false],
+  render_errors: [view: TWeb.ErrorView, accepts: ~w(json), layout: false],
   pubsub_server: T.PubSub,
   live_view: [signing_salt: "Urm6JRcI"]
 
@@ -180,10 +180,11 @@ if config_env() == :dev do
 
   # Configure your database
   config :t, T.Repo,
-    username: "postgres",
-    password: "postgres",
-    database: "t_dev",
-    hostname: "localhost",
+    # username: "postgres",
+    # password: "postgres",
+    # database: "t_dev",
+    # hostname: "localhost",
+    url: System.fetch_env!("DATABASE_URL"),
     show_sensitive_data_on_connection_error: true,
     pool_size: 10
 

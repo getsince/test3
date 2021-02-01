@@ -20,16 +20,16 @@ COPY config/config.exs config/prod.exs config/
 RUN mix deps.get
 RUN mix deps.compile
 
-# build assets
-COPY assets assets
-RUN cd assets && yarn install && yarn deploy
-RUN mix phx.digest
-
 # build project
 COPY priv priv
 COPY lib lib
 RUN mix compile
 COPY config/runtime.exs config/
+
+# build assets
+COPY assets assets
+RUN cd assets && yarn install && yarn deploy
+RUN mix phx.digest
 
 # build release
 RUN mix release

@@ -162,9 +162,19 @@ if config_env() == :dev do
     # Watch static and templates for browser reloading.
     live_reload: [
       patterns: [
+        ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
         ~r"priv/gettext/.*(po)$",
-        ~r"lib/t_web/views/.*(ex)$",
+        ~r"lib/t_web/(live|views)/.*(ex)$",
         ~r"lib/t_web/templates/.*(eex)$"
+      ]
+    ],
+    watchers: [
+      node: [
+        "node_modules/webpack/bin/webpack.js",
+        "--mode",
+        "development",
+        "--watch-stdin",
+        cd: Path.expand("../assets", __DIR__)
       ]
     ]
 
@@ -176,6 +186,10 @@ if config_env() == :dev do
     hostname: "localhost",
     show_sensitive_data_on_connection_error: true,
     pool_size: 10
+
+  config :t, :dashboard,
+    username: System.fetch_env!("DASHBOARD_USERNAME"),
+    password: System.fetch_env!("DASHBOARD_PASSWORD")
 
   # Do not include metadata nor timestamps in development logs
   config :logger, :tonsole, format: "[$level] $message\n"

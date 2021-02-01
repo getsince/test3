@@ -109,32 +109,38 @@ defmodule T.Feeds do
     :ok
   end
 
-  def get_or_create_feed(%Profile{} = profile, date \\ Date.utc_today()) do
+  def get_or_create_feed(%Profile{} = profile, date \\ Date.utc_today(), opts \\ []) do
     {:ok, profiles} =
-      Repo.transaction(fn -> get_feed(profile, date) || create_feed(profile, date) end)
+      Repo.transaction(fn -> get_feed(profile, date, opts) || create_feed(profile, date) end)
 
     Enum.shuffle(profiles)
   end
 
-  defp get_feed(profile, date) do
+  defp get_feed(profile, date, opts) do
     feed =
       Feed
       |> where(user_id: ^profile.user_id)
       |> where(date: ^date)
       |> Repo.one()
 
-    if feed, do: load_users_for_feed(feed, profile, date)
+    if feed, do: load_users_for_feed(feed, profile, date, opts)
   end
 
   # TODO test seen profiles are not loaded
-  defp load_users_for_feed(%Feed{profiles: profiles}, profile, _date)
+  defp load_users_for_feed(%Feed{profiles: profiles}, profile, _date, opts)
        when is_map(profiles) do
-    seen = SeenProfile |> where(by_user_id: ^profile.user_id) |> select([s], s.user_id)
+    q = where(Profile, [p], p.user_id in ^Map.keys(profiles))
+
+    q =
+      if opts[:keep_seen?] do
+        q
+      else
+        seen = SeenProfile |> where(by_user_id: ^profile.user_id) |> select([s], s.user_id)
+        where(q, [p], p.user_id not in subquery(seen))
+      end
 
     profiles =
-      Profile
-      |> where([p], p.user_id in ^Map.keys(profiles))
-      |> where([p], p.user_id not in subquery(seen))
+      q
       |> Repo.all()
       |> Enum.map(fn profile ->
         %Profile{profile | feed_reason: profiles[profile.user_id]}
@@ -266,6 +272,7 @@ defmodule T.Feeds do
     profiles
   end
 
+  # TODO
   def opposite_gender(%Profile{gender: gender}), do: opposite_gender(gender)
   def opposite_gender("F"), do: "M"
   def opposite_gender("M"), do: "F"

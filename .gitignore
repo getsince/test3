@@ -26,6 +26,7 @@ t-*.tar
 # we ignore priv/static. You may want to comment
 # this depending on your deployment strategy.
 /priv/static/
+/assets/node_modules/
 .DS_Store
 .elixir_ls/
 .envrc

@@ -67,4 +67,9 @@ defmodule TWeb.Router do
     post "/request-sms", MobileAuthController, :request_sms
     post "/verify-phone", MobileAuthController, :verify_phone_number
   end
+
+  scope "/api", TWeb do
+    pipe_through [:api, :fetch_current_user_from_bearer_token, :require_authenticated_user]
+    post "/upload-preflight", MediaController, :create_upload_form
+  end
 end

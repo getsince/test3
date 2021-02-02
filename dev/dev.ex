@@ -51,6 +51,15 @@ defmodule Dev do
     end)
   end
 
+  def dump_state(data, path) do
+    File.write(path, :erlang.term_to_binary(data))
+  end
+
+  def read_state(path) do
+    data = File.read!(path)
+    :erlang.binary_to_term(data)
+  end
+
   def upload_photos(path \\ "~/Downloads/tinder_pics") do
     path = Path.expand(path)
 
@@ -59,13 +68,14 @@ defmodule Dev do
     |> Enum.filter(&String.ends_with?(&1, ".jpg"))
     |> Enum.map(fn file -> Path.join(path, file) end)
     |> Enum.map(fn file ->
-      uuid = Ecto.UUID.generate() <> ".jpg"
+      uuid = Ecto.UUID.generate()
       File.cp(file, Path.join([path, uuid]))
       {uuid, Path.join([path, uuid])}
     end)
-    |> Enum.each(fn {key, path} ->
+    |> Enum.map(fn {key, path} ->
       body = File.read!(path)
       ExAws.S3.put_object(Media.bucket(), key, body) |> ExAws.request!()
+      key
     end)
   end
 
@@ -75,14 +85,21 @@ defmodule Dev do
 
   def setup do
     create_ets()
-    mocks = read_mock_data_csv()
+    mocks = read_mock_data_options()
     photos = list_photos()
     {mocks, photos}
   end
 
   @task_supervisor T.TaskSupervisor
 
-  def random_profiles(count \\ 50, mocks, photos) do
+  def random_profiles(
+        count \\ 1000,
+        mocks,
+        male_photos \\ male_photos(),
+        female_photos \\ female_photos(),
+        male_names \\ male_names(),
+        female_names \\ female_names()
+      ) do
     ensure_task_supervisor()
 
     Task.Supervisor.async_stream_nolink(
@@ -110,16 +127,36 @@ defmodule Dev do
           |> Enum.shuffle()
           |> Enum.take(rand_count(7, 13))
 
+        female? = :rand.uniform() > 0.45
+        gender = if female?, do: "F", else: "M"
+
+        photos =
+          if female? do
+            female_photos
+          else
+            male_photos
+          end
+          |> Enum.shuffle()
+          |> Enum.take(4)
+
+        name =
+          if female? do
+            female_names
+          else
+            male_names
+          end
+          |> Enum.random()
+
         %Profile{
-          photos: Enum.shuffle(photos) |> Enum.take(4),
+          photos: photos,
           times_liked: 0,
-          gender: "F",
-          name: mocks.names |> Enum.random(),
-          birthdate: ~D[2000-01-01],
+          gender: gender,
+          name: name,
+          birthdate: ~D[1997-05-11],
           city: mocks.cities |> Enum.random(),
           first_date_idea: mocks.first_date_ideas |> Enum.random(),
           most_important_in_life: mocks.most_importent_in_life |> Enum.random(),
-          height: 99,
+          height: 150 + :rand.uniform(50),
           interests: mocks.interests |> Enum.shuffle() |> Enum.take(rand_count(2, 5)),
           job: mocks.companies |> Enum.random(),
           occupation: mocks.jobs |> Enum.random(),
@@ -127,7 +164,16 @@ defmodule Dev do
           university: if(educated?, do: mocks.unis |> Enum.random()),
           tastes:
             Map.new(tastes, fn k ->
-              {k, mocks[k] |> Enum.shuffle() |> Enum.take(rand_count(1, 5))}
+              value =
+                case k do
+                  _text when k in [:smoking, :alcohol] ->
+                    Enum.random(["никогда", "редко", "иногда", "регулярно"])
+
+                  _list ->
+                    mocks[k] |> Enum.shuffle() |> Enum.take(rand_count(1, 5))
+                end
+
+              {k, value}
             end)
         }
       end,
@@ -147,6 +193,22 @@ defmodule Dev do
     end
   end
 
+  defp male_names do
+    read_options("~/Downloads/Options/male_names.txt")
+  end
+
+  defp male_photos do
+    s3_list_photos(~D[2021-02-02]) |> Enum.filter(&String.ends_with?(&1, ".jpg"))
+  end
+
+  defp female_names do
+    read_options("~/Downloads/Options/female_names.txt")
+  end
+
+  defp female_photos do
+    s3_list_photos(~D[2021-01-16]) |> Enum.filter(&String.ends_with?(&1, ".jpg"))
+  end
+
   def persist_profiles(profiles) do
     ensure_task_supervisor()
 
@@ -155,9 +217,11 @@ defmodule Dev do
       profiles,
       fn {:ok, profile} ->
         phone_number = phone_number()
-        {:ok, user} = Accounts.register_user(%{"phone_number" => phone_number})
-        {:ok, profile} = Accounts.onboard_profile(user.profile, Map.from_struct(profile))
-        profile
+
+        T.Repo.transaction(fn ->
+          {:ok, user} = Accounts.register_user(%{"phone_number" => phone_number})
+          {:ok, profile} = Accounts.onboard_profile(user.profile, Map.from_struct(profile))
+        end)
       end,
       max_concurrency: 20,
       ordered: false
@@ -172,7 +236,7 @@ defmodule Dev do
   def list_photos do
     case ets_list_photos() do
       [] ->
-        photos = s3_list_photos()
+        photos = s3_list_photos(~D[2021-01-16]) |> Enum.filter(&String.ends_with?(&1, ".jpg"))
         ets_save_photos(photos)
         photos
 
@@ -191,8 +255,52 @@ defmodule Dev do
     :ets.tab2list(:photos)
   end
 
-  defp s3_list_photos do
+  def s3_list_photos_today do
+    s3_list_photos(Date.utc_today())
+  end
+
+  def schedule_personality_overlap do
+    import Ecto.Query
+
+    Profile
+    |> where(gender: "F")
+    |> select([p], p.user_id)
+    |> T.Repo.all()
+    |> Enum.map(fn user_id ->
+      Oban.insert(T.Feeds.PersonalityOverlapJob.new(%{user_id: user_id}))
+    end)
+  end
+
+  def s3_list_photos(date) do
+    ExAws.S3.list_objects(Media.bucket())
+    |> ExAws.stream!()
+    |> Stream.filter(fn %{last_modified: last_modified} ->
+      {:ok, dt, _} = DateTime.from_iso8601(last_modified)
+      Date.compare(dt, date) == :eq
+    end)
+    |> Enum.map(fn %{key: k} -> k end)
+  end
+
+  def s3_list_photos do
     ExAws.S3.list_objects(Media.bucket()) |> ExAws.stream!() |> Enum.map(fn %{key: k} -> k end)
+  end
+
+  defp read_options(path) do
+    Path.expand(path)
+    |> File.read!()
+    |> String.split("\n")
+    |> Enum.reject(fn s -> String.trim(s) == "" end)
+  end
+
+  def read_mock_data_options(path \\ "~/Downloads/Options") do
+    path = Path.expand(path)
+
+    File.ls!(path)
+    |> Enum.reduce(%{}, fn file, acc ->
+      key = file |> String.replace(".txt", "") |> String.to_existing_atom()
+      contents = read_options(Path.join(file, path))
+      Map.put(acc, key, contents)
+    end)
   end
 
   def read_mock_data_csv(path \\ "~/Downloads/User profile multiple choice options - main.csv") do
@@ -269,6 +377,12 @@ defmodule Dev do
 
   defp maybe_add_mock_field(acc, _key, nil), do: acc
   defp maybe_add_mock_field(acc, _key, ""), do: acc
+
+  defp maybe_add_mock_field(acc, key, vals) when is_list(vals) do
+    Map.update(acc, key, [], fn prev ->
+      vals ++ prev
+    end)
+  end
 
   defp maybe_add_mock_field(acc, key, val) do
     Map.update(acc, key, [], fn prev ->

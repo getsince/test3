@@ -127,6 +127,15 @@ if config_env() == :prod do
     s3: [
       bucket: System.fetch_env!("AWS_S3_BUCKET")
     ]
+
+  if demo_phones = System.get_env("DEMO_PHONES") do
+    demo_phones
+    |> String.split(",")
+    |> Enum.each(fn phone_and_code ->
+      [phone, code] = String.split(phone_and_code, ":")
+      T.Accounts.add_demo_phone(phone, code)
+    end)
+  end
 end
 
 if config_env() == :dev do

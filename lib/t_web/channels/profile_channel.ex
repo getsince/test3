@@ -71,6 +71,19 @@ defmodule TWeb.ProfileChannel do
     end
   end
 
+  # TODO test
+  def handle_in("delete-account", _payload, socket) do
+    %{current_user: user} = socket.assigns
+    {:ok, %{tokens: tokens}} = Accounts.delete_user(user.id)
+
+    for token <- tokens do
+      encoded = Accounts.UserToken.encoded_token(token)
+      TWeb.Endpoint.broadcast("user_socket:#{encoded}", "disconnect", %{})
+    end
+
+    {:reply, :ok, socket}
+  end
+
   # TODO store current step in assigns and ask for transition to the next step?
   # def handle_in("validate", %{"step" => step}, socket) do
   #   validation =

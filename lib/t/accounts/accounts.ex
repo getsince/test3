@@ -290,11 +290,11 @@ defmodule T.Accounts do
         |> select([t], t.token)
         |> repo.delete_all()
 
-      for token <- tokens do
-        encoded_token = UserToken.encoded_token(token)
-        # TODO no web in here
-        TWeb.Endpoint.broadcast("user_socket:#{encoded_token}", "disconnect", %{})
-      end
+      # for token <- tokens do
+      #   encoded_token = UserToken.encoded_token(token)
+      #   # TODO no web in here
+      #   TWeb.Endpoint.broadcast("user_socket:#{encoded_token}", "disconnect", %{})
+      # end
 
       {:ok, tokens}
     end)

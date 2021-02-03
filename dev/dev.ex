@@ -557,6 +557,6 @@ defmodule Support do
   end
 
   defp admin_id do
-    "00000000-0000-4000-0000-000000000000"
+    T.Support.admin_id()
   end
 end

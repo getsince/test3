@@ -59,8 +59,14 @@ defmodule TWeb.SupportLive.Index do
   @impl true
   def handle_event("send-message", %{"message" => %{"text" => text}}, socket) do
     if user_id = socket.assigns.user_id do
-      {:ok, _message} =
+      {:ok, message} =
         Support.add_message(user_id, admin_id(), %{"kind" => "text", "data" => %{"text" => text}})
+
+      TWeb.Endpoint.broadcast!(
+        "support:#{user_id}",
+        "message:new",
+        %{message: TWeb.MessageView.render("show.json", %{message: message})}
+      )
     end
 
     {:noreply, socket}

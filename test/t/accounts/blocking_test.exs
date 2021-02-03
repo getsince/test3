@@ -9,6 +9,7 @@ defmodule T.Accounts.BlockingTest do
   # TODO move to reporting test
   describe "report_user/3" do
     setup do
+      _admin = T.Repo.insert!(%Accounts.User{id: T.Support.admin_id(), phone_number: "ADMIN"})
       reporter = onboarded_user()
       reported = onboarded_user()
       {:ok, reporter: reporter, reported: reported}

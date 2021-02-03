@@ -50,12 +50,12 @@ defmodule T.Factory do
     "+7916" <> String.pad_leading(rand, 7, "0")
   end
 
-  def onboarding_attrs do
+  def onboarding_attrs(gender \\ "M") do
     %{
       birthdate: "1992-12-12",
       city: "Moscow",
       first_date_idea: "asdf",
-      gender: "M",
+      gender: gender,
       height: 120,
       interests: ["this", "that"],
       most_important_in_life: "this",

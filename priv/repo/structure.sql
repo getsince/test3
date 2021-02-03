@@ -498,6 +498,13 @@ ALTER TABLE ONLY public.users_tokens
 
 
 --
+-- Name: apns_devices_device_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX apns_devices_device_id_index ON public.apns_devices USING btree (device_id);
+
+
+--
 -- Name: interests_overlap_user_id_1_user_id_2_score_desc_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -813,3 +820,4 @@ INSERT INTO public."schema_migrations" (version) VALUES (20210130101400);
 INSERT INTO public."schema_migrations" (version) VALUES (20210130101533);
 INSERT INTO public."schema_migrations" (version) VALUES (20210130101812);
 INSERT INTO public."schema_migrations" (version) VALUES (20210131190658);
+INSERT INTO public."schema_migrations" (version) VALUES (20210203185329);

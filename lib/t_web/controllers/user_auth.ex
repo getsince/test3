@@ -24,16 +24,19 @@ defmodule TWeb.UserAuth do
 
   def fetch_current_user_from_bearer_token(conn, _opts) do
     user =
-      case get_req_header(conn, "authorization") do
-        ["Bearer " <> token] ->
-          token = Accounts.UserToken.raw_token(token)
-          Accounts.get_user_by_session_token(token, "mobile")
-
-        [] ->
-          nil
+      if token = bearer_token(conn) do
+        token = Accounts.UserToken.raw_token(token)
+        Accounts.get_user_by_session_token(token, "mobile")
       end
 
     assign(conn, :current_user, user)
+  end
+
+  def bearer_token(conn) do
+    case get_req_header(conn, "authorization") do
+      ["Bearer " <> token] -> token
+      [] -> nil
+    end
   end
 
   @doc """

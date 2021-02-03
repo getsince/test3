@@ -341,6 +341,8 @@ defmodule T.Accounts do
   def save_apns_device_id(user_id, token, device_id) do
     %UserToken{id: token_id} = token |> UserToken.token_and_context_query("mobile") |> Repo.one!()
 
+    # duplicate device_id conflict target?
+    # TODO ensure tokens are deleted on logout
     Repo.insert!(%APNSDevice{user_id: user_id, token_id: token_id, device_id: device_id},
       on_conflict: {:replace, [:device_id, :updated_at]},
       conflict_target: [:user_id, :token_id]

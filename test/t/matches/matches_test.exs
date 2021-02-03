@@ -1,5 +1,6 @@
 defmodule T.MatchesTest do
   use T.DataCase, async: true
+  use Oban.Testing, repo: T.Repo
   alias T.Accounts.Profile
   alias T.{Matches, Feeds}
   alias Matches.{Match, Message}
@@ -25,6 +26,8 @@ defmodule T.MatchesTest do
 
       refute Matches.get_current_match(p1.user_id)
       refute Matches.get_current_match(p2.user_id)
+
+      assert [] = all_enqueued(worker: T.PushNotifications.DispatchJob)
     end
 
     test "transition to pending match if the other user is available" do
@@ -44,6 +47,10 @@ defmodule T.MatchesTest do
       assert_receive {Feeds, [:matched], %Match{id: ^match_id}}
       assert_receive {Feeds, [:matched], %Match{id: ^match_id}}
 
+      assert [
+               %{args: %{"match_id" => ^match_id, "type" => "match"}}
+             ] = all_enqueued(worker: T.PushNotifications.DispatchJob)
+
       assert {:ok, %Match{id: pending_match_id, alive?: false, pending?: true}} =
                Feeds.like_profile(p3.user_id, p1.user_id)
 
@@ -54,6 +61,11 @@ defmodule T.MatchesTest do
       assert_receive {Matches, [:pending_match_activated], %Match{id: ^pending_match_id}}
       assert_receive {Matches, [:pending_match_activated], %Match{id: ^pending_match_id}}
       refute_receive _anything
+
+      assert [
+               %{args: %{"match_id" => ^pending_match_id, "type" => "match"}},
+               %{args: %{"match_id" => ^match_id, "type" => "match"}}
+             ] = all_enqueued(worker: T.PushNotifications.DispatchJob)
     end
 
     test "no transition to pending match if the other user is not avialable" do
@@ -89,6 +101,11 @@ defmodule T.MatchesTest do
              }
 
       refute_receive _anything
+
+      assert [
+               %{args: %{"match_id" => ^m2, "type" => "match"}},
+               %{args: %{"match_id" => ^m1, "type" => "match"}}
+             ] = all_enqueued(worker: T.PushNotifications.DispatchJob)
     end
   end
 
@@ -102,80 +119,103 @@ defmodule T.MatchesTest do
     test "empty", %{match: match, profiles: [me | _not_me]} do
       assert {:error, changeset} = Matches.add_message(match.id, me.user_id, %{})
       assert errors_on(changeset) == %{data: ["can't be blank"], kind: ["can't be blank"]}
+      assert [] = all_enqueued(worker: T.PushNotifications.DispatchJob)
     end
 
-    test "text kind", %{match: match, profiles: [me | _not_me]} do
-      assert {:error, changeset} = Matches.add_message(match.id, me.user_id, %{"kind" => "text"})
+    test "text kind", %{match: %{id: match_id}, profiles: [%{user_id: me_id} | _not_me]} do
+      assert {:error, changeset} = Matches.add_message(match_id, me_id, %{"kind" => "text"})
       assert errors_on(changeset) == %{data: ["can't be blank"]}
 
       assert {:error, changeset} =
-               Matches.add_message(match.id, me.user_id, %{"kind" => "text", "data" => %{}})
+               Matches.add_message(match_id, me_id, %{"kind" => "text", "data" => %{}})
 
       assert errors_on(changeset) == %{text: ["can't be blank"]}
 
       assert {:ok, %Message{kind: "text", data: %{"text" => "hey"}}} =
-               Matches.add_message(match.id, me.user_id, %{
+               Matches.add_message(match_id, me_id, %{
                  "kind" => "text",
                  "data" => %{"text" => "hey"}
                })
 
       assert {:ok, %Message{kind: "markdown", data: %{"text" => "*hey*"}}} =
-               Matches.add_message(match.id, me.user_id, %{
+               Matches.add_message(match_id, me_id, %{
                  "kind" => "markdown",
                  "data" => %{"text" => "*hey*"}
                })
 
       assert {:ok, %Message{kind: "emoji", data: %{"text" => "😴"}}} =
-               Matches.add_message(match.id, me.user_id, %{
+               Matches.add_message(match_id, me_id, %{
                  "kind" => "emoji",
                  "data" => %{"text" => "😴"}
                })
+
+      # TODO replace existing notification on ios?
+      assert [
+               _job = %{
+                 args: %{"author_id" => ^me_id, "match_id" => ^match_id, "type" => "message"}
+               },
+               %{args: %{"author_id" => ^me_id, "match_id" => ^match_id, "type" => "message"}},
+               %{args: %{"author_id" => ^me_id, "match_id" => ^match_id, "type" => "message"}}
+             ] = all_enqueued(worker: T.PushNotifications.DispatchJob)
+
+      #  TODO
+      # assert :ok = perform_job(T.PushNotifications.DispatchJob, job.args)
+      # assert [] == all_enqueued(worker: T.PushNotifications.APNSJob)
     end
 
-    test "media kind", %{match: match, profiles: [me | _not_me]} do
-      assert {:error, changeset} = Matches.add_message(match.id, me.user_id, %{"kind" => "photo"})
+    test "media kind", %{match: %{id: match_id}, profiles: [%{user_id: me_id} | _not_me]} do
+      assert {:error, changeset} = Matches.add_message(match_id, me_id, %{"kind" => "photo"})
       assert errors_on(changeset) == %{data: ["can't be blank"]}
 
       assert {:error, changeset} =
-               Matches.add_message(match.id, me.user_id, %{"kind" => "photo", "data" => %{}})
+               Matches.add_message(match_id, me_id, %{"kind" => "photo", "data" => %{}})
 
       assert errors_on(changeset) == %{s3_key: ["can't be blank"]}
 
       assert {:ok, %Message{kind: "photo", data: %{"s3_key" => "hey"}}} =
-               Matches.add_message(match.id, me.user_id, %{
+               Matches.add_message(match_id, me_id, %{
                  "kind" => "photo",
                  "data" => %{"s3_key" => "hey"}
                })
 
       assert {:ok, %Message{kind: "audio", data: %{"s3_key" => "hey"}}} =
-               Matches.add_message(match.id, me.user_id, %{
+               Matches.add_message(match_id, me_id, %{
                  "kind" => "audio",
                  "data" => %{"s3_key" => "hey"}
                })
 
       assert {:ok, %Message{kind: "video", data: %{"s3_key" => "hey"}}} =
-               Matches.add_message(match.id, me.user_id, %{
+               Matches.add_message(match_id, me_id, %{
                  "kind" => "video",
                  "data" => %{"s3_key" => "hey"}
                })
+
+      assert [
+               %{args: %{"author_id" => ^me_id, "match_id" => ^match_id, "type" => "message"}},
+               %{args: %{"author_id" => ^me_id, "match_id" => ^match_id, "type" => "message"}},
+               %{args: %{"author_id" => ^me_id, "match_id" => ^match_id, "type" => "message"}}
+             ] = all_enqueued(worker: T.PushNotifications.DispatchJob)
     end
 
-    test "location kind", %{match: match, profiles: [me | _not_me]} do
-      assert {:error, changeset} =
-               Matches.add_message(match.id, me.user_id, %{"kind" => "location"})
+    test "location kind", %{match: %{id: match_id}, profiles: [%{user_id: me_id} | _not_me]} do
+      assert {:error, changeset} = Matches.add_message(match_id, me_id, %{"kind" => "location"})
 
       assert errors_on(changeset) == %{data: ["can't be blank"]}
 
       assert {:error, changeset} =
-               Matches.add_message(match.id, me.user_id, %{"kind" => "location", "data" => %{}})
+               Matches.add_message(match_id, me_id, %{"kind" => "location", "data" => %{}})
 
       assert errors_on(changeset) == %{lat: ["can't be blank"], lon: ["can't be blank"]}
 
       assert {:ok, %Message{kind: "location", data: %{"lat" => 50.0, "lon" => 50.0}}} =
-               Matches.add_message(match.id, me.user_id, %{
+               Matches.add_message(match_id, me_id, %{
                  "kind" => "location",
                  "data" => %{"lat" => 50.0, "lon" => 50.0}
                })
+
+      assert [
+               %{args: %{"author_id" => ^me_id, "match_id" => ^match_id, "type" => "message"}}
+             ] = all_enqueued(worker: T.PushNotifications.DispatchJob)
     end
   end
 
@@ -196,6 +236,7 @@ defmodule T.MatchesTest do
           message
         end)
 
+      # TODO remove notifications from other devices
       {:ok, match: match, profiles: [p1, p2], messages: messages}
     end
 

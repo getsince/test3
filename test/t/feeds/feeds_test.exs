@@ -85,7 +85,7 @@ defmodule T.FeedsTest do
 
   describe "get_or_create_feed/2" do
     setup do
-      {:ok, me: insert(:profile, gender: "M")}
+      {:ok, me: insert(:profile, gender: "M", city: "Tashkent")}
     end
 
     test "when there are no users", %{me: me} do
@@ -118,7 +118,7 @@ defmodule T.FeedsTest do
     end
 
     test "where there are some users but no personality overlap or likes", %{me: me} do
-      insert_list(5, :profile, gender: "F")
+      insert_list(5, :profile, gender: "F", city: me.city)
       assert feed = Feeds.get_or_create_feed(me)
       # TODO 5
       assert length(feed) == 4
@@ -145,7 +145,7 @@ defmodule T.FeedsTest do
     end
 
     test "when there are most rated users", %{me: me} do
-      profiles = insert_list(20, :profile, gender: "F")
+      profiles = insert_list(20, :profile, gender: "F", city: me.city)
       [top1 | [top2 | _rest]] = most_liked(profiles, 30..25)
 
       feed = Feeds.get_or_create_feed(me)
@@ -169,7 +169,7 @@ defmodule T.FeedsTest do
     end
 
     test "when there are personality overlap scores and no most rated", %{me: me} do
-      profiles = insert_list(20, :profile, gender: "F")
+      profiles = insert_list(20, :profile, gender: "F", city: me.city)
 
       [top1 | _rest] = personality_overlap(profiles, me, 30..25)
       feed = Feeds.get_or_create_feed(me)
@@ -197,7 +197,7 @@ defmodule T.FeedsTest do
     test "when there are likers"
 
     test "when there are users of ALL kinds", %{me: me} do
-      profiles = insert_list(20, :profile, gender: "F")
+      profiles = insert_list(20, :profile, gender: "F", city: me.city)
 
       [place1 | [place2 | _rest]] = most_liked(profiles, 30..15)
       [place3 | [place4 | _rest]] = personality_overlap(profiles, me, 30..10)

@@ -176,12 +176,13 @@ defmodule T.Feeds do
 
     common_q =
       Profile
-      |> with_cte("seen", as: ^seen)
       # not self
       |> where([p], p.user_id != ^profile.user_id)
       |> where(gender: ^opposite_gender(profile))
       |> where(hidden?: false)
-      |> where([p], p.user_id not in subquery(from s in "seen", select: s.user_id))
+      |> where(city: ^profile.city)
+      # TODO is there a better way?
+      |> where([p], p.user_id not in subquery(seen))
 
     # place_1 and place_2
     most_liked =

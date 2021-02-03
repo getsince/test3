@@ -28,7 +28,7 @@ defmodule TWeb.FeedChannelTest do
         }
       })
 
-    {:ok, user: Repo.preload(user, :profile), socket: connected_socket(user)}
+    {:ok, user: Repo.preload(user, :profile, force: true), socket: connected_socket(user)}
   end
 
   describe "join" do
@@ -67,7 +67,7 @@ defmodule TWeb.FeedChannelTest do
     test "without match, get feed", %{socket: socket, user: user} do
       me = user.profile
 
-      profiles = insert_list(20, :profile, gender: "F")
+      profiles = insert_list(20, :profile, gender: "F", city: me.city)
 
       [_place1 | [_place2 | _rest]] = most_liked(profiles, 30..15)
       [_place3 | [place4 | _rest]] = personality_overlap(profiles, me, 30..10)

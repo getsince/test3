@@ -1,6 +1,6 @@
 defmodule T.Feeds do
   import Ecto.Query
-  alias T.Repo
+  alias T.{Repo, PushNotifications}
   alias T.Accounts.Profile
   alias T.Feeds.{Feed, SeenProfile, ProfileLike, ProfileDislike, PersonalityOverlap}
   alias T.Matches.Match
@@ -78,6 +78,17 @@ defmodule T.Feeds do
         # somebody likes me, but they are hidden (maybe in match, maybe blocked or deleted)
         true ->
           create_pending_match(repo, [by_user_id, user_id])
+      end
+    end)
+    |> Ecto.Multi.run(:maybe_notify, fn _repo, %{maybe_match: maybe_match} ->
+      case maybe_match do
+        %Match{id: match_id, alive?: true} ->
+          Oban.insert(
+            PushNotifications.DispatchJob.new(%{"type" => "match", "match_id" => match_id})
+          )
+
+        _other ->
+          {:ok, nil}
       end
     end)
     |> Repo.transaction()

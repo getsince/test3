@@ -6,7 +6,7 @@ defmodule T.Matches do
   Then this is the palce to add code for it.
   """
   import Ecto.Query
-  alias T.{Repo, Media, Accounts}
+  alias T.{Repo, Media, Accounts, PushNotifications}
   alias T.Accounts.{User, Profile}
   alias T.Matches.{Match, Message}
   alias T.Feeds
@@ -51,6 +51,7 @@ defmodule T.Matches do
     success
   end
 
+  # TODO remove all scheduled notifications
   def unmatch(user_id, match_id) do
     Ecto.Multi.new()
     |> Ecto.Multi.run(:unmatch, fn repo, _changes ->
@@ -84,6 +85,22 @@ defmodule T.Matches do
       end
 
       {:ok, nil}
+    end)
+    |> Ecto.Multi.run(:push_notification, fn _repo, changes ->
+      %{maybe_activate_pending_matches: activated_matches} = changes
+
+      jobs =
+        activated_matches
+        |> Enum.filter(fn {_user_id, match} -> match end)
+        |> Enum.map(fn {_user_id, match} ->
+          PushNotifications.DispatchJob.new(%{
+            "type" => "match",
+            "match_id" => match.id
+          })
+        end)
+        |> Oban.insert_all()
+
+      {:ok, jobs}
     end)
     |> Repo.transaction()
     |> case do
@@ -155,11 +172,28 @@ defmodule T.Matches do
   # TODO check user is match member
   # or use rls
   def add_message(match_id, user_id, attrs) do
-    %Message{id: Ecto.Bigflake.UUID.autogenerate(), author_id: user_id, match_id: match_id}
-    |> message_changeset(attrs)
-    |> Repo.insert()
+    changeset =
+      message_changeset(
+        %Message{id: Ecto.Bigflake.UUID.autogenerate(), author_id: user_id, match_id: match_id},
+        attrs
+      )
 
-    # |> notify_subscribers([:message, :create])
+    Ecto.Multi.new()
+    |> Ecto.Multi.insert(:message, changeset)
+    |> Oban.insert(:push_notification, fn %{message: message} ->
+      PushNotifications.DispatchJob.new(%{
+        "type" => "message",
+        "author_id" => message.author_id,
+        "match_id" => match_id
+      })
+    end)
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{message: message}} -> {:ok, message}
+      {:error, :message, %Ecto.Changeset{} = changeset, _changes} -> {:error, changeset}
+    end
+
+    # |> notify_subscribers([:message, :created])
   end
 
   def media_upload_form(content_type) do

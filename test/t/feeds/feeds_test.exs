@@ -1,5 +1,6 @@
 defmodule T.FeedsTest do
   use T.DataCase, async: true
+  use Oban.Testing, repo: T.Repo
   alias T.Feeds
   alias T.Matches.Match
 
@@ -31,6 +32,9 @@ defmodule T.FeedsTest do
 
       assert_receive {Feeds, [:matched], %Match{id: ^match_id}}
       assert_receive {Feeds, [:matched], %Match{id: ^match_id}}
+
+      assert [%{args: %{"match_id" => ^match_id, "type" => "match"}}] =
+               all_enqueued(worker: T.PushNotifications.DispatchJob)
     end
 
     test "creates pending match if the other user is hidden", %{profiles: [p1, p2]} do
@@ -50,6 +54,9 @@ defmodule T.FeedsTest do
 
       refute_hidden([p1.user_id])
       refute_receive _anything
+
+      assert [%{args: %{"match_id" => ^match_id, "type" => "match"}}] =
+               all_enqueued(worker: T.PushNotifications.DispatchJob)
     end
 
     test "doesn't create match if not yet liked", %{profiles: [p1, p2]} do
@@ -61,6 +68,7 @@ defmodule T.FeedsTest do
       refute_hidden([p1.user_id, p2.user_id])
 
       refute_receive _anything
+      assert [] = all_enqueued(worker: T.PushNotifications.DispatchJob)
     end
   end
 

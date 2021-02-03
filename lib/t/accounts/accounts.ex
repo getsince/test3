@@ -30,7 +30,7 @@ defmodule T.Accounts do
   ## Database getters
 
   def get_user_by_phone_number(phone_number) when is_binary(phone_number) do
-    Repo.get_by(User, phone_number: phone_number)
+    User |> Repo.get_by(phone_number: phone_number) |> Repo.preload(:profile)
   end
 
   def get_user!(id), do: Repo.get!(User, id)

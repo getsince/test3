@@ -13,11 +13,24 @@ defmodule TWeb.MobileAuthController do
   def verify_phone_number(conn, %{"phone_number" => phone_number, "code" => code}) do
     case Accounts.login_or_register_user(phone_number, code) do
       {:ok, user} ->
-        TWeb.UserAuth.log_in_mobile_user(conn, user)
+        token = Accounts.generate_user_session_token(user, "mobile")
+
+        conn
+        |> put_status(200)
+        |> json(%{
+          token: Accounts.UserToken.encoded_token(token),
+          user: render_user(user),
+          profile: TWeb.ProfileView.render("show.json", profile: user.profile)
+        })
 
       {:error, _reason} ->
         # TODO
         send_resp(conn, 400, [])
     end
+  end
+
+  defp render_user(user) do
+    %Accounts.User{id: id, blocked_at: blocked_at, onboarded_at: onboarded_at} = user
+    %{id: id, blocked_at: blocked_at, onboarded_at: onboarded_at}
   end
 end

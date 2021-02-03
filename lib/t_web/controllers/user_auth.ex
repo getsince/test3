@@ -4,14 +4,6 @@ defmodule TWeb.UserAuth do
 
   alias T.Accounts
 
-  def log_in_mobile_user(conn, user) do
-    token = Accounts.generate_user_session_token(user, "mobile")
-
-    conn
-    |> put_status(200)
-    |> json(%{token: Accounts.UserToken.encoded_token(token), id: user.id})
-  end
-
   def log_out_mobile_user(token) do
     decoded_token = Accounts.UserToken.raw_token(token)
     encoded_token = Accounts.UserToken.encoded_token(token)

@@ -20,6 +20,13 @@ defmodule T.Application do
       ]
       |> Enum.reject(&is_nil/1)
 
+    :telemetry.attach_many(
+      "oban-errors",
+      [[:oban, :job, :exception], [:oban, :circuit, :trip]],
+      &T.ObanErrorReporter.handle_event/4,
+      %{}
+    )
+
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: T.Supervisor]

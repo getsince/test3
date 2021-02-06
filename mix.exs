@@ -77,7 +77,9 @@ defmodule T.MixProject do
       {:sentry, "~> 8.0"},
       {:bigflake, "0.5.0"},
       {:nimble_csv, "~> 1.1"},
-      {:imgproxy, "~> 1.0"}
+      {:imgproxy, "~> 1.0"},
+      {:libcluster, "~> 3.2"},
+      {:libcluster_consul, "~> 1.0"}
     ]
   end
 

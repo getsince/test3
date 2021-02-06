@@ -21,5 +21,14 @@ defmodule T.Accounts.APNSTest do
       assert :ok == Accounts.save_apns_device_id(user.id, token, "BCBCBCBC")
       assert [%Accounts.APNSDevice{device_id: "BCBCBCBC"}] = Repo.all(Accounts.APNSDevice)
     end
+
+    test "user can switch account", %{user: user, token: token} do
+      # save device id for current user and session
+      assert :ok == Accounts.save_apns_device_id(user.id, token, "ABABABABA")
+      assert [%Accounts.APNSDevice{device_id: "ABABABABA"}] = Repo.all(Accounts.APNSDevice)
+      # on log out the apns token is deleted, so user can login and store the token again
+      assert :ok == Accounts.delete_session_token(token, "mobile")
+      assert [] == Repo.all(Accounts.APNSDevice)
+    end
   end
 end

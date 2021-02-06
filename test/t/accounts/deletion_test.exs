@@ -9,13 +9,15 @@ defmodule T.Accounts.DeletionTest do
       {:ok, user: user, profile: profile}
     end
 
-    test "deleted_at is set", %{user: user} do
+    test "deleted_at is set and phone number is updated", %{user: user} do
       refute user.deleted_at
 
       assert {:ok, %{delete_sessions: [], delete_user: nil, hide_profile: nil, unmatch: nil}} =
                Accounts.delete_user(user.id)
 
-      assert Repo.get(Accounts.User, user.id).deleted_at
+      user = Repo.get(Accounts.User, user.id)
+      assert user.deleted_at
+      assert String.contains?(user.phone_number, "-DELETED-")
     end
 
     test "profile is hidden", %{profile: profile} do

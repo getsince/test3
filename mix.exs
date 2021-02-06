@@ -74,7 +74,7 @@ defmodule T.MixProject do
       {:httpoison, "~> 1.7"},
       {:pigeon, "~> 1.5"},
       {:kadabra, "~> 0.4.4"},
-      {:sentry, "~> 8.0", runtime: false},
+      {:sentry, "~> 8.0"},
       {:bigflake, "0.5.0"},
       {:nimble_csv, "~> 1.1"},
       {:imgproxy, "~> 1.0"}

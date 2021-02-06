@@ -243,4 +243,8 @@ if config_env() == :test do
     s3: [
       bucket: "pretend-this-is-real"
     ]
+
+  config :t, :dashboard,
+    username: "dashboard-username",
+    password: "dashboard-password"
 end

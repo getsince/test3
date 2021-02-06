@@ -23,7 +23,7 @@ RUN mix deps.compile
 # build project
 COPY priv priv
 COPY lib lib
-RUN mix compile
+RUN mix sentry_recompile
 COPY config/runtime.exs config/
 
 # build assets

@@ -39,17 +39,6 @@ defmodule TWeb.ProfileChannel do
     {:reply, {:ok, %{profile: render_profile(profile)}}, assign(socket, profile: profile)}
   end
 
-  # TODO test
-  def handle_in(
-        "save-device-id",
-        %{"device" => %{"id" => device_id, "platform" => "ios"}},
-        socket
-      ) do
-    %{current_user: user, token: token} = socket.assigns
-    :ok = Accounts.save_apns_device_id(user.id, token, device_id)
-    {:reply, :ok, socket}
-  end
-
   def handle_in("submit", %{"profile" => params}, socket) do
     %{profile: profile, current_user: user} = socket.assigns
 

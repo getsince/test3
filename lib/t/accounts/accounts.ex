@@ -286,9 +286,16 @@ defmodule T.Accounts do
   end
 
   defp delete_user_q(user_id) do
+    rand = to_string(:rand.uniform(1_000_000))
+
     User
     |> where(id: ^user_id)
-    |> update([u], set: [deleted_at: fragment("now()")])
+    |> update([u],
+      set: [
+        deleted_at: fragment("now()"),
+        phone_number: fragment("? || '-DELETED-' || ?", u.phone_number, ^rand)
+      ]
+    )
   end
 
   @two_days_in_seconds 2 * 24 * 60 * 60

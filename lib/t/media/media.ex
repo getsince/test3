@@ -9,12 +9,25 @@ defmodule T.Media do
     url
   end
 
-  def url do
+  def s3_url do
     "https://#{bucket()}.s3.amazonaws.com"
   end
 
-  def url(s3_key) do
-    Path.join(url(), s3_key)
+  def s3_url(s3_key) do
+    Path.join(s3_url(), s3_key)
+  end
+
+  def imgproxy_url(key_or_url, opts \\ [])
+
+  def imgproxy_url("http" <> _rest = url, opts) do
+    # TODO vary by device, sharpen
+    default_opts = [width: 1000, height: 1000, enlarge: "0", resize: "fit"]
+    opts = Keyword.merge(default_opts, opts)
+    Imgproxy.url(url, opts)
+  end
+
+  def imgproxy_url(s3_key, opts) do
+    imgproxy_url(s3_url(s3_key), opts)
   end
 
   def clean_url(presigned_url) do

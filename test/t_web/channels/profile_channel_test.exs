@@ -44,10 +44,19 @@ defmodule TWeb.ProfileChannelTest do
       {:ok, _profile} =
         Accounts.update_profile(user.profile, %{"name" => "Jojaresum", "photos" => ["photo.jpg"]})
 
-      assert {:ok, %{profile: %{name: "Jojaresum", photos: [photo]}}, _socket} =
-               subscribe_and_join(socket, "profile:" <> user.id, %{})
+      assert {:ok,
+              %{
+                profile: %{
+                  name: "Jojaresum",
+                  photos: [
+                    "https://pretend-this-is-real.example.com/ZUj5Q59uKDQBvOlFPlOAbTkVwyfuRl_xrqiZVOCC0mM/fit/1000/1000/sm/0/" <>
+                      s3_encoded_url
+                  ]
+                }
+              }, _socket} = subscribe_and_join(socket, "profile:" <> user.id, %{})
 
-      assert String.contains?(photo, "photo.jpg")
+      assert Base.url_decode64!(s3_encoded_url, padding: false) ==
+               "https://pretend-this-is-real.s3.amazonaws.com/photo.jpg"
     end
   end
 

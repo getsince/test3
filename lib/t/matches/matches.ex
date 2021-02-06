@@ -206,7 +206,7 @@ defmodule T.Matches do
   end
 
   def media_s3_url do
-    Media.url()
+    Media.s3_url()
   end
 
   # TODO rls or auth

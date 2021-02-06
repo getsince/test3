@@ -123,6 +123,11 @@ if config_env() == :prod do
     username: System.fetch_env!("DASHBOARD_USERNAME"),
     password: System.fetch_env!("DASHBOARD_PASSWORD")
 
+  config :imgproxy,
+    prefix: System.fetch_env!("IMGPROXY_PREFIX"),
+    key: System.fetch_env!("IMGPROXY_KEY"),
+    salt: System.fetch_env!("IMGPROXY_SALT")
+
   config :ex_aws,
     s3: [
       bucket: System.fetch_env!("AWS_S3_BUCKET")
@@ -189,17 +194,22 @@ if config_env() == :dev do
 
   # Configure your database
   config :t, T.Repo,
-    username: "postgres",
-    password: "postgres",
-    database: "t_dev",
-    hostname: "localhost",
-    # url: System.fetch_env!("DATABASE_URL"),
+    # username: "postgres",
+    # password: "postgres",
+    # database: "t_dev",
+    # hostname: "localhost",
+    url: System.fetch_env!("DATABASE_URL"),
     show_sensitive_data_on_connection_error: true,
     pool_size: 10
 
   config :t, :dashboard,
     username: System.fetch_env!("DASHBOARD_USERNAME"),
     password: System.fetch_env!("DASHBOARD_PASSWORD")
+
+  config :imgproxy,
+    prefix: System.fetch_env!("IMGPROXY_PREFIX"),
+    key: System.fetch_env!("IMGPROXY_KEY"),
+    salt: System.fetch_env!("IMGPROXY_SALT")
 
   # Do not include metadata nor timestamps in development logs
   config :logger, :tonsole, format: "[$level] $message\n"
@@ -243,4 +253,9 @@ if config_env() == :test do
     s3: [
       bucket: "pretend-this-is-real"
     ]
+
+  config :imgproxy,
+    prefix: "https://pretend-this-is-real.example.com",
+    key: "fafafa",
+    salt: "bababa"
 end

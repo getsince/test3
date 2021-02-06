@@ -76,7 +76,8 @@ defmodule T.MixProject do
       {:kadabra, "~> 0.4.4"},
       {:sentry, "~> 8.0", runtime: false},
       {:bigflake, "0.5.0"},
-      {:nimble_csv, "~> 1.1"}
+      {:nimble_csv, "~> 1.1"},
+      {:imgproxy, "~> 1.0"}
     ]
   end
 

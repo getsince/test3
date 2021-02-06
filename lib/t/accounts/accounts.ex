@@ -407,7 +407,7 @@ defmodule T.Accounts do
   end
 
   def photo_s3_url do
-    Media.url()
+    Media.s3_url()
   end
 
   def get_profile!(%User{id: user_id}) do

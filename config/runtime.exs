@@ -17,16 +17,16 @@ config :logger, :console,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]
 
-# config :logger,
-#   backends: [:console, Sentry.LoggerBackend]
+config :logger,
+  backends: [:console, Sentry.LoggerBackend]
 
-# config :sentry,
-#   environment_name: config_env(),
-#   included_environments: [:prod]
+config :sentry,
+  environment_name: config_env(),
+  included_environments: [:prod]
 
-# config :logger, Sentry.LoggerBackend,
-#   level: :warn,
-#   capture_log_messages: true
+config :logger, Sentry.LoggerBackend,
+  level: :warn,
+  capture_log_messages: true
 
 config :t, Oban,
   repo: T.Repo,
@@ -38,8 +38,8 @@ config :ex_aws,
   region: "eu-central-1"
 
 if config_env() == :prod do
-  # config :sentry,
-  #   dsn: System.fetch_env!("SENTRY_DSN")
+  config :sentry,
+    dsn: System.fetch_env!("SENTRY_DSN")
 
   config :pigeon, :apns,
     apns_default: %{

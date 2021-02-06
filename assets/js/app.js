@@ -18,8 +18,13 @@ import { Socket } from "phoenix";
 import NProgress from "nprogress";
 import { LiveSocket } from "phoenix_live_view";
 
-const ScrollDownOnUpdate = {
+const MessagesHook = {
   mounted() {
+    window.addEventListener("phx:page-loading-start", ({ detail }) => {
+      if (detail.kind == "patch") {
+        this.el.innerHTML = "";
+      }
+    });
     this.el.scrollTop = this.el.scrollHeight;
   },
   updated() {
@@ -34,7 +39,7 @@ let csrfToken = document
 let liveSocket = new LiveSocket("/live", Socket, {
   params: { _csrf_token: csrfToken },
   hooks: {
-    ScrollDownOnUpdate,
+    MessagesHook,
   },
   dom: {
     onBeforeElUpdated(from, to) {

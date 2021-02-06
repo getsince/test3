@@ -77,7 +77,8 @@ defmodule T.MixProject do
       {:sentry, "~> 8.0"},
       {:bigflake, "0.5.0"},
       {:nimble_csv, "~> 1.1"},
-      {:imgproxy, "~> 1.0"}
+      {:imgproxy, "~> 1.0"},
+      {:rexbug, "~> 1.0"}
     ]
   end
 

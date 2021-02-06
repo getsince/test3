@@ -98,13 +98,13 @@ defmodule TWeb.SupportLive.Index do
 
   defp render_message(%Support.Message{kind: "photo", data: %{"s3_key" => s3_key}}) do
     ~E"""
-    <img src="<%= Media.url(s3_key) %>" class="w-64 mt-2 border border-gray-800 rounded" />
+    <img src="<%= Media.imgproxy_url(s3_key) %>" class="w-64 mt-2 border border-gray-800 rounded" />
     """
   end
 
   defp render_message(%Support.Message{kind: "audio", data: %{"s3_key" => s3_key}}) do
     ~E"""
-    <audio src="<%= Media.url(s3_key) %>" controls class="mt-2" />
+    <audio src="<%= Media.imgproxy_url(s3_key) %>" controls class="mt-2" />
     """
   end
 

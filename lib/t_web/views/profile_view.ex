@@ -26,7 +26,7 @@ defmodule TWeb.ProfileView do
     |> Map.update!(:photos, fn photos ->
       (photos || [])
       |> Enum.reject(&is_nil/1)
-      |> Enum.map(fn key -> Media.url(key) end)
+      |> Enum.map(fn key -> Media.imgproxy_url(key) end)
     end)
   end
 end

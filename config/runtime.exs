@@ -26,7 +26,9 @@ config :sentry,
 
 config :logger, Sentry.LoggerBackend,
   level: :warn,
-  capture_log_messages: true
+  capture_log_messages: true,
+  # [:cowboy] by default
+  excluded_domains: []
 
 config :t, Oban,
   repo: T.Repo,

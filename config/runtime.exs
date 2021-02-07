@@ -67,13 +67,7 @@ if config_env() == :prod do
     {:RSAPrivateKey, key}
   end
 
-  database_url =
-    System.get_env("DATABASE_URL") ||
-      raise """
-      environment variable DATABASE_URL is missing.
-      For example: ecto://USER:PASS@HOST/DATABASE
-      """
-
+  database_url = System.fetch_env!("DATABASE_URL")
   ca_cert = System.get_env("DATABASE_CA_CERT")
   client_key = System.get_env("DATABASE_CLIENT_KEY")
   client_cert = System.get_env("DATABASE_CLIENT_CERT")
@@ -92,14 +86,8 @@ if config_env() == :prod do
     url: database_url,
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "20")
 
-  secret_key_base =
-    System.get_env("SECRET_KEY_BASE") ||
-      raise """
-      environment variable SECRET_KEY_BASE is missing.
-      You can generate one by calling: mix phx.gen.secret
-      """
-
   host = System.fetch_env!("HOST")
+
   config :t, T.Mailer, our_address: "kindly@#{host}"
 
   config :t, TWeb.Endpoint,
@@ -113,7 +101,7 @@ if config_env() == :prod do
       ip: {0, 0, 0, 0, 0, 0, 0, 0},
       port: String.to_integer(System.get_env("PORT") || "4000")
     ],
-    secret_key_base: secret_key_base,
+    secret_key_base: System.fetch_env!("SECRET_KEY_BASE"),
     server: true
 
   # Do not print debug messages in production

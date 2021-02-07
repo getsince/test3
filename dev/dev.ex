@@ -28,6 +28,10 @@ defmodule Dev do
     |> APNS.push()
   end
 
+  def rex do
+    # Rexbug.Printing.MFA
+  end
+
   def bucket do
     Media.bucket()
   end

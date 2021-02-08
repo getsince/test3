@@ -49,8 +49,7 @@ if config_env() == :prod do
       key_identifier: System.fetch_env!("APNS_KEY_ID"),
       team_id: System.fetch_env!("APNS_TEAM_ID"),
       topic: System.fetch_env!("APNS_TOPIC"),
-      # TODO
-      mode: :dev
+      mode: :prod
     }
 
   config :t, run_migrations_on_start?: true

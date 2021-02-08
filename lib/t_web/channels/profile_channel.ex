@@ -63,7 +63,7 @@ defmodule TWeb.ProfileChannel do
   # TODO test
   def handle_in("delete-account", _payload, socket) do
     %{current_user: user} = socket.assigns
-    {:ok, %{tokens: tokens}} = Accounts.delete_user(user.id)
+    {:ok, %{delete_sessions: tokens}} = Accounts.delete_user(user.id)
 
     for token <- tokens do
       encoded = Accounts.UserToken.encoded_token(token)

@@ -81,6 +81,8 @@ defmodule TWeb.Router do
     pipe_through [:api, :fetch_current_user_from_bearer_token, :require_authenticated_user]
     post "/upload-preflight", MediaController, :create_upload_form
     post "/ios/device-token", DeviceController, :create_ios_token
+    delete "/mobile/account", MobileAccountController, :delete
+    delete "/mobile/auth", MobileAuthController, :delete
     resources "/profile", ProfileController, singleton: true, only: [:update]
   end
 

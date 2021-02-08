@@ -1,5 +1,6 @@
 defmodule TWeb.MobileAuthController do
   use TWeb, :controller
+  alias TWeb.UserAuth
   alias T.Accounts
 
   def request_sms(conn, %{"phone_number" => phone_number}) do
@@ -26,6 +27,15 @@ defmodule TWeb.MobileAuthController do
       {:error, _reason} ->
         # TODO
         send_resp(conn, 400, [])
+    end
+  end
+
+  def delete(conn, _params) do
+    if token = UserAuth.bearer_token(conn) do
+      :ok = UserAuth.log_out_mobile_user(token)
+      send_resp(conn, 200, [])
+    else
+      send_resp(conn, 404, [])
     end
   end
 

@@ -69,6 +69,15 @@ defmodule T.PushNotifications.APNSJob do
     |> Notification.put_badge(1)
   end
 
+  defp build_notification("support", device_id, _data) do
+    title = "Пссс... Сообщение от поддержки 🙃"
+    body = "or 🌚 or 🙈 or 💩"
+
+    base_notification(device_id, "support")
+    |> Notification.put_alert(%{"title" => title, "body" => body})
+    |> Notification.put_badge(1)
+  end
+
   defp base_notification(device_id, collapse_id) do
     %Notification{
       device_token: device_id,

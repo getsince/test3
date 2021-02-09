@@ -41,6 +41,12 @@ defmodule T.PushNotifications.DispatchJob do
     end
   end
 
+  defp handle_type("support", args) do
+    %{"user_id" => user_id} = args
+    user_id |> device_ids() |> schedule_apns("support")
+    :ok
+  end
+
   defp alive_match(match_id) do
     Matches.Match
     |> where(id: ^match_id)

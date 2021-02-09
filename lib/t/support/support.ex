@@ -1,6 +1,6 @@
 defmodule T.Support do
   alias __MODULE__.Message
-  alias T.{Repo, Matches}
+  alias T.{Repo, Matches, PushNotifications}
   import Ecto.Query
 
   @pubsub T.PubSub
@@ -20,9 +20,22 @@ defmodule T.Support do
   end
 
   def add_message(user_id, author_id, attrs) do
-    %Message{id: Ecto.Bigflake.UUID.autogenerate(), author_id: author_id, user_id: user_id}
-    |> Matches.message_changeset(attrs)
-    |> Repo.insert()
+    changeset =
+      Matches.message_changeset(
+        %Message{id: Ecto.Bigflake.UUID.autogenerate(), author_id: author_id, user_id: user_id},
+        attrs
+      )
+
+    Ecto.Multi.new()
+    |> Ecto.Multi.insert(:message, changeset)
+    |> Oban.insert(:push_notification, fn %{message: _message} ->
+      PushNotifications.DispatchJob.new(%{"type" => "support", "user_id" => user_id})
+    end)
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{message: message}} -> {:ok, message}
+      {:error, :message, %Ecto.Changeset{} = changeset, _changes} -> {:error, changeset}
+    end
     |> notify_subscribers([:message, :created])
   end
 

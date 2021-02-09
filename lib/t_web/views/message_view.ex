@@ -18,7 +18,7 @@ defmodule TWeb.MessageView do
       author_id: author_id,
       timestamp: timestamp,
       kind: kind,
-      data: maybe_render_s3_url(data)
+      data: maybe_render_url(kind, data)
     }
   end
 
@@ -38,13 +38,17 @@ defmodule TWeb.MessageView do
       author_id: author_id,
       timestamp: timestamp,
       kind: kind,
-      data: maybe_render_s3_url(data)
+      data: maybe_render_url(kind, data)
     }
   end
 
-  defp maybe_render_s3_url(%{"s3_key" => s3_key} = data) do
+  defp maybe_render_url("photo", %{"s3_key" => s3_key} = data) do
     Map.put(data, "url", Media.imgproxy_url(s3_key))
   end
 
-  defp maybe_render_s3_url(data), do: data
+  defp maybe_render_url("audio", %{"s3_key" => s3_key} = data) do
+    Map.put(data, "url", Media.s3_url(s3_key))
+  end
+
+  defp maybe_render_url(_kind, data), do: data
 end

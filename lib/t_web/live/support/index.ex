@@ -104,7 +104,7 @@ defmodule TWeb.SupportLive.Index do
 
   defp render_message(%Support.Message{kind: "audio", data: %{"s3_key" => s3_key}}) do
     ~E"""
-    <audio src="<%= Media.imgproxy_url(s3_key) %>" controls class="mt-2" />
+    <audio src="<%= Media.s3_url(s3_key) %>" controls class="mt-2" />
     """
   end
 

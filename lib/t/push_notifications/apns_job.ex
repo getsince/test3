@@ -70,8 +70,8 @@ defmodule T.PushNotifications.APNSJob do
   end
 
   defp build_notification("support", device_id, _data) do
-    title = "Пссс... Сообщение от поддержки 🙃"
-    body = "or 🌚 or 🙈 or 💩"
+    title = "Пссс..."
+    body = "Сообщение от поддержки 🌚"
 
     base_notification(device_id, "support")
     |> Notification.put_alert(%{"title" => title, "body" => body})

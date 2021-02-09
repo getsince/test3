@@ -5,6 +5,7 @@ defmodule TWeb.FeedChannel do
 
   @impl true
   def join("feed:" <> user_id, %{"timezone" => timezone}, socket) do
+    user_id = String.downcase(user_id)
     ChannelHelpers.verify_user_id(socket, user_id)
     # ChannelHelpers.ensure_onboarded(socket)
 

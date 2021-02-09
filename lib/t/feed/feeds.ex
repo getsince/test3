@@ -10,7 +10,7 @@ defmodule T.Feeds do
 
   @doc false
   def topic(user_id) do
-    @topic <> ":" <> user_id
+    @topic <> ":" <> String.downcase(user_id)
   end
 
   @doc false

@@ -15,7 +15,7 @@ defmodule T.Matches do
   @topic to_string(__MODULE__)
 
   defp pubsub_match_topic(match_id) when is_binary(match_id) do
-    @topic <> ":" <> match_id
+    @topic <> ":" <> String.downcase(match_id)
   end
 
   def subscribe(match_id) do

@@ -201,7 +201,7 @@ if config_env() == :dev do
     salt: System.fetch_env!("IMGPROXY_SALT")
 
   # Do not include metadata nor timestamps in development logs
-  config :logger, :tonsole, format: "[$level] $message\n"
+  config :logger, :console, format: "[$level] $message\n"
 
   config :ex_aws,
     s3: [

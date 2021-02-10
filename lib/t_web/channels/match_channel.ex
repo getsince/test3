@@ -49,7 +49,7 @@ defmodule TWeb.MatchChannel do
 
     case Matches.add_message(match.id, user.id, params) do
       {:ok, message} ->
-        broadcast_from!(socket, "message:new", %{message: render_message(message)})
+        broadcast!(socket, "message:new", %{message: render_message(message)})
         {:reply, :ok, socket}
 
       {:error, %Ecto.Changeset{} = changeset} ->

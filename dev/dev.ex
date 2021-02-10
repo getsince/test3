@@ -521,7 +521,7 @@ defmodule Chatter do
 
   defp other_user_id(match) do
     %T.Matches.Match{user_id_1: id1, user_id_2: id2} = match
-    [other_id] = [id1, id2] -- ["18097e3b-64d6-4e14-9076-e6bacc072e30"]
+    [other_id] = [id1, id2] -- ["00000177-8336-5e0e-0242-ac1100030000"]
     other_id
   end
 end

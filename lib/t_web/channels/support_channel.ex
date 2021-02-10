@@ -32,7 +32,7 @@ defmodule TWeb.SupportChannel do
 
     case Support.add_message(user.id, user.id, params) do
       {:ok, message} ->
-        broadcast_from!(socket, "message:new", %{message: render_message(message)})
+        broadcast!(socket, "message:new", %{message: render_message(message)})
         {:reply, :ok, socket}
 
       {:error, %Ecto.Changeset{} = changeset} ->

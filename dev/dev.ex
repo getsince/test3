@@ -4,6 +4,47 @@ defmodule Dev do
   alias Pigeon.APNS
   alias Pigeon.APNS.Notification
 
+  defmodule N do
+    alias T.{Repo, Accounts.APNSDevice}
+    alias Pigeon.APNS
+    alias Pigeon.APNS.Notification
+
+    def all_device_ids do
+      Repo.all(APNSDevice)
+      |> Repo.preload(user: :profile)
+      |> Enum.map(fn t ->
+        %{device: Base.encode16(t.device_id), user: %{name: t.user.profile.name, id: t.user_id}}
+      end)
+    end
+
+    def notify_all do
+      all_device_ids
+      |> Enum.map(fn %{device: device} ->
+        notify(device)
+      end)
+    end
+
+    def notify(device_id) do
+      topic = Application.fetch_env!(:pigeon, :apns)[:apns_default].topic
+
+      ""
+      |> Notification.new(device_id, topic)
+      |> Notification.put_alert(%{
+        "title" => "Твоя подборка на сегодня готова 😉",
+        # "subtitle" => "Five Card Draw",
+        "body" => "Заходи скорее!"
+      })
+      # |> Notification.put_custom(%{"thread_id" => "1"})
+      |> Notification.put_badge(999)
+      # |> Notification.put_category()
+      # |> Notification.put_content_available()
+      # |> Notification.put_custom()
+      # |> Notification.put_mutable_content()
+      |> Map.put(:collapse_id, "nudge")
+      |> APNS.push()
+    end
+  end
+
   def push_notification(
         dev_id \\ "8DD777E4366CAA4CE148B8BC77ECF37673A603C78B3D2F2E91C09F1EE07DE178"
       ) do

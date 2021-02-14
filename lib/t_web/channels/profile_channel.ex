@@ -1,7 +1,7 @@
 defmodule TWeb.ProfileChannel do
   use TWeb, :channel
   alias T.Accounts.Profile
-  alias T.Accounts
+  alias T.{Accounts, Music}
   alias TWeb.{ErrorView, ProfileView}
 
   @impl true
@@ -37,6 +37,13 @@ defmodule TWeb.ProfileChannel do
   def handle_in("get-me", _params, socket) do
     %Profile{} = profile = Accounts.get_profile!(socket.assigns.current_user)
     {:reply, {:ok, %{profile: render_profile(profile)}}, assign(socket, profile: profile)}
+  end
+
+  # TODO refresh after two hours
+  def handle_in("get-music-token", _params, socket) do
+    token = socket.assigns.music_token || Music.token()
+    socket = assign(socket, token: token)
+    {:reply, {:ok, %{token: token}}, socket}
   end
 
   def handle_in("submit", %{"profile" => params}, socket) do

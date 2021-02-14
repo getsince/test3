@@ -64,7 +64,7 @@ SET default_table_access_method = heap;
 
 CREATE TABLE public.apns_devices (
     user_id uuid NOT NULL,
-    session_token uuid NOT NULL,
+    token_id uuid NOT NULL,
     device_id bytea NOT NULL,
     inserted_at timestamp(0) without time zone NOT NULL,
     updated_at timestamp(0) without time zone NOT NULL
@@ -259,7 +259,8 @@ CREATE TABLE public.profiles (
     tastes jsonb DEFAULT '{}'::jsonb NOT NULL,
     times_liked integer DEFAULT 0 NOT NULL,
     "hidden?" boolean DEFAULT true NOT NULL,
-    last_active timestamp(0) without time zone DEFAULT '2021-01-16 14:00:30.859495'::timestamp without time zone NOT NULL
+    last_active timestamp(0) without time zone DEFAULT '2021-01-16 14:00:30.859495'::timestamp without time zone NOT NULL,
+    audio_preview_url character varying(255)
 );
 
 
@@ -374,7 +375,7 @@ ALTER TABLE ONLY public.oban_jobs ALTER COLUMN id SET DEFAULT nextval('public.ob
 --
 
 ALTER TABLE ONLY public.apns_devices
-    ADD CONSTRAINT apns_devices_pkey PRIMARY KEY (user_id, session_token);
+    ADD CONSTRAINT apns_devices_pkey PRIMARY KEY (user_id, token_id);
 
 
 --
@@ -628,7 +629,7 @@ CREATE TRIGGER oban_notify AFTER INSERT ON public.oban_jobs FOR EACH ROW EXECUTE
 --
 
 ALTER TABLE ONLY public.apns_devices
-    ADD CONSTRAINT apns_devices_session_token_fkey FOREIGN KEY (session_token) REFERENCES public.users_tokens(id) ON DELETE CASCADE;
+    ADD CONSTRAINT apns_devices_session_token_fkey FOREIGN KEY (token_id) REFERENCES public.users_tokens(id) ON DELETE CASCADE;
 
 
 --
@@ -821,3 +822,4 @@ INSERT INTO public."schema_migrations" (version) VALUES (20210130101533);
 INSERT INTO public."schema_migrations" (version) VALUES (20210130101812);
 INSERT INTO public."schema_migrations" (version) VALUES (20210131190658);
 INSERT INTO public."schema_migrations" (version) VALUES (20210203185329);
+INSERT INTO public."schema_migrations" (version) VALUES (20210214144221);

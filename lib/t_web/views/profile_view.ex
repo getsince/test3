@@ -8,6 +8,7 @@ defmodule TWeb.ProfileView do
     |> Map.take([
       :user_id,
       :photos,
+      :audio_preview_url,
       :name,
       :gender,
       :birthdate,

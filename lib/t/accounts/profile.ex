@@ -23,6 +23,9 @@ defmodule T.Accounts.Profile do
     field :birthdate, :date
     field :height, :integer
 
+    # audio
+    field :audio_preview_url, :string
+
     # TODO replace with location?
     field :city, :string
 
@@ -63,6 +66,15 @@ defmodule T.Accounts.Profile do
       |> validate_length(:photos, is: 4)
     end)
     |> validate_required([:photos])
+  end
+
+  def audio_preview_changeset(profile, attrs, opts \\ []) do
+    profile
+    |> cast(attrs, [:audio_preview_url])
+    |> maybe_validate_required(opts, fn changeset ->
+      changeset
+      |> validate_required([:audio_preview_url])
+    end)
   end
 
   def general_info_changeset(profile, attrs, opts \\ []) do
@@ -205,6 +217,7 @@ defmodule T.Accounts.Profile do
   def changeset(profile, attrs, opts \\ []) do
     profile
     |> photos_changeset(attrs, opts)
+    |> audio_preview_changeset(attrs, opts)
     |> general_info_changeset(attrs, opts)
     |> work_and_education_changeset(attrs)
     |> about_self_changeset(attrs, opts)

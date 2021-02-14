@@ -52,6 +52,11 @@ if config_env() == :prod do
       mode: :prod
     }
 
+  config :t, T.Music,
+    key: System.fetch_env!("MUSIC_KEY"),
+    team_id: System.fetch_env!("APNS_TEAM_ID"),
+    key_id: System.fetch_env!("MUSIC_KEY_ID")
+
   config :t, run_migrations_on_start?: true
 
   config :t, T.Mailer,
@@ -142,6 +147,11 @@ if config_env() == :dev do
       mode: :dev
     }
 
+  config :t, T.Music,
+    key: System.fetch_env!("MUSIC_KEY"),
+    team_id: System.fetch_env!("APNS_TEAM_ID"),
+    key_id: System.fetch_env!("MUSIC_KEY_ID")
+
   config :t, :dashboard, username: "test", password: "test"
 
   config :t, T.Mailer,
@@ -183,11 +193,11 @@ if config_env() == :dev do
 
   # Configure your database
   config :t, T.Repo,
-    # username: "postgres",
-    # password: "postgres",
-    # database: "t_dev",
-    # hostname: "localhost",
-    url: System.fetch_env!("DATABASE_URL"),
+    username: "postgres",
+    password: "postgres",
+    database: "t_dev",
+    hostname: "localhost",
+    # url: System.fetch_env!("DATABASE_URL"),
     show_sensitive_data_on_connection_error: true,
     pool_size: 10
 

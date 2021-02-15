@@ -106,10 +106,26 @@ defmodule TWeb.MobileAuthControllerTest do
                "name" => "that",
                "occupation" => nil,
                "photos" => [
-                 "https://pretend-this-is-real.example.com/hlFc12KS0pCFSPajrhwUG0nHHOyH0ojGqkD3Ug4XpM4/fit/1000/1000/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL2E",
-                 "https://pretend-this-is-real.example.com/pyh8f3a1A2gLlSfzCeXnBkg6QXUe01MvQGMkZkxznXQ/fit/1000/1000/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL2I",
-                 "https://pretend-this-is-real.example.com/bFHtU2r9NcoFJyBjJ_guaCOi3pi8uYb8sndTRt3yys0/fit/1000/1000/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL2M",
-                 "https://pretend-this-is-real.example.com/4TdokUQPc63mB1y9fCEt__EyVOGYJlEbqo8dmHoHfz4/fit/1000/1000/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL2Q"
+                 %{
+                   "proxy" =>
+                     "https://pretend-this-is-real.example.com/hlFc12KS0pCFSPajrhwUG0nHHOyH0ojGqkD3Ug4XpM4/fit/1000/1000/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL2E",
+                   "s3" => "https://pretend-this-is-real.s3.amazonaws.com/a"
+                 },
+                 %{
+                   "proxy" =>
+                     "https://pretend-this-is-real.example.com/pyh8f3a1A2gLlSfzCeXnBkg6QXUe01MvQGMkZkxznXQ/fit/1000/1000/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL2I",
+                   "s3" => "https://pretend-this-is-real.s3.amazonaws.com/b"
+                 },
+                 %{
+                   "proxy" =>
+                     "https://pretend-this-is-real.example.com/bFHtU2r9NcoFJyBjJ_guaCOi3pi8uYb8sndTRt3yys0/fit/1000/1000/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL2M",
+                   "s3" => "https://pretend-this-is-real.s3.amazonaws.com/c"
+                 },
+                 %{
+                   "proxy" =>
+                     "https://pretend-this-is-real.example.com/4TdokUQPc63mB1y9fCEt__EyVOGYJlEbqo8dmHoHfz4/fit/1000/1000/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL2Q",
+                   "s3" => "https://pretend-this-is-real.s3.amazonaws.com/d"
+                 }
                ],
                "tastes" => %{
                  "alcohol" => "not really",

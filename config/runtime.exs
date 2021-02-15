@@ -40,6 +40,8 @@ config :ex_aws,
   region: "eu-central-1"
 
 if config_env() == :prod do
+  config :t, use_demo_feed?: true
+
   config :sentry,
     dsn: System.fetch_env!("SENTRY_DSN")
 

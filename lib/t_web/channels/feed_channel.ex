@@ -19,8 +19,15 @@ defmodule TWeb.FeedChannel do
       :ok = Feeds.subscribe(user_id)
 
       datetime = local_datetime_now(timezone)
-      my_profile = Accounts.get_profile!(socket.assigns.current_user)
-      feed = Feeds.get_or_create_feed(my_profile, DateTime.to_date(datetime))
+
+      feed =
+        if Feeds.use_demo_feed?() do
+          Feeds.demo_feed()
+        else
+          my_profile = Accounts.get_profile!(socket.assigns.current_user)
+          Feeds.get_or_create_feed(my_profile, DateTime.to_date(datetime))
+        end
+
       schedule_feed_refresh_at_midnight(datetime, timezone)
 
       {:ok, %{feed: render_profiles(feed)}, assign(socket, timezone: timezone)}

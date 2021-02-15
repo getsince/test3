@@ -127,6 +127,24 @@ defmodule T.Feeds do
     Enum.shuffle(profiles)
   end
 
+  def use_demo_feed(use?) when is_boolean(use?) do
+    Application.put_env(:t, :use_demo_feed?, use?)
+  end
+
+  def use_demo_feed? do
+    !!Application.get_env(:t, :use_demo_feed?)
+  end
+
+  def demo_feed do
+    # returns only the real users
+    first_real_id = "00000177-651c-43d4-b8e8-56408d820000"
+
+    Profile
+    |> where([p], p.user_id >= ^first_real_id)
+    |> Repo.all()
+    |> Enum.shuffle()
+  end
+
   defp get_feed(profile, date, opts) do
     feed =
       Feed

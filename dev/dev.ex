@@ -6,6 +6,37 @@ defmodule Dev do
 
   @task_supervisor T.TaskSupervisor
 
+  def download_selected_photos_from_s3(photos) do
+    bucket = Media.bucket()
+
+    ensure_task_supervisor()
+
+    Task.Supervisor.async_stream_nolink(
+      @task_supervisor,
+      photos,
+      fn key ->
+        IO.puts("Downloading #{key}")
+
+        %{body: content, headers: headers} = ExAws.S3.get_object(bucket, key) |> ExAws.request!()
+
+        jpeg? =
+          String.ends_with?(key, "jpg") ||
+            :proplists.get_value("Content-Type", headers, nil) == "image/jpeg"
+
+        if jpeg? do
+          IO.puts("Saving #{key}")
+          File.write!(key, content)
+        else
+          IO.puts("Discarding #{key} -> not jpeg")
+        end
+      end,
+      max_concurrency: 100,
+      timeout: 60000,
+      on_timeout: :kill_task,
+      ordered: false
+    )
+  end
+
   def download_all_photos_from_s3 do
     bucket = Media.bucket()
 

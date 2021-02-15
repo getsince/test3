@@ -136,11 +136,16 @@ defmodule T.Feeds do
   end
 
   def demo_feed do
-    # returns only the real users
-    first_real_id = "00000177-651c-43d4-b8e8-56408d820000"
+    user_ids = [
+      "00000177-8ae4-b4c4-0242-ac1100030000",
+      "00000177-830a-a7d0-0242-ac1100030000",
+      "00000177-82ed-c4c9-0242-ac1100030000",
+      "00000177-809e-4ef7-0242-ac1100030000",
+      "00000177-7d1f-61be-0242-ac1100030000"
+    ]
 
     Profile
-    |> where([p], p.user_id >= ^first_real_id)
+    |> where([p], p.user_id in ^user_ids)
     |> Repo.all()
     |> Enum.shuffle()
   end

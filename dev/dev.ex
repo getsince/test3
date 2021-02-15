@@ -4,6 +4,44 @@ defmodule Dev do
   alias Pigeon.APNS
   alias Pigeon.APNS.Notification
 
+  @task_supervisor T.TaskSupervisor
+
+  def download_all_photos_from_s3 do
+    bucket = Media.bucket()
+
+    ensure_task_supervisor()
+
+    stream =
+      Media.bucket()
+      |> ExAws.S3.list_objects()
+      |> ExAws.stream!()
+
+    Task.Supervisor.async_stream_nolink(
+      @task_supervisor,
+      stream,
+      fn %{key: key} ->
+        IO.puts("Downloading #{key}")
+
+        %{body: content, headers: headers} = ExAws.S3.get_object(bucket, key) |> ExAws.request!()
+
+        jpeg? =
+          String.ends_with?(key, "jpg") ||
+            :proplists.get_value("Content-Type", headers, nil) == "image/jpeg"
+
+        if jpeg? do
+          IO.puts("Saving #{key}")
+          File.write!(key, content)
+        else
+          IO.puts("Discarding #{key} -> not jpeg")
+        end
+      end,
+      max_concurrency: 100,
+      timeout: 60000,
+      on_timeout: :kill_task,
+      ordered: false
+    )
+  end
+
   defmodule N do
     alias T.{Repo, Accounts.APNSDevice}
     alias Pigeon.APNS
@@ -134,8 +172,6 @@ defmodule Dev do
     photos = list_photos()
     {mocks, photos}
   end
-
-  @task_supervisor T.TaskSupervisor
 
   def random_profiles(
         count \\ 1000,

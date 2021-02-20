@@ -8,7 +8,7 @@ defmodule TWeb.ProfileView do
     |> Map.take([
       :user_id,
       :photos,
-      :audio_preview_url,
+      :song,
       :name,
       :gender,
       :birthdate,
@@ -29,5 +29,30 @@ defmodule TWeb.ProfileView do
       |> Enum.reject(&is_nil/1)
       |> Enum.map(fn key -> %{"s3" => Media.s3_url(key), "proxy" => Media.imgproxy_url(key)} end)
     end)
+    |> Map.update!(:song, fn song ->
+      if song, do: extract_song_info(song)
+    end)
+  end
+
+  defp extract_song_info(%{
+         "data" => [
+           %{
+             "attributes" => %{
+               "artistName" => artist_name,
+               "artwork" => %{"url" => album_cover},
+               "name" => song_name,
+               "previews" => [%{"url" => preview_url}]
+             }
+           }
+         ]
+       }) do
+    album_cover = String.replace(album_cover, ["{w}", "{h}"], "1000")
+
+    %{
+      "artist_name" => artist_name,
+      "album_cover" => album_cover,
+      "song_name" => song_name,
+      "preview_url" => preview_url
+    }
   end
 end

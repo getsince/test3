@@ -1,5 +1,6 @@
 defmodule TWeb.ProfileChannelTest do
   use TWeb.ChannelCase
+  import Mox
   alias T.Accounts
   alias Accounts.User
 
@@ -15,7 +16,7 @@ defmodule TWeb.ProfileChannelTest do
       assert reply == %{
                profile: %{
                  user_id: user.id,
-                 audio_preview_url: nil,
+                 song: nil,
                  birthdate: nil,
                  first_date_idea: nil,
                  free_form: nil,
@@ -72,6 +73,8 @@ defmodule TWeb.ProfileChannelTest do
   describe "onboarding flow" do
     setup :subscribe_and_join
 
+    setup :verify_on_exit!
+
     test "submit everything at once", %{socket: socket, user: user} do
       assert user.profile.hidden? == true
       refute user.onboarded_at
@@ -91,16 +94,20 @@ defmodule TWeb.ProfileChannelTest do
                  name: ["can't be blank"],
                  photos: ["should have 4 item(s)"],
                  tastes: ["should have at least 7 tastes"],
-                 audio_preview_url: ["can't be blank"]
+                 song: ["can't be blank"]
                }
              }
+
+      MockMusic
+      |> expect(:get_song, fn "203709340" ->
+        apple_music_song()
+      end)
 
       ref =
         push(socket, "submit", %{
           "profile" => %{
             "name" => "hey that's me CLARISA",
-            "audio_preview_url" =>
-              "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview71/v4/ab/b3/48/abb34824-1510-708e-57d7-870206be5ba2/mzaf_8515316732595919510.plus.aac.p.m4a",
+            "song" => "203709340",
             # TODO birthday
             "birthdate" => "1995-01-01",
             "city" => "Moscow",
@@ -128,8 +135,14 @@ defmodule TWeb.ProfileChannelTest do
       assert reply == %{
                profile: %{
                  user_id: user.id,
-                 audio_preview_url:
-                   "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview71/v4/ab/b3/48/abb34824-1510-708e-57d7-870206be5ba2/mzaf_8515316732595919510.plus.aac.p.m4a",
+                 song: %{
+                   "album_cover" =>
+                     "https://is1-ssl.mzstatic.com/image/thumb/Music128/v4/1d/b0/2d/1db02d23-6e40-ae43-29c9-ff31a854e8aa/074643865326.jpg/1000x1000bb.jpeg",
+                   "artist_name" => "Bruce Springsteen",
+                   "preview_url" =>
+                     "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview71/v4/ab/b3/48/abb34824-1510-708e-57d7-870206be5ba2/mzaf_8515316732595919510.plus.aac.p.m4a",
+                   "song_name" => "Dancing In the Dark"
+                 },
                  birthdate: ~D[1995-01-01],
                  city: "Moscow",
                  first_date_idea: "dunno lol",

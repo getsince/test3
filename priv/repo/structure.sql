@@ -3,7 +3,7 @@
 --
 
 -- Dumped from database version 13.1
--- Dumped by pg_dump version 13.1
+-- Dumped by pg_dump version 13.2
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -260,7 +260,7 @@ CREATE TABLE public.profiles (
     times_liked integer DEFAULT 0 NOT NULL,
     "hidden?" boolean DEFAULT true NOT NULL,
     last_active timestamp(0) without time zone DEFAULT '2021-01-16 14:00:30.859495'::timestamp without time zone NOT NULL,
-    audio_preview_url character varying(255)
+    song jsonb
 );
 
 
@@ -823,3 +823,4 @@ INSERT INTO public."schema_migrations" (version) VALUES (20210130101812);
 INSERT INTO public."schema_migrations" (version) VALUES (20210131190658);
 INSERT INTO public."schema_migrations" (version) VALUES (20210203185329);
 INSERT INTO public."schema_migrations" (version) VALUES (20210214144221);
+INSERT INTO public."schema_migrations" (version) VALUES (20210220194329);

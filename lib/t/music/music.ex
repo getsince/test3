@@ -1,11 +1,16 @@
 defmodule T.Music do
   @moduledoc "apple music api client"
 
+  @adapter Application.compile_env!(:t, [__MODULE__, :adapter])
+
+  @callback get_song(binary) :: map
+
   def token do
     config = Application.get_env(:t, __MODULE__)
     token(config)
   end
 
+  # TODO cache
   def token(config) do
     key = Keyword.fetch!(config, :key)
     team_id = Keyword.fetch!(config, :team_id)
@@ -19,13 +24,7 @@ defmodule T.Music do
     token
   end
 
-  @doc false
-  def fetch do
-    url = "https://api.music.apple.com/v1/catalog/us/songs/203709340"
-
-    %HTTPoison.Response{body: body, status_code: 200} =
-      HTTPoison.get!(url, [{"Authorization", "Bearer #{token()}"}])
-
-    Jason.decode!(body)
+  def get_song(id) do
+    @adapter.get_song(id)
   end
 end

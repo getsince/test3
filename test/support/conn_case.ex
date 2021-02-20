@@ -23,6 +23,7 @@ defmodule TWeb.ConnCase do
       import Plug.Conn
       import Phoenix.ConnTest
       import TWeb.ConnCase
+      import T.Factory
 
       alias TWeb.Router.Helpers, as: Routes
       alias T.Repo

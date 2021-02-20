@@ -48,6 +48,7 @@ defmodule TWeb.ProfileChannel do
 
   def handle_in("submit", %{"profile" => params}, socket) do
     %{profile: profile, current_user: user} = socket.assigns
+    params = with_song(params)
 
     # TODO check photos exist in s3
     f =
@@ -118,4 +119,10 @@ defmodule TWeb.ProfileChannel do
   #       {:reply, {:error, render(ErrorView, "changeset.json", changeset: changeset)}, socket}
   #   end
   # end
+
+  defp with_song(%{"song" => song_id} = params) do
+    Map.put(params, "song", Music.get_song(song_id))
+  end
+
+  defp with_song(params), do: params
 end

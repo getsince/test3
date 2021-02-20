@@ -136,7 +136,7 @@ defmodule T.AccountsTest do
       assert {:error, changeset} = Accounts.onboard_profile(profile, %{})
 
       assert errors_on(changeset) == %{
-               audio_preview_url: ["can't be blank"],
+               song: ["can't be blank"],
                birthdate: ["can't be blank"],
                city: ["can't be blank"],
                first_date_idea: ["can't be blank"],
@@ -150,11 +150,12 @@ defmodule T.AccountsTest do
                tastes: ["should have at least 7 tastes"]
              }
 
+      apple_music_song = apple_music_song()
+
       assert {:ok, profile} =
                Accounts.onboard_profile(profile, %{
                  birthdate: "1992-12-12",
-                 audio_preview_url:
-                   "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview71/v4/ab/b3/48/abb34824-1510-708e-57d7-870206be5ba2/mzaf_8515316732595919510.plus.aac.p.m4a",
+                 song: apple_music_song,
                  city: "Moscow",
                  first_date_idea: "asdf",
                  gender: "M",
@@ -184,6 +185,7 @@ defmodule T.AccountsTest do
       assert %Profile{
                birthdate: ~D[1992-12-12],
                city: "Moscow",
+               song: ^apple_music_song,
                first_date_idea: "asdf",
                free_form: nil,
                gender: "M",

@@ -323,8 +323,7 @@ defmodule T.Accounts.ProfileTest do
     test "with valida info" do
       attrs = %{
         photos: ["file1.jpg", "file2.jpg", "file3.jpg", "file4.jpg"],
-        audio_preview_url:
-          "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview71/v4/ab/b3/48/abb34824-1510-708e-57d7-870206be5ba2/mzaf_8515316732595919510.plus.aac.p.m4a",
+        song: apple_music_song(),
         gender: "M",
         birthdate: ~D[2000-01-01],
         name: "Some Name",

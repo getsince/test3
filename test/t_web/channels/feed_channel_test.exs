@@ -9,8 +9,7 @@ defmodule TWeb.FeedChannelTest do
     {:ok, _profile} =
       Accounts.onboard_profile(user.profile, %{
         birthdate: "1992-12-12",
-        audio_preview_url:
-          "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview71/v4/ab/b3/48/abb34824-1510-708e-57d7-870206be5ba2/mzaf_8515316732595919510.plus.aac.p.m4a",
+        song: apple_music_song(),
         city: "Moscow",
         first_date_idea: "asdf",
         gender: "M",
@@ -45,7 +44,7 @@ defmodule TWeb.FeedChannelTest do
                match: %{
                  id: match.id,
                  profile: %{
-                   audio_preview_url: nil,
+                   song: nil,
                    birthdate: nil,
                    city: nil,
                    first_date_idea: nil,
@@ -109,7 +108,7 @@ defmodule TWeb.FeedChannelTest do
                match: %{
                  id: match_id,
                  profile: %{
-                   audio_preview_url: nil,
+                   song: nil,
                    birthdate: nil,
                    city: nil,
                    first_date_idea: nil,

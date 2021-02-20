@@ -41,8 +41,8 @@ defmodule TWeb.ProfileChannel do
 
   # TODO refresh after two hours
   def handle_in("get-music-token", _params, socket) do
-    token = socket.assigns.music_token || Music.token()
-    socket = assign(socket, token: token)
+    token = socket.assigns[:music_token] || Music.token()
+    socket = assign(socket, music_token: token)
     {:reply, {:ok, %{token: token}}, socket}
   end
 

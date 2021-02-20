@@ -35,7 +35,10 @@ defmodule TWeb.ChannelCase do
   setup tags do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(T.Repo)
 
-    unless tags[:async] do
+    if tags[:async] do
+      monitor = Process.whereis(TWeb.UserSocket.Monitor)
+      Ecto.Adapters.SQL.Sandbox.allow(T.Repo, self(), monitor)
+    else
       Ecto.Adapters.SQL.Sandbox.mode(T.Repo, {:shared, self()})
     end
 

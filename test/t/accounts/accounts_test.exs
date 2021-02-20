@@ -348,4 +348,19 @@ defmodule T.AccountsTest do
       assert photos(user_id) == ["photo-1", "photo-2", "photo-3", "photo-4"]
     end
   end
+
+  describe "update_last_active/1" do
+    test "it works" do
+      {:ok, %{profile: %Profile{user_id: user_id, photos: photos, last_active: last_active}}} =
+        Accounts.register_user(%{phone_number: phone_number()})
+
+      assert last_active
+
+      # TODO
+      :timer.sleep(1000)
+
+      assert {1, nil} == Accounts.update_last_active(user_id)
+      refute last_active == Accounts.get_profile!(user_id).last_active
+    end
+  end
 end

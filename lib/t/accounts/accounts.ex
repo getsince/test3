@@ -65,6 +65,14 @@ defmodule T.Accounts do
     end
   end
 
+  def update_last_active(user_id, time \\ DateTime.utc_now()) do
+    time = DateTime.truncate(time, :second)
+
+    Profile
+    |> where(user_id: ^user_id)
+    |> Repo.update_all(set: [last_active: time])
+  end
+
   def add_demo_phone(phone_number, code) do
     with {:ok, phone_number} <- formatted_phone_number(phone_number) do
       new = Map.put(demo_phones(), phone_number, code)

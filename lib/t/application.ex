@@ -11,6 +11,7 @@ defmodule T.Application do
       [
         {Phoenix.PubSub, name: T.PubSub},
         TWeb.Presence,
+        TWeb.UserSocket.Monitor,
         TWeb.Endpoint,
         T.Repo,
         TWeb.Telemetry,

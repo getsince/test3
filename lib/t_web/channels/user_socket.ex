@@ -29,9 +29,22 @@ defmodule TWeb.UserSocket do
     :error
   end
 
+  defoverridable init: 1
+
+  @impl true
+  def init(state) do
+    res = {:ok, {_, socket}} = super(state)
+    on_connect(self(), socket.assigns.current_user)
+    res
+  end
+
   @impl true
   def id(socket) do
     token = Accounts.UserToken.encoded_token(socket.assigns.token)
     "user_socket:#{token}"
+  end
+
+  defp on_connect(pid, user) do
+    __MODULE__.Monitor.monitor(pid, user.id)
   end
 end

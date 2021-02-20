@@ -112,6 +112,15 @@ defmodule TWeb.MatchChannel do
     {:reply, :ok, socket}
   end
 
+  def handle_in("signal", payload, socket) do
+    broadcast_from!(socket, "signal", payload)
+    {:reply, :ok, socket}
+  end
+
+  def handle_in("ice-servers", _params, socket) do
+    {:reply, {:ok, T.Twilio.ice_servers()}, socket}
+  end
+
   # TODO don't allow posting when not match.alive?
   # TODO test
   @impl true

@@ -42,6 +42,11 @@ config :ex_aws,
 if config_env() == :prod do
   config :t, use_demo_feed?: true
 
+  config :t, T.Twilio,
+    account_sid: System.fetch_env!("TWILIO_ACCOUNT_SID"),
+    key_sid: System.fetch_env!("TWILIO_KEY_SID"),
+    auth_token: System.fetch_env!("TWILIO_AUTH_TOKEN")
+
   config :sentry,
     dsn: System.fetch_env!("SENTRY_DSN")
 
@@ -148,6 +153,11 @@ if config_env() == :dev do
       topic: System.fetch_env!("APNS_TOPIC"),
       mode: :dev
     }
+
+  config :t, T.Twilio,
+    account_sid: System.fetch_env!("TWILIO_ACCOUNT_SID"),
+    key_sid: System.fetch_env!("TWILIO_KEY_SID"),
+    auth_token: System.fetch_env!("TWILIO_AUTH_TOKEN")
 
   config :t, T.Music,
     key: System.fetch_env!("MUSIC_KEY"),

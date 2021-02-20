@@ -1,6 +1,6 @@
 defmodule TWeb.MatchChannel do
   use TWeb, :channel
-  alias TWeb.{ErrorView, MessageView}
+  alias TWeb.{ErrorView, MessageView, Presence}
   alias T.{Matches, Accounts}
 
   @impl true
@@ -24,7 +24,9 @@ defmodule TWeb.MatchChannel do
           Matches.list_messages(match_id)
         end
 
-      unless alive? do
+      if alive? do
+        send(self(), :after_join)
+      else
         send(self(), :unmatched)
       end
 
@@ -115,6 +117,12 @@ defmodule TWeb.MatchChannel do
   @impl true
   def handle_info(:unmatched, socket) do
     push(socket, "unmatched", %{})
+    {:noreply, socket}
+  end
+
+  def handle_info(:after_join, socket) do
+    {:ok, _} = Presence.track(socket, socket.assigns.current_user.id, %{})
+    push(socket, "presence_state", Presence.list(socket))
     {:noreply, socket}
   end
 

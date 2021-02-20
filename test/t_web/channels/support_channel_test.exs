@@ -1,5 +1,5 @@
 defmodule TWeb.SupportChannelTest do
-  use TWeb.ChannelCase, async: true
+  use TWeb.ChannelCase
   alias T.{Accounts, Support}
   alias T.Accounts.User
 

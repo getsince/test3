@@ -1,5 +1,5 @@
 defmodule TWeb.MatchChannelTest do
-  use TWeb.ChannelCase, async: true
+  use TWeb.ChannelCase
   alias T.{Accounts, Matches}
   alias T.Accounts.User
 
@@ -189,10 +189,46 @@ defmodule TWeb.MatchChannelTest do
     end
   end
 
+  describe "presence" do
+    setup [:create_match, :join_match]
+
+    test "receives presence_state", %{user: user} do
+      assert_push "presence_state", payload
+      assert Map.keys(payload) == [user.id]
+    end
+
+    defmacrop assert_presence_diff(pattern) do
+      quote do
+        assert_broadcast "presence_diff", unquote(pattern)
+        assert_push "presence_diff", unquote(pattern)
+      end
+    end
+
+    test "receives prosence_diff on join/leave", %{user: %{id: me_id}, match: match} do
+      %{id: mate_id} = mate = Accounts.get_user!(match.user_id_2)
+
+      assert_presence_diff(%{joins: %{^me_id => _}})
+      assert_push "presence_state", %{^me_id => _}
+
+      spawn(fn ->
+        {:ok, _reply, socket} = mate |> connected_socket() |> join("match:" <> match.id, %{})
+        :timer.sleep(100)
+        leave(socket)
+      end)
+
+      assert_presence_diff(%{joins: %{^mate_id => _}})
+      assert_presence_diff(%{leaves: %{^mate_id => _}})
+      refute_receive _anything_else
+    end
+  end
+
   defp create_match(%{user: user}) do
-    p2 = insert(:profile, hidden?: true)
-    match = insert(:match, user_id_1: user.id, user_id_2: p2.user_id, alive?: true)
-    {:ok, match: match}
+    p2 = insert(:profile, hidden?: false)
+    {:ok, match: create_match(user.id, p2.user_id)}
+  end
+
+  defp create_match(u1, u2) do
+    insert(:match, user_id_1: u1, user_id_2: u2, alive?: true)
   end
 
   defp join_match(%{socket: socket, match: match}) do

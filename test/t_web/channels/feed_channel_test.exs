@@ -1,5 +1,5 @@
 defmodule TWeb.FeedChannelTest do
-  use TWeb.ChannelCase, async: true
+  use TWeb.ChannelCase
   alias T.{Accounts, Matches}
   alias T.Accounts.User
 

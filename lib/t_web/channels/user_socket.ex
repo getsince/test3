@@ -44,6 +44,7 @@ defmodule TWeb.UserSocket do
     "user_socket:#{token}"
   end
 
+  # TODO test
   defp on_connect(pid, user) do
     __MODULE__.Monitor.monitor(pid, user.id)
   end

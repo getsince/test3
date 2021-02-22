@@ -60,7 +60,7 @@ defmodule TWeb.ProfileChannel do
 
     case f.() do
       {:ok, profile} ->
-        {:reply, {:ok, %{profile: render_profile(profile)}}, socket}
+        {:reply, {:ok, %{profile: render_profile(profile)}}, assign(socket, profile: profile)}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:reply, {:error, %{profile: render(ErrorView, "changeset.json", changeset: changeset)}},

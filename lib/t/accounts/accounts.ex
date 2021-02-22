@@ -471,7 +471,7 @@ defmodule T.Accounts do
   def update_profile(%Profile{} = profile, attrs, opts \\ []) do
     profile
     |> Profile.changeset(attrs, opts)
-    |> Repo.update()
+    |> Repo.update(returning: true)
   end
 
   # TODO

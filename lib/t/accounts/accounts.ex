@@ -94,16 +94,29 @@ defmodule T.Accounts do
   end
 
   # TODO test when deleted
+  # TODO in one transaction
   defp get_or_register_user(phone_number) do
     if u = get_user_by_phone_number(phone_number) do
       if u.deleted_at do
         {:error, :user_deleted}
       else
-        {:ok, u}
+        {:ok, ensure_has_profile(u)}
       end
     else
       register_user(%{phone_number: phone_number})
     end
+  end
+
+  defp ensure_has_profile(%User{profile: %Profile{}} = user), do: user
+
+  defp ensure_has_profile(%User{profile: nil} = user) do
+    profile =
+      Repo.insert!(%Profile{
+        user_id: user.id,
+        last_active: DateTime.truncate(DateTime.utc_now(), :second)
+      })
+
+    %User{user | profile: profile}
   end
 
   @doc """

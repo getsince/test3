@@ -91,6 +91,7 @@ defmodule TWeb.MobileAuthControllerTest do
       assert profile == %{
                "user_id" => user_id,
                "song" => %{
+                 "id" => "203709340",
                  "album_cover" =>
                    "https://is1-ssl.mzstatic.com/image/thumb/Music128/v4/1d/b0/2d/1db02d23-6e40-ae43-29c9-ff31a854e8aa/074643865326.jpg/1000x1000bb.jpeg",
                  "artist_name" => "Bruce Springsteen",

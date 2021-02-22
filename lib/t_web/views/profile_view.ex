@@ -37,6 +37,7 @@ defmodule TWeb.ProfileView do
   defp extract_song_info(%{
          "data" => [
            %{
+             "id" => id,
              "attributes" => %{
                "artistName" => artist_name,
                "artwork" => %{"url" => album_cover},
@@ -49,6 +50,7 @@ defmodule TWeb.ProfileView do
     album_cover = String.replace(album_cover, ["{w}", "{h}"], "1000")
 
     %{
+      "id" => id,
       "artist_name" => artist_name,
       "album_cover" => album_cover,
       "song_name" => song_name,

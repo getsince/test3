@@ -37,6 +37,13 @@ defmodule Dev do
     )
   end
 
+  def schedule_3dpics_jobs do
+    s3_list_photos(~D[2021-01-16])
+    |> Enum.map(fn s3_key -> Media.pic3d_job(s3_key) |> Ecto.Changeset.change() end)
+    # |> Enum.take(5)
+    |> Oban.insert_all()
+  end
+
   def download_all_photos_from_s3 do
     bucket = Media.bucket()
 

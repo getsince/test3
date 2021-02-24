@@ -41,10 +41,23 @@ defmodule T.Feeds do
     no_active_match
   end
 
+  defp notify_subscribers({:error, _reason} = fail, _event) do
+    fail
+  end
+
+  # T.Feeds.like_profile("00000177-672c-dfca-0242-ac1100030000", "00000177-8ae4-b4c4-0242-ac1100030000")
+
   # TODO auth, check they are in our feed, check no more 5 per day
   def like_profile(by_user_id, user_id) do
+    seen_changeset =
+      %SeenProfile{by_user_id: by_user_id, user_id: user_id}
+      |> Ecto.Changeset.change()
+      |> Ecto.Changeset.unique_constraint(:seen,
+        name: :seen_profiles_pkey
+      )
+
     Ecto.Multi.new()
-    |> Ecto.Multi.insert(:seen, %SeenProfile{by_user_id: by_user_id, user_id: user_id})
+    |> Ecto.Multi.insert(:seen, seen_changeset)
     |> Ecto.Multi.insert(:like, %ProfileLike{by_user_id: by_user_id, user_id: user_id})
     |> Ecto.Multi.run(:times_liked_inc, fn repo, _changes ->
       {1, nil} =
@@ -95,6 +108,7 @@ defmodule T.Feeds do
     |> case do
       {:ok, %{maybe_match: %Match{} = match}} -> {:ok, match}
       {:ok, %{maybe_match: nil}} -> {:ok, nil}
+      {:error, :seen, %Ecto.Changeset{}, _changes} -> {:error, :already_seen}
     end
     |> notify_subscribers([:matched])
   end
@@ -144,10 +158,21 @@ defmodule T.Feeds do
       "00000177-7d1f-61be-0242-ac1100030000"
     ]
 
-    Profile
-    |> where([p], p.user_id in ^user_ids)
-    |> Repo.all()
-    |> Enum.shuffle()
+    real =
+      Profile
+      |> where([p], p.user_id in ^user_ids)
+      |> Repo.all()
+      |> Enum.shuffle()
+
+    girls =
+      Profile
+      |> where([p], p.user_id not in ^user_ids)
+      |> where([p], p.gender == "F")
+      |> limit(100)
+      |> Repo.all()
+      |> Enum.shuffle()
+
+    real ++ girls
   end
 
   defp get_feed(profile, date, opts) do

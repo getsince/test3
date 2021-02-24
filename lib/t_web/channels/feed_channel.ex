@@ -85,7 +85,8 @@ defmodule TWeb.FeedChannel do
   def handle_in("like", %{"profile_id" => profile_id}, socket) do
     # verify_can_see_profile(socket, profile_id)
     user = socket.assigns.current_user
-    {:ok, _} = Feeds.like_profile(user.id, profile_id)
+    # TODO {:ok, _} =
+    Feeds.like_profile(user.id, profile_id)
     {:reply, :ok, socket}
   end
 

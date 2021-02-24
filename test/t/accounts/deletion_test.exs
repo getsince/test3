@@ -42,28 +42,28 @@ defmodule T.Accounts.DeletionTest do
     test "current match is unmatched", %{user: user} do
       %{user_id: p2_id} = p2 = insert(:profile)
 
-      Feeds.subscribe(user.id)
-      Feeds.subscribe(p2.user_id)
+      Matches.subscribe_for_user(user.id)
+      Matches.subscribe_for_user(p2.user_id)
 
-      assert {:ok, nil} == Feeds.like_profile(p2.user_id, user.id)
+      assert {:ok, %{match: nil}} = Feeds.like_profile(p2.user_id, user.id)
 
-      assert {:ok, %Matches.Match{id: match_id, alive?: true}} =
+      assert {:ok, %{match: %Matches.Match{id: match_id, alive?: true}}} =
                Feeds.like_profile(user.id, p2.user_id)
 
-      assert_receive {Feeds, [:matched], %Matches.Match{id: ^match_id}}
-      assert_receive {Feeds, [:matched], %Matches.Match{id: ^match_id}}
+      assert_receive {Matches, [:matched, ^match_id], [_, _] = user_ids}
+      assert_receive {Matches, [:matched, ^match_id], ^user_ids}
 
-      Matches.subscribe(match_id)
+      Matches.subscribe_for_match(match_id)
 
       assert {:ok,
               %{
                 delete_sessions: [],
                 delete_user: nil,
                 hide_profile: nil,
-                unmatch: [{:ok, [^p2_id]}]
+                unmatch: [ok: %{unhide: [^p2_id], unmatch: ^user_ids}]
               }} = Accounts.delete_user(user.id)
 
-      assert_receive {Matches, :unmatched}
+      assert_receive {Matches, [:unmatched, ^match_id], ^user_ids}
     end
 
     test "full deletion job is scheduled", %{user: user} do

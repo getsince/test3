@@ -1,12 +1,14 @@
 defmodule T.Matches do
   @moduledoc """
-  User wants to check if they are in an active match? Do they want to unmatch?
+  User wants to fetch their active matches? Do they want to unmatch?
   Or maybe they want to send a message to their match?
 
   Then this is the palce to add code for it.
   """
+
   import Ecto.Query
-  alias T.{Repo, Media, Accounts, PushNotifications}
+
+  alias T.{Repo, Media, PushNotifications}
   alias T.Accounts.{User, Profile}
   alias T.Matches.{Match, Message}
 
@@ -17,24 +19,154 @@ defmodule T.Matches do
     @topic <> ":" <> String.downcase(match_id)
   end
 
-  def subscribe(match_id) do
+  defp pubsub_user_topic(user_id) when is_binary(user_id) do
+    @topic <> ":u:" <> String.downcase(user_id)
+  end
+
+  def subscribe_for_match(match_id) do
     Phoenix.PubSub.subscribe(@pubsub, pubsub_match_topic(match_id))
   end
 
-  # defp notify_subscribers({:ok, %Message{match_id: match_id} = message} = success, event)
-  #      when is_binary(match_id) do
-  #   Phoenix.PubSub.broadcast(@pubsub, pubsub_match_topic(match_id), {__MODULE__, event, message})
-  #   success
-  # end
+  def unsubscribe_from_match(match_id) do
+    Phoenix.PubSub.unsubscribe(@pubsub, pubsub_match_topic(match_id))
+  end
+
+  def subscribe_for_user(user_id) do
+    Phoenix.PubSub.subscribe(@pubsub, pubsub_user_topic(user_id))
+  end
+
+  defp notify_subscribers({:ok, %{unmatch: user_ids}} = success, [:unmatched, match_id] = event) do
+    msg = {__MODULE__, event, user_ids}
+    Phoenix.PubSub.broadcast(@pubsub, pubsub_match_topic(match_id), msg)
+    success
+  end
+
+  defp notify_subscribers({:ok, %{match: match}} = success, [:matched]) do
+    if match do
+      %Match{id: match_id, user_id_1: uid1, user_id_2: uid2, alive?: true} = match
+      msg = {__MODULE__, [:matched, match_id], [uid1, uid2]}
+
+      for topic <- [pubsub_user_topic(uid1), pubsub_user_topic(uid2)] do
+        Phoenix.PubSub.broadcast(@pubsub, topic, msg)
+      end
+    end
+
+    success
+  end
 
   defp notify_subscribers({:error, _reason} = error, _event) do
     error
   end
 
-  defp notify_subscribers({:ok, _changes} = success, [:unmatched, match_id]) do
-    Phoenix.PubSub.broadcast(@pubsub, pubsub_match_topic(match_id), {__MODULE__, :unmatched})
-    success
+  defp notify_subscribers({:error, _step, _reason, _changes} = error, _event) do
+    error
   end
+
+  ##################### MATCH #####################
+
+  def match_if_mutual_m(multi, by_user_id, user_id) do
+    multi
+    |> with_mutual_liker(by_user_id, user_id)
+    |> maybe_create_match([by_user_id, user_id])
+    |> maybe_hide_profiles([by_user_id, user_id])
+    |> maybe_schedule_push()
+  end
+
+  def match_if_mutual(by_user_id, user_id) do
+    Ecto.Multi.new()
+    |> match_if_mutual_m(by_user_id, user_id)
+    |> Repo.transaction()
+    |> maybe_notify_of_match()
+  end
+
+  def maybe_notify_of_match(result) do
+    notify_subscribers(result, [:matched])
+  end
+
+  defp with_mutual_liker(multi, by_user_id, user_id) do
+    Ecto.Multi.run(multi, :mutual, fn _repo, _changes ->
+      T.Feeds.ProfileLike
+      # if I am liked
+      |> where(user_id: ^by_user_id)
+      # by who I liked
+      |> where(by_user_id: ^user_id)
+      |> join(:inner, [pl], p in Profile, on: p.user_id == pl.by_user_id)
+      # and who I liked is not hidden
+      |> select([..., p], not p.hidden?)
+      |> Repo.one()
+      |> case do
+        # nobody likes me, sad
+        _no_liker = nil ->
+          {:ok, nil}
+
+        # someone likes me, and they are not hidden! meaning they are
+        # - not fully matched
+        # - not pending deletion
+        # - not blocked
+        _not_hidden = true ->
+          {:ok, _mutual? = true}
+
+        # somebody likes me, but they are hidden -> like is discarded
+        _not_hidden = false ->
+          {:ok, _mutual? = false}
+      end
+    end)
+  end
+
+  defp maybe_create_match(multi, user_ids) when is_list(user_ids) do
+    Ecto.Multi.run(multi, :match, fn _repo, %{mutual: mutual} ->
+      if mutual do
+        [user_id_1, user_id_2] = Enum.sort(user_ids)
+        Repo.insert(%Match{user_id_1: user_id_1, user_id_2: user_id_2, alive?: true})
+      else
+        {:ok, nil}
+      end
+    end)
+  end
+
+  defp maybe_schedule_push(multi) do
+    Ecto.Multi.run(multi, :push, fn _repo, %{match: match} ->
+      if match, do: schedule_push(match), else: {:ok, nil}
+    end)
+  end
+
+  defp schedule_push(%Match{alive?: true, id: match_id}) do
+    job = PushNotifications.DispatchJob.new(%{"type" => "match", "match_id" => match_id})
+    Oban.insert(job)
+  end
+
+  defp maybe_hide_profiles(multi, user_ids) do
+    Ecto.Multi.run(multi, :hide, fn _repo, %{match: match} ->
+      hidden = if match, do: hide_profiles(user_ids)
+      {:ok, hidden}
+    end)
+  end
+
+  @doc false
+  def hide_profiles(user_ids, max_match_count \\ 3) do
+    profiles_with_match_count = profiles_with_match_count_q(user_ids)
+
+    {_count, hidden} =
+      Profile
+      |> join(:inner, [p], c in subquery(profiles_with_match_count),
+        on: c.count >= ^max_match_count and p.user_id == c.user_id
+      )
+      |> select([p], p.user_id)
+      |> Repo.update_all(set: [hidden?: true])
+
+    hidden
+  end
+
+  # TODO bench, ensure doesn't slow down with more unmatches
+  defp profiles_with_match_count_q(user_ids) when is_list(user_ids) do
+    Profile
+    |> where([p], p.user_id in ^user_ids)
+    |> join(:left, [p], m in Match, on: p.user_id in [m.user_id_1, m.user_id_2] and m.alive?)
+    |> group_by([p], p.user_id)
+    |> select([p, m], %{user_id: p.user_id, count: count(m.id)})
+  end
+
+  ######################## UNMATCH ########################
 
   defp unmatch(params) do
     user_id = Keyword.fetch!(params, :user)
@@ -70,7 +202,10 @@ defmodule T.Matches do
     match_id = Keyword.fetch!(params, :match)
 
     Repo.transact(fn ->
-      with {:ok, user_ids} <- unmatch(params), do: {:ok, unhide(user_ids)}
+      with {:ok, user_ids} <- unmatch(params),
+           unhide <- unhide(user_ids),
+           do: {:ok, %{unmatch: user_ids, unhide: unhide}}
+
       # TODO remove all scheduled notifications
     end)
     |> notify_subscribers([:unmatched, match_id])
@@ -91,6 +226,14 @@ defmodule T.Matches do
       {1, nil} -> true
       {0, nil} -> false
     end
+  end
+
+  #################### HELPERS ####################
+
+  def profiles_with_match_count(user_ids) do
+    profiles_with_match_count_q(user_ids)
+    |> Repo.all()
+    |> Map.new(fn %{user_id: id, count: count} -> {id, count} end)
   end
 
   def get_current_matches(user_id) do
@@ -120,17 +263,7 @@ defmodule T.Matches do
     end)
   end
 
-  def get_match_for_user(match_id, user_id) do
-    Match
-    |> where(id: ^match_id)
-    |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
-    |> Repo.one()
-  end
-
-  def get_other_profile_for_match!(%Match{user_id_1: id1, user_id_2: id2}, user_id) do
-    [other_user_id] = [id1, id2] -- [user_id]
-    Accounts.get_profile!(other_user_id)
-  end
+  ###################### MESSAGES ######################
 
   # TODO check user is match member
   # or use rls

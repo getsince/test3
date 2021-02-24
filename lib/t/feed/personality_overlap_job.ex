@@ -1,8 +1,10 @@
 defmodule T.Feeds.PersonalityOverlapJob do
   @moduledoc false
   use Oban.Worker, queue: :personality
+
   import Ecto.Query
-  alias T.{Repo, Feeds}
+
+  alias T.Repo
   alias T.Accounts.Profile
   alias T.Feeds.PersonalityOverlap
 
@@ -47,13 +49,16 @@ defmodule T.Feeds.PersonalityOverlapJob do
   @doc false
   def fetch_others(my_id, my_gender, args) do
     Profile
-    |> where([p], gender: ^Feeds.opposite_gender(my_gender))
+    |> where([p], gender: ^opposite_gender(my_gender))
     |> where([p], p.user_id != ^my_id)
     |> maybe_add_after(args["after_id"])
     |> select([p], {p.user_id, p.tastes})
     |> limit(^batch_size(args))
     |> Repo.all()
   end
+
+  defp opposite_gender("F"), do: "M"
+  defp opposite_gender("M"), do: "F"
 
   defp maybe_add_after(query, nil), do: query
 

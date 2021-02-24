@@ -1,5 +1,4 @@
 defmodule TWeb.ChannelHelpers do
-  alias TWeb.Presence
   alias Phoenix.Socket
 
   def extract_user_ids(user_ids) do
@@ -36,11 +35,17 @@ defmodule TWeb.ChannelHelpers do
     false = is_nil(current_user(socket).onboarded_at)
   end
 
-  def user_online?(user_id) when is_binary(user_id) do
-    # TODO possibly downcase?
-    case Presence.get_by_key("global", user_id) do
-      [] -> false
-      [_] -> true
+  def report(socket, report) do
+    %{"reason" => reason, "profile_id" => reported_user_id} = report
+    %{current_user: reporter} = socket.assigns
+
+    case T.Accounts.report_user(reporter.id, reported_user_id, reason) do
+      :ok ->
+        {:reply, :ok, socket}
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        rendered = Phoenix.View.render(TWeb.ErrorView, "changeset.json", changeset: changeset)
+        {:reply, {:error, %{report: rendered}}, socket}
     end
   end
 end

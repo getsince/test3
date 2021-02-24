@@ -24,16 +24,22 @@ defmodule T.Accounts.BlockingTest do
     end
 
     test "unmatches if there is a match", %{reporter: reporter, reported: reported} do
-      assert {:ok, nil} == Feeds.like_profile(reporter.id, reported.id)
+      assert {:ok, %{match: nil}} = Feeds.like_profile(reporter.id, reported.id)
 
-      assert {:ok, %Match{id: match_id, alive?: true}} =
+      assert {:ok, %{match: %Match{id: match_id, alive?: true}}} =
                Feeds.like_profile(reported.id, reporter.id)
 
-      Matches.subscribe(match_id)
+      Matches.subscribe_for_match(match_id)
 
       assert :ok == Accounts.report_user(reporter.id, reported.id, "he show dicky")
-      assert_receive {Matches, :unmatched}
-      assert [] == Matches.get_current_matches(reporter.id)
+      assert_receive {Matches, [:unmatched, ^match_id], user_ids}
+
+      assert reporter.id in user_ids
+      assert reported.id in user_ids
+
+      for user_id <- user_ids do
+        assert [] == Matches.get_current_matches(user_id)
+      end
     end
 
     test "marks reported user as seen", %{reporter: reporter, reported: reported} do
@@ -73,13 +79,23 @@ defmodule T.Accounts.BlockingTest do
     test "unmatches if there is a match", %{user: user} do
       other = onboarded_user()
 
-      assert {:ok, nil} = Feeds.like_profile(user.id, other.id)
-      assert {:ok, %Match{id: match_id, alive?: true}} = Feeds.like_profile(other.id, user.id)
-      Matches.subscribe(match_id)
+      assert {:ok, %{match: nil}} = Feeds.like_profile(user.id, other.id)
+
+      assert {:ok, %{match: %Match{id: match_id, alive?: true}}} =
+               Feeds.like_profile(other.id, user.id)
+
+      Matches.subscribe_for_match(match_id)
 
       assert :ok == Accounts.block_user(user.id)
 
-      assert_receive {Matches, :unmatched}
+      assert_receive {Matches, [:unmatched, ^match_id], user_ids}
+
+      assert user.id in user_ids
+      assert other.id in user_ids
+
+      for user_id <- user_ids do
+        assert [] == Matches.get_current_matches(user_id)
+      end
     end
 
     test "blocked user is hidden", %{user: user} do

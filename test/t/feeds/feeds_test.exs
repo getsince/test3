@@ -1,15 +1,15 @@
 defmodule T.FeedsTest do
   use T.DataCase, async: true
   use Oban.Testing, repo: T.Repo
-  alias T.Feeds
+  alias T.{Feeds, Matches}
   alias T.Matches.Match
 
   describe "like_profile/2" do
     setup do
       [p1, p2] = insert_list(2, :profile)
 
-      Feeds.subscribe(p1.user_id)
-      Feeds.subscribe(p2.user_id)
+      Matches.subscribe_for_user(p1.user_id)
+      Matches.subscribe_for_user(p2.user_id)
 
       {:ok, profiles: [p1, p2]}
     end
@@ -19,7 +19,7 @@ defmodule T.FeedsTest do
     } do
       insert(:like, user: p1.user, by_user: p2.user)
 
-      assert {:ok, %Match{id: match_id, alive?: true} = match} =
+      assert {:ok, %{match: %Match{id: match_id, alive?: true} = match}} =
                Feeds.like_profile(p1.user_id, p2.user_id)
 
       assert times_liked(p2.user_id) == 1
@@ -32,8 +32,11 @@ defmodule T.FeedsTest do
       assert p1.user_id in [match.user_id_1, match.user_id_2]
       assert p2.user_id in [match.user_id_1, match.user_id_2]
 
-      assert_receive {Feeds, [:matched], %Match{id: ^match_id}}
-      assert_receive {Feeds, [:matched], %Match{id: ^match_id}}
+      assert_receive {Matches, [:matched, ^match_id], [_, _] = user_ids}
+      assert_receive {Matches, [:matched, ^match_id], ^user_ids}
+
+      assert p1.user_id in user_ids
+      assert p2.user_id in user_ids
 
       assert [%{args: %{"match_id" => ^match_id, "type" => "match"}}] =
                all_enqueued(worker: T.PushNotifications.DispatchJob)
@@ -42,57 +45,66 @@ defmodule T.FeedsTest do
     test "match once, match twice not hidden! match thrice -> hidden!", %{profiles: [p1, p2]} do
       [p3, p4] = insert_list(2, :profile)
 
-      Feeds.subscribe(p3.user_id)
-      Feeds.subscribe(p4.user_id)
+      Matches.subscribe_for_user(p3.user_id)
+      Matches.subscribe_for_user(p4.user_id)
 
       ids = Enum.map([p1, p2] ++ [p3, p4], & &1.user_id)
 
-      assert {:ok, nil} == Feeds.like_profile(p1.user_id, p2.user_id)
-      assert {:ok, nil} == Feeds.like_profile(p1.user_id, p3.user_id)
+      assert {:ok, %{match: nil}} = Feeds.like_profile(p1.user_id, p2.user_id)
+      assert {:ok, %{match: nil}} = Feeds.like_profile(p1.user_id, p3.user_id)
 
       # match 1 (p1+p2)
 
-      assert {:ok, %Match{id: m12, alive?: true}} = Feeds.like_profile(p2.user_id, p1.user_id)
+      assert {:ok, %{match: %Match{id: m12, alive?: true}}} =
+               Feeds.like_profile(p2.user_id, p1.user_id)
 
       refute_hidden([p1.user_id, p2.user_id])
-      assert_receive {Feeds, [:matched], %Match{id: ^m12}}
-      assert_receive {Feeds, [:matched], %Match{id: ^m12}}
+      assert_receive {Matches, [:matched, ^m12], [_, _] = user_ids}
+      assert_receive {Matches, [:matched, ^m12], ^user_ids}
+      assert p1.user_id in user_ids
+      assert p2.user_id in user_ids
 
-      assert Feeds.profiles_with_match_count(ids) == %{
+      assert Matches.profiles_with_match_count(ids) == %{
                p1.user_id => 1,
                p2.user_id => 1,
                p3.user_id => 0,
                p4.user_id => 0
              }
 
-      assert {:ok, nil} = Feeds.like_profile(p1.user_id, p4.user_id)
+      assert {:ok, %{match: nil}} = Feeds.like_profile(p1.user_id, p4.user_id)
 
       # match 2 (p1+p3)
 
-      assert {:ok, %Match{id: m13, alive?: true}} = Feeds.like_profile(p3.user_id, p1.user_id)
+      assert {:ok, %{match: %Match{id: m13, alive?: true}}} =
+               Feeds.like_profile(p3.user_id, p1.user_id)
 
       refute_hidden([p1.user_id, p3.user_id])
-      assert_receive {Feeds, [:matched], %Match{id: ^m13}}
-      assert_receive {Feeds, [:matched], %Match{id: ^m13}}
+      assert_receive {Matches, [:matched, ^m13], [_, _] = user_ids}
+      assert_receive {Matches, [:matched, ^m13], ^user_ids}
+      assert p1.user_id in user_ids
+      assert p3.user_id in user_ids
 
-      assert Feeds.profiles_with_match_count(ids) == %{
+      assert Matches.profiles_with_match_count(ids) == %{
                p1.user_id => 2,
                p2.user_id => 1,
                p3.user_id => 1,
                p4.user_id => 0
              }
 
-      assert {:ok, nil} = Feeds.like_profile(p2.user_id, p3.user_id)
+      assert {:ok, %{match: nil}} = Feeds.like_profile(p2.user_id, p3.user_id)
 
       # match 3 (p2+p3)
 
-      assert {:ok, %Match{id: m23, alive?: true}} = Feeds.like_profile(p3.user_id, p2.user_id)
+      assert {:ok, %{match: %Match{id: m23, alive?: true}}} =
+               Feeds.like_profile(p3.user_id, p2.user_id)
 
       refute_hidden([p2.user_id, p3.user_id])
-      assert_receive {Feeds, [:matched], %Match{id: ^m23}}
-      assert_receive {Feeds, [:matched], %Match{id: ^m23}}
+      assert_receive {Matches, [:matched, ^m23], [_, _] = user_ids}
+      assert_receive {Matches, [:matched, ^m23], ^user_ids}
+      assert p2.user_id in user_ids
+      assert p3.user_id in user_ids
 
-      assert Feeds.profiles_with_match_count(ids) == %{
+      assert Matches.profiles_with_match_count(ids) == %{
                p1.user_id => 2,
                p2.user_id => 2,
                p3.user_id => 2,
@@ -101,13 +113,16 @@ defmodule T.FeedsTest do
 
       # match 4 (p1+p4)
 
-      assert {:ok, %Match{id: m14, alive?: true}} = Feeds.like_profile(p4.user_id, p1.user_id)
+      assert {:ok, %{match: %Match{id: m14, alive?: true}}} =
+               Feeds.like_profile(p4.user_id, p1.user_id)
 
       assert_hidden([p1.user_id])
-      assert_receive {Feeds, [:matched], %Match{id: ^m14}}
-      assert_receive {Feeds, [:matched], %Match{id: ^m14}}
+      assert_receive {Matches, [:matched, ^m14], [_, _] = user_ids}
+      assert_receive {Matches, [:matched, ^m14], ^user_ids}
+      assert p1.user_id in user_ids
+      assert p4.user_id in user_ids
 
-      assert Feeds.profiles_with_match_count(ids) == %{
+      assert Matches.profiles_with_match_count(ids) == %{
                p1.user_id => 3,
                p2.user_id => 2,
                p3.user_id => 2,
@@ -127,7 +142,7 @@ defmodule T.FeedsTest do
     end
 
     test "doesn't create match if not yet liked", %{profiles: [p1, p2]} do
-      assert {:ok, nil} == Feeds.like_profile(p1.user_id, p2.user_id)
+      assert {:ok, %{match: nil}} = Feeds.like_profile(p1.user_id, p2.user_id)
 
       assert times_liked(p2.user_id) == 1
       assert_seen(by_user_id: p1.user_id, user_id: p2.user_id)
@@ -139,73 +154,9 @@ defmodule T.FeedsTest do
     end
 
     test "double like doesn't raise", %{profiles: [p1, p2]} do
-      assert {:ok, nil} == Feeds.like_profile(p1.user_id, p2.user_id)
-      assert {:error, changeset} = Feeds.like_profile(p1.user_id, p2.user_id)
+      assert {:ok, %{match: nil}} = Feeds.like_profile(p1.user_id, p2.user_id)
+      assert {:error, :seen, changeset, _changes} = Feeds.like_profile(p1.user_id, p2.user_id)
       assert errors_on(changeset) == %{seen: ["has already been taken"]}
-    end
-  end
-
-  describe "profiles_with_match_count/1" do
-    test "non existent users" do
-      assert Feeds.profiles_with_match_count([Ecto.UUID.generate(), Ecto.UUID.generate()]) == %{}
-    end
-
-    test "users with no profiles" do
-      [u1, u2] = insert_list(2, :user)
-      assert Feeds.profiles_with_match_count([u1.id, u2.id]) == %{}
-    end
-
-    test "users with no matches" do
-      [p1, p2] = insert_list(2, :profile)
-
-      assert Feeds.profiles_with_match_count([p1.user_id, p2.user_id]) == %{
-               p1.user_id => 0,
-               p2.user_id => 0
-             }
-    end
-
-    test "users with some matches" do
-      [p1, p2, p3, p4] = profiles = insert_list(4, :profile)
-      insert(:match, user_id_1: p1.user_id, user_id_2: p2.user_id, alive?: true)
-      insert(:match, user_id_1: p2.user_id, user_id_2: p3.user_id, alive?: true)
-
-      ids = Enum.map(profiles, & &1.user_id)
-
-      assert Feeds.profiles_with_match_count(ids) == %{
-               p1.user_id => 1,
-               p2.user_id => 2,
-               p3.user_id => 1,
-               p4.user_id => 0
-             }
-    end
-  end
-
-  describe "hide_profiles/2" do
-    test "non existent users" do
-      assert Feeds.hide_profiles([Ecto.UUID.generate(), Ecto.UUID.generate()]) == []
-    end
-
-    test "users with no profiles" do
-      [u1, u2] = insert_list(2, :user)
-      assert Feeds.hide_profiles([u1.id, u2.id]) == []
-    end
-
-    test "users with no matches" do
-      [p1, p2] = insert_list(2, :profile)
-      assert Feeds.hide_profiles([p1.user_id, p2.user_id]) == []
-    end
-
-    test "users with some matches" do
-      [p1, p2, p3, p4] = profiles = insert_list(4, :profile)
-      insert(:match, user_id_1: p1.user_id, user_id_2: p2.user_id, alive?: true)
-      insert(:match, user_id_1: p2.user_id, user_id_2: p3.user_id, alive?: true)
-
-      ids = Enum.map(profiles, & &1.user_id)
-
-      assert Feeds.hide_profiles(ids, _max = 2) == [p2.user_id]
-
-      assert_hidden([p2.user_id])
-      refute_hidden([p1.user_id, p3.user_id, p4.user_id])
     end
   end
 

@@ -4,14 +4,15 @@ defmodule TWeb.UserSocket do
 
   # feed:<user-id>
   channel "feed:*", TWeb.FeedChannel
-  # match:<match-id>
-  channel "match:*", TWeb.MatchChannel
+  # match:<user-id>
+  channel "matches:*", TWeb.MatchChannel
   # profile:<user-id>
   channel "profile:*", TWeb.ProfileChannel
-  # notification:<user-id>
-  channel "notification:*", TWeb.NotificationChannel
   # support:<user-id>
   channel "support:*", TWeb.SupportChannel
+
+  # notification:<user-id>
+  # channel "notification:*", TWeb.NotificationChannel
   # # user:<uuid>
   # channel "user:*", TWeb.UserChannel
 

@@ -68,4 +68,11 @@ defmodule TWeb.ChannelCase do
     {:ok, socket} = connect(TWeb.UserSocket, %{"token" => token}, %{})
     socket
   end
+
+  defmacro assert_presence_diff(pattern) do
+    quote do
+      assert_broadcast "presence_diff", unquote(pattern)
+      assert_push "presence_diff", unquote(pattern)
+    end
+  end
 end

@@ -1,111 +1,34 @@
 defmodule T.MatchesTest do
   use T.DataCase, async: true
   use Oban.Testing, repo: T.Repo
-  alias T.Accounts.Profile
-  alias T.{Matches, Feeds}
+  alias T.{Matches, Accounts.Profile}
   alias Matches.{Match, Message}
 
   describe "unmatch" do
-    test "match no longer, hidden no longer (if no pending matches), unmatched broadcasted" do
-      [p1, p2] = insert_list(2, :profile, hidden?: true)
+    test "match no longer, hidden no longer, unmatched broadcasted" do
+      [%{user_id: p1_id} = p1, %{user_id: p2_id} = p2] = insert_list(2, :profile, hidden?: true)
 
       %Match{id: match_id} =
         insert(:match, user_id_1: p1.user_id, user_id_2: p2.user_id, alive?: true)
 
-      assert %Match{id: ^match_id} = Matches.get_current_match(p1.user_id)
-      assert %Match{id: ^match_id} = Matches.get_current_match(p2.user_id)
+      assert [%Match{id: ^match_id, profile: %Profile{user_id: ^p2_id}}] =
+               Matches.get_current_matches(p1.user_id)
+
+      assert [%Match{id: ^match_id, profile: %Profile{user_id: ^p1_id}}] =
+               Matches.get_current_matches(p2.user_id)
 
       Matches.subscribe(match_id)
 
-      assert {:ok, _changes} = Matches.unmatch(p1.user_id, match_id)
+      assert {:ok, _changes} = Matches.unmatch_and_unhide(user: p1.user_id, match: match_id)
 
       assert_receive {Matches, :unmatched}
 
       refute Repo.get(Profile, p1.user_id).hidden?
       refute Repo.get(Profile, p2.user_id).hidden?
 
-      refute Matches.get_current_match(p1.user_id)
-      refute Matches.get_current_match(p2.user_id)
-
+      assert [] == Matches.get_current_matches(p1.user_id)
+      assert [] == Matches.get_current_matches(p2.user_id)
       assert [] = all_enqueued(worker: T.PushNotifications.DispatchJob)
-    end
-
-    test "transition to pending match if the other user is available" do
-      [p1, p2, p3, p4] = insert_list(4, :profile)
-
-      Feeds.subscribe(p1.user_id)
-      Feeds.subscribe(p2.user_id)
-      Feeds.subscribe(p3.user_id)
-
-      assert {:ok, nil} = Feeds.like_profile(p1.user_id, p2.user_id)
-      assert {:ok, nil} = Feeds.like_profile(p1.user_id, p3.user_id)
-      assert {:ok, nil} = Feeds.like_profile(p1.user_id, p4.user_id)
-
-      assert {:ok, %Match{id: match_id, alive?: true}} =
-               Feeds.like_profile(p2.user_id, p1.user_id)
-
-      assert_receive {Feeds, [:matched], %Match{id: ^match_id}}
-      assert_receive {Feeds, [:matched], %Match{id: ^match_id}}
-
-      assert [
-               %{args: %{"match_id" => ^match_id, "type" => "match"}}
-             ] = all_enqueued(worker: T.PushNotifications.DispatchJob)
-
-      assert {:ok, %Match{id: pending_match_id, alive?: false, pending?: true}} =
-               Feeds.like_profile(p3.user_id, p1.user_id)
-
-      assert {:ok, %Match{id: _pending_match_id, alive?: false, pending?: true}} =
-               Feeds.like_profile(p4.user_id, p1.user_id)
-
-      assert {:ok, _changes} = Matches.unmatch(p1.user_id, match_id)
-      assert_receive {Matches, [:pending_match_activated], %Match{id: ^pending_match_id}}
-      assert_receive {Matches, [:pending_match_activated], %Match{id: ^pending_match_id}}
-      refute_receive _anything
-
-      assert [
-               %{args: %{"match_id" => ^pending_match_id, "type" => "match"}},
-               %{args: %{"match_id" => ^match_id, "type" => "match"}}
-             ] = all_enqueued(worker: T.PushNotifications.DispatchJob)
-    end
-
-    test "no transition to pending match if the other user is not avialable" do
-      [p1, p2, p3, p4] = insert_list(4, :profile)
-
-      Feeds.subscribe(p1.user_id)
-      Feeds.subscribe(p2.user_id)
-      Feeds.subscribe(p3.user_id)
-      Feeds.subscribe(p4.user_id)
-
-      assert {:ok, nil} = Feeds.like_profile(p1.user_id, p2.user_id)
-      assert {:ok, nil} = Feeds.like_profile(p1.user_id, p3.user_id)
-      assert {:ok, nil} = Feeds.like_profile(p3.user_id, p4.user_id)
-
-      assert {:ok, %Match{id: m1, alive?: true}} = Feeds.like_profile(p2.user_id, p1.user_id)
-
-      assert_receive {Feeds, [:matched], %Match{id: ^m1}}
-      assert_receive {Feeds, [:matched], %Match{id: ^m1}}
-
-      assert {:ok, %Match{id: _p1, alive?: false, pending?: true}} =
-               Feeds.like_profile(p3.user_id, p1.user_id)
-
-      assert {:ok, %Match{id: m2, alive?: true}} = Feeds.like_profile(p4.user_id, p3.user_id)
-
-      assert_receive {Feeds, [:matched], %Match{id: ^m2}}
-      assert_receive {Feeds, [:matched], %Match{id: ^m2}}
-
-      assert {:ok, changes} = Matches.unmatch(p1.user_id, m1)
-
-      assert changes.maybe_activate_pending_matches == %{
-               p1.user_id => nil,
-               p2.user_id => nil
-             }
-
-      refute_receive _anything
-
-      assert [
-               %{args: %{"match_id" => ^m2, "type" => "match"}},
-               %{args: %{"match_id" => ^m1, "type" => "match"}}
-             ] = all_enqueued(worker: T.PushNotifications.DispatchJob)
     end
   end
 

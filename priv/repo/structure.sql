@@ -72,17 +72,6 @@ CREATE TABLE public.apns_devices (
 
 
 --
--- Name: disliked_profiles; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.disliked_profiles (
-    by_user_id uuid NOT NULL,
-    user_id uuid NOT NULL,
-    inserted_at timestamp(0) without time zone NOT NULL
-);
-
-
---
 -- Name: emails; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -138,8 +127,7 @@ CREATE TABLE public.matches (
     user_id_1 uuid NOT NULL,
     user_id_2 uuid NOT NULL,
     "alive?" boolean DEFAULT true NOT NULL,
-    inserted_at timestamp(0) without time zone NOT NULL,
-    "pending?" boolean
+    inserted_at timestamp(0) without time zone NOT NULL
 );
 
 
@@ -379,14 +367,6 @@ ALTER TABLE ONLY public.apns_devices
 
 
 --
--- Name: disliked_profiles disliked_profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.disliked_profiles
-    ADD CONSTRAINT disliked_profiles_pkey PRIMARY KEY (by_user_id, user_id);
-
-
---
 -- Name: interests_overlap interests_overlap_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -527,24 +507,10 @@ CREATE INDEX liked_profiles_user_id_by_user_id_index ON public.liked_profiles US
 
 
 --
--- Name: matches_user_id_1_pending_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX matches_user_id_1_pending_index ON public.matches USING btree (user_id_1, "pending?") WHERE ("pending?" = true);
-
-
---
 -- Name: matches_user_id_1_user_id_2_index; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX matches_user_id_1_user_id_2_index ON public.matches USING btree (user_id_1, user_id_2);
-
-
---
--- Name: matches_user_id_2_pending_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX matches_user_id_2_pending_index ON public.matches USING btree (user_id_2, "pending?") WHERE ("pending?" = true);
 
 
 --
@@ -580,20 +546,6 @@ CREATE INDEX profiles_date_trunc__day___last_active__timestamp_index ON public.p
 --
 
 CREATE INDEX profiles_gender_hidden_times_liked_desc_index ON public.profiles USING btree (gender, "hidden?", times_liked DESC) WHERE ("hidden?" = false);
-
-
---
--- Name: user_id_1_alive_match; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX user_id_1_alive_match ON public.matches USING btree (user_id_1, "alive?") WHERE ("alive?" = true);
-
-
---
--- Name: user_id_2_alive_match; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX user_id_2_alive_match ON public.matches USING btree (user_id_2, "alive?") WHERE ("alive?" = true);
 
 
 --
@@ -638,22 +590,6 @@ ALTER TABLE ONLY public.apns_devices
 
 ALTER TABLE ONLY public.apns_devices
     ADD CONSTRAINT apns_devices_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: disliked_profiles disliked_profiles_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.disliked_profiles
-    ADD CONSTRAINT disliked_profiles_by_user_id_fkey FOREIGN KEY (by_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: disliked_profiles disliked_profiles_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.disliked_profiles
-    ADD CONSTRAINT disliked_profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
@@ -824,3 +760,6 @@ INSERT INTO public."schema_migrations" (version) VALUES (20210131190658);
 INSERT INTO public."schema_migrations" (version) VALUES (20210203185329);
 INSERT INTO public."schema_migrations" (version) VALUES (20210214144221);
 INSERT INTO public."schema_migrations" (version) VALUES (20210220194329);
+INSERT INTO public."schema_migrations" (version) VALUES (20210224130138);
+INSERT INTO public."schema_migrations" (version) VALUES (20210224181753);
+INSERT INTO public."schema_migrations" (version) VALUES (20210224181910);

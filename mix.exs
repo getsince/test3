@@ -100,10 +100,6 @@ defmodule T.MixProject do
   end
 
   defp releases do
-    [
-      t: [
-        include_executables_for: [:unix]
-      ]
-    ]
+    [t: [include_executables_for: [:unix]]]
   end
 end

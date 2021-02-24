@@ -11,27 +11,22 @@ defmodule TWeb.FeedChannel do
 
     # TODO show who's online
 
-    if match = Matches.get_current_match(user_id) do
-      other_profile = Matches.get_other_profile_for_match!(match, user_id)
-      # TODO close channel
-      {:ok, %{match: render_match(match, other_profile)}, socket}
-    else
-      :ok = Feeds.subscribe(user_id)
+    :ok = Feeds.subscribe(user_id)
+    datetime = local_datetime_now(timezone)
 
-      datetime = local_datetime_now(timezone)
+    feed =
+      if Feeds.use_demo_feed?() do
+        Feeds.demo_feed()
+      else
+        my_profile = Accounts.get_profile!(socket.assigns.current_user)
+        Feeds.get_or_create_feed(my_profile, DateTime.to_date(datetime))
+      end
 
-      feed =
-        if Feeds.use_demo_feed?() do
-          Feeds.demo_feed()
-        else
-          my_profile = Accounts.get_profile!(socket.assigns.current_user)
-          Feeds.get_or_create_feed(my_profile, DateTime.to_date(datetime))
-        end
+    schedule_feed_refresh_at_midnight(datetime, timezone)
+    matches = Matches.get_current_matches(user_id)
 
-      schedule_feed_refresh_at_midnight(datetime, timezone)
-
-      {:ok, %{feed: render_profiles(feed)}, assign(socket, timezone: timezone)}
-    end
+    {:ok, %{feed: render_profiles(feed), matches: render_matches(matches)},
+     assign(socket, timezone: timezone)}
   end
 
   defp local_datetime_now(timezone) do
@@ -73,6 +68,12 @@ defmodule TWeb.FeedChannel do
     }
   end
 
+  defp render_matches(matches) do
+    Enum.map(matches, fn match ->
+      render_match(match, match.profile)
+    end)
+  end
+
   defp render_profile(profile) do
     render(ProfileView, "show.json", profile: profile)
   end
@@ -83,15 +84,9 @@ defmodule TWeb.FeedChannel do
 
   @impl true
   def handle_in("like", %{"profile_id" => profile_id}, socket) do
-    # verify_can_see_profile(socket, profile_id)
+    # TODO verify_can_see_profile(socket, profile_id)
     user = socket.assigns.current_user
-    {:ok, _} = Feeds.like_profile(user.id, profile_id)
-    {:reply, :ok, socket}
-  end
-
-  def handle_in("dislike", %{"profile_id" => profile_id}, socket) do
-    user = socket.assigns.current_user
-    :ok = Feeds.dislike_profile(user.id, profile_id)
+    Feeds.like_profile(user.id, profile_id)
     {:reply, :ok, socket}
   end
 
@@ -115,13 +110,6 @@ defmodule TWeb.FeedChannel do
 
   @impl true
   def handle_info({Feeds, [:matched], match}, socket) do
-    other_profile = Matches.get_other_profile_for_match!(match, socket.assigns.current_user.id)
-    push(socket, "matched", %{match: render_match(match, other_profile)})
-    {:noreply, socket}
-  end
-
-  # TODO test
-  def handle_info({Matches, [:pending_match_activated], match}, socket) do
     other_profile = Matches.get_other_profile_for_match!(match, socket.assigns.current_user.id)
     push(socket, "matched", %{match: render_match(match, other_profile)})
     {:noreply, socket}

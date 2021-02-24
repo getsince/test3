@@ -4,7 +4,7 @@ defmodule T.Music.API do
   # TODO don't leak tokens to logs
   @impl true
   def get_song(id) when is_binary(id) do
-    url = "https://api.music.apple.com/v1/catalog/ru/songs/#{id}"
+    url = "https://api.music.apple.com/v1/catalog/ru/songs/#{URI.encode_www_form(id)}"
 
     %HTTPoison.Response{body: body, status_code: 200} =
       HTTPoison.get!(url, [{"Authorization", "Bearer #{T.Music.token()}"}])

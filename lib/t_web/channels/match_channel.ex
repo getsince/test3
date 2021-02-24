@@ -103,8 +103,7 @@ defmodule TWeb.MatchChannel do
   def handle_in("unmatch", _params, socket) do
     %{match: match, current_user: user} = socket.assigns
 
-    # TODO reply here that we have another match?
-    case Matches.unmatch(user.id, match.id) do
+    case Matches.unmatch_and_unhide(user: user.id, match: match.id) do
       {:ok, _} -> broadcast_from!(socket, "unmatched", %{})
       {:error, _reason} -> []
     end

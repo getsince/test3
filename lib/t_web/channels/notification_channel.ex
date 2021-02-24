@@ -10,13 +10,21 @@ defmodule TWeb.NotificationChannel do
     {:ok, socket}
   end
 
-  # TODO don't send push notifications if the user is online in this channel
+  # TODO don't send push notifications if the user is online in this channel?
+  # TODO test if joined, then in feed returned as online
   @impl true
   def handle_info(:after_join, socket) do
+    # TODO need it?
+    {:ok, _} = Presence.track(self(), "global", socket.assigns.current_user.id, %{})
+
+    # TODO
     {:ok, _} =
-      Presence.track(socket.channel_pid, "global", socket.assigns.current_user.id, %{
-        online_at: inspect(System.system_time(:second))
-      })
+      Presence.track(
+        self(),
+        "online:#{socket.assigns.current_user.id}",
+        socket.assigns.current_user.id,
+        %{}
+      )
 
     {:noreply, socket}
   end

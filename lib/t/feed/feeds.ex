@@ -1,158 +1,55 @@
 defmodule T.Feeds do
+  @moduledoc "Feeds and liking feeds"
   import Ecto.{Query, Changeset}
 
-  alias T.{Repo, PushNotifications}
+  alias T.{Repo, Matches}
   alias T.Accounts.Profile
   alias T.Feeds.{Feed, SeenProfile, ProfileLike, PersonalityOverlap}
-  alias T.Matches.Match
 
-  @pubsub T.PubSub
-  @topic to_string(__MODULE__)
-
-  @doc false
-  def topic(user_id) do
-    @topic <> ":" <> String.downcase(user_id)
-  end
-
-  @doc false
-  def subscribe do
-    Phoenix.PubSub.subscribe(@pubsub, @topic)
-  end
-
-  def subscribe(user_id) do
-    Phoenix.PubSub.subscribe(@pubsub, topic(user_id))
-  end
-
-  defp notify_subscribers(
-         {:ok, %Match{user_id_1: uid1, user_id_2: uid2, alive?: true} = match} = success,
-         [:matched]
-       ) do
-    for topic <- [topic(uid1), topic(uid2)] do
-      Phoenix.PubSub.broadcast(@pubsub, topic, {__MODULE__, [:matched], match})
-    end
-
-    success
-  end
-
-  defp notify_subscribers({:ok, _other} = no_active_match, [:matched]) do
-    no_active_match
-  end
-
-  defp notify_subscribers({:error, _reason} = failure, _event) do
-    failure
-  end
-
-  def mark_seen(by_user_id, user_id) do
-    %SeenProfile{by_user_id: by_user_id, user_id: user_id}
-    |> change()
-    |> unique_constraint(:seen, name: :seen_profiles_pkey)
-    |> Repo.insert()
-  end
-
-  def mark_liked(by_user_id, user_id) do
-    Repo.insert(%ProfileLike{by_user_id: by_user_id, user_id: user_id})
-  end
-
-  def bump_likes_count(user_id) do
-    {1, [count]} =
-      Profile
-      |> where(user_id: ^user_id)
-      |> select([p], p.times_liked)
-      |> Repo.update_all(inc: [times_liked: 1])
-
-    {:ok, count}
-  end
-
-  def match_if_mutual(by_user_id, user_id) do
-    ProfileLike
-    # if I am liked
-    |> where(user_id: ^by_user_id)
-    # by who I liked
-    |> where(by_user_id: ^user_id)
-    |> join(:inner, [pl], p in Profile, on: p.user_id == pl.by_user_id)
-    # and who I liked is not hidden
-    |> select([..., p], p.hidden?)
-    |> Repo.one()
-    |> case do
-      # nobody likes me, sad
-      _no_liker = nil ->
-        {:ok, nil}
-
-      # someone likes me, and they are not hidden! meaning they are
-      # - not fully matched
-      # - not pending deletion
-      # - not blocked
-      _not_hidden = false ->
-        create_match([by_user_id, user_id])
-
-      # somebody likes me, but they are hidden -> like is discarded
-      _hidden = true ->
-        {:ok, nil}
-    end
-  end
-
-  defp create_match(user_ids) when is_list(user_ids) do
-    [user_id_1, user_id_2] = Enum.sort(user_ids)
-    Repo.insert(%Match{user_id_1: user_id_1, user_id_2: user_id_2, alive?: true})
-  end
-
-  def profiles_with_match_count(user_ids) do
-    profiles_with_match_count_q(user_ids)
-    |> Repo.all()
-    |> Map.new(fn %{user_id: id, count: count} -> {id, count} end)
-  end
-
-  # TODO bench, ensure doesn't slow down with more unmatches
-  defp profiles_with_match_count_q(user_ids) when is_list(user_ids) do
-    Profile
-    |> where([p], p.user_id in ^user_ids)
-    |> join(:left, [p], m in Match, on: p.user_id in [m.user_id_1, m.user_id_2] and m.alive?)
-    |> group_by([p], p.user_id)
-    |> select([p, m], %{user_id: p.user_id, count: count(m.id)})
-  end
-
-  def hide_profiles(user_ids, max_match_count \\ 3) do
-    profiles_with_match_count = profiles_with_match_count_q(user_ids)
-
-    {_count, hidden} =
-      Profile
-      |> join(:inner, [p], c in subquery(profiles_with_match_count),
-        on: c.count >= ^max_match_count and p.user_id == c.user_id
-      )
-      |> select([p], p.user_id)
-      |> Repo.update_all(set: [hidden?: true])
-
-    hidden
-  end
-
-  def schedule_notify(%Match{alive?: true, id: match_id}) do
-    job = PushNotifications.DispatchJob.new(%{"type" => "match", "match_id" => match_id})
-    Oban.insert(job)
-  end
+  ######################### LIKE #########################
 
   # TODO forbid liking if more than 3 active matches? or rather if hidden?
   # TODO auth, check they are in our feed, check no more than 5 per day
   def like_profile(by_user_id, user_id) do
-    Repo.transact(fn ->
-      with {:ok, _seen} <- mark_seen(by_user_id, user_id),
-           {:ok, _like} <- mark_liked(by_user_id, user_id),
-           {:ok, _count} <- bump_likes_count(user_id),
-           {:ok, maybe_match} <- match_if_mutual(by_user_id, user_id) do
-        if maybe_match do
-          {:ok, _job} = schedule_notify(maybe_match)
-          _hidden = hide_profiles([by_user_id, user_id])
-        end
-
-        {:ok, maybe_match}
-      end
-    end)
-    |> notify_subscribers([:matched])
+    Ecto.Multi.new()
+    |> mark_seen(by_user_id, user_id)
+    |> mark_liked(by_user_id, user_id)
+    |> bump_likes_count(user_id)
+    |> Matches.match_if_mutual_m(by_user_id, user_id)
+    |> Repo.transaction()
+    |> Matches.maybe_notify_of_match()
   end
 
-  def get_or_create_feed(%Profile{} = profile, date \\ Date.utc_today(), opts \\ []) do
-    {:ok, profiles} =
-      Repo.transaction(fn -> get_feed(profile, date, opts) || create_feed(profile, date) end)
+  defp mark_seen(multi, by_user_id, user_id) do
+    changeset =
+      %SeenProfile{by_user_id: by_user_id, user_id: user_id}
+      |> change()
+      |> unique_constraint(:seen, name: :seen_profiles_pkey)
 
+    Ecto.Multi.insert(multi, :seen, changeset)
+  end
+
+  defp mark_liked(multi, by_user_id, user_id) do
+    Ecto.Multi.insert(multi, :like, %ProfileLike{by_user_id: by_user_id, user_id: user_id})
+  end
+
+  defp bump_likes_count(multi, user_id) do
+    Ecto.Multi.run(multi, :bump_likes, fn _repo, _changes ->
+      {1, [count]} =
+        Profile
+        |> where(user_id: ^user_id)
+        |> select([p], p.times_liked)
+        |> Repo.update_all(inc: [times_liked: 1])
+
+      {:ok, count}
+    end)
+  end
+
+  ######################### FEED #########################
+
+  def get_or_create_feed(%Profile{} = profile, date \\ Date.utc_today(), opts \\ []) do
+    f = fn -> get_feed(profile, date, opts) || create_feed(profile, date) end
+    {:ok, profiles} = Repo.transaction(f)
     Enum.shuffle(profiles)
   end
 
@@ -348,7 +245,7 @@ defmodule T.Feeds do
   end
 
   # TODO
-  def opposite_gender(%Profile{gender: gender}), do: opposite_gender(gender)
-  def opposite_gender("F"), do: "M"
-  def opposite_gender("M"), do: "F"
+  defp opposite_gender(%Profile{gender: gender}), do: opposite_gender(gender)
+  defp opposite_gender("F"), do: "M"
+  defp opposite_gender("M"), do: "F"
 end

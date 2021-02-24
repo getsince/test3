@@ -17,11 +17,13 @@ defmodule T.MatchesTest do
       assert [%Match{id: ^match_id, profile: %Profile{user_id: ^p1_id}}] =
                Matches.get_current_matches(p2.user_id)
 
-      Matches.subscribe(match_id)
+      Matches.subscribe_for_match(match_id)
 
       assert {:ok, _changes} = Matches.unmatch_and_unhide(user: p1.user_id, match: match_id)
 
-      assert_receive {Matches, :unmatched}
+      assert_receive {Matches, [:unmatched, ^match_id], [_, _] = user_ids}
+      assert p1.user_id in user_ids
+      assert p2.user_id in user_ids
 
       refute Repo.get(Profile, p1.user_id).hidden?
       refute Repo.get(Profile, p2.user_id).hidden?
@@ -178,6 +180,71 @@ defmodule T.MatchesTest do
     test "without after: message_id", %{match: match, messages: messages} do
       [m1, m2, m3, m4, m5, m6] = Enum.map(messages, & &1.id)
       assert [m1, m2, m3, m4, m5, m6] == match.id |> Matches.list_messages() |> Enum.map(& &1.id)
+    end
+  end
+
+  describe "hide_profiles/2" do
+    test "non existent users" do
+      assert Matches.hide_profiles([Ecto.UUID.generate(), Ecto.UUID.generate()]) == []
+    end
+
+    test "users with no profiles" do
+      [u1, u2] = insert_list(2, :user)
+      assert Matches.hide_profiles([u1.id, u2.id]) == []
+    end
+
+    test "users with no matches" do
+      [p1, p2] = insert_list(2, :profile)
+      assert Matches.hide_profiles([p1.user_id, p2.user_id]) == []
+    end
+
+    test "users with some matches" do
+      [p1, p2, p3, p4] = profiles = insert_list(4, :profile)
+      insert(:match, user_id_1: p1.user_id, user_id_2: p2.user_id, alive?: true)
+      insert(:match, user_id_1: p2.user_id, user_id_2: p3.user_id, alive?: true)
+
+      ids = Enum.map(profiles, & &1.user_id)
+
+      assert Matches.hide_profiles(ids, _max = 2) == [p2.user_id]
+
+      assert_hidden([p2.user_id])
+      refute_hidden([p1.user_id, p3.user_id, p4.user_id])
+    end
+  end
+
+  describe "profiles_with_match_count/1" do
+    test "non existent users" do
+      assert Matches.profiles_with_match_count([Ecto.UUID.generate(), Ecto.UUID.generate()]) ==
+               %{}
+    end
+
+    test "users with no profiles" do
+      [u1, u2] = insert_list(2, :user)
+      assert Matches.profiles_with_match_count([u1.id, u2.id]) == %{}
+    end
+
+    test "users with no matches" do
+      [p1, p2] = insert_list(2, :profile)
+
+      assert Matches.profiles_with_match_count([p1.user_id, p2.user_id]) == %{
+               p1.user_id => 0,
+               p2.user_id => 0
+             }
+    end
+
+    test "users with some matches" do
+      [p1, p2, p3, p4] = profiles = insert_list(4, :profile)
+      insert(:match, user_id_1: p1.user_id, user_id_2: p2.user_id, alive?: true)
+      insert(:match, user_id_1: p2.user_id, user_id_2: p3.user_id, alive?: true)
+
+      ids = Enum.map(profiles, & &1.user_id)
+
+      assert Matches.profiles_with_match_count(ids) == %{
+               p1.user_id => 1,
+               p2.user_id => 2,
+               p3.user_id => 1,
+               p4.user_id => 0
+             }
     end
   end
 end

@@ -1,116 +1,24 @@
 defmodule TWeb.MatchChannel do
   use TWeb, :channel
-  alias TWeb.{ErrorView, MessageView, Presence}
-  alias T.{Matches, Accounts}
+  alias TWeb.{ProfileView, Presence}
+  alias T.{Accounts, Matches}
 
   @impl true
-  def join("match:" <> match_id, params, socket) do
-    %Accounts.User{id: user_id} = ChannelHelpers.current_user(socket)
+  def join("matches:" <> user_id = topic, _params, socket) do
+    user_id = String.downcase(user_id)
+    ChannelHelpers.verify_user_id(socket, user_id)
+    Matches.subscribe_for_user(user_id)
 
-    if match = Matches.get_match_for_user(match_id, user_id) do
-      # match_user_ids = [match.user_id_1, match.user_id_2]
-      # ChannelHelpers.verify_user_id(socket, match_user_ids)
-      # other_user_id = ChannelHelpers.other_user_id(socket, match_user_ids)
-      # other_user_online? = ChannelHelpers.user_online?(other_user_id)
-      # Matches.subscribe(match.id)
+    matches = Matches.get_current_matches(user_id)
+    Enum.each(matches, &Matches.subscribe_for_match(&1.id))
 
-      %Matches.Match{id: match_id, alive?: alive?} = match
+    mates = Enum.map(matches, & &1.profile.user_id)
+    send(self(), {:after_join, mates})
 
-      # TODO paginate
-      messages =
-        if last_message_id = params["last_message_id"] do
-          Matches.list_messages(match_id, after: last_message_id)
-        else
-          Matches.list_messages(match_id)
-        end
-
-      if alive? do
-        send(self(), :after_join)
-      else
-        send(self(), :unmatched)
-      end
-
-      # TODO get latest messages read, latest timestamp, and fetch
-      {:ok, %{messages: render_messages(messages)}, assign(socket, match: match)}
-    else
-      {:error, %{reason: "match not found"}}
-    end
-  end
-
-  defp render_messages(messages) do
-    Enum.map(messages, &render_message/1)
-  end
-
-  defp render_message(message) do
-    render(MessageView, "show.json", message: message)
+    {:ok, %{matches: render_matches(topic, matches)}, socket}
   end
 
   @impl true
-  def handle_in("message", %{"message" => params}, socket) do
-    %{match: match, current_user: user} = socket.assigns
-
-    case Matches.add_message(match.id, user.id, params) do
-      {:ok, message} ->
-        broadcast!(socket, "message:new", %{message: render_message(message)})
-        {:reply, :ok, socket}
-
-      {:error, %Ecto.Changeset{} = changeset} ->
-        {:reply, {:error, %{message: render(ErrorView, "changeset.json", changeset: changeset)}},
-         socket}
-    end
-  end
-
-  # def handle_in("fetch", params, socket) do
-  #   # TODO fetch messages
-  # end
-
-  # TODO message read
-  # def handle_in("")
-
-  def handle_in("upload-preflight", %{"media" => params}, socket) do
-    content_type =
-      case params do
-        %{"content-type" => content_type} -> content_type
-        %{"extension" => extension} -> MIME.type(extension)
-      end
-
-    {:ok, %{"key" => key} = fields} = Matches.media_upload_form(content_type)
-    url = Matches.media_s3_url()
-
-    uploads = socket.assigns[:uploads] || %{}
-    socket = assign(socket, uploads: Map.put(uploads, key, nil))
-
-    # TODO check key afterwards
-    {:reply, {:ok, %{url: url, key: key, fields: fields}}, socket}
-  end
-
-  # TODO test
-  def handle_in("report", %{"report" => %{"reason" => reason}}, socket) do
-    %{current_user: reporter, match: match} = socket.assigns
-    match_user_ids = [match.user_id_1, match.user_id_2]
-    reported_user_id = ChannelHelpers.other_user_id(socket, match_user_ids)
-
-    case Accounts.report_user(reporter.id, reported_user_id, reason) do
-      :ok ->
-        {:reply, :ok, socket}
-
-      {:error, %Ecto.Changeset{} = changeset} ->
-        {:reply, {:error, %{report: render(ErrorView, "changeset.json", changeset: changeset)}},
-         socket}
-    end
-  end
-
-  def handle_in("unmatch", _params, socket) do
-    %{match: match, current_user: user} = socket.assigns
-
-    case Matches.unmatch_and_unhide(user: user.id, match: match.id) do
-      {:ok, _} -> broadcast_from!(socket, "unmatched", %{})
-      {:error, _reason} -> []
-    end
-
-    {:reply, :ok, socket}
-  end
-
   def handle_in("signal", payload, socket) do
     broadcast_from!(socket, "signal", payload)
     {:reply, :ok, socket}
@@ -120,22 +28,92 @@ defmodule TWeb.MatchChannel do
     {:reply, {:ok, T.Twilio.ice_servers()}, socket}
   end
 
-  # TODO don't allow posting when not match.alive?
-  # TODO test
+  def handle_in("report", %{"report" => report}, socket) do
+    ChannelHelpers.report(socket, report)
+  end
+
+  def handle_in("unmatch", %{"match_id" => match_id}, socket) do
+    me = socket.assigns.current_user.id
+    Matches.unmatch_and_unhide(user: me, match: match_id)
+    {:reply, :ok, socket}
+  end
+
   @impl true
-  def handle_info(:unmatched, socket) do
-    push(socket, "unmatched", %{})
+  def handle_info({Matches, [:unmatched, match_id], [_, _] = user_ids}, socket) do
+    Matches.unsubscribe_from_match(match_id)
+    untrack_self_for_unmatched(socket, user_ids)
+    push(socket, "unmatched", %{id: match_id})
     {:noreply, socket}
   end
 
-  def handle_info(:after_join, socket) do
-    {:ok, _} = Presence.track(socket, socket.assigns.current_user.id, %{})
+  def handle_info({Matches, [:matched, match_id], [_, _] = user_ids}, socket) do
+    Matches.subscribe_for_match(match_id)
+
+    me = me(socket)
+    mate_id = mate_id(me, user_ids)
+    mate = Accounts.get_profile!(mate_id)
+    track_self_for_mate(socket, mate_id)
+
+    rendered = render_match(match_id, mate, mate_online?(socket, mate_id))
+    push(socket, "matched", %{match: rendered})
+
+    {:noreply, socket}
+  end
+
+  def handle_info({:after_join, mate_ids}, socket) do
+    track_self_for_mates(socket, mate_ids)
     push(socket, "presence_state", Presence.list(socket))
     {:noreply, socket}
   end
 
-  # TODO
-  # def handle_in("media:uploaded", _params, socket) do
-  #   {:reply, :ok, socket}
-  # end
+  ### HELPERS ###
+
+  defp track_self_for_mates(socket, mate_ids) when is_list(mate_ids) do
+    me = me(socket)
+
+    for mate_id <- mate_ids do
+      {:ok, _} = Presence.track(self(), mate_topic(mate_id), me, %{})
+    end
+  end
+
+  defp track_self_for_mate(socket, mate_id) do
+    me = me(socket)
+    {:ok, _} = Presence.track(self(), mate_topic(mate_id), me, %{})
+  end
+
+  defp untrack_self_for_unmatched(socket, user_ids) do
+    me = me(socket)
+    :ok = Presence.untrack(self(), mate_topic(mate_id(me, user_ids)), me)
+  end
+
+  defp mate_topic(mate_id) do
+    "matches:#{mate_id}"
+  end
+
+  defp mate_id(me, [_, _] = user_ids) do
+    [mate_id] = user_ids -- [me]
+    mate_id
+  end
+
+  defp me(socket) do
+    socket.assigns.current_user.id
+  end
+
+  defp mate_online?(socket, mate_id) do
+    online = socket |> Presence.list() |> Map.keys()
+    mate_id in online
+  end
+
+  defp render_match(match_id, profile, online?) do
+    %{id: match_id, online: online?, profile: render_profile(profile)}
+  end
+
+  defp render_matches(topic, matches) do
+    online = topic |> Presence.list() |> Map.keys()
+    Enum.map(matches, &render_match(&1.id, &1.profile, &1.profile.user_id in online))
+  end
+
+  defp render_profile(profile) do
+    render(ProfileView, "show.json", profile: profile)
+  end
 end

@@ -208,7 +208,7 @@ defmodule T.Accounts do
         |> repo.one()
 
       if match_id do
-        T.Matches.unmatch(from_user_id, match_id)
+        T.Matches.unmatch_and_unhide(user: from_user_id, match: match_id)
       else
         {:ok, nil}
       end
@@ -267,8 +267,7 @@ defmodule T.Accounts do
     |> update([u], set: [blocked_at: fragment("now()")])
   end
 
-  # TODO test
-  # TODO unmatch
+  # TODO test unmatch doesn't unhide blocked
   def block_user(user_id) do
     Ecto.Multi.new()
     |> Ecto.Multi.run(:block, fn repo, _changes ->
@@ -280,20 +279,7 @@ defmodule T.Accounts do
 
       {:ok, nil}
     end)
-    |> Ecto.Multi.run(:unmatch, fn repo, _changes ->
-      match_id =
-        T.Matches.Match
-        |> where(alive?: true)
-        |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
-        |> select([m], m.id)
-        |> repo.one()
-
-      if match_id do
-        T.Matches.unmatch(user_id, match_id)
-      else
-        {:ok, nil}
-      end
-    end)
+    |> unmatch_all(user_id)
     |> Repo.transaction()
     |> case do
       {:ok, _changes} -> :ok
@@ -346,24 +332,28 @@ defmodule T.Accounts do
 
       {:ok, tokens}
     end)
-    |> Ecto.Multi.run(:unmatch, fn repo, _changes ->
-      match_id =
-        T.Matches.Match
-        |> where([m], m.user_id_1 == ^user_id or m.user_id_1 == ^user_id)
-        |> where(alive?: true)
-        |> select([m], m.id)
-        |> repo.one()
-
-      if match_id do
-        T.Matches.unmatch(user_id, match_id)
-      end
-
-      {:ok, nil}
-    end)
+    |> unmatch_all(user_id)
     |> Oban.insert(:deletion_job, fn _ ->
       UserDeletionJob.new(%{"user_id" => user_id}, schedule_in: @two_days_in_seconds)
     end)
     |> Repo.transaction()
+  end
+
+  # TODO test
+  defp unmatch_all(multi, user_id) do
+    Ecto.Multi.run(multi, :unmatch, fn repo, _changes ->
+      unmatches =
+        T.Matches.Match
+        |> where(alive?: true)
+        |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
+        |> select([m], m.id)
+        |> repo.all()
+        |> Enum.map(fn match_id ->
+          T.Matches.unmatch_and_unhide(user: user_id, match: match_id)
+        end)
+
+      {:ok, unmatches}
+    end)
   end
 
   def save_apns_device_id(user_id, token, device_id) do

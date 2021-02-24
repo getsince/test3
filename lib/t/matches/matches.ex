@@ -9,7 +9,6 @@ defmodule T.Matches do
   alias T.{Repo, Media, Accounts, PushNotifications}
   alias T.Accounts.{User, Profile}
   alias T.Matches.{Match, Message}
-  alias T.Feeds
 
   @pubsub T.PubSub
   @topic to_string(__MODULE__)
@@ -37,81 +36,47 @@ defmodule T.Matches do
     success
   end
 
-  defp notify_subscribers({:ok, changes} = success, [:pending_match_activated] = event) do
-    %{maybe_activate_pending_matches: matches} = changes
+  defp unmatch(params) do
+    user_id = Keyword.fetch!(params, :user)
+    match_id = Keyword.fetch!(params, :match)
 
-    for {_user_id, maybe_match} <- matches do
-      if match = maybe_match do
-        for user_id <- [match.user_id_1, match.user_id_2] do
-          Phoenix.PubSub.broadcast(@pubsub, Feeds.topic(user_id), {__MODULE__, event, match})
-        end
-      end
-    end
-
-    success
-  end
-
-  # TODO remove all scheduled notifications
-  def unmatch(user_id, match_id) do
-    Ecto.Multi.new()
-    |> Ecto.Multi.run(:unmatch, fn repo, _changes ->
-      Match
-      |> where(id: ^match_id)
-      |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
-      |> where(alive?: true)
-      |> update(set: [alive?: false])
-      |> select([m], [m.user_id_1, m.user_id_2])
-      |> repo.update_all([])
-      |> case do
-        {1, [user_ids]} -> {:ok, user_ids}
-        {0, _} -> {:error, :no_match}
-      end
-    end)
-    |> Ecto.Multi.run(:maybe_activate_pending_matches, fn repo, %{unmatch: user_ids} ->
-      activated_matches =
-        Map.new(user_ids, fn user_id ->
-          {user_id, maybe_activate_pending_match(repo, user_id)}
-        end)
-
-      {:ok, activated_matches}
-    end)
-    |> Ecto.Multi.run(:maybe_unhide, fn repo, changes ->
-      %{maybe_activate_pending_matches: activated_matches} = changes
-
-      for {user_id, maybe_match} <- activated_matches do
-        unless maybe_match do
-          unhide_profile_if_not_blocked_or_deleted(repo, user_id)
-        end
-      end
-
-      {:ok, nil}
-    end)
-    |> Ecto.Multi.run(:push_notification, fn _repo, changes ->
-      %{maybe_activate_pending_matches: activated_matches} = changes
-
-      jobs =
-        activated_matches
-        |> Enum.filter(fn {_user_id, match} -> match end)
-        |> Enum.map(fn {_user_id, match} ->
-          PushNotifications.DispatchJob.new(%{
-            "type" => "match",
-            "match_id" => match.id
-          })
-        end)
-        |> Oban.insert_all()
-
-      {:ok, jobs}
-    end)
-    |> Repo.transaction()
+    Match
+    |> where(id: ^match_id)
+    |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
+    |> where(alive?: true)
+    |> update(set: [alive?: false])
+    |> select([m], [m.user_id_1, m.user_id_2])
+    |> Repo.update_all([])
     |> case do
-      {:ok, _changes} = success -> success
-      {:error, :unmatch, reason, _changes} -> {:error, reason}
+      {1, [user_ids]} -> {:ok, user_ids}
+      {0, _} -> {:error, :match_not_found}
     end
-    |> notify_subscribers([:unmatched, match_id])
-    |> notify_subscribers([:pending_match_activated])
   end
 
-  defp unhide_profile_if_not_blocked_or_deleted(repo, user_id) do
+  @spec unhide(user_ids :: [Ecto.UUID.t()]) :: unhidden_user_ids :: [Ecto.UUID.t()]
+  defp unhide(user_ids) when is_list(user_ids) do
+    Enum.reduce(user_ids, [], fn id, unhidden ->
+      # TODO and if match count < 3
+      if unhide_profile_if_not_blocked_or_deleted(id) do
+        [id | unhidden]
+      else
+        unhidden
+      end
+    end)
+  end
+
+  @doc "unmatch_and_unhide(user: <uuid>, match: <uuid>)"
+  def unmatch_and_unhide(params) do
+    match_id = Keyword.fetch!(params, :match)
+
+    Repo.transact(fn ->
+      with {:ok, user_ids} <- unmatch(params), do: {:ok, unhide(user_ids)}
+      # TODO remove all scheduled notifications
+    end)
+    |> notify_subscribers([:unmatched, match_id])
+  end
+
+  defp unhide_profile_if_not_blocked_or_deleted(user_id) do
     not_blocked_or_deleted_user =
       User
       |> where([u], is_nil(u.blocked_at))
@@ -121,40 +86,38 @@ defmodule T.Matches do
     Profile
     |> where(user_id: ^user_id)
     |> join(:inner, [p], u in subquery(not_blocked_or_deleted_user), on: u.id == p.user_id)
-    |> repo.update_all(set: [hidden?: false])
-  end
-
-  defp maybe_activate_pending_match(repo, user_id) do
-    # TODO check which is faster, single query (below) or three separate queries
-    # (1. to fetch pending matches, 2. then unhidden profiles, and 3. merge profiles with matches,
-    # and set for the first valid match pending=false, alive=true)
-
-    unhidden_profiles = Profile |> where([p], p.user_id != ^user_id) |> where(hidden?: false)
-
-    activatable_pending_match =
-      Match
-      |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
-      |> where(pending?: true)
-      |> join(:inner, [m], p in subquery(unhidden_profiles),
-        on: p.user_id == m.user_id_1 or p.user_id == m.user_id_2
-      )
-      |> limit(1)
-
-    Match
-    |> join(:inner, [m], am in subquery(activatable_pending_match), on: m.id == am.id)
-    |> select([m], m)
-    |> repo.update_all(set: [pending?: false, alive?: true])
+    |> Repo.update_all(set: [hidden?: false])
     |> case do
-      {1, [match]} -> match
-      {0, _} -> nil
+      {1, nil} -> true
+      {0, nil} -> false
     end
   end
 
-  def get_current_match(user_id) do
+  def get_current_matches(user_id) do
     Match
     |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
     |> where(alive?: true)
-    |> Repo.one()
+    |> Repo.all()
+    |> preload_match_profiles(user_id)
+  end
+
+  # TODO cleanup
+  defp preload_match_profiles(matches, user_id) do
+    mate_matches =
+      Map.new(matches, fn match ->
+        [mate_id] = [match.user_id_1, match.user_id_2] -- [user_id]
+        {mate_id, match}
+      end)
+
+    mates = Map.keys(mate_matches)
+
+    Profile
+    |> where([p], p.user_id in ^mates)
+    |> Repo.all()
+    |> Enum.map(fn mate ->
+      match = Map.fetch!(mate_matches, mate.user_id)
+      %Match{match | profile: mate}
+    end)
   end
 
   def get_match_for_user(match_id, user_id) do

@@ -33,7 +33,7 @@ defmodule T.Accounts.BlockingTest do
 
       assert :ok == Accounts.report_user(reporter.id, reported.id, "he show dicky")
       assert_receive {Matches, :unmatched}
-      refute Matches.get_current_match(reporter.id)
+      assert [] == Matches.get_current_matches(reporter.id)
     end
 
     test "marks reported user as seen", %{reporter: reporter, reported: reported} do

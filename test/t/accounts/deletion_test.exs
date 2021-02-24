@@ -12,7 +12,7 @@ defmodule T.Accounts.DeletionTest do
     test "deleted_at is set and phone number is updated", %{user: user} do
       refute user.deleted_at
 
-      assert {:ok, %{delete_sessions: [], delete_user: nil, hide_profile: nil, unmatch: nil}} =
+      assert {:ok, %{delete_sessions: [], delete_user: nil, hide_profile: nil, unmatch: []}} =
                Accounts.delete_user(user.id)
 
       user = Repo.get(Accounts.User, user.id)
@@ -23,7 +23,7 @@ defmodule T.Accounts.DeletionTest do
     test "profile is hidden", %{profile: profile} do
       assert profile.hidden? == false
 
-      assert {:ok, %{delete_sessions: [], delete_user: nil, hide_profile: nil, unmatch: nil}} =
+      assert {:ok, %{delete_sessions: [], delete_user: nil, hide_profile: nil, unmatch: []}} =
                Accounts.delete_user(profile.user_id)
 
       assert Repo.get(Accounts.Profile, profile.user_id).hidden?
@@ -33,15 +33,14 @@ defmodule T.Accounts.DeletionTest do
       assert <<_::32-bytes>> = token = Accounts.generate_user_session_token(user, "mobile")
       assert [%Accounts.UserToken{token: ^token}] = Repo.all(Accounts.UserToken)
 
-      assert {:ok,
-              %{delete_sessions: [^token], delete_user: nil, hide_profile: nil, unmatch: nil}} =
+      assert {:ok, %{delete_sessions: [^token], delete_user: nil, hide_profile: nil, unmatch: []}} =
                Accounts.delete_user(user.id)
 
       assert [] == Repo.all(Accounts.UserToken)
     end
 
     test "current match is unmatched", %{user: user} do
-      p2 = insert(:profile)
+      %{user_id: p2_id} = p2 = insert(:profile)
 
       Feeds.subscribe(user.id)
       Feeds.subscribe(p2.user_id)
@@ -56,14 +55,19 @@ defmodule T.Accounts.DeletionTest do
 
       Matches.subscribe(match_id)
 
-      assert {:ok, %{delete_sessions: [], delete_user: nil, hide_profile: nil, unmatch: nil}} =
-               Accounts.delete_user(user.id)
+      assert {:ok,
+              %{
+                delete_sessions: [],
+                delete_user: nil,
+                hide_profile: nil,
+                unmatch: [{:ok, [^p2_id]}]
+              }} = Accounts.delete_user(user.id)
 
       assert_receive {Matches, :unmatched}
     end
 
     test "full deletion job is scheduled", %{user: user} do
-      assert {:ok, %{delete_sessions: [], delete_user: nil, hide_profile: nil, unmatch: nil}} =
+      assert {:ok, %{delete_sessions: [], delete_user: nil, hide_profile: nil, unmatch: []}} =
                Accounts.delete_user(user.id)
 
       assert_enqueued(worker: Accounts.UserDeletionJob, args: %{user_id: user.id})

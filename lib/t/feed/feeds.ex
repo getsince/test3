@@ -1,8 +1,9 @@
 defmodule T.Feeds do
-  import Ecto.Query
+  import Ecto.{Query, Changeset}
+
   alias T.{Repo, PushNotifications}
   alias T.Accounts.Profile
-  alias T.Feeds.{Feed, SeenProfile, ProfileLike, ProfileDislike, PersonalityOverlap}
+  alias T.Feeds.{Feed, SeenProfile, ProfileLike, PersonalityOverlap}
   alias T.Matches.Match
 
   @pubsub T.PubSub
@@ -33,91 +34,119 @@ defmodule T.Feeds do
     success
   end
 
-  defp notify_subscribers({:ok, %Match{pending?: true}} = pending, [:matched]) do
-    pending
-  end
-
   defp notify_subscribers({:ok, _other} = no_active_match, [:matched]) do
     no_active_match
   end
 
-  # TODO auth, check they are in our feed, check no more 5 per day
-  def like_profile(by_user_id, user_id) do
-    Ecto.Multi.new()
-    |> Ecto.Multi.insert(:seen, %SeenProfile{by_user_id: by_user_id, user_id: user_id})
-    |> Ecto.Multi.insert(:like, %ProfileLike{by_user_id: by_user_id, user_id: user_id})
-    |> Ecto.Multi.run(:times_liked_inc, fn repo, _changes ->
-      {1, nil} =
-        Profile
-        |> where(user_id: ^user_id)
-        |> repo.update_all(inc: [times_liked: 1])
+  defp notify_subscribers({:error, _reason} = failure, _event) do
+    failure
+  end
 
-      {:ok, nil}
-    end)
-    |> Ecto.Multi.run(:maybe_match, fn repo, _changes ->
-      ProfileLike
-      |> where(user_id: ^by_user_id)
-      |> where(by_user_id: ^user_id)
-      |> join(:inner, [pl], p in Profile, on: p.user_id == pl.by_user_id)
-      |> select([..., p], p.hidden?)
-      |> repo.one()
-      |> case do
-        # nobody likes me, sad
-        nil ->
-          {:ok, nil}
+  def mark_seen(by_user_id, user_id) do
+    %SeenProfile{by_user_id: by_user_id, user_id: user_id}
+    |> change()
+    |> unique_constraint(:seen, name: :seen_profiles_pkey)
+    |> Repo.insert()
+  end
 
-        # someone likes me, and they are not hidden! -> not in match, not deleted, not blocked
-        false ->
-          {2, nil} =
-            Profile
-            |> where([p], p.user_id in ^[by_user_id, user_id])
-            |> repo.update_all(set: [hidden?: true])
+  def mark_liked(by_user_id, user_id) do
+    Repo.insert(%ProfileLike{by_user_id: by_user_id, user_id: user_id})
+  end
 
-          create_active_match(repo, [by_user_id, user_id])
+  def bump_likes_count(user_id) do
+    {1, [count]} =
+      Profile
+      |> where(user_id: ^user_id)
+      |> select([p], p.times_liked)
+      |> Repo.update_all(inc: [times_liked: 1])
 
-        # somebody likes me, but they are hidden (maybe in match, maybe blocked or deleted)
-        true ->
-          create_pending_match(repo, [by_user_id, user_id])
-      end
-    end)
-    |> Ecto.Multi.run(:maybe_notify, fn _repo, %{maybe_match: maybe_match} ->
-      case maybe_match do
-        %Match{id: match_id, alive?: true} ->
-          Oban.insert(
-            PushNotifications.DispatchJob.new(%{"type" => "match", "match_id" => match_id})
-          )
+    {:ok, count}
+  end
 
-        _other ->
-          {:ok, nil}
-      end
-    end)
-    |> Repo.transaction()
+  def match_if_mutual(by_user_id, user_id) do
+    ProfileLike
+    # if I am liked
+    |> where(user_id: ^by_user_id)
+    # by who I liked
+    |> where(by_user_id: ^user_id)
+    |> join(:inner, [pl], p in Profile, on: p.user_id == pl.by_user_id)
+    # and who I liked is not hidden
+    |> select([..., p], p.hidden?)
+    |> Repo.one()
     |> case do
-      {:ok, %{maybe_match: %Match{} = match}} -> {:ok, match}
-      {:ok, %{maybe_match: nil}} -> {:ok, nil}
+      # nobody likes me, sad
+      _no_liker = nil ->
+        {:ok, nil}
+
+      # someone likes me, and they are not hidden! meaning they are
+      # - not fully matched
+      # - not pending deletion
+      # - not blocked
+      _not_hidden = false ->
+        create_match([by_user_id, user_id])
+
+      # somebody likes me, but they are hidden -> like is discarded
+      _hidden = true ->
+        {:ok, nil}
     end
+  end
+
+  defp create_match(user_ids) when is_list(user_ids) do
+    [user_id_1, user_id_2] = Enum.sort(user_ids)
+    Repo.insert(%Match{user_id_1: user_id_1, user_id_2: user_id_2, alive?: true})
+  end
+
+  def profiles_with_match_count(user_ids) do
+    profiles_with_match_count_q(user_ids)
+    |> Repo.all()
+    |> Map.new(fn %{user_id: id, count: count} -> {id, count} end)
+  end
+
+  # TODO bench, ensure doesn't slow down with more unmatches
+  defp profiles_with_match_count_q(user_ids) when is_list(user_ids) do
+    Profile
+    |> where([p], p.user_id in ^user_ids)
+    |> join(:left, [p], m in Match, on: p.user_id in [m.user_id_1, m.user_id_2] and m.alive?)
+    |> group_by([p], p.user_id)
+    |> select([p, m], %{user_id: p.user_id, count: count(m.id)})
+  end
+
+  def hide_profiles(user_ids, max_match_count \\ 3) do
+    profiles_with_match_count = profiles_with_match_count_q(user_ids)
+
+    {_count, hidden} =
+      Profile
+      |> join(:inner, [p], c in subquery(profiles_with_match_count),
+        on: c.count >= ^max_match_count and p.user_id == c.user_id
+      )
+      |> select([p], p.user_id)
+      |> Repo.update_all(set: [hidden?: true])
+
+    hidden
+  end
+
+  def schedule_notify(%Match{alive?: true, id: match_id}) do
+    job = PushNotifications.DispatchJob.new(%{"type" => "match", "match_id" => match_id})
+    Oban.insert(job)
+  end
+
+  # TODO forbid liking if more than 3 active matches? or rather if hidden?
+  # TODO auth, check they are in our feed, check no more than 5 per day
+  def like_profile(by_user_id, user_id) do
+    Repo.transact(fn ->
+      with {:ok, _seen} <- mark_seen(by_user_id, user_id),
+           {:ok, _like} <- mark_liked(by_user_id, user_id),
+           {:ok, _count} <- bump_likes_count(user_id),
+           {:ok, maybe_match} <- match_if_mutual(by_user_id, user_id) do
+        if maybe_match do
+          {:ok, _job} = schedule_notify(maybe_match)
+          _hidden = hide_profiles([by_user_id, user_id])
+        end
+
+        {:ok, maybe_match}
+      end
+    end)
     |> notify_subscribers([:matched])
-  end
-
-  defp create_active_match(repo, user_ids) do
-    [user_id_1, user_id_2] = Enum.sort(user_ids)
-    repo.insert(%Match{user_id_1: user_id_1, user_id_2: user_id_2, alive?: true})
-  end
-
-  defp create_pending_match(repo, user_ids) do
-    [user_id_1, user_id_2] = Enum.sort(user_ids)
-    repo.insert(%Match{user_id_1: user_id_1, user_id_2: user_id_2, alive?: false, pending?: true})
-  end
-
-  # TODO check if user_id is in feed, check no more 5 per day
-  def dislike_profile(by_user_id, user_id) do
-    {:ok, _changes} =
-      Ecto.Multi.new()
-      |> Ecto.Multi.insert(:seen, %SeenProfile{by_user_id: by_user_id, user_id: user_id})
-      |> Ecto.Multi.insert(:dislike, %ProfileDislike{by_user_id: by_user_id, user_id: user_id})
-      |> Repo.transaction()
-
-    :ok
   end
 
   def get_or_create_feed(%Profile{} = profile, date \\ Date.utc_today(), opts \\ []) do
@@ -144,10 +173,21 @@ defmodule T.Feeds do
       "00000177-7d1f-61be-0242-ac1100030000"
     ]
 
-    Profile
-    |> where([p], p.user_id in ^user_ids)
-    |> Repo.all()
-    |> Enum.shuffle()
+    real =
+      Profile
+      |> where([p], p.user_id in ^user_ids)
+      |> Repo.all()
+      |> Enum.shuffle()
+
+    girls =
+      Profile
+      |> where([p], p.user_id not in ^user_ids)
+      |> where([p], p.gender == "F")
+      |> limit(100)
+      |> Repo.all()
+      |> Enum.shuffle()
+
+    real ++ girls
   end
 
   defp get_feed(profile, date, opts) do

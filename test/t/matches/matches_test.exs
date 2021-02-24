@@ -7,13 +7,16 @@ defmodule T.MatchesTest do
 
   describe "unmatch" do
     test "match no longer, hidden no longer (if no pending matches), unmatched broadcasted" do
-      [p1, p2] = insert_list(2, :profile, hidden?: true)
+      [%{user_id: p1_id} = p1, %{user_id: p2_id} = p2] = insert_list(2, :profile, hidden?: true)
 
       %Match{id: match_id} =
         insert(:match, user_id_1: p1.user_id, user_id_2: p2.user_id, alive?: true)
 
-      assert %Match{id: ^match_id} = Matches.get_current_match(p1.user_id)
-      assert %Match{id: ^match_id} = Matches.get_current_match(p2.user_id)
+      assert [%Match{id: ^match_id, profile: %Profile{user_id: ^p2_id}}] =
+               Matches.get_current_matches(p1.user_id)
+
+      assert [%Match{id: ^match_id, profile: %Profile{user_id: ^p1_id}}] =
+               Matches.get_current_matches(p2.user_id)
 
       Matches.subscribe(match_id)
 
@@ -24,9 +27,8 @@ defmodule T.MatchesTest do
       refute Repo.get(Profile, p1.user_id).hidden?
       refute Repo.get(Profile, p2.user_id).hidden?
 
-      refute Matches.get_current_match(p1.user_id)
-      refute Matches.get_current_match(p2.user_id)
-
+      assert [] == Matches.get_current_matches(p1.user_id)
+      assert [] == Matches.get_current_matches(p2.user_id)
       assert [] = all_enqueued(worker: T.PushNotifications.DispatchJob)
     end
 

@@ -150,11 +150,31 @@ defmodule T.Matches do
     end
   end
 
-  def get_current_match(user_id) do
+  def get_current_matches(user_id) do
     Match
     |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
     |> where(alive?: true)
-    |> Repo.one()
+    |> Repo.all()
+    |> preload_match_profiles(user_id)
+  end
+
+  # TODO cleanup
+  defp preload_match_profiles(matches, user_id) do
+    mate_matches =
+      Map.new(matches, fn match ->
+        [mate_id] = [match.user_id_1, match.user_id_2] -- [user_id]
+        {mate_id, match}
+      end)
+
+    mates = Map.keys(mate_matches)
+
+    Profile
+    |> where([p], p.user_id in ^mates)
+    |> Repo.all()
+    |> Enum.map(fn mate ->
+      match = Map.fetch!(mate_matches, mate.user_id)
+      %Match{match | profile: mate}
+    end)
   end
 
   def get_match_for_user(match_id, user_id) do

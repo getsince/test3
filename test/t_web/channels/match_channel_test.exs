@@ -95,7 +95,7 @@ defmodule TWeb.MatchChannelTest do
 
   describe "wrong join" do
     test "a match when we are not in a match", %{socket: socket, user: user} do
-      refute Matches.get_current_match(user.id)
+      assert [] == Matches.get_current_matches(user.id)
 
       assert {:error, %{reason: "match not found"}} =
                subscribe_and_join(socket, "match:" <> Ecto.UUID.generate(), %{})

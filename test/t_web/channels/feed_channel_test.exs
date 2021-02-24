@@ -41,28 +41,31 @@ defmodule TWeb.FeedChannelTest do
                subscribe_and_join(socket, "feed:" <> user.id, %{"timezone" => "Europe/Moscow"})
 
       assert reply == %{
-               match: %{
-                 id: match.id,
-                 profile: %{
-                   song: nil,
-                   birthdate: nil,
-                   city: nil,
-                   first_date_idea: nil,
-                   free_form: nil,
-                   gender: "F",
-                   height: nil,
-                   interests: [],
-                   job: nil,
-                   major: nil,
-                   most_important_in_life: nil,
-                   name: nil,
-                   occupation: nil,
-                   photos: [],
-                   tastes: %{},
-                   university: nil,
-                   user_id: p2.user_id
+               feed: [],
+               matches: [
+                 %{
+                   id: match.id,
+                   profile: %{
+                     song: nil,
+                     birthdate: nil,
+                     city: nil,
+                     first_date_idea: nil,
+                     free_form: nil,
+                     gender: "F",
+                     height: nil,
+                     interests: [],
+                     job: nil,
+                     major: nil,
+                     most_important_in_life: nil,
+                     name: nil,
+                     occupation: nil,
+                     photos: [],
+                     tastes: %{},
+                     university: nil,
+                     user_id: p2.user_id
+                   }
                  }
-               }
+               ]
              }
     end
 
@@ -102,7 +105,7 @@ defmodule TWeb.FeedChannelTest do
       assert_reply ref, :ok, reply, 1000
       assert reply == %{}
       assert_push "matched", payload
-      assert %{id: match_id} = Matches.get_current_match(user.id)
+      assert [%{id: match_id}] = Matches.get_current_matches(user.id)
 
       assert payload == %{
                match: %{

@@ -11,27 +11,22 @@ defmodule TWeb.FeedChannel do
 
     # TODO show who's online
 
-    if match = Matches.get_current_match(user_id) do
-      other_profile = Matches.get_other_profile_for_match!(match, user_id)
-      # TODO close channel
-      {:ok, %{match: render_match(match, other_profile)}, socket}
-    else
-      :ok = Feeds.subscribe(user_id)
+    :ok = Feeds.subscribe(user_id)
+    datetime = local_datetime_now(timezone)
 
-      datetime = local_datetime_now(timezone)
+    feed =
+      if Feeds.use_demo_feed?() do
+        Feeds.demo_feed()
+      else
+        my_profile = Accounts.get_profile!(socket.assigns.current_user)
+        Feeds.get_or_create_feed(my_profile, DateTime.to_date(datetime))
+      end
 
-      feed =
-        if Feeds.use_demo_feed?() do
-          Feeds.demo_feed()
-        else
-          my_profile = Accounts.get_profile!(socket.assigns.current_user)
-          Feeds.get_or_create_feed(my_profile, DateTime.to_date(datetime))
-        end
+    schedule_feed_refresh_at_midnight(datetime, timezone)
+    matches = Matches.get_current_matches(user_id)
 
-      schedule_feed_refresh_at_midnight(datetime, timezone)
-
-      {:ok, %{feed: render_profiles(feed)}, assign(socket, timezone: timezone)}
-    end
+    {:ok, %{feed: render_profiles(feed), matches: render_matches(matches)},
+     assign(socket, timezone: timezone)}
   end
 
   defp local_datetime_now(timezone) do
@@ -71,6 +66,12 @@ defmodule TWeb.FeedChannel do
       id: match.id,
       profile: render_profile(profile)
     }
+  end
+
+  defp render_matches(matches) do
+    Enum.map(matches, fn match ->
+      render_match(match, match.profile)
+    end)
   end
 
   defp render_profile(profile) do

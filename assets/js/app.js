@@ -17,6 +17,7 @@ import Alpine from "alpinejs";
 import { Socket } from "phoenix";
 import NProgress from "nprogress";
 import { LiveSocket } from "phoenix_live_view";
+import { WebRTCHook } from "./hooks/webrtc";
 
 const MessagesHook = {
   mounted() {
@@ -40,6 +41,7 @@ let liveSocket = new LiveSocket("/live", Socket, {
   params: { _csrf_token: csrfToken },
   hooks: {
     MessagesHook,
+    WebRTCHook,
   },
   dom: {
     onBeforeElUpdated(from, to) {

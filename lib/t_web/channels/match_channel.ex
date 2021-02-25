@@ -15,12 +15,14 @@ defmodule TWeb.MatchChannel do
     mates = Enum.map(matches, & &1.profile.user_id)
     send(self(), {:after_join, mates})
 
-    {:ok, %{matches: render_matches(topic, matches)}, socket}
+    {:ok, %{matches: render_matches(topic, matches)}, assign(socket, mates: mates)}
   end
 
   @impl true
-  def handle_in("signal", payload, socket) do
-    broadcast_from!(socket, "signal", payload)
+  def handle_in("peer-message", %{"mate_id" => mate_id} = payload, socket) do
+    # TODO or rather check presense
+    true = mate_id in socket.assigns.mates
+    TWeb.Endpoint.broadcast!("matches:#{mate_id}", "peer-message", Map.delete(payload, "mate_id"))
     {:reply, :ok, socket}
   end
 
@@ -29,6 +31,7 @@ defmodule TWeb.MatchChannel do
   end
 
   def handle_in("report", %{"report" => report}, socket) do
+    # TODO ensure one of mates?
     ChannelHelpers.report(socket, report)
   end
 
@@ -43,7 +46,7 @@ defmodule TWeb.MatchChannel do
     Matches.unsubscribe_from_match(match_id)
     untrack_self_for_unmatched(socket, user_ids)
     push(socket, "unmatched", %{id: match_id})
-    {:noreply, socket}
+    {:noreply, remove_mate(socket, user_ids)}
   end
 
   def handle_info({Matches, [:matched, match_id], [_, _] = user_ids}, socket) do
@@ -57,7 +60,7 @@ defmodule TWeb.MatchChannel do
     rendered = render_match(match_id, mate, mate_online?(socket, mate_id))
     push(socket, "matched", %{match: rendered})
 
-    {:noreply, socket}
+    {:noreply, add_mate(socket, mate_id)}
   end
 
   def handle_info({:after_join, mate_ids}, socket) do
@@ -102,6 +105,17 @@ defmodule TWeb.MatchChannel do
   defp mate_online?(socket, mate_id) do
     online = socket |> Presence.list() |> Map.keys()
     mate_id in online
+  end
+
+  defp add_mate(socket, mate_id) do
+    mates = socket.assigns.mates
+    mates = [mate_id | List.delete(mates, mate_id)]
+    assign(socket, mates: mates)
+  end
+
+  defp remove_mate(socket, user_ids) when is_list(user_ids) do
+    mates = socket.assigns.mates -- user_ids
+    assign(socket, mates: mates)
   end
 
   defp render_match(match_id, profile, online?) do

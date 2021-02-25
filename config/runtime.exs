@@ -164,8 +164,6 @@ if config_env() == :dev do
     team_id: System.fetch_env!("APNS_TEAM_ID"),
     key_id: System.fetch_env!("MUSIC_KEY_ID")
 
-  config :t, :dashboard, username: "test", password: "test"
-
   config :t, T.Mailer,
     adapter: Bamboo.LocalAdapter,
     #   adapter: Bamboo.SesAdapter,

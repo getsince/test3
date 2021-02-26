@@ -178,4 +178,12 @@ defmodule T.Media do
   end
 
   defp sha256(secret, msg), do: :crypto.hmac(:sha256, secret, msg)
+
+  def pic3d_job(s3_key) do
+    %Oban.Job{
+      args: %{s3_key: s3_key},
+      queue: "pic3d",
+      worker: "S.Pic3dJob"
+    }
+  end
 end

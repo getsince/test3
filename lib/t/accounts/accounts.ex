@@ -484,6 +484,8 @@ defmodule T.Accounts do
     %Postgrex.Result{num_rows: 1} =
       Repo.query!(sql, [position, s3_key, Ecto.Bigflake.UUID.dump!(user_id)])
 
+    Media.pic3d_job(s3_key) |> Ecto.Changeset.change() |> Oban.insert()
+
     :ok
   end
 

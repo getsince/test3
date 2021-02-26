@@ -44,7 +44,8 @@ defmodule T.Matches do
   defp notify_subscribers({:ok, %{match: match}} = success, [:matched]) do
     if match do
       %Match{id: match_id, user_id_1: uid1, user_id_2: uid2, alive?: true} = match
-      msg = {__MODULE__, [:matched, match_id], [uid1, uid2]}
+      uids = Enum.map([uid1, uid2], &String.downcase/1)
+      msg = {__MODULE__, [:matched, match_id], uids}
 
       for topic <- [pubsub_user_topic(uid1), pubsub_user_topic(uid2)] do
         Phoenix.PubSub.broadcast(@pubsub, topic, msg)

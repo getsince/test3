@@ -12,7 +12,7 @@ defmodule T.Feeds do
   # TODO auth, check they are in our feed, check no more than 5 per day
   def like_profile(by_user_id, user_id) do
     Ecto.Multi.new()
-    |> mark_seen(by_user_id, user_id)
+    # |> mark_seen(by_user_id, user_id)
     |> mark_liked(by_user_id, user_id)
     |> bump_likes_count(user_id)
     |> Matches.match_if_mutual_m(by_user_id, user_id)
@@ -20,17 +20,22 @@ defmodule T.Feeds do
     |> Matches.maybe_notify_of_match()
   end
 
-  defp mark_seen(multi, by_user_id, user_id) do
-    changeset =
-      %SeenProfile{by_user_id: by_user_id, user_id: user_id}
-      |> change()
-      |> unique_constraint(:seen, name: :seen_profiles_pkey)
+  # defp mark_seen(multi, by_user_id, user_id) do
+  #   changeset =
+  #     %SeenProfile{by_user_id: by_user_id, user_id: user_id}
+  #     |> change()
+  #     |> unique_constraint(:seen, name: :seen_profiles_pkey)
 
-    Ecto.Multi.insert(multi, :seen, changeset)
-  end
+  #   Ecto.Multi.insert(multi, :seen, changeset)
+  # end
 
   defp mark_liked(multi, by_user_id, user_id) do
-    Ecto.Multi.insert(multi, :like, %ProfileLike{by_user_id: by_user_id, user_id: user_id})
+    changeset =
+      %ProfileLike{by_user_id: by_user_id, user_id: user_id}
+      |> change()
+      |> unique_constraint(:like, name: :liked_profiles_pkey)
+
+    Ecto.Multi.insert(multi, :like, changeset)
   end
 
   defp bump_likes_count(multi, user_id) do
@@ -63,6 +68,7 @@ defmodule T.Feeds do
 
   def demo_feed do
     user_ids = [
+      "00000177-679a-ad79-0242-ac1100030000",
       "00000177-8ae4-b4c4-0242-ac1100030000",
       "00000177-830a-a7d0-0242-ac1100030000",
       "00000177-82ed-c4c9-0242-ac1100030000",
@@ -74,7 +80,8 @@ defmodule T.Feeds do
       Profile
       |> where([p], p.user_id in ^user_ids)
       |> Repo.all()
-      |> Enum.shuffle()
+
+    # |> Enum.shuffle()
 
     girls =
       Profile

@@ -95,5 +95,9 @@ defmodule TWeb.Router do
     live "/audio", AudioLive.PickUser, :pick_user, as: :audio
     live "/audio/:user_id", AudioLive.PickMatch, :pick_match, as: :audio
     live "/audio/:user_id/:mate_id", AudioLive.Index, :match, as: :audio
+
+    live "/matches", MatchLive.Index, :index
+    live "/matches/:user_id", MatchLive.Index, :show
+    live "/matches/:user_id/call/:mate_id", MatchLive.Index, :call
   end
 end

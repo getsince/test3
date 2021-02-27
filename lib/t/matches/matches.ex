@@ -245,6 +245,21 @@ defmodule T.Matches do
     |> preload_match_profiles(user_id)
   end
 
+  def get_match_for_user(match_id, user_id) do
+    Match
+    |> where(id: ^match_id)
+    |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
+    |> where(alive?: true)
+    |> Repo.one!()
+    |> preload_mate(user_id)
+  end
+
+  defp preload_mate(match, user_id) do
+    [mate_id] = [match.user_id_1, match.user_id_2] -- [user_id]
+    mate = Repo.get!(Profile, mate_id)
+    %Match{match | profile: mate}
+  end
+
   # TODO cleanup
   defp preload_match_profiles(matches, user_id) do
     mate_matches =

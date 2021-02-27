@@ -3,9 +3,13 @@ defmodule TWeb.ErrorView do
 
   # If you want to customize a particular status code
   # for a certain format, you may uncomment below.
-  # def render("500.json", _assigns) do
-  #   %{errors: %{detail: "Internal Server Error"}}
-  # end
+  def render("500.html", _assigns) do
+    "Internal Server Error"
+  end
+
+  def render("404.html", _assigns) do
+    "Page Not Found"
+  end
 
   def render("changeset.json", %{changeset: changeset}) do
     Ecto.Changeset.traverse_errors(changeset, fn {message, opts} ->

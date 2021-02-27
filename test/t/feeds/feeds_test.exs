@@ -23,7 +23,7 @@ defmodule T.FeedsTest do
                Feeds.like_profile(p1.user_id, p2.user_id)
 
       assert times_liked(p2.user_id) == 1
-      assert_seen(by_user_id: p1.user_id, user_id: p2.user_id)
+      # assert_seen(by_user_id: p1.user_id, user_id: p2.user_id)
       assert_liked(by_user_id: p1.user_id, user_id: p2.user_id)
 
       # one match never hide nobody
@@ -145,7 +145,7 @@ defmodule T.FeedsTest do
       assert {:ok, %{match: nil}} = Feeds.like_profile(p1.user_id, p2.user_id)
 
       assert times_liked(p2.user_id) == 1
-      assert_seen(by_user_id: p1.user_id, user_id: p2.user_id)
+      # assert_seen(by_user_id: p1.user_id, user_id: p2.user_id)
       assert_liked(by_user_id: p1.user_id, user_id: p2.user_id)
       refute_hidden([p1.user_id, p2.user_id])
 
@@ -155,8 +155,8 @@ defmodule T.FeedsTest do
 
     test "double like doesn't raise", %{profiles: [p1, p2]} do
       assert {:ok, %{match: nil}} = Feeds.like_profile(p1.user_id, p2.user_id)
-      assert {:error, :seen, changeset, _changes} = Feeds.like_profile(p1.user_id, p2.user_id)
-      assert errors_on(changeset) == %{seen: ["has already been taken"]}
+      assert {:error, :like, changeset, _changes} = Feeds.like_profile(p1.user_id, p2.user_id)
+      assert errors_on(changeset) == %{like: ["has already been taken"]}
     end
   end
 

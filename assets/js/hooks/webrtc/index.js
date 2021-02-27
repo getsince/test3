@@ -51,6 +51,7 @@ class WebRTC {
     pc.onicecandidate = (event) => this.handleIceCandidate(event);
     pc.onconnectionstatechange = (event) =>
       this.handleConnectionStateChange(event);
+
     stream.getTracks().forEach((track) => pc.addTrack(track));
 
     return pc;
@@ -76,22 +77,16 @@ class WebRTC {
     this.hook.el.dispatchEvent(event);
   }
 
-  async connect() {
-    connectButton.disabled = true;
-    disconnectButton.disabled = false;
-    callButton.disabled = false;
-
+  async connect(localVideo) {
     const localStream = await devices.getUserMedia(mediaConstraints);
-    console.log("local stream", localStream);
     setVideoStream(localVideo, localStream);
-
     this.peerConnection = await this.createPeerConnection(localStream);
   }
 
-  async call() {
+  async call(mate) {
     let offer = await this.peerConnection.createOffer();
     this.peerConnection.setLocalDescription(offer);
-    this.pushPeerMessage("video-offer", offer);
+    this.pushPeerMessage("offer", offer, mate);
   }
 
   async answerCall(offer) {
@@ -99,7 +94,7 @@ class WebRTC {
     this.receiveRemote(offer);
     let answer = await this.peerConnection.createAnswer();
     await this.peerConnection.setLocalDescription(answer);
-    this.pushPeerMessage("video-answer", this.peerConnection.localDescription);
+    this.pushPeerMessage("answer", this.peerConnection.localDescription);
   }
 
   receiveRemote(offer) {
@@ -107,26 +102,22 @@ class WebRTC {
     this.peerConnection.setRemoteDescription(remoteDescription);
   }
 
-  async pushPeerMessage(type, content) {
+  async pushPeerMessage(type, content, mate) {
     this.hook.pushEvent("peer-message", {
+      mate,
       body: JSON.stringify({ type, content }),
     });
   }
 
-  disconnect() {
-    connectButton.disabled = false;
-    disconnectButton.disabled = true;
-    callButton.disabled = true;
-
+  disconnect({ localVideo, remoteVideo }) {
     unsetVideoStream(localVideo);
     unsetVideoStream(remoteVideo);
 
-    if (this.peerConnection) this.peerConnection.close();
+    if (this.peerConnection) {
+      this.peerConnection.close();
+    }
     this.peerConnection = null;
-    this.remoteStream = new MediaStream();
-    setVideoStream(remoteVideo, this.remoteStream);
-
-    this.pushPeerMessage("disconnect", {});
+    this.remoteStream = null;
   }
 }
 
@@ -143,42 +134,34 @@ class WebRTC {
 // 3. ice candidates
 
 const WebRTCHook = {
-  mounted() {
-    window.connectButton = document.getElementById("connect");
-    window.callButton = document.getElementById("call");
-    window.disconnectButton = document.getElementById("disconnect");
+  async mounted() {
+    let remoteVideo = this.el.querySelector("#remote-video");
+    let localVideo = this.el.querySelector("#local-video");
 
-    window.remoteVideo = document.getElementById("remote-stream");
-    window.localVideo = document.getElementById("local-stream");
+    let { initiator, mate, me } = this.el.dataset;
+    initiator = JSON.parse(initiator);
 
-    disconnectButton.disabled = true;
-    callButton.disabled = true;
+    let webrtc = new WebRTC(this);
+    this.webrtc = webrtc;
 
-    window.webrtc = window.webrtc || new WebRTC(this);
     setVideoStream(remoteVideo, webrtc.remoteStream);
 
-    connectButton.onclick = () => webrtc.connect();
-    callButton.onclick = () => webrtc.call();
-    disconnectButton.onclick = () => webrtc.disconnect();
+    if (initiator) {
+      await webrtc.connect(localVideo);
+      await webrtc.call(mate);
+    }
 
-    this.handleEvent("peer-message", ({ body }) => {
+    this.handleEvent("peer-message", async ({ body }) => {
       const message = JSON.parse(body);
 
       switch (message.type) {
-        case "video-offer":
+        case "offer":
           log("peer offered: ", message.content);
-          if (!webrtc.peerConnection) break;
-          webrtc.answerCall(message.content);
+          await webrtc.connect(localVideo);
+          await webrtc.answerCall(message.content);
           break;
 
-        // TODO
-        case "SessionDescription":
-          log("peer offered: ", message.content);
-          if (!webrtc.peerConnection) break;
-          webrtc.answerCall(message.content);
-          break;
-
-        case "video-answer":
+        case "answer":
           log("peer answered: ", message.content);
           if (!webrtc.peerConnection) break;
           webrtc.receiveRemote(message.content);
@@ -193,15 +176,19 @@ const WebRTCHook = {
             .catch(reportError("adding and ice candidate"));
           break;
 
-        case "disconnect":
-          if (!webrtc.peerConnection) break;
-          webrtc.disconnect();
-          break;
-
         default:
           reportError("unhandled message type")(message.type);
       }
     });
+  },
+
+  destroyed() {
+    if (this.webrtc) {
+      console.log("!!! destroyed");
+      let remoteVideo = this.el.querySelector("#remote-video");
+      let localVideo = this.el.querySelector("#local-video");
+      this.webrtc.disconnect({ remoteVideo, localVideo });
+    }
   },
 };
 

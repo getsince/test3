@@ -6,6 +6,34 @@ defmodule T.Feeds do
   alias T.Accounts.Profile
   alias T.Feeds.{Feed, SeenProfile, ProfileLike, PersonalityOverlap}
 
+  @pubsub T.PubSub
+  @topic to_string(__MODULE__)
+
+  defp pubsub_likes_topic(user_id) when is_binary(user_id) do
+    @topic <> ":l:" <> String.downcase(user_id)
+  end
+
+  def subscribe_for_likes(user_id) do
+    Phoenix.PubSub.subscribe(@pubsub, pubsub_likes_topic(user_id))
+  end
+
+  defp notify_subscribers(
+         {:ok, %{like: %ProfileLike{by_user_id: from, user_id: to}}} = success,
+         :liked = event
+       ) do
+    msg = {__MODULE__, event, from}
+    Phoenix.PubSub.broadcast(@pubsub, pubsub_likes_topic(to), msg)
+    success
+  end
+
+  defp notify_subscribers({:error, _field, _reason, _changes} = error, _event) do
+    error
+  end
+
+  defp notify_subscribers({:error, _reason} = error, _event) do
+    error
+  end
+
   ######################### LIKE #########################
 
   # TODO forbid liking if more than 3 active matches? or rather if hidden?
@@ -18,6 +46,7 @@ defmodule T.Feeds do
     |> Matches.match_if_mutual_m(by_user_id, user_id)
     |> Repo.transaction()
     |> Matches.maybe_notify_of_match()
+    |> notify_subscribers(:liked)
   end
 
   # defp mark_seen(multi, by_user_id, user_id) do

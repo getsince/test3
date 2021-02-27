@@ -45,9 +45,8 @@ defmodule TWeb do
 
   def live_view do
     quote do
-      use Phoenix.LiveView,
-        layout: {TWeb.LayoutView, "live.html"}
-
+      use Phoenix.LiveView, layout: {TWeb.LayoutView, "live.html"}
+      import TWeb.LiveHelpers
       unquote(view_helpers())
     end
   end
@@ -55,7 +54,7 @@ defmodule TWeb do
   def live_component do
     quote do
       use Phoenix.LiveComponent
-
+      import TWeb.LiveHelpers
       unquote(view_helpers())
     end
   end
@@ -90,8 +89,7 @@ defmodule TWeb do
       # Import basic rendering functionality (render, render_layout, etc)
       import Phoenix.View
 
-      import TWeb.ErrorHelpers
-      import TWeb.Gettext
+      import TWeb.{ErrorHelpers, Gettext}
       alias TWeb.Router.Helpers, as: Routes
     end
   end

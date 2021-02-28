@@ -3,6 +3,8 @@ defmodule TWeb.MatchChannel do
   alias TWeb.{ProfileView, Presence}
   alias T.{Accounts, Matches}
 
+  @pubsub T.PubSub
+
   @impl true
   def join("matches:" <> user_id = topic, _params, socket) do
     user_id = String.downcase(user_id)
@@ -19,10 +21,15 @@ defmodule TWeb.MatchChannel do
   end
 
   @impl true
-  def handle_in("peer-message", %{"mate_id" => mate_id} = payload, socket) do
-    # TODO or rather check presense
-    true = mate_id in socket.assigns.mates
-    TWeb.Endpoint.broadcast!("matches:#{mate_id}", "peer-message", Map.delete(payload, "mate_id"))
+  def handle_in("peer-message" = event, %{"mate" => mate, "body" => _} = payload, socket) do
+    # TODO don't crash
+    true = mate in presences(socket)
+    TWeb.Endpoint.broadcast!(mate_topic(mate), event, Map.put(payload, "mate", me(socket)))
+    {:reply, :ok, socket}
+  end
+
+  def handle_in(event, %{"mate" => mate}, socket) when event in ["call", "pick-up", "hang-up"] do
+    Phoenix.PubSub.broadcast!(@pubsub, mate_topic(mate), {decode_call_event(event), me(socket)})
     {:reply, :ok, socket}
   end
 
@@ -46,7 +53,7 @@ defmodule TWeb.MatchChannel do
     Matches.unsubscribe_from_match(match_id)
     untrack_self_for_unmatched(socket, user_ids)
     push(socket, "unmatched", %{id: match_id})
-    {:noreply, remove_mate(socket, user_ids)}
+    {:noreply, socket}
   end
 
   def handle_info({Matches, [:matched, match_id], [_, _] = user_ids}, socket) do
@@ -60,8 +67,19 @@ defmodule TWeb.MatchChannel do
     rendered = render_match(match_id, mate, mate_online?(socket, mate_id))
     push(socket, "matched", %{match: rendered})
 
-    {:noreply, add_mate(socket, mate_id)}
+    {:noreply, socket}
   end
+
+  def handle_info({call_event, mate}, socket) when call_event in [:call, :pick_up, :hang_up] do
+    push(socket, encode_call_event(call_event), %{mate: mate})
+    {:noreply, socket}
+  end
+
+  [{:call, "call"}, {:pick_up, "pick-up"}, {:hang_up, "hang-up"}]
+  |> Enum.each(fn {a, s} ->
+    defp encode_call_event(unquote(a)), do: unquote(s)
+    defp decode_call_event(unquote(s)), do: unquote(a)
+  end)
 
   def handle_info({:after_join, mate_ids}, socket) do
     track_self_for_mates(socket, mate_ids)
@@ -102,20 +120,12 @@ defmodule TWeb.MatchChannel do
     socket.assigns.current_user.id
   end
 
+  defp presences(socket) do
+    socket |> Presence.list() |> Map.keys()
+  end
+
   defp mate_online?(socket, mate_id) do
-    online = socket |> Presence.list() |> Map.keys()
-    mate_id in online
-  end
-
-  defp add_mate(socket, mate_id) do
-    mates = socket.assigns.mates
-    mates = [mate_id | List.delete(mates, mate_id)]
-    assign(socket, mates: mates)
-  end
-
-  defp remove_mate(socket, user_ids) when is_list(user_ids) do
-    mates = socket.assigns.mates -- user_ids
-    assign(socket, mates: mates)
+    mate_id in presences(socket)
   end
 
   defp render_match(match_id, profile, online?) do

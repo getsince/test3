@@ -107,7 +107,7 @@ defmodule TWeb.MatchLive.Index do
 
   def handle_event("call", %{"user" => user_id}, socket) do
     me = socket.assigns.me
-    Phoenix.PubSub.broadcast!(@pubsub, topic(user_id), {:called, me.id})
+    Phoenix.PubSub.broadcast!(@pubsub, topic(user_id), {:call, me.id})
     socket = assign(socket, call: {:calling, user_id})
     path = Routes.match_index_path(socket, :call, me.id, user_id)
     {:noreply, push_patch(socket, to: path)}
@@ -199,7 +199,7 @@ defmodule TWeb.MatchLive.Index do
     {:noreply, assign(socket, likers: all_likers(me.id))}
   end
 
-  def handle_info({:called, mate}, socket) do
+  def handle_info({:call, mate}, socket) do
     me = socket.assigns.me
 
     socket =

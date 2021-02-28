@@ -86,7 +86,7 @@ class WebRTC {
   async call(mate) {
     let offer = await this.peerConnection.createOffer();
     this.peerConnection.setLocalDescription(offer);
-    this.pushPeerMessage("offer", offer, mate);
+    this.pushPeerMessage("sdp", offer, mate);
   }
 
   async answerCall(offer) {
@@ -94,7 +94,7 @@ class WebRTC {
     this.receiveRemote(offer);
     let answer = await this.peerConnection.createAnswer();
     await this.peerConnection.setLocalDescription(answer);
-    this.pushPeerMessage("answer", this.peerConnection.localDescription);
+    this.pushPeerMessage("sdp", this.peerConnection.localDescription);
   }
 
   receiveRemote(offer) {
@@ -155,17 +155,20 @@ const WebRTCHook = {
       const message = JSON.parse(body);
 
       switch (message.type) {
-        case "offer":
-          log("peer offered: ", message.content);
-          await webrtc.connect(localVideo);
-          await webrtc.answerCall(message.content);
-          break;
-
-        case "answer":
-          log("peer answered: ", message.content);
-          if (!webrtc.peerConnection) break;
-          webrtc.receiveRemote(message.content);
-          break;
+        case "sdp":
+          log("sdp: ", message.content);
+          switch (message.content.type) {
+            case "offer":
+              log("peer offered: ", message.content);
+              await webrtc.connect(localVideo);
+              await webrtc.answerCall(message.content);
+              break;
+            case "answer":
+              log("peer answered: ", message.content);
+              if (!webrtc.peerConnection) break;
+              webrtc.receiveRemote(message.content);
+              break;
+          }
 
         case "ice-candidate":
           log("candidate: ", message.content);
@@ -173,7 +176,7 @@ const WebRTCHook = {
           let candidate = new RTCIceCandidate(message.content);
           webrtc.peerConnection
             .addIceCandidate(candidate)
-            .catch(reportError("adding and ice candidate"));
+            .catch(reportError("adding and ice candidate", candidate));
           break;
 
         default:

@@ -127,12 +127,23 @@ defmodule T.Matches do
 
   defp maybe_schedule_push(multi) do
     Ecto.Multi.run(multi, :push, fn _repo, %{match: match} ->
-      if match, do: schedule_push(match), else: {:ok, nil}
+      if match, do: schedule_match_push(match), else: {:ok, nil}
     end)
   end
 
-  defp schedule_push(%Match{alive?: true, id: match_id}) do
+  defp schedule_match_push(%Match{alive?: true, id: match_id}) do
     job = PushNotifications.DispatchJob.new(%{"type" => "match", "match_id" => match_id})
+    Oban.insert(job)
+  end
+
+  defp schedule_yo_push(%Match{alive?: true, id: match_id}, sender_id) do
+    job =
+      PushNotifications.DispatchJob.new(%{
+        "type" => "yo",
+        "match_id" => match_id,
+        "sender_id" => sender_id
+      })
+
     Oban.insert(job)
   end
 
@@ -277,6 +288,25 @@ defmodule T.Matches do
       match = Map.fetch!(mate_matches, mate.user_id)
       %Match{match | profile: mate}
     end)
+  end
+
+  ###################### YO ######################
+
+  @doc "send_yo(match: match_id, from: user_id)"
+  def send_yo(opts) do
+    from = Keyword.fetch!(opts, :from)
+    match = Keyword.fetch!(opts, :match)
+
+    match =
+      Match
+      |> where(id: ^match)
+      |> where([m], ^from == m.user_id_1 or ^from == m.user_id_2)
+      |> where(alive?: true)
+      |> Repo.one()
+
+    if match do
+      schedule_yo_push(match, from)
+    end
   end
 
   ###################### MESSAGES ######################

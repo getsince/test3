@@ -33,6 +33,11 @@ defmodule TWeb.MatchChannel do
     {:reply, :ok, socket}
   end
 
+  def handle_in("yo", %{"match_id" => match}, socket) do
+    Matches.send_yo(match: match, from: me(socket))
+    {:reply, :ok, socket}
+  end
+
   def handle_in("ice-servers", _params, socket) do
     {:reply, {:ok, T.Twilio.ice_servers()}, socket}
   end

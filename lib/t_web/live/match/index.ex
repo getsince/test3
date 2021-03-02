@@ -113,6 +113,12 @@ defmodule TWeb.MatchLive.Index do
     {:noreply, push_patch(socket, to: path)}
   end
 
+  def handle_event("yo", %{"match" => match_id}, socket) do
+    me = socket.assigns.me
+    Matches.send_yo(match: match_id, from: me.id)
+    {:noreply, socket}
+  end
+
   def handle_event("pick-up", _params, socket) do
     %{call: {_state, mate}, me: me} = socket.assigns
     Phoenix.PubSub.broadcast!(@pubsub, topic(mate), {:pick_up, me.id})

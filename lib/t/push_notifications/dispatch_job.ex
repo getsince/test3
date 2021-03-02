@@ -41,6 +41,25 @@ defmodule T.PushNotifications.DispatchJob do
     end
   end
 
+  defp handle_type("yo", args) do
+    %{"match_id" => match_id, "sender_id" => sender_id} = args
+
+    if match = alive_match(match_id) do
+      %Matches.Match{user_id_1: uid1, user_id_2: uid2} = match
+
+      [receiver_id] = [uid1, uid2] -- [sender_id]
+      # TODO if not devices -> send SMS
+
+      receiver_id
+      |> device_ids()
+      |> schedule_apns("yo", %{"sender_name" => profile_name(sender_id)})
+
+      :ok
+    else
+      :discard
+    end
+  end
+
   defp handle_type("support", args) do
     %{"user_id" => user_id} = args
     user_id |> device_ids() |> schedule_apns("support")
@@ -61,12 +80,12 @@ defmodule T.PushNotifications.DispatchJob do
     |> Repo.all()
   end
 
-  # defp mate_profile(user_id) do
-  #   Accounts.Profile
-  #   |> where(user_id: ^user_id)
-  #   |> select([p], {p.name, p.gender})
-  #   |> Repo.one!()
-  # end
+  defp profile_name(user_id) do
+    Accounts.Profile
+    |> where(user_id: ^user_id)
+    |> select([p], p.name)
+    |> Repo.one!()
+  end
 
   defp schedule_apns(device_ids, template, data \\ %{}) do
     device_ids

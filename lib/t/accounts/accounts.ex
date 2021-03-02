@@ -35,6 +35,13 @@ defmodule T.Accounts do
 
   def get_user!(id), do: Repo.get!(User, id)
 
+  def get_phone_number!(user_id) do
+    User
+    |> where(id: ^user_id)
+    |> select([u], u.phone_number)
+    |> Repo.one!()
+  end
+
   def user_onboarded?(id) do
     User
     |> where(id: ^id)

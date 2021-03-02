@@ -6,6 +6,15 @@ defmodule Dev do
 
   @task_supervisor T.TaskSupervisor
 
+  def send_yo do
+    leo = "00000177-679a-ad79-0242-ac1100030000"
+    match = "7b8f6f08-3dd0-4021-840d-2dd968fcd479"
+    ack_id = T.Matches.send_yo(match: match, from: leo)
+    :timer.sleep(1000)
+    T.Matches.ack_yo(ack_id)
+    ack_id
+  end
+
   def download_selected_photos_from_s3(photos) do
     bucket = Media.bucket()
 

@@ -4,7 +4,7 @@ defmodule T.PushNotifications.DispatchJob do
 
   use Oban.Worker, queue: :apns
   import Ecto.Query
-  alias T.{Repo, Accounts, Matches, PushNotifications}
+  alias T.{Repo, Matches, PushNotifications}
 
   @impl true
   def perform(%Oban.Job{args: %{"type" => type} = args}) do
@@ -17,8 +17,8 @@ defmodule T.PushNotifications.DispatchJob do
     if match = alive_match(match_id) do
       %Matches.Match{user_id_1: uid1, user_id_2: uid2} = match
 
-      uid1 |> device_ids() |> schedule_apns("match")
-      uid2 |> device_ids() |> schedule_apns("match")
+      uid1 |> Matches.device_ids() |> schedule_apns("match")
+      uid2 |> Matches.device_ids() |> schedule_apns("match")
 
       :ok
     else
@@ -33,7 +33,7 @@ defmodule T.PushNotifications.DispatchJob do
       %Matches.Match{user_id_1: uid1, user_id_2: uid2} = match
 
       [receiver_id] = [uid1, uid2] -- [author_id]
-      receiver_id |> device_ids() |> schedule_apns("message")
+      receiver_id |> Matches.device_ids() |> schedule_apns("message")
 
       :ok
     else
@@ -41,6 +41,7 @@ defmodule T.PushNotifications.DispatchJob do
     end
   end
 
+  # TODO remove, yos are not schedulable
   defp handle_type("yo", args) do
     %{"match_id" => match_id, "sender_id" => sender_id} = args
 
@@ -51,8 +52,8 @@ defmodule T.PushNotifications.DispatchJob do
       # TODO if not devices -> send SMS
 
       receiver_id
-      |> device_ids()
-      |> schedule_apns("yo", %{"sender_name" => profile_name(sender_id)})
+      |> Matches.device_ids()
+      |> schedule_apns("yo", %{"sender_name" => Matches.profile_name(sender_id)})
 
       :ok
     else
@@ -62,7 +63,7 @@ defmodule T.PushNotifications.DispatchJob do
 
   defp handle_type("support", args) do
     %{"user_id" => user_id} = args
-    user_id |> device_ids() |> schedule_apns("support")
+    user_id |> Matches.device_ids() |> schedule_apns("support")
     :ok
   end
 
@@ -71,20 +72,6 @@ defmodule T.PushNotifications.DispatchJob do
     |> where(id: ^match_id)
     |> where(alive?: true)
     |> Repo.one()
-  end
-
-  defp device_ids(user_id) do
-    Accounts.APNSDevice
-    |> where(user_id: ^user_id)
-    |> select([d], d.device_id)
-    |> Repo.all()
-  end
-
-  defp profile_name(user_id) do
-    Accounts.Profile
-    |> where(user_id: ^user_id)
-    |> select([p], p.name)
-    |> Repo.one!()
   end
 
   defp schedule_apns(device_ids, template, data \\ %{}) do

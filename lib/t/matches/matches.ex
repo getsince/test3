@@ -10,7 +10,7 @@ defmodule T.Matches do
 
   alias T.{Repo, Media, PushNotifications}
   alias T.Accounts.{User, Profile}
-  alias T.Matches.{Match, Message}
+  alias T.Matches.{Match, Message, Yo}
 
   @pubsub T.PubSub
   @topic to_string(__MODULE__)
@@ -136,16 +136,16 @@ defmodule T.Matches do
     Oban.insert(job)
   end
 
-  defp schedule_yo_push(%Match{alive?: true, id: match_id}, sender_id) do
-    job =
-      PushNotifications.DispatchJob.new(%{
-        "type" => "yo",
-        "match_id" => match_id,
-        "sender_id" => sender_id
-      })
+  # defp schedule_yo_push(%Match{alive?: true, id: match_id}, sender_id) do
+  #   job =
+  #     PushNotifications.DispatchJob.new(%{
+  #       "type" => "yo",
+  #       "match_id" => match_id,
+  #       "sender_id" => sender_id
+  #     })
 
-    Oban.insert(job)
-  end
+  #   Oban.insert(job)
+  # end
 
   defp maybe_hide_profiles(multi, user_ids) do
     Ecto.Multi.run(multi, :hide, fn _repo, %{match: match} ->
@@ -292,6 +292,9 @@ defmodule T.Matches do
 
   ###################### YO ######################
 
+  alias Pigeon.APNS
+  alias Pigeon.APNS.Notification
+
   @doc "send_yo(match: match_id, from: user_id)"
   def send_yo(opts) do
     from = Keyword.fetch!(opts, :from)
@@ -305,8 +308,99 @@ defmodule T.Matches do
       |> Repo.one()
 
     if match do
-      schedule_yo_push(match, from)
+      %Match{user_id_1: uid1, user_id_2: uid2} = match
+      [mate_id] = [uid1, uid2] -- [from]
+      sender_name = profile_name(from)
+      raw_device_ids = device_ids(mate_id)
+
+      title = "#{sender_name || "Кто-то там"} зовёт тебя пообщаться!"
+      body = "Не упусти момент 😼"
+      message = [title, body]
+      ack_id = Ecto.UUID.generate()
+
+      Task.Supervisor.start_child(
+        Yo.task_sup(),
+        fn ->
+          Phoenix.PubSub.subscribe(T.PubSub, "yo_ack:#{ack_id}")
+
+          raw_device_ids
+          |> Enum.map(fn device_id ->
+            device_id = Base.encode16(device_id)
+            build_yo_notification(device_id, message, ack_id)
+          end)
+          |> APNS.push()
+          |> Enum.reduce([], fn %Notification{response: r, device_token: device_id} = n, acc ->
+            if r in [:bad_device_token, :unregistered] do
+              T.Accounts.remove_apns_device(device_id)
+            end
+
+            if r == :success do
+              [n | acc]
+            else
+              acc
+            end
+          end)
+          |> case do
+            [] = _no_success ->
+              send_yo_sms(mate_id, message)
+
+            [_ | _] = _at_least_one ->
+              receive do
+                :ack -> :ok
+              after
+                :timer.seconds(5) ->
+                  send_yo_sms(mate_id, message)
+              end
+          end
+        end,
+        # TODO maybe just spawn?
+        shutdown: :timer.minutes(1)
+      )
+
+      ack_id
     end
+  end
+
+  def ack_yo(ack_id) do
+    Phoenix.PubSub.broadcast!(T.PubSub, "yo_ack:#{ack_id}", :ack)
+  end
+
+  def send_yo_sms(user_id, message) when is_list(message) do
+    phone_number = T.Accounts.get_phone_number!(user_id)
+    T.SMS.deliver(phone_number, "Since: " <> Enum.join(message, "\n"))
+  end
+
+  defp build_yo_notification(device_id, [title, body], ack_id) do
+    base_notification(device_id, "yo")
+    |> Notification.put_alert(%{"title" => title, "body" => body})
+    |> Notification.put_badge(1)
+    |> Notification.put_custom(%{"ack_id" => ack_id})
+  end
+
+  defp base_notification(device_id, collapse_id) do
+    %Notification{
+      device_token: device_id,
+      topic: topic(),
+      collapse_id: collapse_id
+    }
+  end
+
+  defp topic do
+    Application.fetch_env!(:pigeon, :apns)[:apns_default].topic
+  end
+
+  def profile_name(user_id) do
+    Profile
+    |> where(user_id: ^user_id)
+    |> select([p], p.name)
+    |> Repo.one!()
+  end
+
+  def device_ids(user_id) do
+    T.Accounts.APNSDevice
+    |> where(user_id: ^user_id)
+    |> select([d], d.device_id)
+    |> Repo.all()
   end
 
   ###################### MESSAGES ######################

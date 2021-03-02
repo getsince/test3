@@ -43,6 +43,17 @@ defmodule T.PushNotifications.APNSJob do
     |> Notification.put_badge(1)
   end
 
+  defp build_notification("yo", device_id, data) do
+    %{"sender_name" => sender_name} = data
+
+    title = "#{sender_name || "noname"} зовёт тебя пообщаться!"
+    body = "Не упусти момент 😼"
+
+    base_notification(device_id, "match")
+    |> Notification.put_alert(%{"title" => title, "body" => body})
+    |> Notification.put_badge(1)
+  end
+
   # defp build_notification("pending_match_activated", device_id, _data) do
   #   title = "Твоя симпатия взаимна!"
   #   body = "Скорее заходи! 🎉"

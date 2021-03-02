@@ -109,18 +109,18 @@ defmodule T.Feeds do
       Profile
       |> where([p], p.user_id in ^user_ids)
       |> Repo.all()
-
-    # |> Enum.shuffle()
-
-    girls =
-      Profile
-      |> where([p], p.user_id not in ^user_ids)
-      |> where([p], p.gender == "F")
-      |> limit(100)
-      |> Repo.all()
       |> Enum.shuffle()
 
-    real ++ girls
+    # girls =
+    #   Profile
+    #   |> where([p], p.user_id not in ^user_ids)
+    #   |> where([p], p.gender == "F")
+    #   |> limit(100)
+    #   |> Repo.all()
+    #   |> Enum.shuffle()
+
+    # ++ girls
+    real
   end
 
   defp get_feed(profile, date, opts) do

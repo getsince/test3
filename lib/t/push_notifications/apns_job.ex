@@ -1,7 +1,7 @@
 defmodule T.PushNotifications.APNSJob do
   @moduledoc false
 
-  use Oban.Worker, queue: :apns
+  use Oban.Worker, queue: :apns, max_attempts: 5
   alias Pigeon.APNS.Notification
   alias Pigeon.APNS
 
@@ -11,8 +11,8 @@ defmodule T.PushNotifications.APNSJob do
     n = build_notification(template, device_id, data)
 
     case APNS.push(n) do
-      %Notification{response: :bad_device_token} ->
-        # TODO remove_device(device_id)
+      %Notification{response: r} when r in [:bad_device_token, :unregistered] ->
+        T.Accounts.remove_apns_device(device_id)
         :discard
 
       %Notification{response: :success} ->

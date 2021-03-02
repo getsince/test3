@@ -369,6 +369,13 @@ defmodule T.Accounts do
     :ok
   end
 
+  @doc "remove_apns_device(device_id_base_16)"
+  def remove_apns_device(device_id) do
+    APNSDevice
+    |> where(device_id: ^Base.decode16!(device_id))
+    |> Repo.delete_all()
+  end
+
   ## Session
 
   @doc """

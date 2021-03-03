@@ -119,7 +119,7 @@ defmodule T.Feeds do
         if fakes_count > 0 do
           Profile
           |> where([p], p.user_id not in ^user_ids)
-          # |> where([p], p.gender == "F")
+          |> where([p], p.gender == "F")
           |> limit(^fakes_count)
           |> Repo.all()
           |> Enum.shuffle()

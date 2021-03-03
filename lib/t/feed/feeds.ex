@@ -95,7 +95,8 @@ defmodule T.Feeds do
     !!Application.get_env(:t, :use_demo_feed?)
   end
 
-  def demo_feed do
+  @doc "demo_feed(count: 13)"
+  def demo_feed(opts \\ []) do
     user_ids = [
       "00000177-679a-ad79-0242-ac1100030000",
       "00000177-8ae4-b4c4-0242-ac1100030000",
@@ -111,16 +112,21 @@ defmodule T.Feeds do
       |> Repo.all()
       |> Enum.shuffle()
 
-    # girls =
-    #   Profile
-    #   |> where([p], p.user_id not in ^user_ids)
-    #   |> where([p], p.gender == "F")
-    #   |> limit(100)
-    #   |> Repo.all()
-    #   |> Enum.shuffle()
+    fakes =
+      if count = opts[:count] do
+        fakes_count = count - length(real)
 
-    # ++ girls
-    real
+        if fakes_count > 0 do
+          Profile
+          |> where([p], p.user_id not in ^user_ids)
+          # |> where([p], p.gender == "F")
+          |> limit(^fakes_count)
+          |> Repo.all()
+          |> Enum.shuffle()
+        end
+      end || []
+
+    real ++ fakes
   end
 
   defp get_feed(profile, date, opts) do

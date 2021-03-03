@@ -42,24 +42,24 @@ defmodule T.PushNotifications.DispatchJob do
   end
 
   # TODO remove, yos are not schedulable
-  defp handle_type("yo", args) do
-    %{"match_id" => match_id, "sender_id" => sender_id} = args
+  # defp handle_type("yo", args) do
+  #   %{"match_id" => match_id, "sender_id" => sender_id} = args
 
-    if match = alive_match(match_id) do
-      %Matches.Match{user_id_1: uid1, user_id_2: uid2} = match
+  #   if match = alive_match(match_id) do
+  #     %Matches.Match{user_id_1: uid1, user_id_2: uid2} = match
 
-      [receiver_id] = [uid1, uid2] -- [sender_id]
-      # TODO if not devices -> send SMS
+  #     [receiver_id] = [uid1, uid2] -- [sender_id]
+  #     # TODO if not devices -> send SMS
 
-      receiver_id
-      |> Matches.device_ids()
-      |> schedule_apns("yo", %{"sender_name" => Matches.profile_name(sender_id)})
+  #     receiver_id
+  #     |> Matches.device_ids()
+  #     |> schedule_apns("yo", %{"sender_name" => Matches.profile_name(sender_id)})
 
-      :ok
-    else
-      :discard
-    end
-  end
+  #     :ok
+  #   else
+  #     :discard
+  #   end
+  # end
 
   defp handle_type("support", args) do
     %{"user_id" => user_id} = args

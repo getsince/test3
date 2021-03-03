@@ -21,7 +21,10 @@ defmodule TWeb.FeedChannel do
         Feeds.get_or_create_feed(my_profile, DateTime.to_date(datetime))
       end
 
-    {:ok, %{feed: render_profiles(feed)}, assign(socket, timezone: timezone)}
+    %Accounts.Profile{} = profile = Accounts.get_profile!(socket.assigns.current_user)
+
+    {:ok, %{feed: render_profiles(feed), own_profile: render_profile(profile)},
+     assign(socket, timezone: timezone)}
   end
 
   @impl true

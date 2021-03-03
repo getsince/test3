@@ -121,6 +121,7 @@ defmodule T.Feeds do
           |> where([p], p.user_id not in ^user_ids)
           |> where([p], p.gender == "F")
           |> limit(^fakes_count)
+          |> order_by([p], desc: p.user_id)
           |> Repo.all()
           |> Enum.shuffle()
         end

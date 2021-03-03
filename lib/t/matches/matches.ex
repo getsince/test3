@@ -328,7 +328,8 @@ defmodule T.Matches do
             device_id = Base.encode16(device_id)
             build_yo_notification(device_id, message, ack_id)
           end)
-          |> APNS.push()
+          |> Enum.map(&apns_push_all_workers/1)
+          |> List.flatten()
           |> Enum.reduce([], fn %Notification{response: r, device_token: device_id} = n, acc ->
             if r in [:bad_device_token, :unregistered] do
               T.Accounts.remove_apns_device(device_id)
@@ -358,6 +359,17 @@ defmodule T.Matches do
       )
 
       ack_id
+    end
+  end
+
+  defp apns_push_all_workers(%Notification{} = notification) do
+    Application.fetch_env!(:pigeon, :apns)
+    |> Enum.map(fn {worker, _} -> APNS.push(notification, to: worker) end)
+    |> case do
+      [n] -> n
+      [%Notification{response: :success} = n, _n] -> n
+      [_n, %Notification{response: :success} = n] -> n
+      [_, _] = fails -> fails
     end
   end
 

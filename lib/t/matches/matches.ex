@@ -310,7 +310,7 @@ defmodule T.Matches do
     if match do
       %Match{user_id_1: uid1, user_id_2: uid2} = match
       [mate_id] = [uid1, uid2] -- [from]
-      sender_name = profile_name(from)
+      {sender_name, sender_gender} = profile_info(from)
       raw_device_ids = device_ids(mate_id)
 
       title = "#{sender_name || "Кто-то там"} зовёт тебя пообщаться!"
@@ -342,14 +342,14 @@ defmodule T.Matches do
           end)
           |> case do
             [] = _no_success ->
-              send_yo_sms(mate_id, message)
+              send_yo_sms(mate_id, yo_sms_message(sender_name, sender_gender))
 
             [_ | _] = _at_least_one ->
               receive do
                 :ack -> :ok
               after
                 :timer.seconds(5) ->
-                  send_yo_sms(mate_id, message)
+                  send_yo_sms(mate_id, yo_sms_message(sender_name, sender_gender))
               end
           end
         end,
@@ -365,10 +365,22 @@ defmodule T.Matches do
     Phoenix.PubSub.broadcast!(T.PubSub, "yo_ack:#{ack_id}", :ack)
   end
 
-  def send_yo_sms(user_id, message) when is_list(message) do
+  def send_yo_sms(user_id, message) do
     phone_number = T.Accounts.get_phone_number!(user_id)
-    T.SMS.deliver(phone_number, "Since: " <> Enum.join(message, "\n"))
+    T.SMS.deliver(phone_number, message)
   end
+
+  defp yo_sms_message(sender_name, sender_gender) do
+    """
+    #{sender_name || "Кто-то там"} зовёт тебя пообщаться!
+    Не упусти момент, пока #{render_gender(sender_gender)} онлайн 😼
+    Заходи в Since
+    """
+  end
+
+  defp render_gender("F"), do: "она"
+  defp render_gender("M"), do: "он"
+  defp render_gender(_it), do: "оно"
 
   defp build_yo_notification(device_id, [title, body], ack_id) do
     base_notification(device_id, "yo")
@@ -389,10 +401,10 @@ defmodule T.Matches do
     Application.fetch_env!(:pigeon, :apns)[:apns_default].topic
   end
 
-  def profile_name(user_id) do
+  def profile_info(user_id) do
     Profile
     |> where(user_id: ^user_id)
-    |> select([p], p.name)
+    |> select([p], {p.name, p.gender})
     |> Repo.one!()
   end
 

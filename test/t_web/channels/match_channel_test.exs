@@ -1,6 +1,7 @@
 defmodule TWeb.MatchChannelTest do
   use TWeb.ChannelCase
   alias T.{Accounts, Matches, Feeds}
+  import Assertions
 
   setup do
     me = onboarded_user()
@@ -20,6 +21,7 @@ defmodule TWeb.MatchChannelTest do
     %{
       id: match.id,
       online: online?,
+      # last_active: last_active,
       profile: %{
         birthdate: nil,
         city: nil,
@@ -62,8 +64,8 @@ defmodule TWeb.MatchChannelTest do
       assert {:ok, %{matches: matches}, _socket} =
                subscribe_and_join(socket, "matches:" <> me.id, %{})
 
-      assert render_match(m1) in matches
-      assert render_match(m2) in matches
+      assert_map_in_list(render_match(m1), matches, [:id, :online, :profile])
+      assert_map_in_list(render_match(m2), matches, [:id, :online, :profile])
       assert length(matches) == 2
 
       assert_push "presence_state", push

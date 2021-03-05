@@ -134,7 +134,12 @@ defmodule TWeb.MatchChannel do
   end
 
   defp render_match(match_id, profile, online?) do
-    %{id: match_id, online: online?, profile: render_profile(profile)}
+    %{
+      id: match_id,
+      online: online?,
+      profile: render_profile(profile),
+      last_active: profile.last_active
+    }
   end
 
   defp render_matches(topic, matches) do

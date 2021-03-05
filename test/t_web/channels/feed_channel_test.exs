@@ -49,13 +49,15 @@ defmodule TWeb.FeedChannelTest do
 
       assert_reply ref, :ok, reply, 1000
       assert reply == %{}
-      assert_push "matched", payload
+      assert_push "matched", %{match: %{last_active: last_active}} = payload
       assert [%{id: match_id}] = Matches.get_current_matches(me.id)
+      assert %DateTime{} = last_active
 
       assert payload == %{
                match: %{
                  id: match_id,
                  online: false,
+                 last_active: last_active,
                  profile: %{
                    song: nil,
                    birthdate: nil,

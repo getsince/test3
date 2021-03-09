@@ -523,13 +523,13 @@ defmodule T.Accounts do
 
   def validate_profile_about(%Profile{} = profile) do
     profile
-    |> Profile.about_self_changeset(%{}, validate_required?: true)
+    |> Profile.about_self_changeset(%{})
     |> Repo.update()
   end
 
   def validate_profile_tastes(%Profile{} = profile) do
     profile
-    |> Profile.tastes_changeset(%{}, validate_required?: true)
+    |> Profile.tastes_changeset(%{})
     |> Repo.update()
   end
 end

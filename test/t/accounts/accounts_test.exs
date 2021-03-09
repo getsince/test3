@@ -136,18 +136,10 @@ defmodule T.AccountsTest do
       assert {:error, changeset} = Accounts.onboard_profile(profile, %{})
 
       assert errors_on(changeset) == %{
-               song: ["can't be blank"],
-               birthdate: ["can't be blank"],
-               city: ["can't be blank"],
-               first_date_idea: ["can't be blank"],
-               #  TODO
+               # TODO
                #  gender: ["can't be blank"],
-               height: ["can't be blank"],
-               interests: ["should have at least 2 item(s)"],
-               most_important_in_life: ["can't be blank"],
                name: ["can't be blank"],
-               photos: ["should have 4 item(s)"],
-               tastes: ["should have at least 7 tastes"]
+               photos: ["should have at least 1 item(s)"]
              }
 
       apple_music_song = apple_music_song()

@@ -84,17 +84,9 @@ defmodule TWeb.ProfileChannelTest do
 
       assert reply == %{
                profile: %{
-                 birthdate: ["can't be blank"],
-                 city: ["can't be blank"],
-                 first_date_idea: ["can't be blank"],
                  gender: ["can't be blank"],
-                 height: ["can't be blank"],
-                 interests: ["should have at least 2 item(s)"],
-                 most_important_in_life: ["can't be blank"],
                  name: ["can't be blank"],
-                 photos: ["should have 4 item(s)"],
-                 tastes: ["should have at least 7 tastes"],
-                 song: ["can't be blank"]
+                 photos: ["should have at least 1 item(s)"]
                }
              }
 

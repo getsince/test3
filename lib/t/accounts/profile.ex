@@ -63,25 +63,21 @@ defmodule T.Accounts.Profile do
     |> maybe_validate_required(opts, fn changeset ->
       changeset
       |> force_field_changes([:photos])
-      |> validate_length(:photos, is: 4)
+      |> validate_length(:photos, min: 1)
     end)
     |> validate_required([:photos])
   end
 
-  def song_changeset(profile, attrs, opts \\ []) do
+  def song_changeset(profile, attrs) do
     profile
     |> cast(attrs, [:song])
-    |> maybe_validate_required(opts, fn changeset ->
-      changeset
-      |> validate_required([:song])
-    end)
   end
 
   def general_info_changeset(profile, attrs, opts \\ []) do
     profile
     |> cast(attrs, [:name, :birthdate, :gender, :height, :city])
     |> maybe_validate_required(opts, fn changeset ->
-      validate_required(changeset, [:name, :birthdate, :gender, :height, :city])
+      validate_required(changeset, [:name, :gender])
     end)
     |> validate_inclusion(:gender, ["M", "F"])
     |> validate_number(:height, greater_than: 0, less_than_or_equal_to: 240)
@@ -101,39 +97,23 @@ defmodule T.Accounts.Profile do
     end)
   end
 
-  def work_and_education_changeset(profile, attrs, opts \\ []) do
+  def work_and_education_changeset(profile, attrs) do
     profile
     |> cast(attrs, [:occupation, :job, :university, :major])
-    |> maybe_validate_required(opts, fn changeset ->
-      validate_required(changeset, [:occupation, :job])
-    end)
     |> validate_length(:occupation, max: 100)
     |> validate_length(:job, max: 100)
     |> validate_length(:university, max: 200)
     |> validate_length(:major, max: 100)
   end
 
-  def about_self_changeset(profile, attrs, opts \\ []) do
+  def about_self_changeset(profile, attrs) do
     profile
     |> cast(attrs, [:most_important_in_life, :interests, :first_date_idea, :free_form])
-    |> maybe_validate_required(opts, fn changeset ->
-      changeset
-      |> validate_required([:most_important_in_life, :interests, :first_date_idea])
-      |> force_field_changes([:interests])
-    end)
     |> validate_length(:interests, min: 2, max: 5)
     |> validate_length(:most_important_in_life, max: 100)
     |> validate_length(:first_date_idea, max: 100)
     |> validate_length(:free_form, max: 1000)
   end
-
-  # defmodule Tastes do
-  #   use Ecto.Schema
-
-  #   embedded_schema do
-  #     field :music,
-  #   end
-  # end
 
   @tastes [
     :music,
@@ -163,64 +143,19 @@ defmodule T.Accounts.Profile do
   defp filter_taste_values("smoking", v), do: v
   defp filter_taste_values(_k, v), do: Enum.filter(v, &is_binary/1)
 
-  def tastes_changeset(profile, attrs, opts \\ []) do
+  def tastes_changeset(profile, attrs) do
     profile
     |> cast(attrs, [:tastes])
-    |> maybe_validate_required(opts, fn changeset ->
-      changeset
-      |> validate_required([:tastes])
-      |> force_field_changes([:tastes])
-    end)
-    |> validate_change(:tastes, fn :tastes, tastes ->
-      tastes = filter_tastes(tastes)
-
-      if length(Map.keys(tastes)) >= 7 do
-        []
-      else
-        [tastes: dgettext("errors", "should have at least 7 tastes")]
-      end
-    end)
-
-    # |> maybe_validate_required(opts, &at_least_seven_tastes/1)
-    # |> validate_length(:alcohol, max: 100)
-    # |> validate_length(:smoking, max: 100)
-    # |> validate_length(:music, min: 1, max: 5)
-    # |> validate_length(:sports, min: 1, max: 5)
-    # |> validate_length(:books, min: 1, max: 5)
-    # |> validate_length(:currently_studying, min: 1, max: 5)
-    # |> validate_length(:tv_shows, min: 1, max: 5)
-    # |> validate_length(:languages, min: 1, max: 5)
-    # |> validate_length(:musical_instruments, min: 1, max: 5)
-    # |> validate_length(:movies, min: 1, max: 5)
-    # |> validate_length(:social_networks, min: 1, max: 5)
-    # |> validate_length(:cuisines, min: 1, max: 5)
-    # |> validate_length(:pets, min: 1, max: 5)
+    |> update_change(:tastes, &filter_tastes/1)
   end
-
-  # defp at_least_seven_tastes(changeset) do
-  #   provided_tastes =
-  #     @tastes
-  #     |> Enum.map(&get_field(changeset, &1))
-  #     |> Enum.reject(fn
-  #       nil -> true
-  #       [] -> true
-  #       _other -> false
-  #     end)
-
-  #   if length(provided_tastes) < 7 do
-  #     add_error(changeset, :tastes, dgettext("errors", "should have at least 7 tastes"))
-  #   else
-  #     changeset
-  #   end
-  # end
 
   def changeset(profile, attrs, opts \\ []) do
     profile
     |> photos_changeset(attrs, opts)
-    |> song_changeset(attrs, opts)
+    |> song_changeset(attrs)
     |> general_info_changeset(attrs, opts)
     |> work_and_education_changeset(attrs)
-    |> about_self_changeset(attrs, opts)
-    |> tastes_changeset(attrs, opts)
+    |> about_self_changeset(attrs)
+    |> tastes_changeset(attrs)
   end
 end

@@ -7,24 +7,27 @@ defmodule T.Accounts.ProfileTest do
       changeset = Profile.photos_changeset(%Profile{}, %{}, validate_required?: true)
       assert errors_on(changeset).photos == ["can't be blank"]
 
-      changeset =
-        Profile.photos_changeset(%Profile{}, %{photos: ["a", "b", "c"]}, validate_required?: true)
+      changeset = Profile.photos_changeset(%Profile{}, %{photos: []}, validate_required?: true)
 
-      assert errors_on(changeset).photos == ["should have 4 item(s)"]
+      assert errors_on(changeset).photos == ["should have at least 1 item(s)"]
+
+      changeset = Profile.photos_changeset(%Profile{}, %{photos: ["a"]}, validate_required?: true)
+
+      assert errors_on(changeset) == %{}
 
       changeset =
         Profile.photos_changeset(%Profile{}, %{photos: ["a", "b", "c", "d"]},
           validate_required?: true
         )
 
-      refute errors_on(changeset)[:photos]
+      assert errors_on(changeset) == %{}
 
       changeset =
         Profile.photos_changeset(%Profile{}, %{photos: ["a", "b", "c", "d", "e", "f", "g"]},
           validate_required?: true
         )
 
-      assert errors_on(changeset).photos == ["should have 4 item(s)"]
+      assert errors_on(changeset) == %{}
     end
   end
 
@@ -33,10 +36,7 @@ defmodule T.Accounts.ProfileTest do
       changeset = Profile.general_info_changeset(%Profile{}, %{}, validate_required?: true)
 
       assert errors_on(changeset) == %{
-               birthdate: ["can't be blank"],
                gender: ["can't be blank"],
-               height: ["can't be blank"],
-               city: ["can't be blank"],
                name: ["can't be blank"]
              }
     end
@@ -163,14 +163,10 @@ defmodule T.Accounts.ProfileTest do
 
   describe "about_self_changeset/2" do
     test "all fields except for free_form are required" do
-      assert %Ecto.Changeset{valid?: false} =
-               changeset = Profile.about_self_changeset(%Profile{}, %{}, validate_required?: true)
+      assert %Ecto.Changeset{valid?: true} =
+               changeset = Profile.about_self_changeset(%Profile{}, %{})
 
-      assert errors_on(changeset) == %{
-               first_date_idea: ["can't be blank"],
-               most_important_in_life: ["can't be blank"],
-               interests: ["can't be blank"]
-             }
+      assert errors_on(changeset) == %{}
     end
 
     test "needs at least two interests and at most five" do
@@ -242,11 +238,8 @@ defmodule T.Accounts.ProfileTest do
 
   describe "tastes_changeset/2" do
     test "needs at least seven tastes" do
-      assert %Ecto.Changeset{valid?: false} =
-               changeset = Profile.tastes_changeset(%Profile{}, %{}, validate_required?: true)
-
-      #  TODO
-      assert errors_on(changeset) == %{tastes: ["can't be blank"]}
+      assert %Ecto.Changeset{valid?: true} = changeset = Profile.tastes_changeset(%Profile{}, %{})
+      assert errors_on(changeset) == %{}
     end
 
     @array_tastes [

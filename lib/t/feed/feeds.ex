@@ -181,11 +181,17 @@ defmodule T.Feeds do
       Profile
       # not self
       |> where([p], p.user_id != ^profile.user_id)
-      |> where(gender: ^opposite_gender(profile))
       |> where(hidden?: false)
       |> where(city: ^profile.city)
       # TODO is there a better way?
       |> where([p], p.user_id not in subquery(seen))
+
+    common_q =
+      if gender = opposite_gender(profile) do
+        where(common_q, gender: ^gender)
+      else
+        common_q
+      end
 
     # place_1 and place_2
     most_liked =
@@ -291,4 +297,5 @@ defmodule T.Feeds do
   defp opposite_gender(%Profile{gender: gender}), do: opposite_gender(gender)
   defp opposite_gender("F"), do: "M"
   defp opposite_gender("M"), do: "F"
+  defp opposite_gender(nil), do: nil
 end

@@ -41,12 +41,17 @@ defmodule T.Accounts.ProfileTest do
              }
     end
 
-    test "name needs to be 3 chars at least" do
+    test "name is required, blanks are not accepted" do
+      changeset =
+        Profile.general_info_changeset(%Profile{}, %{name: ""}, validate_required?: true)
+
+      assert errors_on(changeset).name == ["can't be blank"]
+
       changeset = Profile.general_info_changeset(%Profile{}, %{name: "a"})
-      assert errors_on(changeset).name == ["should be at least 3 character(s)"]
+      assert errors_on(changeset) == %{}
 
       assert changeset = Profile.general_info_changeset(%Profile{}, %{name: "aaa"})
-      refute errors_on(changeset)[:name]
+      assert errors_on(changeset) == %{}
     end
 
     test "name is 100 chars at most" do

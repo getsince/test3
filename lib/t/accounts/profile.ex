@@ -81,7 +81,7 @@ defmodule T.Accounts.Profile do
     end)
     |> validate_inclusion(:gender, ["M", "F"])
     |> validate_number(:height, greater_than: 0, less_than_or_equal_to: 240)
-    |> validate_length(:name, min: 3, max: 100)
+    |> validate_length(:name, max: 100)
     |> validate_change(:birthdate, fn :birthdate, date ->
       long_ago = ~D[1920-01-01]
 

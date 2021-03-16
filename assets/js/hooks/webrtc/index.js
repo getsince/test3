@@ -69,11 +69,23 @@ class WebRTC {
   }
 
   handleConnectionStateChange(event) {
-    console.log(event);
+    let state = event.target.connectionState;
+    console.log("connection state change", state, event);
+
+    switch (state) {
+      case "failed":
+      case "disconnected":
+      case "closed":
+        this.hook.pushEvent("disconnected", {});
+      default:
+        break;
+    }
+
     event = new CustomEvent("connectionstatechange", {
-      detail: { state: event.target.connectionState },
+      detail: { state },
       bubbles: true,
     });
+
     this.hook.el.dispatchEvent(event);
   }
 
@@ -168,6 +180,10 @@ const WebRTCHook = {
               if (!webrtc.peerConnection) break;
               webrtc.receiveRemote(message.content);
               break;
+            case "prAnswer":
+              log("peer pr-answered", message.content);
+              if (!webrtc.peerConnection) break;
+              webrtc.receiveRemote(message.content);
           }
 
         case "ice-candidate":

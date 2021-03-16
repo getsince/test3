@@ -132,6 +132,12 @@ defmodule TWeb.MatchLive.Index do
     {:noreply, socket |> assign(call: nil) |> push_patch(to: path)}
   end
 
+  def handle_event("disconnected", _params, socket) do
+    me = socket.assigns.me
+    path = Routes.match_index_path(socket, :show, me.id)
+    {:noreply, socket |> assign(call: nil) |> push_patch(to: path)}
+  end
+
   def handle_event("peer-message" = event, %{"body" => _body, "mate" => mate} = params, socket) do
     TWeb.Endpoint.broadcast!(topic(mate), event, Map.delete(params, "mate"))
     {:noreply, socket}
@@ -157,7 +163,12 @@ defmodule TWeb.MatchLive.Index do
         nil ->
           socket
 
-        {s, mate} when s in [:picked_up, :calling, :called] ->
+        # even though peer might disconnect from backend, webrtc session might still be going on
+        # so we rely on webrtc js hook to send `disconnected` event
+        {:picked_up, _mate} ->
+          socket
+
+        {s, mate} when s in [:calling, :called] ->
           if mate in presences do
             socket
           else

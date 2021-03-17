@@ -39,7 +39,7 @@ defmodule TWeb.MatchChannel do
   end
 
   def handle_in("ice-servers", _params, socket) do
-    {:reply, {:ok, T.Twilio.ice_servers()}, socket}
+    {:reply, {:ok, %{ice_servers: T.Twilio.ice_servers()}}, socket}
   end
 
   def handle_in("report", %{"report" => report}, socket) do

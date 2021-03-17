@@ -4,7 +4,7 @@ defmodule TWeb.FeedChannel do
   alias T.{Feeds, Accounts}
 
   @impl true
-  def join("feed:" <> user_id, %{"timezone" => timezone} = params, socket) do
+  def join("feed:" <> user_id, %{"timezone" => timezone} = _params, socket) do
     user_id = String.downcase(user_id)
     ChannelHelpers.verify_user_id(socket, user_id)
 
@@ -12,18 +12,16 @@ defmodule TWeb.FeedChannel do
 
     datetime = local_datetime_now(timezone)
     schedule_feed_refresh_at_midnight(datetime, timezone)
+    my_profile = Accounts.get_profile!(socket.assigns.current_user)
 
     feed =
       if Feeds.use_demo_feed?() do
-        Feeds.demo_feed(count: params["count"])
+        Feeds.demo_feed(my_profile)
       else
-        my_profile = Accounts.get_profile!(socket.assigns.current_user)
         Feeds.get_or_create_feed(my_profile, DateTime.to_date(datetime))
       end
 
-    %Accounts.Profile{} = profile = Accounts.get_profile!(socket.assigns.current_user)
-
-    {:ok, %{feed: render_profiles(feed), own_profile: render_profile(profile)},
+    {:ok, %{feed: render_profiles(feed), own_profile: render_profile(my_profile)},
      assign(socket, timezone: timezone)}
   end
 

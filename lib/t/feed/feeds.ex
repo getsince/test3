@@ -95,40 +95,48 @@ defmodule T.Feeds do
     !!Application.get_env(:t, :use_demo_feed?)
   end
 
-  @doc "demo_feed(count: 13)"
-  def demo_feed(opts \\ []) do
-    user_ids = [
-      "00000177-679a-ad79-0242-ac1100030000",
-      "00000177-8ae4-b4c4-0242-ac1100030000",
-      "00000177-830a-a7d0-0242-ac1100030000",
-      "00000177-82ed-c4c9-0242-ac1100030000",
-      "00000177-809e-4ef7-0242-ac1100030000",
-      "00000177-7d1f-61be-0242-ac1100030000"
-    ]
+  @doc "demo_feed(profile, count: 13)"
+  def demo_feed(profile, opts \\ []) do
+    # user_ids = [
+    #   "00000177-679a-ad79-0242-ac1100030000",
+    #   "00000177-8ae4-b4c4-0242-ac1100030000",
+    #   "00000177-830a-a7d0-0242-ac1100030000",
+    #   "00000177-82ed-c4c9-0242-ac1100030000",
+    #   "00000177-809e-4ef7-0242-ac1100030000",
+    #   "00000177-7d1f-61be-0242-ac1100030000"
+    # ]
+
+    first_real = "00000177-679a-ad79-0242-ac1100030000"
 
     real =
       Profile
-      |> where([p], p.user_id in ^user_ids)
+      |> where([p], p.user_id != ^profile.user_id)
+      |> where([p], p.user_id >= ^first_real)
       |> Repo.all()
       |> Enum.shuffle()
 
+    # if count = opts[:count] do
+    # fakes_count = count - length(real)
+    # if fakes_count > 0 do
     fakes =
-      if count = opts[:count] do
-        fakes_count = count - length(real)
+      Profile
+      |> where([p], p.user_id < ^first_real)
+      |> where([p], p.gender == "F")
+      |> maybe_limit(opts[:fakes_count])
 
-        if fakes_count > 0 do
-          Profile
-          |> where([p], p.user_id not in ^user_ids)
-          |> where([p], p.gender == "F")
-          |> limit(^fakes_count)
-          |> order_by([p], desc: p.user_id)
-          |> Repo.all()
-          |> Enum.shuffle()
-        end
-      end || []
+      # |> order_by([p], desc: p.user_id)
+      |> Repo.all()
+
+    # |> Enum.shuffle()
+
+    # end
+    # end || []
 
     real ++ fakes
   end
+
+  defp maybe_limit(query, nil), do: query
+  defp maybe_limit(query, limit), do: limit(query, ^limit)
 
   defp get_feed(profile, date, opts) do
     feed =

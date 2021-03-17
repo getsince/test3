@@ -107,11 +107,16 @@ defmodule T.Feeds do
     # ]
 
     first_real = "00000177-679a-ad79-0242-ac1100030000"
+    kj = "00000177-8336-5e0e-0242-ac1100030000"
+
+    already_liked = ProfileLike |> where(by_user_id: ^profile.user_id) |> select([s], s.user_id)
 
     real =
       Profile
       |> where([p], p.user_id != ^profile.user_id)
       |> where([p], p.user_id >= ^first_real)
+      |> where([p], p.user_id not in subquery(already_liked))
+      |> where([p], p.user_id != ^kj)
       |> Repo.all()
       |> Enum.shuffle()
 
@@ -121,6 +126,7 @@ defmodule T.Feeds do
     fakes =
       Profile
       |> where([p], p.user_id < ^first_real)
+      |> where([p], p.user_id not in subquery(already_liked))
       |> where([p], p.gender == "F")
       |> maybe_limit(opts[:fakes_count])
 

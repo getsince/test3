@@ -397,6 +397,7 @@ defmodule T.Matches do
   defp build_yo_notification(device_id, [title, body], ack_id) do
     base_notification(device_id, "yo")
     |> Notification.put_alert(%{"title" => title, "body" => body})
+    |> Notification.put_mutable_content()
     |> Notification.put_badge(1)
     |> Notification.put_custom(%{"ack_id" => ack_id})
   end

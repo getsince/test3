@@ -53,6 +53,12 @@ defmodule TWeb.MatchChannel do
     {:reply, :ok, socket}
   end
 
+  def handle_in("log", params, socket) do
+    require Logger
+    Logger.info(params)
+    {:reply, :ok, socket}
+  end
+
   @impl true
   def handle_info({Matches, [:unmatched, match_id], [_, _] = user_ids}, socket) do
     Matches.unsubscribe_from_match(match_id)

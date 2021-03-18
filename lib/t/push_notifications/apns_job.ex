@@ -35,8 +35,8 @@ defmodule T.PushNotifications.APNSJob do
 
     #   end
 
-    title = "Твоя симпатия взаимна!"
-    body = "Скорее заходи! 🎉"
+    title = "Твоя симпатия взаимна 🎉"
+    body = "Скорее заходи!"
 
     base_notification(device_id, "match")
     |> Notification.put_alert(%{"title" => title, "body" => body})

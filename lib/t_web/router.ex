@@ -106,5 +106,8 @@ defmodule TWeb.Router do
     live "/matches", MatchLive.Index, :index
     live "/matches/:user_id", MatchLive.Index, :show
     live "/matches/:user_id/call/:mate_id", MatchLive.Index, :call
+
+    live "/trace/calls", TraceLive.Index, :index
+    live "/trace/calls/:user_id", TraceLive.Show, :show
   end
 end

@@ -24,12 +24,16 @@ defmodule TWeb.MatchChannel do
   def handle_in("peer-message" = event, %{"mate" => mate, "body" => _} = payload, socket) do
     # TODO don't crash
     true = mate in presences(socket)
+    trace(socket, %{"event" => event, "payload" => payload})
     TWeb.Endpoint.broadcast!(mate_topic(mate), event, Map.put(payload, "mate", me(socket)))
     {:reply, :ok, socket}
   end
 
-  def handle_in(event, %{"mate" => mate}, socket) when event in ["call", "pick-up", "hang-up"] do
-    Phoenix.PubSub.broadcast!(@pubsub, mate_topic(mate), {decode_call_event(event), me(socket)})
+  def handle_in(event, %{"mate" => mate}, socket)
+      when event in ["call", "pick-up", "hang-up"] do
+    msg = {decode_call_event(event), me(socket)}
+    trace(socket, msg)
+    Phoenix.PubSub.broadcast!(@pubsub, mate_topic(mate), msg)
     {:reply, :ok, socket}
   end
 
@@ -149,5 +153,10 @@ defmodule TWeb.MatchChannel do
 
   defp render_profile(profile) do
     render(ProfileView, "show.json", profile: profile)
+  end
+
+  defp trace(socket, message) do
+    user_id = socket.assigns.current_user.id
+    Phoenix.PubSub.broadcast!(@pubsub, "trace:#{user_id}", {:trace, message})
   end
 end

@@ -67,8 +67,12 @@ defmodule T.Accounts do
     )
     |> Repo.transaction()
     |> case do
-      {:ok, %{user: user, profile: profile}} -> {:ok, %User{user | profile: profile}}
-      {:error, :user, %Ecto.Changeset{} = changeset, _changes} -> {:error, changeset}
+      {:ok, %{user: user, profile: profile}} ->
+        T.Bot.post_new_user(user.phone_number)
+        {:ok, %User{user | profile: profile}}
+
+      {:error, :user, %Ecto.Changeset{} = changeset, _changes} ->
+        {:error, changeset}
     end
   end
 
@@ -477,9 +481,15 @@ defmodule T.Accounts do
     |> Oban.insert(:schedule_overlap_job, PersonalityOverlapJob.new(%{"user_id" => user_id}))
     |> Repo.transaction()
     |> case do
-      {:ok, %{profile: %Profile{} = profile}} -> {:ok, %Profile{profile | hidden?: false}}
-      {:error, :user, :already_onboarded, _changes} -> {:error, :already_onboarded}
-      {:error, :profile, %Ecto.Changeset{} = changeset, _changes} -> {:error, changeset}
+      {:ok, %{user: user, profile: %Profile{} = profile}} ->
+        T.Bot.post_user_onboarded(user.phone_number)
+        {:ok, %Profile{profile | hidden?: false}}
+
+      {:error, :user, :already_onboarded, _changes} ->
+        {:error, :already_onboarded}
+
+      {:error, :profile, %Ecto.Changeset{} = changeset, _changes} ->
+        {:error, changeset}
     end
 
     # |> notify_subscribers([:user, :new])

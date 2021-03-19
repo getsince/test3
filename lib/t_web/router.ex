@@ -110,4 +110,10 @@ defmodule TWeb.Router do
     live "/trace/calls", TraceLive.Index, :index
     live "/trace/calls/:user_id", TraceLive.Show, :show
   end
+
+  scope "/api/bot", TWeb do
+    pipe_through [:api]
+
+    post "/:token", BotController, :webhook
+  end
 end

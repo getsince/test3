@@ -8,6 +8,8 @@ import Config
 
 config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase
 
+config :nadia, recv_timeout: 20
+
 config :t, TWeb.Endpoint,
   render_errors: [view: TWeb.ErrorView, accepts: ~w(json), layout: false],
   pubsub_server: T.PubSub,
@@ -49,6 +51,10 @@ if config_env() == :prod do
 
   config :sentry,
     dsn: System.fetch_env!("SENTRY_DSN")
+
+  config :nadia,
+    token: System.fetch_env!("TG_BOT_KEY"),
+    room_id: System.fetch_env!("TG_ROOM_ID") |> String.to_integer()
 
   config :pigeon, :apns,
     apns_default: %{
@@ -114,7 +120,7 @@ if config_env() == :prod do
     # For production, don't forget to configure the url host
     # to something meaningful, Phoenix uses this information
     # when generating URLs.
-    url: [host: host, port: 80],
+    url: [host: host, port: 443],
     http: [
       # Enable IPv6 and bind on all interfaces.
       # Set it to {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
@@ -230,6 +236,8 @@ if config_env() == :dev do
   # Do not include metadata nor timestamps in development logs
   config :logger, :console, format: "[$level] $message\n"
 
+  config :nadia, token: System.fetch_env!("TG_BOT_KEY")
+
   config :ex_aws,
     s3: [
       bucket: System.fetch_env!("AWS_S3_BUCKET")
@@ -274,4 +282,8 @@ if config_env() == :test do
     prefix: "https://pretend-this-is-real.example.com",
     key: "fafafa",
     salt: "bababa"
+
+  config :nadia,
+    token: "asdfasdfasdf",
+    room_id: String.to_integer("-1234")
 end

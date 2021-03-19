@@ -71,7 +71,7 @@ defmodule T.MixProject do
       {:assertions, "~> 0.18.1", only: :test},
       {:floki, ">= 0.0.0", only: :test},
       {:timex, "~> 3.6"},
-      {:httpoison, "~> 1.7"},
+      {:httpoison, "~> 1.8", override: true},
       {:pigeon, "~> 1.5"},
       {:kadabra, "~> 0.4.4"},
       {:sentry, "~> 8.0"},
@@ -79,7 +79,8 @@ defmodule T.MixProject do
       {:nimble_csv, "~> 1.1"},
       {:imgproxy, "~> 1.0"},
       # TODO until https://github.com/nietaki/rexbug/issues/47 is merged
-      {:rexbug, github: "ruslandoga/rexbug"}
+      {:rexbug, github: "ruslandoga/rexbug"},
+      {:nadia, "~> 0.7.0"}
     ]
   end
 

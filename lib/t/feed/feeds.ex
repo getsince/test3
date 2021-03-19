@@ -117,6 +117,7 @@ defmodule T.Feeds do
       |> where([p], p.user_id >= ^first_real)
       |> where([p], p.user_id not in subquery(already_liked))
       |> where([p], p.user_id != ^kj)
+      |> where([p], not p.hidden?)
       |> Repo.all()
       |> Enum.shuffle()
 

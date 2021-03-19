@@ -22,10 +22,12 @@ defmodule TWeb.MatchChannel do
 
   @impl true
   def handle_in("peer-message" = event, %{"mate" => mate, "body" => _} = payload, socket) do
-    # TODO don't crash
-    true = mate in presences(socket)
-    trace(socket, %{"event" => event, "payload" => payload})
-    TWeb.Endpoint.broadcast!(mate_topic(mate), event, Map.put(payload, "mate", me(socket)))
+    # TODO repsond with error?
+    if mate in presences(socket) do
+      trace(socket, %{"event" => event, "payload" => payload})
+      TWeb.Endpoint.broadcast!(mate_topic(mate), event, Map.put(payload, "mate", me(socket)))
+    end
+
     {:reply, :ok, socket}
   end
 

@@ -69,7 +69,6 @@ defmodule T.Matches do
     multi
     |> with_mutual_liker(by_user_id, user_id)
     |> maybe_create_match([by_user_id, user_id])
-    |> maybe_hide_profiles([by_user_id, user_id])
     |> maybe_schedule_push()
   end
 
@@ -147,37 +146,6 @@ defmodule T.Matches do
   #   Oban.insert(job)
   # end
 
-  defp maybe_hide_profiles(multi, user_ids) do
-    Ecto.Multi.run(multi, :hide, fn _repo, %{match: match} ->
-      hidden = if match, do: hide_profiles(user_ids)
-      {:ok, hidden}
-    end)
-  end
-
-  @doc false
-  def hide_profiles(user_ids, max_match_count \\ 3) do
-    profiles_with_match_count = profiles_with_match_count_q(user_ids)
-
-    {_count, hidden} =
-      Profile
-      |> join(:inner, [p], c in subquery(profiles_with_match_count),
-        on: c.count >= ^max_match_count and p.user_id == c.user_id
-      )
-      |> select([p], p.user_id)
-      |> Repo.update_all(set: [hidden?: true])
-
-    hidden
-  end
-
-  # TODO bench, ensure doesn't slow down with more unmatches
-  defp profiles_with_match_count_q(user_ids) when is_list(user_ids) do
-    Profile
-    |> where([p], p.user_id in ^user_ids)
-    |> join(:left, [p], m in Match, on: p.user_id in [m.user_id_1, m.user_id_2] and m.alive?)
-    |> group_by([p], p.user_id)
-    |> select([p, m], %{user_id: p.user_id, count: count(m.id)})
-  end
-
   ######################## UNMATCH ########################
 
   defp unmatch(params) do
@@ -241,12 +209,6 @@ defmodule T.Matches do
   end
 
   #################### HELPERS ####################
-
-  def profiles_with_match_count(user_ids) do
-    profiles_with_match_count_q(user_ids)
-    |> Repo.all()
-    |> Map.new(fn %{user_id: id, count: count} -> {id, count} end)
-  end
 
   def get_current_matches(user_id) do
     Match

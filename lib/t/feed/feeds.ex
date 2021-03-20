@@ -114,16 +114,13 @@ defmodule T.Feeds do
     real =
       Profile
       |> where([p], p.user_id != ^profile.user_id)
+      |> where([p], p.user_id != ^kj)
       |> where([p], p.user_id >= ^first_real)
       |> where([p], p.user_id not in subquery(already_liked))
-      |> where([p], p.user_id != ^kj)
       |> where([p], not p.hidden?)
       |> Repo.all()
       |> Enum.shuffle()
 
-    # if count = opts[:count] do
-    # fakes_count = count - length(real)
-    # if fakes_count > 0 do
     fakes =
       Profile
       |> where([p], p.user_id < ^first_real)
@@ -133,13 +130,51 @@ defmodule T.Feeds do
 
       # |> order_by([p], desc: p.user_id)
       |> Repo.all()
-
-    # |> Enum.shuffle()
-
-    # end
-    # end || []
+      |> Enum.shuffle()
 
     real ++ fakes
+  end
+
+  @doc "batched_demo_feed(profile, loaded: 13) or demo_feed(next_ids, loaded: 13)"
+  def batched_demo_feed(profile_or_next_ids, opts \\ [])
+
+  def batched_demo_feed(%{user_id: user_id} = _profile, opts) do
+    first_real = "00000177-679a-ad79-0242-ac1100030000"
+    kj = "00000177-8336-5e0e-0242-ac1100030000"
+
+    already_liked = ProfileLike |> where(by_user_id: ^user_id) |> select([s], s.user_id)
+
+    real =
+      Profile
+      |> where([p], p.user_id != ^user_id)
+      |> where([p], p.user_id != ^kj)
+      |> where([p], p.user_id >= ^first_real)
+      |> where([p], p.user_id not in subquery(already_liked))
+      |> where([p], not p.hidden?)
+      |> select([p], p.user_id)
+      |> Repo.all()
+      |> Enum.shuffle()
+
+    fakes =
+      Profile
+      |> where([p], p.user_id < ^first_real)
+      |> where([p], p.user_id not in subquery(already_liked))
+      |> where([p], p.gender == "F")
+      |> maybe_limit(opts[:fakes_count])
+      |> select([p], p.user_id)
+      # |> order_by([p], desc: p.user_id)
+      |> Repo.all()
+      |> Enum.shuffle()
+
+    ids = real ++ fakes
+    batched_demo_feed(ids, opts)
+  end
+
+  def batched_demo_feed(next_ids, opts) when is_list(next_ids) do
+    loaded_count = opts[:loaded] || 10
+    {to_fetch, next_ids} = Enum.split(next_ids, loaded_count)
+    loaded = Profile |> where([p], p.user_id in ^to_fetch) |> Repo.all()
+    %{loaded: loaded, next_ids: next_ids}
   end
 
   defp maybe_limit(query, nil), do: query

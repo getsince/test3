@@ -4,25 +4,28 @@ defmodule TWeb.FeedChannel do
   alias T.{Feeds, Accounts}
 
   @impl true
-  def join("feed:" <> user_id, %{"timezone" => timezone} = _params, socket) do
+  def join("feed:" <> user_id, params, socket) do
     user_id = String.downcase(user_id)
     ChannelHelpers.verify_user_id(socket, user_id)
 
     # ChannelHelpers.ensure_onboarded(socket)
 
-    datetime = local_datetime_now(timezone)
-    schedule_feed_refresh_at_midnight(datetime, timezone)
-    my_profile = Accounts.get_profile!(socket.assigns.current_user)
+    %Accounts.Profile{} = my_profile = Accounts.get_profile!(socket.assigns.current_user)
 
-    feed =
-      if Feeds.use_demo_feed?() do
-        Feeds.demo_feed(my_profile)
-      else
-        Feeds.get_or_create_feed(my_profile, DateTime.to_date(datetime))
-      end
+    if params["batched"] do
+      %{loaded: feed, next_ids: next_ids} =
+        Feeds.batched_demo_feed(my_profile, loaded: params["count"] || 3)
 
-    {:ok, %{feed: render_profiles(feed), own_profile: render_profile(my_profile)},
-     assign(socket, timezone: timezone)}
+      {:ok,
+       %{
+         feed: render_profiles(feed),
+         has_more: not Enum.empty?(next_ids),
+         own_profile: render_profile(my_profile)
+       }, assign(socket, profile: my_profile, next_ids: next_ids)}
+    else
+      feed = Feeds.demo_feed(my_profile)
+      {:ok, %{feed: render_profiles(feed), own_profile: render_profile(my_profile)}, socket}
+    end
   end
 
   @impl true
@@ -33,48 +36,21 @@ defmodule TWeb.FeedChannel do
     {:reply, :ok, socket}
   end
 
+  def handle_in("more", params, socket) do
+    %{next_ids: next_ids} = socket.assigns
+
+    %{loaded: feed, next_ids: next_ids} =
+      Feeds.batched_demo_feed(next_ids, loaded: params["count"] || 5)
+
+    cursor = %{feed: render_profiles(feed), has_more: not Enum.empty?(next_ids)}
+    {:reply, {:ok, cursor}, assign(socket, next_ids: next_ids)}
+  end
+
   def handle_in("report", %{"report" => report}, socket) do
     ChannelHelpers.report(socket, report)
   end
 
-  @impl true
-  # TODO test
-  def handle_info({__MODULE__, [:update_feed], date}, socket) do
-    %{timezone: timezone, current_user: user} = socket.assigns
-
-    profile = Accounts.get_profile!(user)
-    feed = Feeds.get_or_create_feed(profile, date)
-    schedule_feed_refresh_at_midnight(local_datetime_now(timezone), timezone)
-    push(socket, "feed:update", %{feed: render_profiles(feed)})
-
-    {:noreply, socket}
-  end
-
   #### MISC ####
-
-  defp local_datetime_now(timezone) do
-    DateTime.shift_zone!(DateTime.utc_now(), timezone)
-  end
-
-  defp mindnight_next_day(date, timezone) do
-    DateTime.new(date, Time.new!(0, 0, 0), timezone)
-  end
-
-  # TODO extract and test
-  defp schedule_feed_refresh_at_midnight(datetime_now, timezone) do
-    next_day = datetime_now |> DateTime.to_date() |> Date.add(1)
-
-    midnight_next_day =
-      case mindnight_next_day(next_day, timezone) do
-        {:ok, datetime} -> datetime
-        {:ambiguous, _first_, second_dt} -> second_dt
-        {:gap, _just_before, just_after} -> just_after
-      end
-
-    seconds_diff = DateTime.diff(midnight_next_day, datetime_now)
-    msg = {__MODULE__, [:update_feed], next_day}
-    Process.send_after(self(), msg, :timer.seconds(seconds_diff))
-  end
 
   defp render_profile(profile) do
     render(ProfileView, "show.json", profile: profile)

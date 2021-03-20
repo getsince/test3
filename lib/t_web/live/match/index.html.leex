@@ -27,7 +27,7 @@
         <th>id</th>
         <th>user id</th>
         <th>name</th>
-        <th>online</th>
+        <th>presence</th>
         <th></th>
       </thead>
       <tbody>
@@ -40,10 +40,10 @@
                 class: "text-blue-500 hover:text-blue-700" %>
             </td>
             <td class="text-center"><%= match.profile.name %></td>
-            <td class="text-center"><%= match.profile.user_id in @presences %></td>
+            <td class="text-center"><%= render_presence(@presences[match.profile.user_id]) %></td>
             <td class="flex space-x-1">
               <button phx-click="unmatch" phx-value-match="<%= match.id %>" class="px-2 text-red-400 bg-red-100 border border-red-400">unmatch</button>
-              <%= if match.profile.user_id in @presences do %>
+              <%= if @presences[match.profile.user_id] do %>
                 <button phx-click="call" phx-value-user="<%= match.profile.user_id %>" class="px-2 text-blue-400 bg-blue-100 border border-blue-400">call</button>
               <% else %>
                 <button phx-click="yo" phx-value-match="<%= match.id %>" class="px-2 text-green-400 bg-green-100 border border-green-400">yo</button>

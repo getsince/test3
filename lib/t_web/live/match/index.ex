@@ -5,10 +5,15 @@ defmodule TWeb.MatchLive.Index do
 
   @pubsub T.PubSub
 
+  @default_assigns [feed: [], likers: [], presences: [], matches: []]
+  # TODO matches can be temp as well
+  @temporary_assigns [feed: [], likers: [], user_options: []]
+
   @impl true
   def mount(%{"user_id" => user_id}, _session, socket) do
     me = user_id |> Accounts.get_user!() |> Repo.preload(:profile)
     matches = Matches.get_current_matches(user_id)
+    socket = assign(socket, @default_assigns)
 
     socket =
       if connected?(socket) do
@@ -18,11 +23,8 @@ defmodule TWeb.MatchLive.Index do
 
         for match <- matches do
           mate_id = mate_id(match, me.id)
-
           {:ok, _} = Presence.track(self(), topic(mate_id), me.id, %{})
-
           TWeb.Endpoint.subscribe(topic(me.id))
-
           Matches.subscribe_for_match(match.id)
         end
 
@@ -31,7 +33,7 @@ defmodule TWeb.MatchLive.Index do
           likers: all_likers(me.id)
         )
       else
-        assign(socket, feed: [], likers: [])
+        socket
       end
 
     {:ok,
@@ -42,7 +44,7 @@ defmodule TWeb.MatchLive.Index do
        matches: matches,
        user_options: user_options(),
        presences: presences(topic(me.id))
-     ), temporary_assigns: [feed: [], likers: []]}
+     ), temporary_assigns: @temporary_assigns}
   end
 
   def mount(_params, _session, socket) do
@@ -50,12 +52,8 @@ defmodule TWeb.MatchLive.Index do
      assign(socket,
        me_id: nil,
        me: nil,
-       matches: [],
-       feed: [],
-       likers: [],
-       user_options: user_options(),
-       presences: []
-     ), temporary_assigns: [feed: [], likers: []]}
+       user_options: user_options()
+     ), temporary_assigns: @temporary_assigns}
   end
 
   @impl true
@@ -67,11 +65,11 @@ defmodule TWeb.MatchLive.Index do
     if connected?(socket) do
       %{me: me, presences: presences} = socket.assigns
 
-      if mate_id in presences do
-        if socket.assigns[:call] do
-          socket
-        end
-      end || push_patch(socket, to: Routes.match_index_path(socket, :show, me.id), replace: true)
+      if presences[mate_id] && socket.assigns[:call] do
+        update_in_call(socket, true)
+      else
+        push_patch(socket, to: Routes.match_index_path(socket, :show, me.id), replace: true)
+      end
     else
       socket
     end
@@ -79,6 +77,7 @@ defmodule TWeb.MatchLive.Index do
 
   defp apply_action(_params, _action, socket) do
     me = socket.assigns.me
+    socket = update_in_call(socket, false)
 
     case socket.assigns[:call] do
       nil ->
@@ -147,8 +146,11 @@ defmodule TWeb.MatchLive.Index do
   end
 
   def handle_event("peer-message" = event, %{"body" => _body} = params, socket) do
-    {:picked_up, mate} = socket.assigns.call
-    TWeb.Endpoint.broadcast!(topic(mate), event, params)
+    case socket.assigns.call do
+      {:picked_up, mate} -> TWeb.Endpoint.broadcast!(topic(mate), event, params)
+      _other -> []
+    end
+
     {:noreply, socket}
   end
 
@@ -172,7 +174,7 @@ defmodule TWeb.MatchLive.Index do
           socket
 
         {s, mate} when s in [:calling, :called] ->
-          if mate in presences do
+          if presences[mate] do
             socket
           else
             push_patch(socket, to: Routes.match_index_path(socket, :show, me.id))
@@ -197,7 +199,7 @@ defmodule TWeb.MatchLive.Index do
 
     mate_id = mate_id(user_ids, me.id)
     # TODO doesn't seem to work
-    {:ok, _} = Presence.track(self(), topic(mate_id), me.id, %{})
+    {:ok, _} = Presence.track(self(), topic(mate_id), me.id, %{in_call: in_call?(socket)})
 
     {:noreply, assign(socket, matches: [match | matches])}
   end
@@ -233,13 +235,9 @@ defmodule TWeb.MatchLive.Index do
 
         {:calling, ^mate} ->
           Phoenix.PubSub.broadcast!(@pubsub, topic(mate), {:pick_up, me.id})
-
-          socket
-          # |> maybe_push_want_offer(mate, me.id)
-          |> assign(call: {:picked_up, mate})
+          assign(socket, call: {:picked_up, mate})
 
         {s, _mate} when s in [:calling, :called, :picked_up] ->
-          # ignore?
           socket
       end
 
@@ -247,32 +245,21 @@ defmodule TWeb.MatchLive.Index do
   end
 
   def handle_info({:pick_up, mate}, socket) do
-    # me = socket.assigns.me
-
     socket =
       case socket.assigns[:call] do
-        {:calling, ^mate} ->
-          socket
-          # |> maybe_push_want_offer(mate, me.id)
-          |> assign(call: {:picked_up, mate})
-
-        _other ->
-          socket
+        {:calling, ^mate} -> assign(socket, call: {:picked_up, mate})
+        _other -> socket
       end
 
     {:noreply, socket}
   end
 
   def handle_info({:hang_up, mate}, socket) do
-    me = socket.assigns.me
-
     socket =
       case socket.assigns[:call] do
         {s, ^mate} when s in [:calling, :called, :picked_up] ->
+          me = socket.assigns.me
           push_patch(socket, to: Routes.match_index_path(socket, :show, me.id))
-
-        {s, _other_mate} when s in [:calling, :called, :picked_up] ->
-          socket
 
         nil ->
           socket
@@ -280,33 +267,6 @@ defmodule TWeb.MatchLive.Index do
 
     {:noreply, socket}
   end
-
-  # def handle_info({:want_offer, mate}, socket) do
-  #   socket =
-  #     case socket.assigns[:call] do
-  #       {:picked_up, ^mate} ->
-  #         IO.inspect("pushing event")
-  #         push_event(socket, "want-offer", %{mate: mate})
-
-  #       _other ->
-  #         socket
-  #     end
-
-  #   {:noreply, socket}
-  # end
-
-  # defp maybe_push_want_offer(socket, mate, me) do
-  #   IO.inspect(["maybe offer", mate, me])
-
-  #   if mate < me do
-  #     IO.inspect(["offer", mate, me])
-  #     push_event(socket, "want-offer", %{mate: mate})
-  #   else
-  #     IO.inspect("not pushing")
-  #     Phoenix.PubSub.broadcast!(@pubsub, topic(mate), {:want_offer, me})
-  #     socket
-  #   end
-  # end
 
   import Ecto.Query
 
@@ -317,12 +277,6 @@ defmodule TWeb.MatchLive.Index do
     |> order_by([_, p], desc: p.times_liked)
     |> Repo.all()
   end
-
-  # defp all_profiles(me_id) do
-  #   Accounts.Profile
-  #   |> where([p], p.user_id != ^me_id)
-  #   |> Repo.all()
-  # end
 
   defp all_likers(me_id) do
     likers =
@@ -349,6 +303,41 @@ defmodule TWeb.MatchLive.Index do
   end
 
   defp presences(topic) do
-    topic |> Presence.list() |> Map.keys()
+    topic
+    |> Presence.list()
+    |> Map.new(fn {uid, %{metas: metas}} ->
+      in_call? = Enum.find_value(metas, fn meta -> meta[:in_call] end)
+      {uid, %{in_call?: in_call?}}
+    end)
   end
+
+  defp me(socket) do
+    socket.assigns.me.id
+  end
+
+  defp mates(socket) do
+    me = me(socket)
+
+    Enum.map(socket.assigns.matches, fn %Matches.Match{user_id_1: uid1, user_id_2: uid2} ->
+      mate_id([uid1, uid2], me)
+    end)
+  end
+
+  defp update_in_call(socket, in_call?) do
+    me = me(socket)
+
+    for mate_id <- mates(socket) do
+      Presence.update(self(), topic(mate_id), me, %{in_call: in_call?})
+    end
+
+    assign(socket, in_call?: in_call?)
+  end
+
+  defp in_call?(socket) do
+    !!socket.assigns[:in_call?]
+  end
+
+  defp render_presence(%{in_call?: true}), do: "in call"
+  defp render_presence(%{in_call?: _}), do: "online"
+  defp render_presence(nil), do: "offline"
 end

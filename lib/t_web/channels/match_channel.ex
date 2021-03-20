@@ -15,7 +15,7 @@ defmodule TWeb.MatchChannel do
     Enum.each(matches, &Matches.subscribe_for_match(&1.id))
 
     mates = Enum.map(matches, & &1.profile.user_id)
-    send(self(), {:after_join, mates})
+    send(self(), :after_join)
 
     {:ok, %{matches: render_matches(topic, matches)}, assign(socket, mates: mates)}
   end
@@ -23,6 +23,7 @@ defmodule TWeb.MatchChannel do
   @impl true
   def handle_in("peer-message" = event, %{"mate" => mate, "body" => _} = payload, socket) do
     # TODO repsond with error?
+    # TODO and current_call(socket) == mate?
     if mate in presences(socket) do
       trace(socket, %{"event" => event, "payload" => payload})
       TWeb.Endpoint.broadcast!(mate_topic(mate), event, Map.put(payload, "mate", me(socket)))
@@ -37,6 +38,14 @@ defmodule TWeb.MatchChannel do
     trace(socket, msg)
     Phoenix.PubSub.broadcast!(@pubsub, mate_topic(mate), msg)
     {:reply, :ok, socket}
+  end
+
+  def handle_in("call-started", %{"mate" => _mate}, socket) do
+    {:reply, :ok, update_in_call(socket, true)}
+  end
+
+  def handle_in("call-ended", %{"mate" => _mate}, socket) do
+    {:reply, :ok, update_in_call(socket, false)}
   end
 
   def handle_in("yo", %{"match_id" => match}, socket) do
@@ -62,7 +71,7 @@ defmodule TWeb.MatchChannel do
   @impl true
   def handle_info({Matches, [:unmatched, match_id], [_, _] = user_ids}, socket) do
     Matches.unsubscribe_from_match(match_id)
-    untrack_self_for_unmatched(socket, user_ids)
+    socket = untrack_self_for_unmatched(socket, user_ids)
     push(socket, "unmatched", %{id: match_id})
     {:noreply, socket}
   end
@@ -73,7 +82,7 @@ defmodule TWeb.MatchChannel do
     me = me(socket)
     mate_id = mate_id(me, user_ids)
     mate = Accounts.get_profile!(mate_id)
-    track_self_for_mate(socket, mate_id)
+    socket = track_self_for_mate(socket, mate_id)
 
     rendered = render_match(match_id, mate, mate_online?(socket, mate_id))
     push(socket, "matched", %{match: rendered})
@@ -92,30 +101,60 @@ defmodule TWeb.MatchChannel do
     defp decode_call_event(unquote(s)), do: unquote(a)
   end)
 
-  def handle_info({:after_join, mate_ids}, socket) do
-    track_self_for_mates(socket, mate_ids)
+  def handle_info(:after_join, socket) do
+    track_self_for_mates(socket)
     push(socket, "presence_state", Presence.list(socket))
     {:noreply, socket}
   end
 
   ### HELPERS ###
 
-  defp track_self_for_mates(socket, mate_ids) when is_list(mate_ids) do
+  defp track_self_for_mates(socket) do
     me = me(socket)
 
-    for mate_id <- mate_ids do
+    for mate_id <- mates(socket) do
       {:ok, _} = Presence.track(self(), mate_topic(mate_id), me, %{})
     end
   end
 
   defp track_self_for_mate(socket, mate_id) do
     me = me(socket)
-    {:ok, _} = Presence.track(self(), mate_topic(mate_id), me, %{})
+    {:ok, _} = Presence.track(self(), mate_topic(mate_id), me, %{in_call: in_call?(socket)})
+    add_mate(socket, mate_id)
   end
 
   defp untrack_self_for_unmatched(socket, user_ids) do
     me = me(socket)
-    :ok = Presence.untrack(self(), mate_topic(mate_id(me, user_ids)), me)
+    mate = mate_id(me, user_ids)
+    :ok = Presence.untrack(self(), mate_topic(mate), me)
+    remove_mate(socket, mate)
+  end
+
+  defp update_in_call(socket, in_call?) do
+    me = me(socket)
+
+    for mate_id <- mates(socket) do
+      Presence.update(self(), mate_topic(mate_id), me, %{in_call: in_call?})
+    end
+
+    assign(socket, in_call?: in_call?)
+  end
+
+  defp in_call?(socket) do
+    !!socket.assigns[:in_call?]
+  end
+
+  # TODO is there update(socket, :mates, fn prev -> ??? end)
+  defp add_mate(socket, mate) do
+    mates = socket.assigns.mates
+    mates = [mate | List.delete(mates, mate)]
+    assign(socket, mates: mates)
+  end
+
+  defp remove_mate(socket, mate) do
+    mates = socket.assigns.mates
+    mates = List.delete(mates, mate)
+    assign(socket, mates: mates)
   end
 
   defp mate_topic(mate_id) do
@@ -129,6 +168,10 @@ defmodule TWeb.MatchChannel do
 
   defp me(socket) do
     socket.assigns.current_user.id
+  end
+
+  defp mates(socket) do
+    socket.assigns.mates
   end
 
   defp presences(socket) do

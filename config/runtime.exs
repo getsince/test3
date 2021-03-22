@@ -6,7 +6,7 @@ import Config
 # and secrets from environment variables or elsewhere. Do not define
 # any compile-time configuration in here, as it won't be applied.
 
-config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase
+# config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase
 
 config :nadia, recv_timeout: 20
 
@@ -79,9 +79,9 @@ if config_env() == :prod do
 
   config :t, run_migrations_on_start?: true
 
-  config :t, T.Mailer,
-    adapter: Bamboo.SesAdapter,
-    ex_aws: [region: "eu-central-1"]
+  # config :t, T.Mailer,
+  #   adapter: Bamboo.SesAdapter,
+  #   ex_aws: [region: "eu-central-1"]
 
   decode_cert = fn cert ->
     [{:Certificate, der, _}] = :public_key.pem_decode(cert)
@@ -114,7 +114,7 @@ if config_env() == :prod do
 
   host = System.fetch_env!("HOST")
 
-  config :t, T.Mailer, our_address: "kindly@#{host}"
+  # config :t, T.Mailer, our_address: "kindly@#{host}"
 
   config :t, TWeb.Endpoint,
     # For production, don't forget to configure the url host
@@ -177,11 +177,11 @@ if config_env() == :dev do
     team_id: System.fetch_env!("APNS_TEAM_ID"),
     key_id: System.fetch_env!("MUSIC_KEY_ID")
 
-  config :t, T.Mailer,
-    adapter: Bamboo.LocalAdapter,
-    #   adapter: Bamboo.SesAdapter,
-    #   ex_aws: [region: "eu-central-1"],
-    our_address: "kindly@example.com"
+  # config :t, T.Mailer,
+  #   adapter: Bamboo.LocalAdapter,
+  #   #   adapter: Bamboo.SesAdapter,
+  #   #   ex_aws: [region: "eu-central-1"],
+  #   our_address: "kindly@example.com"
 
   # For development, we disable any cache and enable
   # debugging.
@@ -269,7 +269,7 @@ if config_env() == :test do
   config :logger, level: :warn
 
   config :t, Oban, crontab: false, queues: false, plugins: false
-  config :t, T.Mailer, adapter: Bamboo.TestAdapter, our_address: "kindly@example.com"
+  # config :t, T.Mailer, adapter: Bamboo.TestAdapter, our_address: "kindly@example.com"
 
   config :ex_aws,
     access_key_id: "AWS_ACCESS_KEY_ID",

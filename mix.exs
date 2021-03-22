@@ -62,7 +62,7 @@ defmodule T.MixProject do
       {:bamboo_ses, "~> 0.1.6"},
       {:bamboo, "~> 1.6"},
       {:oban, "~> 2.3"},
-      {:remote_ip, "~> 0.2.1"},
+      {:remote_ip, "~> 1.0.0"},
       {:ex_phone_number, "~> 0.2"},
       # TODO
       {:passwordless_auth, "~> 0.3.0"},

@@ -96,7 +96,7 @@ defmodule Dev do
     end
 
     def notify_all do
-      all_device_ids
+      all_device_ids()
       |> Enum.map(fn %{device: device} ->
         notify(device)
       end)
@@ -341,7 +341,7 @@ defmodule Dev do
 
         T.Repo.transaction(fn ->
           {:ok, user} = Accounts.register_user(%{"phone_number" => phone_number})
-          {:ok, profile} = Accounts.onboard_profile(user.profile, Map.from_struct(profile))
+          {:ok, _profile} = Accounts.onboard_profile(user.profile, Map.from_struct(profile))
         end)
       end,
       max_concurrency: 20,
@@ -512,95 +512,95 @@ defmodule Dev do
   end
 end
 
-defmodule Chatter do
-  use GenServer
+# defmodule Chatter do
+#   use GenServer
 
-  def start_link(args) do
-    GenServer.start_link(__MODULE__, args, name: __MODULE__)
-  end
+#   def start_link(args) do
+#     GenServer.start_link(__MODULE__, args, name: __MODULE__)
+#   end
 
-  @impl true
-  def init("match:" <> match_id = topic) do
-    TWeb.Endpoint.subscribe(topic)
-    match = T.Repo.get!(T.Matches.Match, match_id)
-    {:ok, %{match: match}}
-  end
+#   @impl true
+#   def init("match:" <> match_id = topic) do
+#     TWeb.Endpoint.subscribe(topic)
+#     match = T.Repo.get!(T.Matches.Match, match_id)
+#     {:ok, %{match: match}}
+#   end
 
-  def text(text) do
-    GenServer.call(__MODULE__, {:text, text})
-  end
+#   def text(text) do
+#     GenServer.call(__MODULE__, {:text, text})
+#   end
 
-  def photo(s3_key) do
-    GenServer.call(__MODULE__, {:photo, s3_key})
-  end
+#   def photo(s3_key) do
+#     GenServer.call(__MODULE__, {:photo, s3_key})
+#   end
 
-  def audio(s3_key) do
-    GenServer.call(__MODULE__, {:audio, s3_key})
-  end
+#   def audio(s3_key) do
+#     GenServer.call(__MODULE__, {:audio, s3_key})
+#   end
 
-  def unmatch do
-    GenServer.call(__MODULE__, :unmatch)
-  end
+#   def unmatch do
+#     GenServer.call(__MODULE__, :unmatch)
+#   end
 
-  @impl true
-  def handle_info(
-        %Phoenix.Socket.Broadcast{
-          event: "message:new",
-          payload: payload
-        },
-        state
-      ) do
-    IO.inspect(payload)
-    {:noreply, state}
-  end
+#   @impl true
+#   def handle_info(
+#         %Phoenix.Socket.Broadcast{
+#           event: "message:new",
+#           payload: payload
+#         },
+#         state
+#       ) do
+#     IO.inspect(payload)
+#     {:noreply, state}
+#   end
 
-  @impl true
-  def handle_call(:unmatch, _from, %{match: match} = state) do
-    me = other_user_id(match)
-    result = T.Matches.unmatch(me, match.id)
-    TWeb.Endpoint.broadcast!("match:#{match.id}", "unmatched", %{})
-    {:reply, result, state}
-  end
+#   @impl true
+#   def handle_call(:unmatch, _from, %{match: match} = state) do
+#     me = other_user_id(match)
+#     result = T.Matches.unmatch(me, match.id)
+#     TWeb.Endpoint.broadcast!("match:#{match.id}", "unmatched", %{})
+#     {:reply, result, state}
+#   end
 
-  def handle_call({:text, text}, _from, state) do
-    add_and_broadcast_message(state, %{"kind" => "text", "data" => %{"text" => text}})
-    {:reply, :ok, state}
-  end
+#   def handle_call({:text, text}, _from, state) do
+#     add_and_broadcast_message(state, %{"kind" => "text", "data" => %{"text" => text}})
+#     {:reply, :ok, state}
+#   end
 
-  def handle_call({:photo, s3_key}, _from, state) do
-    add_and_broadcast_message(state, %{
-      "kind" => "photo",
-      "data" => %{"s3_key" => s3_key}
-    })
+#   def handle_call({:photo, s3_key}, _from, state) do
+#     add_and_broadcast_message(state, %{
+#       "kind" => "photo",
+#       "data" => %{"s3_key" => s3_key}
+#     })
 
-    {:reply, :ok, state}
-  end
+#     {:reply, :ok, state}
+#   end
 
-  def handle_call({:audio, s3_key}, _from, state) do
-    add_and_broadcast_message(state, %{
-      "kind" => "audio",
-      "data" => %{"s3_key" => s3_key}
-    })
+#   def handle_call({:audio, s3_key}, _from, state) do
+#     add_and_broadcast_message(state, %{
+#       "kind" => "audio",
+#       "data" => %{"s3_key" => s3_key}
+#     })
 
-    {:reply, :ok, state}
-  end
+#     {:reply, :ok, state}
+#   end
 
-  defp add_and_broadcast_message(%{match: match}, attrs) do
-    {:ok, message} = T.Matches.add_message(match.id, other_user_id(match), attrs)
+#   defp add_and_broadcast_message(%{match: match}, attrs) do
+#     {:ok, message} = T.Matches.add_message(match.id, other_user_id(match), attrs)
 
-    TWeb.Endpoint.broadcast!(
-      "match:#{match.id}",
-      "message:new",
-      %{message: TWeb.MessageView.render("show.json", %{message: message})}
-    )
-  end
+#     TWeb.Endpoint.broadcast!(
+#       "match:#{match.id}",
+#       "message:new",
+#       %{message: TWeb.MessageView.render("show.json", %{message: message})}
+#     )
+#   end
 
-  defp other_user_id(match) do
-    %T.Matches.Match{user_id_1: id1, user_id_2: id2} = match
-    [other_id] = [id1, id2] -- ["00000177-8336-5e0e-0242-ac1100030000"]
-    other_id
-  end
-end
+#   defp other_user_id(match) do
+#     %T.Matches.Match{user_id_1: id1, user_id_2: id2} = match
+#     [other_id] = [id1, id2] -- ["00000177-8336-5e0e-0242-ac1100030000"]
+#     other_id
+#   end
+# end
 
 defmodule Support do
   use GenServer

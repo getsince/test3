@@ -9,7 +9,15 @@ defmodule T.Matches.Match do
     field :user_id_2, Ecto.Bigflake.UUID
     # TODO
     field :profile, :map, virtual: true
+    field :timeslot, :map, virtual: true
     field :alive?, :boolean
+
+    # embeds_one :slot_offer, Timeslot do
+    #   field :offerer, Ecto.Bigflake.UUID
+    #   field :slots, {:array, DateTime}
+    #   field :accepted_slot, DateTime
+    # end
+
     timestamps(updated_at: false)
   end
 end

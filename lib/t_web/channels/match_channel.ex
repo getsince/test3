@@ -53,6 +53,16 @@ defmodule TWeb.MatchChannel do
     {:reply, :ok, socket}
   end
 
+  def handle_in("offer-slots", %{"slots" => slots, "match" => match}, socket) do
+    {:ok, _changes} = Matches.save_slots_offer(slots, match: match, from: me(socket))
+    {:reply, :ok, socket}
+  end
+
+  def handle_in("accept-slot", %{"slot" => slot, "match" => match}, socket) do
+    {:ok, _timeslot} = Matches.accept_slot(slot, match: match, picker: me(socket))
+    {:reply, :ok, socket}
+  end
+
   def handle_in("ice-servers", _params, socket) do
     {:reply, {:ok, %{ice_servers: T.Twilio.ice_servers()}}, socket}
   end
@@ -69,6 +79,35 @@ defmodule TWeb.MatchChannel do
   end
 
   @impl true
+  def handle_info(:after_join, socket) do
+    track_self_for_mates(socket)
+    push(socket, "presence_state", Presence.list(socket))
+    {:noreply, socket}
+  end
+
+  def handle_info({call_event, mate}, socket) when call_event in [:call, :pick_up, :hang_up] do
+    push(socket, encode_call_event(call_event), %{mate: mate})
+    {:noreply, socket}
+  end
+
+  [{:call, "call"}, {:pick_up, "pick-up"}, {:hang_up, "hang-up"}]
+  |> Enum.each(fn {a, s} ->
+    defp encode_call_event(unquote(a)), do: unquote(s)
+    defp decode_call_event(unquote(s)), do: unquote(a)
+  end)
+
+  def handle_info({Matches, [:timeslot, :offered], timeslot}, socket) do
+    %Matches.Timeslot{slots: slots, match_id: match_id} = timeslot
+    push(socket, "slots_offer", %{"match" => match_id, "slots" => slots})
+    {:noreply, socket}
+  end
+
+  def handle_info({Matches, [:timeslot, :accepted], timeslot}, socket) do
+    %Matches.Timeslot{selected_slot: slot, match_id: match_id} = timeslot
+    push(socket, "slot_accepted", %{"match" => match_id, "selected_slot" => slot})
+    {:noreply, socket}
+  end
+
   def handle_info({Matches, [:unmatched, match_id], [_, _] = user_ids}, socket) do
     Matches.unsubscribe_from_match(match_id)
     socket = untrack_self_for_unmatched(socket, user_ids)
@@ -87,23 +126,6 @@ defmodule TWeb.MatchChannel do
     rendered = render_match(match_id, mate, mate_online?(socket, mate_id))
     push(socket, "matched", %{match: rendered})
 
-    {:noreply, socket}
-  end
-
-  def handle_info({call_event, mate}, socket) when call_event in [:call, :pick_up, :hang_up] do
-    push(socket, encode_call_event(call_event), %{mate: mate})
-    {:noreply, socket}
-  end
-
-  [{:call, "call"}, {:pick_up, "pick-up"}, {:hang_up, "hang-up"}]
-  |> Enum.each(fn {a, s} ->
-    defp encode_call_event(unquote(a)), do: unquote(s)
-    defp decode_call_event(unquote(s)), do: unquote(a)
-  end)
-
-  def handle_info(:after_join, socket) do
-    track_self_for_mates(socket)
-    push(socket, "presence_state", Presence.list(socket))
     {:noreply, socket}
   end
 
@@ -182,22 +204,33 @@ defmodule TWeb.MatchChannel do
     mate_id in presences(socket)
   end
 
-  defp render_match(match_id, profile, online?) do
+  defp render_match(match_id, profile, maybe_timeslot \\ nil, online?) do
     %{
       id: match_id,
       online: online?,
       profile: render_profile(profile),
+      timeslot: maybe_timeslot && render_timeslot(maybe_timeslot),
       last_active: profile.last_active
     }
   end
 
   defp render_matches(topic, matches) do
     online = topic |> Presence.list() |> Map.keys()
-    Enum.map(matches, &render_match(&1.id, &1.profile, &1.profile.user_id in online))
+    Enum.map(matches, &render_match(&1.id, &1.profile, &1.timeslot, &1.profile.user_id in online))
   end
 
   defp render_profile(profile) do
     render(ProfileView, "show.json", profile: profile)
+  end
+
+  # TODO move to view
+  defp render_timeslot(%Matches.Timeslot{match_id: match, selected_slot: selected_slot})
+       when not is_nil(selected_slot) do
+    %{"match" => match, "selected_slot" => selected_slot}
+  end
+
+  defp render_timeslot(%Matches.Timeslot{match_id: match, picker_id: picker, slots: slots}) do
+    %{"match" => match, "slots" => slots, "picker" => picker}
   end
 
   defp trace(socket, message) do

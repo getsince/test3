@@ -53,12 +53,12 @@ defmodule TWeb.MatchChannel do
     {:reply, :ok, socket}
   end
 
-  def handle_in("offer-slots", %{"slots" => slots, "match" => match}, socket) do
+  def handle_in("offer-slots", %{"slots" => slots, "match_id" => match}, socket) do
     {:ok, _changes} = Matches.save_slots_offer(slots, match: match, from: me(socket))
     {:reply, :ok, socket}
   end
 
-  def handle_in("accept-slot", %{"slot" => slot, "match" => match}, socket) do
+  def handle_in("accept-slot", %{"slot" => slot, "match_id" => match}, socket) do
     {:ok, _timeslot} = Matches.accept_slot(slot, match: match, picker: me(socket))
     {:reply, :ok, socket}
   end
@@ -98,13 +98,13 @@ defmodule TWeb.MatchChannel do
 
   def handle_info({Matches, [:timeslot, :offered], timeslot}, socket) do
     %Matches.Timeslot{slots: slots, match_id: match_id} = timeslot
-    push(socket, "slots_offer", %{"match" => match_id, "slots" => slots})
+    push(socket, "slots_offer", %{"match_id" => match_id, "slots" => slots})
     {:noreply, socket}
   end
 
   def handle_info({Matches, [:timeslot, :accepted], timeslot}, socket) do
     %Matches.Timeslot{selected_slot: slot, match_id: match_id} = timeslot
-    push(socket, "slot_accepted", %{"match" => match_id, "selected_slot" => slot})
+    push(socket, "slot_accepted", %{"match_id" => match_id, "selected_slot" => slot})
     {:noreply, socket}
   end
 
@@ -226,11 +226,11 @@ defmodule TWeb.MatchChannel do
   # TODO move to view
   defp render_timeslot(%Matches.Timeslot{match_id: match, selected_slot: selected_slot})
        when not is_nil(selected_slot) do
-    %{"match" => match, "selected_slot" => selected_slot}
+    %{"match_id" => match, "selected_slot" => selected_slot}
   end
 
   defp render_timeslot(%Matches.Timeslot{match_id: match, picker_id: picker, slots: slots}) do
-    %{"match" => match, "slots" => slots, "picker" => picker}
+    %{"match_id" => match, "slots" => slots, "picker" => picker}
   end
 
   defp trace(socket, message) do

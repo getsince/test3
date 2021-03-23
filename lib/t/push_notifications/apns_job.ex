@@ -9,14 +9,33 @@ defmodule T.PushNotifications.APNSJob do
   def perform(%Oban.Job{args: args}) do
     %{"template" => template, "device_id" => device_id, "data" => data} = args
     n = build_notification(template, device_id, data)
+    push_all_envs(n)
+  end
 
-    case APNS.push(n) do
-      %Notification{response: r} when r in [:bad_device_token, :unregistered] ->
+  def push_all_envs(n) do
+    Application.fetch_env!(:pigeon, :apns)
+    |> Enum.map(fn {worker, _} -> APNS.push(n, to: worker) end)
+    |> case do
+      [n] -> n
+      [%Notification{response: :success} = n, _n] -> n
+      [_n, %Notification{response: :success} = n] -> n
+      [_, _] = fails -> fails
+    end
+    |> List.wrap()
+    |> Enum.reduce([], fn %Notification{response: r, device_token: device_id}, acc ->
+      if r in [:bad_device_token, :unregistered] do
         T.Accounts.remove_apns_device(device_id)
-        :discard
+      end
 
-      %Notification{response: :success} ->
+      if r == :success do
         :ok
+      else
+        acc
+      end
+    end)
+    |> case do
+      :ok -> :ok
+      [] -> :discard
     end
   end
 

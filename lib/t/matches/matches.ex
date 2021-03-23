@@ -10,7 +10,7 @@ defmodule T.Matches do
 
   alias T.{Repo, Media, PushNotifications}
   alias T.Accounts.{User, Profile}
-  alias T.Matches.{Match, Message, Yo}
+  alias T.Matches.{Match, Message, Yo, Timeslot}
 
   @pubsub T.PubSub
   @topic to_string(__MODULE__)
@@ -51,6 +51,26 @@ defmodule T.Matches do
         Phoenix.PubSub.broadcast(@pubsub, topic, msg)
       end
     end
+
+    success
+  end
+
+  defp notify_subscribers({:ok, %{timeslot: timeslot}} = success, [:timeslot, :offered, to_mate]) do
+    Phoenix.PubSub.broadcast(
+      @pubsub,
+      pubsub_user_topic(to_mate),
+      {__MODULE__, [:timeslot, :offered], timeslot}
+    )
+
+    success
+  end
+
+  defp notify_subscribers({:ok, %Timeslot{} = timeslot} = success, [:timeslot, :accepted, to_mate]) do
+    Phoenix.PubSub.broadcast(
+      @pubsub,
+      pubsub_user_topic(to_mate),
+      {__MODULE__, [:timeslot, :accepted], timeslot}
+    )
 
     success
   end
@@ -146,6 +166,152 @@ defmodule T.Matches do
   #   Oban.insert(job)
   # end
 
+  ######################## DATE SLOTS ########################
+
+  import Ecto.Changeset
+
+  # TODO ensure slots are 15-minute
+  @doc "save_slots_offer(utc_timestamps, match: <match_id>, from: <user_id>)"
+  def save_slots_offer(slots, opts) do
+    match_id = Keyword.fetch!(opts, :match)
+    offerer = Keyword.fetch!(opts, :from)
+    reference = prev_slot(opts[:reference] || DateTime.utc_now())
+
+    %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} = get_match_for_user(match_id, offerer)
+    [mate] = [uid1, uid2] -- [offerer]
+
+    changeset =
+      timeslot_changeset(
+        %Timeslot{match_id: match_id, picker_id: mate},
+        %{slots: slots},
+        reference
+      )
+
+    push_job =
+      PushNotifications.DispatchJob.new(%{
+        "type" => "timeslot_offer",
+        "match_id" => match_id,
+        "receiver_id" => mate
+      })
+
+    # conflict_opts = [
+    #   on_conflict: [set: [selected_slot: nil, slots: [], picker_id: mate]],
+    #   conflict_target: [:match_id]
+    # ]
+
+    conflict_opts = [on_conflict: :replace_all, conflict_target: [:match_id]]
+
+    Ecto.Multi.new()
+    |> Ecto.Multi.insert(:timeslot, changeset, conflict_opts)
+    |> Oban.insert(:push, push_job)
+    |> Repo.transaction()
+    |> notify_subscribers([:timeslot, :offered, mate])
+  end
+
+  # TODO delete stale slots
+  # can list where I'm picker, where I'm not picker, where slot is selected
+  def list_relevant_slots(user_id, reference \\ DateTime.utc_now()) do
+    my_matches =
+      Match
+      |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
+      |> where(alive?: true)
+
+    Timeslot
+    |> join(:inner, [t], m in subquery(my_matches), on: t.match_id == m.id)
+    |> Repo.all()
+    |> filter_relevant_slots(reference)
+  end
+
+  def filter_relevant_slots(timeslots, reference) do
+    reference = prev_slot(reference)
+
+    timeslots
+    |> Enum.map(fn %Timeslot{slots: slots} = timeslot ->
+      %Timeslot{timeslot | slots: Enum.filter(slots, &future_slot?(&1, reference))}
+    end)
+    |> Enum.filter(fn %Timeslot{slots: slots, selected_slot: selected_slot} ->
+      if selected_slot do
+        future_slot?(selected_slot, reference)
+      else
+        not Enum.empty?(slots)
+      end
+    end)
+  end
+
+  @doc "accept_slot(timestamp, match: <match_id>, picker: <user_id>)"
+  def accept_slot(slot, opts) do
+    reference = prev_slot(opts[:reference] || DateTime.utc_now())
+    {:ok, slot, 0} = DateTime.from_iso8601(slot)
+    true = DateTime.compare(slot, reference) in [:eq, :gt]
+
+    match_id = Keyword.fetch!(opts, :match)
+    picker = Keyword.fetch!(opts, :picker)
+
+    %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} = get_match_for_user(match_id, picker)
+    [mate] = [uid1, uid2] -- [picker]
+
+    {1, [timeslot]} =
+      Timeslot
+      |> where(match_id: ^match_id)
+      |> where(picker_id: ^picker)
+      |> where([t], ^slot in t.slots)
+      |> select([t], t)
+      |> Repo.update_all(set: [selected_slot: slot])
+
+    accepted_push =
+      PushNotifications.DispatchJob.new(%{
+        "type" => "timeslot_accepted",
+        "match_id" => match_id,
+        "receiver_id" => mate
+      })
+
+    reminder_push =
+      PushNotifications.DispatchJob.new(
+        %{
+          "type" => "timeslot_reminder",
+          "match_id" => match_id,
+          "slot" => slot
+        },
+        scheduled_at: DateTime.add(slot, -15 * 60, :second)
+      )
+
+    Oban.insert_all([accepted_push, reminder_push])
+    notify_subscribers({:ok, timeslot}, [:timeslot, :accepted, mate])
+  end
+
+  defp timeslot_changeset(timeslot, attrs, reference) do
+    timeslot
+    |> cast(attrs, [:slots])
+    |> update_change(:slots, &filter_valid_slots(&1, reference))
+    |> validate_required([:slots])
+    |> validate_length(:slots, min: 1)
+  end
+
+  defp filter_valid_slots(slots, reference) do
+    slots
+    |> Enum.map(&parse_slot/1)
+    |> Enum.filter(&future_slot?(&1, reference))
+    |> Enum.uniq_by(&DateTime.to_unix/1)
+  end
+
+  defp parse_slot(timestamp) when is_binary(timestamp) do
+    {:ok, dt, 0} = DateTime.from_iso8601(timestamp)
+    dt
+  end
+
+  defp parse_slot(%DateTime{} = dt), do: dt
+
+  defp future_slot?(datetime, reference) do
+    # TODO within_24h? =
+    DateTime.compare(datetime, reference) in [:eq, :gt]
+  end
+
+  # ~U[2021-03-23 14:12:00Z] -> ~U[2021-03-23 14:00:00Z]
+  # ~U[2021-03-23 14:49:00Z] -> ~U[2021-03-23 14:45:00Z]
+  defp prev_slot(%DateTime{minute: minutes} = dt) do
+    %DateTime{dt | minute: div(minutes, 15) * 15, second: 0, microsecond: {0, 0}}
+  end
+
   ######################## UNMATCH ########################
 
   defp unmatch(params) do
@@ -216,6 +382,7 @@ defmodule T.Matches do
     |> where(alive?: true)
     |> Repo.all()
     |> preload_match_profiles(user_id)
+    |> with_timeslots(user_id)
   end
 
   def get_match_for_user(match_id, user_id) do
@@ -249,6 +416,18 @@ defmodule T.Matches do
     |> Enum.map(fn mate ->
       match = Map.fetch!(mate_matches, mate.user_id)
       %Match{match | profile: mate}
+    end)
+  end
+
+  defp with_timeslots(matches, user_id) do
+    slots =
+      user_id
+      # TODO don't reissue join to alive matches
+      |> list_relevant_slots()
+      |> Map.new(fn %Timeslot{match_id: match_id} = timeslot -> {match_id, timeslot} end)
+
+    Enum.map(matches, fn match ->
+      %Match{match | timeslot: slots[match.id]}
     end)
   end
 

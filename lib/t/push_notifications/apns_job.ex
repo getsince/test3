@@ -89,10 +89,38 @@ defmodule T.PushNotifications.APNSJob do
     |> Notification.put_badge(1)
   end
 
+  defp build_notification("timeslot_offer", device_id, _data) do
+    title = "Тили-тили тесто"
+    body = "Тебя на свиданку пригласили"
+
+    base_notification(device_id, "timeslot_offer")
+    |> Notification.put_alert(%{"title" => title, "body" => body})
+    |> Notification.put_badge(1)
+  end
+
+  defp build_notification("timeslot_accepted", device_id, _data) do
+    title = "Тили-тили тесто"
+    body = "У кого-то свиданочка намечается"
+
+    base_notification(device_id, "timeslot_accepted")
+    |> Notification.put_alert(%{"title" => title, "body" => body})
+    |> Notification.put_badge(1)
+  end
+
+  defp build_notification("timeslot_reminder", device_id, _data) do
+    title = "Скоро свиданочка"
+    body = "Приготовься, у тебя 15 минут"
+
+    base_notification(device_id, "timeslot_accepted")
+    |> Notification.put_alert(%{"title" => title, "body" => body})
+    |> Notification.put_badge(1)
+  end
+
   defp base_notification(device_id, collapse_id) do
     %Notification{
       device_token: device_id,
       topic: topic(),
+      # TODO thread id
       collapse_id: collapse_id
     }
   end

@@ -2,7 +2,7 @@ defmodule T.Factory do
   use ExMachina.Ecto, repo: T.Repo
   alias T.Accounts.{User, Profile}
   alias T.Feeds.{ProfileLike, SeenProfile, Feed, PersonalityOverlap}
-  alias T.Matches.{Match, Message}
+  alias T.Matches.{Match, Message, Timeslot}
 
   def user_factory do
     %User{phone_number: phone_number()}
@@ -39,6 +39,10 @@ defmodule T.Factory do
 
   def message_factory do
     %Message{}
+  end
+
+  def timeslot_factory do
+    %Timeslot{}
   end
 
   def phone_number do

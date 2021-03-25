@@ -525,7 +525,7 @@ defmodule T.Matches do
 
   defp yo_sms_message(sender_name, sender_gender) do
     """
-    #{sender_name || "Кто-то там"} зовёт тебя пообщаться!
+    Since: #{sender_name || "Кто-то там"} зовёт тебя пообщаться!
     Не упусти момент, пока #{render_gender(sender_gender)} онлайн 😼
     Заходи в Since
     """

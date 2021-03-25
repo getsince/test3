@@ -58,7 +58,7 @@ defmodule TWeb.MatchChannel do
     {:reply, :ok, socket}
   end
 
-  def handle_in("accept-slot", %{"slot" => slot, "match_id" => match}, socket) do
+  def handle_in("pick-slot", %{"slot" => slot, "match_id" => match}, socket) do
     {:ok, _timeslot} = Matches.accept_slot(slot, match: match, picker: me(socket))
     {:reply, :ok, socket}
   end

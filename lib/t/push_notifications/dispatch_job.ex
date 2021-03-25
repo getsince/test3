@@ -79,7 +79,7 @@ defmodule T.PushNotifications.DispatchJob do
   end
 
   # TODO also phoenix broadcast?
-  defp handle_type("timeslot_reminder", args) do
+  defp handle_type(type, args) when type in ["timeslot_reminder", "timeslot_started"] do
     %{"match_id" => match_id, "slot" => slot} = args
 
     if match = alive_match(match_id) do
@@ -89,8 +89,8 @@ defmodule T.PushNotifications.DispatchJob do
       if timeslot do
         %Matches.Match{user_id_1: uid1, user_id_2: uid2} = match
 
-        uid1 |> Matches.device_ids() |> schedule_apns("timeslot_reminder")
-        uid2 |> Matches.device_ids() |> schedule_apns("timeslot_reminder")
+        uid1 |> Matches.device_ids() |> schedule_apns(type)
+        uid2 |> Matches.device_ids() |> schedule_apns(type)
 
         :ok
       end

@@ -130,7 +130,16 @@ defmodule T.PushNotifications.APNSJob do
     title = "Скоро свиданочка"
     body = "Приготовься, у тебя 15 минут"
 
-    base_notification(device_id, "timeslot_accepted")
+    base_notification(device_id, "timeslot_reminder")
+    |> Notification.put_alert(%{"title" => title, "body" => body})
+    |> Notification.put_badge(1)
+  end
+
+  defp build_notification("timeslot_started", device_id, _data) do
+    title = "Свидангу начинается"
+    body = "Скорее заходи!"
+
+    base_notification(device_id, "timeslot_started")
     |> Notification.put_alert(%{"title" => title, "body" => body})
     |> Notification.put_badge(1)
   end

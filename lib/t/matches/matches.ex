@@ -275,7 +275,17 @@ defmodule T.Matches do
         scheduled_at: DateTime.add(slot, -15 * 60, :second)
       )
 
-    Oban.insert_all([accepted_push, reminder_push])
+    started_push =
+      PushNotifications.DispatchJob.new(
+        %{
+          "type" => "timeslot_started",
+          "match_id" => match_id,
+          "slot" => slot
+        },
+        scheduled_at: slot
+      )
+
+    Oban.insert_all([accepted_push, reminder_push, started_push])
     notify_subscribers({:ok, timeslot}, [:timeslot, :accepted, mate])
   end
 

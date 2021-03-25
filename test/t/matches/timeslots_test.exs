@@ -314,6 +314,14 @@ defmodule T.Matches.TimeslotsTest do
                  args: %{
                    "match_id" => ^match_id,
                    "slot" => "2021-03-23T14:15:00Z",
+                   "type" => "timeslot_started"
+                 },
+                 scheduled_at: ~U[2021-03-23 14:15:00.000000Z]
+               },
+               %Oban.Job{
+                 args: %{
+                   "match_id" => ^match_id,
+                   "slot" => "2021-03-23T14:15:00Z",
                    "type" => "timeslot_reminder"
                  },
                  #  15 mins before slot

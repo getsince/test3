@@ -108,9 +108,9 @@ defmodule Dev do
       ""
       |> Notification.new(device_id, topic)
       |> Notification.put_alert(%{
-        "title" => "Твоя подборка на сегодня готова 😉",
+        "title" => "Новая версия Since 👋",
         # "subtitle" => "Five Card Draw",
-        "body" => "Заходи скорее!"
+        "body" => "Договаривайтесь о дейтах с помощью календаря"
       })
       # |> Notification.put_custom(%{"thread_id" => "1"})
       |> Notification.put_badge(999)
@@ -119,7 +119,7 @@ defmodule Dev do
       # |> Notification.put_custom()
       # |> Notification.put_mutable_content()
       |> Map.put(:collapse_id, "nudge")
-      |> APNS.push()
+      |> APNS.push(to: :prod)
     end
   end
 

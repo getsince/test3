@@ -165,6 +165,13 @@ if config_env() == :dev do
       team_id: System.fetch_env!("APNS_TEAM_ID"),
       topic: System.fetch_env!("APNS_TOPIC"),
       mode: :dev
+    },
+    prod: %{
+      key: System.fetch_env!("APNS_KEY"),
+      key_identifier: System.fetch_env!("APNS_KEY_ID"),
+      team_id: System.fetch_env!("APNS_TEAM_ID"),
+      topic: System.fetch_env!("APNS_TOPIC"),
+      mode: :prod
     }
 
   config :t, T.Twilio,

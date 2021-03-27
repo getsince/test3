@@ -1,4 +1,4 @@
-import Mix.Config
+import Config
 
 # For development, we enable code reloading.
 config :t, TWeb.Endpoint, code_reloader: true

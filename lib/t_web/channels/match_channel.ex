@@ -78,6 +78,11 @@ defmodule TWeb.MatchChannel do
     {:reply, :ok, socket}
   end
 
+  def handle_in("fetch", _params, socket) do
+    matches = Matches.get_current_matches(socket.assigns.current_user.id)
+    {:reply, {:ok, %{matches: render_matches(socket.topic, matches)}}, socket}
+  end
+
   @impl true
   def handle_info(:after_join, socket) do
     track_self_for_mates(socket)

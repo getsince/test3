@@ -79,6 +79,18 @@ defmodule T.Feeds do
     end)
   end
 
+  def all_likers(user_id) do
+    likers =
+      ProfileLike
+      |> where(user_id: ^user_id)
+
+    Profile
+    |> join(:inner, [p], l in subquery(likers), on: p.user_id == l.by_user_id)
+    # TODO index
+    |> order_by([p, l], desc: l.inserted_at)
+    |> Repo.all()
+  end
+
   ######################### FEED #########################
 
   def get_or_create_feed(%Profile{} = profile, date \\ Date.utc_today(), opts \\ []) do

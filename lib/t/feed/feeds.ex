@@ -84,8 +84,17 @@ defmodule T.Feeds do
       ProfileLike
       |> where(user_id: ^user_id)
 
+    matches =
+      Matches.Match
+      |> where(alive?: true)
+      |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
+
     Profile
     |> join(:inner, [p], l in subquery(likers), on: p.user_id == l.by_user_id)
+    |> join(:left, [p, l], m in subquery(matches),
+      on: p.user_id == m.user_id_1 or p.user_id == m.user_id_2
+    )
+    |> where([p, l, m], is_nil(m.id))
     # TODO index
     |> order_by([p, l], desc: l.inserted_at)
     |> Repo.all()

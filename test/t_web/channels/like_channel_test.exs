@@ -13,10 +13,11 @@ defmodule TWeb.LikeChannelTest do
     end
 
     test "with likers", %{me: me, socket: socket} do
-      likers = insert_list(3, :profile)
+      [matched | likers] = insert_list(3, :profile)
+      insert(:match, alive?: true, user_id_1: me.id, user_id_2: matched.user_id)
       Enum.each(likers, fn l -> insert(:like, by_user: l.user, user: me) end)
 
-      assert {:ok, %{likers: [_, _, _]}, _socket} =
+      assert {:ok, %{likers: [_, _]}, _socket} =
                subscribe_and_join(socket, "likes:" <> me.id, %{})
     end
   end

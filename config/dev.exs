@@ -11,6 +11,3 @@ config :phoenix, :stacktrace_depth, 20
 
 # Initialize plugs at runtime for faster development compilation
 config :phoenix, :plug_init_mode, :runtime
-
-# https://github.com/ajvondrak/remote_ip#logging
-config :logger, compile_time_purge_matching: [[application: :remote_ip]]

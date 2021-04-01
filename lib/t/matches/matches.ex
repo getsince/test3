@@ -322,6 +322,42 @@ defmodule T.Matches do
     %DateTime{dt | minute: div(minutes, 15) * 15, second: 0, microsecond: {0, 0}}
   end
 
+  def notify_timeslot_started(match) do
+    %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} = match
+
+    for uid <- [uid1, uid2] do
+      Phoenix.PubSub.broadcast(
+        @pubsub,
+        pubsub_user_topic(uid),
+        {__MODULE__, [:timeslot, :started], match_id}
+      )
+    end
+  end
+
+  def notify_timeslot_ended(match) do
+    %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} = match
+
+    for uid <- [uid1, uid2] do
+      Phoenix.PubSub.broadcast(
+        @pubsub,
+        pubsub_user_topic(uid),
+        {__MODULE__, [:timeslot, :ended], match_id}
+      )
+    end
+  end
+
+  def schedule_timeslot_ended(match, timeslot) do
+    ended_at = DateTime.add(timeslot.selected_slot, 15 * 60, :second)
+
+    job =
+      PushNotifications.DispatchJob.new(
+        %{"type" => "timeslot_ended", "match_id" => match.id},
+        scheduled_at: ended_at
+      )
+
+    Oban.insert!(job)
+  end
+
   ######################## UNMATCH ########################
 
   defp unmatch(params) do

@@ -113,6 +113,16 @@ defmodule TWeb.MatchChannel do
     {:noreply, socket}
   end
 
+  def handle_info({Matches, [:timeslot, :started], match_id}, socket) do
+    push(socket, "timeslot_started", %{"match_id" => match_id})
+    {:noreply, socket}
+  end
+
+  def handle_info({Matches, [:timeslot, :ended], match_id}, socket) do
+    push(socket, "timeslot_ended", %{"match_id" => match_id})
+    {:noreply, socket}
+  end
+
   def handle_info({Matches, [:unmatched, match_id], [_, _] = user_ids}, socket) do
     Matches.unsubscribe_from_match(match_id)
     socket = untrack_self_for_unmatched(socket, user_ids)

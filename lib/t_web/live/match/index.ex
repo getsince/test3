@@ -52,6 +52,7 @@ defmodule TWeb.MatchLive.Index do
      assign(socket,
        me_id: nil,
        me: nil,
+       matches: [],
        user_options: user_options()
      ), temporary_assigns: @temporary_assigns}
   end
@@ -77,7 +78,7 @@ defmodule TWeb.MatchLive.Index do
 
   defp apply_action(_params, _action, socket) do
     me = socket.assigns.me
-    socket = update_in_call(socket, false)
+    socket = if me, do: update_in_call(socket, false), else: socket
 
     case socket.assigns[:call] do
       nil ->

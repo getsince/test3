@@ -317,7 +317,7 @@ defmodule T.Matches.TimeslotsTest do
                    "type" => "timeslot_started"
                  },
                  scheduled_at: ~U[2021-03-23 14:15:00.000000Z]
-               },
+               } = started,
                %Oban.Job{
                  args: %{
                    "match_id" => ^match_id,
@@ -342,6 +342,24 @@ defmodule T.Matches.TimeslotsTest do
                  }
                }
              ] = all_enqueued(worker: T.PushNotifications.DispatchJob)
+
+      assert :ok == T.PushNotifications.DispatchJob.perform(started)
+      assert_receive {T.Matches, [:timeslot, :started], ^match_id}
+
+      assert [
+               #  15 mins after slot
+               %Oban.Job{
+                 args: %{
+                   "match_id" => ^match_id,
+                   "type" => "timeslot_ended"
+                 },
+                 scheduled_at: ~U[2021-03-23 14:30:00.000000Z]
+               } = ended
+               | _rest
+             ] = all_enqueued(worker: T.PushNotifications.DispatchJob)
+
+      assert :ok == T.PushNotifications.DispatchJob.perform(ended)
+      assert_receive {T.Matches, [:timeslot, :ended], ^match_id}
     end
 
     @tag skip: true

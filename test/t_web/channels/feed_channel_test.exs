@@ -62,6 +62,7 @@ defmodule TWeb.FeedChannelTest do
                  timeslot: nil,
                  profile: %{
                    song: nil,
+                   story: nil,
                    birthdate: nil,
                    city: nil,
                    first_date_idea: nil,

@@ -22,7 +22,8 @@ defmodule TWeb.ProfileView do
       :interests,
       :first_date_idea,
       :free_form,
-      :tastes
+      :tastes,
+      :story
     ])
     |> Map.update!(:photos, fn photos ->
       (photos || [])

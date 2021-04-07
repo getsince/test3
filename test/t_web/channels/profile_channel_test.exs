@@ -16,6 +16,7 @@ defmodule TWeb.ProfileChannelTest do
       assert reply == %{
                profile: %{
                  user_id: user.id,
+                 story: nil,
                  song: nil,
                  birthdate: nil,
                  first_date_idea: nil,
@@ -127,6 +128,7 @@ defmodule TWeb.ProfileChannelTest do
       assert reply == %{
                profile: %{
                  user_id: user.id,
+                 story: nil,
                  song: %{
                    "id" => "203709340",
                    "album_cover" =>

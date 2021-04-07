@@ -24,6 +24,7 @@ defmodule TWeb.MatchChannelTest do
       # last_active: last_active,
       profile: %{
         birthdate: nil,
+        story: nil,
         city: nil,
         first_date_idea: nil,
         free_form: nil,

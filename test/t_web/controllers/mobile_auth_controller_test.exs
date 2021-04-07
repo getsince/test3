@@ -21,6 +21,7 @@ defmodule TWeb.MobileAuthControllerTest do
 
       assert profile == %{
                "user_id" => user_id,
+               "story" => nil,
                "song" => nil,
                "birthdate" => nil,
                "city" => nil,
@@ -90,6 +91,7 @@ defmodule TWeb.MobileAuthControllerTest do
 
       assert profile == %{
                "user_id" => user_id,
+               "story" => nil,
                "song" => %{
                  "id" => "203709340",
                  "album_cover" =>

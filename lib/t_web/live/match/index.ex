@@ -217,6 +217,12 @@ defmodule TWeb.MatchLive.Index do
     {:noreply, assign(socket, matches: matches)}
   end
 
+  # see https://sentry.io/organizations/since/issues/2314520971/?project=5625839&query=is%3Aunresolved
+  def handle_info({Matches, [:timeslot, _action], _timeslot}, socket) do
+    # TODO
+    {:noreply, socket}
+  end
+
   def handle_info({Feeds, :liked, _liker_id}, socket) do
     me = socket.assigns.me
     {:noreply, assign(socket, likers: all_likers(me.id))}

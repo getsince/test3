@@ -57,6 +57,10 @@ defmodule TWeb.TraceLive.Show do
     end
   end
 
+  defp message_from_broadcast(event, direction, content) do
+    %Message{direction: direction, title: event, content: Jason.encode_to_iodata!(content)}
+  end
+
   defp render_message(%Message{direction: direction, title: title, content: content}) do
     ~E"""
     <div class="font-semibold uppercase"><%= render_direction(direction) %> <%= title %></div>

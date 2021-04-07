@@ -44,7 +44,7 @@ DECLARE
 BEGIN
   IF NEW.state = 'available' THEN
     channel = 'public.oban_insert';
-    notice = json_build_object('queue', NEW.queue, 'state', NEW.state);
+    notice = json_build_object('queue', NEW.queue);
 
     PERFORM pg_notify(channel, notice::text);
   END IF;
@@ -119,6 +119,19 @@ CREATE TABLE public.match_messages (
 
 
 --
+-- Name: match_timeslot; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.match_timeslot (
+    match_id uuid NOT NULL,
+    picker_id uuid NOT NULL,
+    slots timestamp(0) without time zone[] DEFAULT ARRAY[]::timestamp without time zone[],
+    selected_slot timestamp(0) without time zone,
+    inserted_at timestamp(0) without time zone NOT NULL
+);
+
+
+--
 -- Name: matches; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -132,22 +145,6 @@ CREATE TABLE public.matches (
 
 
 --
--- Name: oban_beats; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.oban_beats (
-    node text NOT NULL,
-    queue text NOT NULL,
-    nonce text NOT NULL,
-    "limit" integer NOT NULL,
-    paused boolean DEFAULT false NOT NULL,
-    running bigint[] DEFAULT ARRAY[]::integer[] NOT NULL,
-    inserted_at timestamp without time zone DEFAULT timezone('UTC'::text, now()) NOT NULL,
-    started_at timestamp without time zone NOT NULL
-);
-
-
---
 -- Name: oban_jobs; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -156,7 +153,7 @@ CREATE TABLE public.oban_jobs (
     state public.oban_job_state DEFAULT 'available'::public.oban_job_state NOT NULL,
     queue text DEFAULT 'default'::text NOT NULL,
     worker text NOT NULL,
-    args jsonb NOT NULL,
+    args jsonb DEFAULT '{}'::jsonb NOT NULL,
     errors jsonb[] DEFAULT ARRAY[]::jsonb[] NOT NULL,
     attempt integer DEFAULT 0 NOT NULL,
     max_attempts integer DEFAULT 20 NOT NULL,
@@ -166,10 +163,13 @@ CREATE TABLE public.oban_jobs (
     completed_at timestamp without time zone,
     attempted_by text[],
     discarded_at timestamp without time zone,
-    priority integer DEFAULT 0,
+    priority integer DEFAULT 0 NOT NULL,
     tags character varying(255)[] DEFAULT ARRAY[]::character varying[],
     meta jsonb DEFAULT '{}'::jsonb,
     cancelled_at timestamp without time zone,
+    CONSTRAINT attempt_range CHECK (((attempt >= 0) AND (attempt <= max_attempts))),
+    CONSTRAINT positive_max_attempts CHECK ((max_attempts > 0)),
+    CONSTRAINT priority_range CHECK (((priority >= 0) AND (priority <= 3))),
     CONSTRAINT queue_length CHECK (((char_length(queue) > 0) AND (char_length(queue) < 128))),
     CONSTRAINT worker_length CHECK (((char_length(worker) > 0) AND (char_length(worker) < 128)))
 );
@@ -179,7 +179,7 @@ CREATE TABLE public.oban_jobs (
 -- Name: TABLE oban_jobs; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON TABLE public.oban_jobs IS '9';
+COMMENT ON TABLE public.oban_jobs IS '10';
 
 
 --
@@ -247,7 +247,7 @@ CREATE TABLE public.profiles (
     tastes jsonb DEFAULT '{}'::jsonb NOT NULL,
     times_liked integer DEFAULT 0 NOT NULL,
     "hidden?" boolean DEFAULT true NOT NULL,
-    last_active timestamp(0) without time zone DEFAULT '2021-01-16 14:00:30.859495'::timestamp without time zone NOT NULL,
+    last_active timestamp(0) without time zone DEFAULT '2021-04-07 20:57:38.105429'::timestamp without time zone NOT NULL,
     song jsonb
 );
 
@@ -391,6 +391,14 @@ ALTER TABLE ONLY public.match_messages
 
 
 --
+-- Name: match_timeslot match_timeslot_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.match_timeslot
+    ADD CONSTRAINT match_timeslot_pkey PRIMARY KEY (match_id);
+
+
+--
 -- Name: matches matches_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -493,13 +501,6 @@ CREATE INDEX interests_overlap_user_id_1_user_id_2_score_desc_index ON public.in
 
 
 --
--- Name: interests_overlap_user_id_2_user_id_1_score_desc_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX interests_overlap_user_id_2_user_id_1_score_desc_index ON public.interests_overlap USING btree (user_id_2, user_id_1, score DESC) WHERE (score > 0);
-
-
---
 -- Name: liked_profiles_user_id_by_user_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -514,17 +515,17 @@ CREATE UNIQUE INDEX matches_user_id_1_user_id_2_index ON public.matches USING bt
 
 
 --
--- Name: oban_beats_inserted_at_index; Type: INDEX; Schema: public; Owner: -
+-- Name: oban_jobs_args_index; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX oban_beats_inserted_at_index ON public.oban_beats USING btree (inserted_at);
+CREATE INDEX oban_jobs_args_index ON public.oban_jobs USING gin (args);
 
 
 --
--- Name: oban_jobs_attempted_at_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: oban_jobs_meta_index; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX oban_jobs_attempted_at_id_index ON public.oban_jobs USING btree (attempted_at DESC, id) WHERE (state = ANY (ARRAY['completed'::public.oban_job_state, 'discarded'::public.oban_job_state]));
+CREATE INDEX oban_jobs_meta_index ON public.oban_jobs USING gin (meta);
 
 
 --
@@ -577,11 +578,11 @@ CREATE TRIGGER oban_notify AFTER INSERT ON public.oban_jobs FOR EACH ROW EXECUTE
 
 
 --
--- Name: apns_devices apns_devices_session_token_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: apns_devices apns_devices_token_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.apns_devices
-    ADD CONSTRAINT apns_devices_session_token_fkey FOREIGN KEY (token_id) REFERENCES public.users_tokens(id) ON DELETE CASCADE;
+    ADD CONSTRAINT apns_devices_token_id_fkey FOREIGN KEY (token_id) REFERENCES public.users_tokens(id) ON DELETE CASCADE;
 
 
 --
@@ -638,6 +639,22 @@ ALTER TABLE ONLY public.match_messages
 
 ALTER TABLE ONLY public.match_messages
     ADD CONSTRAINT match_messages_match_id_fkey FOREIGN KEY (match_id) REFERENCES public.matches(id) ON DELETE CASCADE;
+
+
+--
+-- Name: match_timeslot match_timeslot_match_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.match_timeslot
+    ADD CONSTRAINT match_timeslot_match_id_fkey FOREIGN KEY (match_id) REFERENCES public.matches(id) ON DELETE CASCADE;
+
+
+--
+-- Name: match_timeslot match_timeslot_picker_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.match_timeslot
+    ADD CONSTRAINT match_timeslot_picker_id_fkey FOREIGN KEY (picker_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
@@ -763,3 +780,5 @@ INSERT INTO public."schema_migrations" (version) VALUES (20210220194329);
 INSERT INTO public."schema_migrations" (version) VALUES (20210224130138);
 INSERT INTO public."schema_migrations" (version) VALUES (20210224181753);
 INSERT INTO public."schema_migrations" (version) VALUES (20210224181910);
+INSERT INTO public."schema_migrations" (version) VALUES (20210323124108);
+INSERT INTO public."schema_migrations" (version) VALUES (20210407205627);

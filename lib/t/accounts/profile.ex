@@ -8,8 +8,7 @@ defmodule T.Accounts.Profile do
   schema "profiles" do
     belongs_to :user, T.Accounts.User, primary_key: true
 
-    # or array?
-    field :story, :map
+    field :story, {:array, :map}
 
     field :photos, {:array, :string}
     field :times_liked, :integer

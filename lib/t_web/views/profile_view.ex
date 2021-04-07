@@ -25,6 +25,18 @@ defmodule TWeb.ProfileView do
       :tastes,
       :story
     ])
+    |> Map.update!(:story, fn story ->
+      if story do
+        Enum.map(story, fn
+          %{"background" => %{"s3_key" => key} = bg} = page when not is_nil(key) ->
+            bg = Map.merge(bg, %{"s3" => Media.s3_url(key), "proxy" => Media.imgproxy_url(key)})
+            %{page | "background" => bg}
+
+          other_page ->
+            other_page
+        end)
+      end
+    end)
     |> Map.update!(:photos, fn photos ->
       (photos || [])
       |> Enum.reject(&is_nil/1)

@@ -50,9 +50,31 @@ defmodule TWeb.FeedChannelTest do
 
       assert_reply ref, :ok, reply, 1000
       assert reply == %{}
-      assert_push "matched", %{match: %{last_active: last_active}} = payload
+
+      assert_push "matched",
+                  %{match: %{last_active: last_active, profile: %{story: story}}} = payload
+
       assert [%{id: match_id}] = Matches.get_current_matches(me.id)
       assert %DateTime{} = last_active
+
+      assert [
+               %{
+                 "background" => %{"color" => "#" <> _},
+                 "labels" => []
+               },
+               %{
+                 "background" => %{"color" => "#" <> _},
+                 "labels" => []
+               },
+               %{
+                 "background" => %{"color" => "#" <> _},
+                 "labels" => []
+               },
+               %{
+                 "background" => %{"color" => "#" <> _},
+                 "labels" => []
+               }
+             ] = story
 
       assert payload == %{
                match: %{
@@ -62,6 +84,7 @@ defmodule TWeb.FeedChannelTest do
                  timeslot: nil,
                  profile: %{
                    song: nil,
+                   story: story,
                    birthdate: nil,
                    city: nil,
                    first_date_idea: nil,

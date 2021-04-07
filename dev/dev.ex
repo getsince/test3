@@ -6,6 +6,49 @@ defmodule Dev do
 
   @task_supervisor T.TaskSupervisor
 
+  def position do
+    position_labels(Enum.map(1..4, fn _ -> %{} end))
+  end
+
+  defp position_label(label, width, height, x, y) do
+    Map.merge(
+      %{
+        "position" => [x, y],
+        "center" => [x, y],
+        "dimensions" => [400, 800],
+        "size" => [width, height]
+      },
+      label
+    )
+  end
+
+  # end
+
+  defp position_labels(labels) do
+    position_labels(labels, _prev_width = 0, _prev_hight = 100)
+  end
+
+  defp position_labels([label | rest], prev_width, prev_height) do
+    width = 150 + :rand.uniform(50)
+    height = 100 + :rand.uniform(80)
+
+    {x, y} =
+      if prev_width + width >= 400 do
+        # move to next row
+        {width / 2 + 10, prev_height + 10 + height / 2}
+      else
+        # move to next column
+        {prev_width + width / 2 + 10, height / 2}
+      end
+
+    [
+      position_label(label, width, height, x, y)
+      | position_labels(rest, x + width / 2, y + height / 2)
+    ]
+  end
+
+  defp position_labels([], _prev_width, _prev_height), do: []
+
   def send_yo do
     leo = "00000177-679a-ad79-0242-ac1100030000"
     match = "7b8f6f08-3dd0-4021-840d-2dd968fcd479"

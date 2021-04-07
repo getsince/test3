@@ -21,6 +21,12 @@ defmodule TWeb.MobileAuthControllerTest do
 
       assert profile == %{
                "user_id" => user_id,
+               "story" => [
+                 %{"background" => %{"color" => "#E5E7EB"}, "size" => [400, 800], "labels" => []},
+                 %{"background" => %{"color" => "#E5E7EB"}, "size" => [400, 800], "labels" => []},
+                 %{"background" => %{"color" => "#E5E7EB"}, "size" => [400, 800], "labels" => []},
+                 %{"background" => %{"color" => "#E5E7EB"}, "size" => [400, 800], "labels" => []}
+               ],
                "song" => nil,
                "birthdate" => nil,
                "city" => nil,
@@ -90,6 +96,159 @@ defmodule TWeb.MobileAuthControllerTest do
 
       assert profile == %{
                "user_id" => user_id,
+               "story" => [
+                 %{
+                   "size" => [400, 800],
+                   "background" => %{
+                     "proxy" =>
+                       "https://pretend-this-is-real.example.com/hlFc12KS0pCFSPajrhwUG0nHHOyH0ojGqkD3Ug4XpM4/fit/1000/1000/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL2E",
+                     "s3" => "https://pretend-this-is-real.s3.amazonaws.com/a",
+                     "s3_key" => "a"
+                   },
+                   "labels" => [
+                     %{
+                       "answer" => "that",
+                       "size" => [100, 100],
+                       "center" => [100, 100],
+                       "question" => "name",
+                       "value" => "🏷 that"
+                     },
+                     %{
+                       "answer" => "1992-12-12",
+                       "size" => [100, 100],
+                       "center" => [100, 100],
+                       "question" => "birthdate",
+                       #  one day it would break
+                       "value" => "🎂 28"
+                     },
+                     %{
+                       "answer" => 120,
+                       "size" => [100, 100],
+                       "center" => [100, 100],
+                       "question" => "height",
+                       "value" => "📏 120см"
+                     }
+                   ]
+                 },
+                 %{
+                   "size" => [400, 800],
+                   "background" => %{"color" => "#E5E7EB"},
+                   "labels" => [
+                     %{
+                       "answer" => "Moscow",
+                       "size" => [100, 100],
+                       "center" => [100, 100],
+                       "question" => "city",
+                       "value" => "🏙 Moscow"
+                     },
+                     %{
+                       "answer" => "this",
+                       "size" => [100, 100],
+                       "center" => [100, 100],
+                       "question" => "most_important_in_life",
+                       "value" => "this"
+                     },
+                     %{
+                       "answer" => "this",
+                       "size" => [100, 100],
+                       "center" => [100, 100],
+                       "question" => "interests",
+                       "value" => "🎮 this"
+                     }
+                   ]
+                 },
+                 %{
+                   "size" => [400, 800],
+                   "background" => %{
+                     "proxy" =>
+                       "https://pretend-this-is-real.example.com/pyh8f3a1A2gLlSfzCeXnBkg6QXUe01MvQGMkZkxznXQ/fit/1000/1000/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL2I",
+                     "s3" => "https://pretend-this-is-real.s3.amazonaws.com/b",
+                     "s3_key" => "b"
+                   },
+                   "labels" => [
+                     %{
+                       "answer" => "that",
+                       "size" => [100, 100],
+                       "center" => [100, 100],
+                       "question" => "interests",
+                       "value" => "🎮 that"
+                     },
+                     %{
+                       "answer" => "asdf",
+                       "size" => [100, 100],
+                       "center" => [100, 100],
+                       "question" => "first_date_idea",
+                       "value" => "asdf"
+                     },
+                     %{
+                       "answer" => "not really",
+                       "size" => [100, 100],
+                       "center" => [100, 100],
+                       "question" => "alcohol",
+                       "value" => "🥃 not really"
+                     }
+                   ]
+                 },
+                 %{
+                   "size" => [400, 800],
+                   "background" => %{"color" => "#E5E7EB"},
+                   "labels" => [
+                     %{
+                       "answer" => "lol no",
+                       "size" => [100, 100],
+                       "center" => [100, 100],
+                       "question" => "books",
+                       "value" => "📚 lol no"
+                     },
+                     %{
+                       "answer" => "nah",
+                       "size" => [100, 100],
+                       "center" => [100, 100],
+                       "question" => "currently_studying",
+                       "value" => "🧠 nah"
+                     },
+                     %{
+                       "answer" => "rice",
+                       "size" => [100, 100],
+                       "center" => [100, 100],
+                       "question" => "music",
+                       "value" => "🎧 rice"
+                     }
+                   ]
+                 },
+                 %{
+                   "size" => [400, 800],
+                   "background" => %{
+                     "proxy" =>
+                       "https://pretend-this-is-real.example.com/bFHtU2r9NcoFJyBjJ_guaCOi3pi8uYb8sndTRt3yys0/fit/1000/1000/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL2M",
+                     "s3" => "https://pretend-this-is-real.s3.amazonaws.com/c",
+                     "s3_key" => "c"
+                   },
+                   "labels" => [
+                     %{
+                       "answer" => "nah",
+                       "size" => [100, 100],
+                       "center" => [100, 100],
+                       "question" => "smoking",
+                       "value" => "🚬 nah"
+                     },
+                     %{
+                       "answer" => "bottles",
+                       "size" => [100, 100],
+                       "center" => [100, 100],
+                       "question" => "sports",
+                       "value" => "⛷ bottles"
+                     },
+                     %{
+                       "answer" => "no",
+                       "size" => [100, 100],
+                       "center" => [100, 100],
+                       "question" => "tv_shows",
+                       "value" => "📺 no"
+                     }
+                   ]
+                 }
+               ],
                "song" => %{
                  "id" => "203709340",
                  "album_cover" =>

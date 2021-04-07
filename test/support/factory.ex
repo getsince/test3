@@ -116,9 +116,38 @@ defmodule T.Factory do
     }
   end
 
+  def profile_story do
+    [
+      %{
+        "background" => %{
+          "s3_key" => "photo.jpg"
+        },
+        "labels" => [
+          %{
+            "type" => "text",
+            "value" => "just some text",
+            "dimensions" => [400, 800],
+            "position" => [100, 100],
+            "rotation" => 21,
+            "zoom" => 1.2
+          },
+          %{
+            "type" => "answer",
+            "answer" => "msu",
+            "question" => "university",
+            "value" => "🥊\nменя воспитала улица",
+            "dimensions" => [400, 800],
+            "position" => [150, 150]
+          }
+        ]
+      }
+    ]
+  end
+
   def onboarding_attrs(gender \\ "M") do
     %{
       birthdate: "1992-12-12",
+      story: profile_story(),
       song: apple_music_song(),
       city: "Moscow",
       first_date_idea: "asdf",

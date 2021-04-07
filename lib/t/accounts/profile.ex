@@ -8,6 +8,8 @@ defmodule T.Accounts.Profile do
   schema "profiles" do
     belongs_to :user, T.Accounts.User, primary_key: true
 
+    field :story, {:array, :map}
+
     field :photos, {:array, :string}
     field :times_liked, :integer
 
@@ -149,6 +151,13 @@ defmodule T.Accounts.Profile do
     |> update_change(:tastes, &filter_tastes/1)
   end
 
+  def story_changeset(profile, attrs) do
+    profile
+    |> cast(attrs, [:story])
+
+    # TODO
+  end
+
   def changeset(profile, attrs, opts \\ []) do
     profile
     |> photos_changeset(attrs, opts)
@@ -157,5 +166,6 @@ defmodule T.Accounts.Profile do
     |> work_and_education_changeset(attrs)
     |> about_self_changeset(attrs)
     |> tastes_changeset(attrs)
+    |> story_changeset(attrs)
   end
 end

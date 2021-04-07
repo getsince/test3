@@ -24,6 +24,12 @@ defmodule TWeb.MatchChannelTest do
       # last_active: last_active,
       profile: %{
         birthdate: nil,
+        story: [
+          %{"background" => %{"color" => "#E5E7EB"}, "size" => [400, 800], "labels" => []},
+          %{"background" => %{"color" => "#E5E7EB"}, "size" => [400, 800], "labels" => []},
+          %{"background" => %{"color" => "#E5E7EB"}, "size" => [400, 800], "labels" => []},
+          %{"background" => %{"color" => "#E5E7EB"}, "size" => [400, 800], "labels" => []}
+        ],
         city: nil,
         first_date_idea: nil,
         free_form: nil,

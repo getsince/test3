@@ -16,6 +16,28 @@ defmodule TWeb.ProfileChannelTest do
       assert reply == %{
                profile: %{
                  user_id: user.id,
+                 story: [
+                   %{
+                     "background" => %{"color" => "#E5E7EB"},
+                     "size" => [400, 800],
+                     "labels" => []
+                   },
+                   %{
+                     "background" => %{"color" => "#E5E7EB"},
+                     "size" => [400, 800],
+                     "labels" => []
+                   },
+                   %{
+                     "background" => %{"color" => "#E5E7EB"},
+                     "size" => [400, 800],
+                     "labels" => []
+                   },
+                   %{
+                     "background" => %{"color" => "#E5E7EB"},
+                     "size" => [400, 800],
+                     "labels" => []
+                   }
+                 ],
                  song: nil,
                  birthdate: nil,
                  first_date_idea: nil,
@@ -43,13 +65,68 @@ defmodule TWeb.ProfileChannelTest do
     end
 
     test "with partially filled profile", %{socket: socket, user: user} do
+      # TODO remove photos
       {:ok, _profile} =
-        Accounts.update_profile(user.profile, %{"name" => "Jojaresum", "photos" => ["photo.jpg"]})
+        Accounts.update_profile(user.profile, %{
+          "name" => "Jojaresum",
+          "photos" => ["photo.jpg"],
+          "story" => [
+            %{
+              "background" => %{"s3_key" => "photo.jpg"},
+              "labels" => [
+                %{
+                  "type" => "text",
+                  "value" => "just some text",
+                  "position" => [100, 100],
+                  "rotation" => 21,
+                  "zoom" => 1.2,
+                  "dimensions" => [400, 800]
+                },
+                %{
+                  "type" => "answer",
+                  "question" => "university",
+                  "answer" => "msu",
+                  "value" => "🥊\nменя воспитала улица",
+                  "position" => [150, 150],
+                  "dimensions" => [400, 800]
+                }
+              ]
+            }
+          ]
+        })
 
       assert {:ok,
               %{
                 profile: %{
                   name: "Jojaresum",
+                  story: [
+                    %{
+                      "background" => %{
+                        "proxy" =>
+                          "https://pretend-this-is-real.example.com/ZUj5Q59uKDQBvOlFPlOAbTkVwyfuRl_xrqiZVOCC0mM/fit/1000/1000/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Bob3RvLmpwZw",
+                        "s3" => "https://pretend-this-is-real.s3.amazonaws.com/photo.jpg",
+                        "s3_key" => "photo.jpg"
+                      },
+                      "labels" => [
+                        %{
+                          "type" => "text",
+                          "value" => "just some text",
+                          "dimensions" => [400, 800],
+                          "position" => [100, 100],
+                          "rotation" => 21,
+                          "zoom" => 1.2
+                        },
+                        %{
+                          "type" => "answer",
+                          "answer" => "msu",
+                          "question" => "university",
+                          "value" => "🥊\nменя воспитала улица",
+                          "dimensions" => [400, 800],
+                          "position" => [150, 150]
+                        }
+                      ]
+                    }
+                  ],
                   photos: [
                     %{
                       "proxy" =>
@@ -118,7 +195,8 @@ defmodule TWeb.ProfileChannelTest do
               "tv_shows" => ["asdfadfs"],
               "books" => ["asdfasdf"],
               "smoking" => "asdfasdf"
-            }
+            },
+            "story" => profile_story()
           }
         })
 
@@ -127,6 +205,34 @@ defmodule TWeb.ProfileChannelTest do
       assert reply == %{
                profile: %{
                  user_id: user.id,
+                 story: [
+                   %{
+                     "background" => %{
+                       "proxy" =>
+                         "https://pretend-this-is-real.example.com/ZUj5Q59uKDQBvOlFPlOAbTkVwyfuRl_xrqiZVOCC0mM/fit/1000/1000/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Bob3RvLmpwZw",
+                       "s3" => "https://pretend-this-is-real.s3.amazonaws.com/photo.jpg",
+                       "s3_key" => "photo.jpg"
+                     },
+                     "labels" => [
+                       %{
+                         "dimensions" => [400, 800],
+                         "position" => [100, 100],
+                         "rotation" => 21,
+                         "type" => "text",
+                         "value" => "just some text",
+                         "zoom" => 1.2
+                       },
+                       %{
+                         "answer" => "msu",
+                         "dimensions" => [400, 800],
+                         "position" => [150, 150],
+                         "question" => "university",
+                         "type" => "answer",
+                         "value" => "🥊\nменя воспитала улица"
+                       }
+                     ]
+                   }
+                 ],
                  song: %{
                    "id" => "203709340",
                    "album_cover" =>

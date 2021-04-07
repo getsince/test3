@@ -248,7 +248,8 @@ CREATE TABLE public.profiles (
     times_liked integer DEFAULT 0 NOT NULL,
     "hidden?" boolean DEFAULT true NOT NULL,
     last_active timestamp(0) without time zone DEFAULT '2021-04-07 20:57:38.105429'::timestamp without time zone NOT NULL,
-    song jsonb
+    song jsonb,
+    story jsonb
 );
 
 
@@ -782,3 +783,4 @@ INSERT INTO public."schema_migrations" (version) VALUES (20210224181753);
 INSERT INTO public."schema_migrations" (version) VALUES (20210224181910);
 INSERT INTO public."schema_migrations" (version) VALUES (20210323124108);
 INSERT INTO public."schema_migrations" (version) VALUES (20210407205627);
+INSERT INTO public."schema_migrations" (version) VALUES (20210407211518);

@@ -16,7 +16,12 @@ defmodule TWeb.ProfileChannelTest do
       assert reply == %{
                profile: %{
                  user_id: user.id,
-                 story: nil,
+                 story: [
+                   %{"background" => %{"color" => "#E5E7EB"}, "labels" => []},
+                   %{"background" => %{"color" => "#E5E7EB"}, "labels" => []},
+                   %{"background" => %{"color" => "#E5E7EB"}, "labels" => []},
+                   %{"background" => %{"color" => "#E5E7EB"}, "labels" => []}
+                 ],
                  song: nil,
                  birthdate: nil,
                  first_date_idea: nil,

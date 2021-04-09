@@ -157,7 +157,7 @@ defmodule TWeb.ProfileView do
     defp position_label(label) do
       x = :rand.uniform(400)
       y = :rand.uniform(800)
-      Map.merge(%{"position" => [x, y], "dimensions" => [400, 800]}, label)
+      Map.merge(%{"position" => [x, y], "dimensions" => [400, 800], "size" => [100, 100]}, label)
     end
   end
 

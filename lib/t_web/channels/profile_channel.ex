@@ -48,7 +48,7 @@ defmodule TWeb.ProfileChannel do
 
   def handle_in("submit", %{"profile" => params}, socket) do
     %{profile: profile, current_user: user} = socket.assigns
-    params = with_song(params)
+    params = params |> with_song() |> replace_story_photo_urls_with_s3keys()
 
     # TODO check photos exist in s3
     f =
@@ -125,4 +125,29 @@ defmodule TWeb.ProfileChannel do
   end
 
   defp with_song(params), do: params
+
+  defp replace_story_photo_urls_with_s3keys(%{"story" => story} = params) do
+    story =
+      Enum.map(story, fn %{"background" => background} = page ->
+        %{page | "background" => replace_photo_url_with_s3key(background)}
+      end)
+
+    Map.put(params, "story", story)
+  end
+
+  defp replace_story_photo_urls_with_s3keys(params), do: params
+
+  defp replace_photo_url_with_s3key(%{"s3_key" => _} = background), do: background
+  defp replace_photo_url_with_s3key(%{"color" => _} = bg), do: bg
+
+  defp replace_photo_url_with_s3key(%{"proxy" => proxy_url}) do
+    %{"s3_key" => s3_key_from_proxy_url(proxy_url)}
+  end
+
+  defp s3_key_from_proxy_url("https://seeing.getsince.app/" <> path) do
+    "https://of-course-i-still-love-you.s3.amazonaws.com/" <> s3_key =
+      path |> String.split("/") |> List.last() |> Base.decode64!(padding: false)
+
+    s3_key
+  end
 end

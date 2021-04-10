@@ -22,10 +22,10 @@ defmodule TWeb.MobileAuthControllerTest do
       assert profile == %{
                "user_id" => user_id,
                "story" => [
-                 %{"background" => %{"color" => "#E5E7EB"}, "labels" => []},
-                 %{"background" => %{"color" => "#E5E7EB"}, "labels" => []},
-                 %{"background" => %{"color" => "#E5E7EB"}, "labels" => []},
-                 %{"background" => %{"color" => "#E5E7EB"}, "labels" => []}
+                 %{"background" => %{"color" => "#E5E7EB"}, "size" => [400, 800], "labels" => []},
+                 %{"background" => %{"color" => "#E5E7EB"}, "size" => [400, 800], "labels" => []},
+                 %{"background" => %{"color" => "#E5E7EB"}, "size" => [400, 800], "labels" => []},
+                 %{"background" => %{"color" => "#E5E7EB"}, "size" => [400, 800], "labels" => []}
                ],
                "song" => nil,
                "birthdate" => nil,
@@ -98,6 +98,7 @@ defmodule TWeb.MobileAuthControllerTest do
                "user_id" => user_id,
                "story" => [
                  %{
+                   "size" => [400, 800],
                    "background" => %{
                      "proxy" =>
                        "https://pretend-this-is-real.example.com/hlFc12KS0pCFSPajrhwUG0nHHOyH0ojGqkD3Ug4XpM4/fit/1000/1000/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL2E",
@@ -107,54 +108,56 @@ defmodule TWeb.MobileAuthControllerTest do
                    "labels" => [
                      %{
                        "answer" => "that",
-                       "dimensions" => [400, 800],
-                       "position" => [100, 100],
+                       "size" => [100, 100],
+                       "center" => [100, 100],
                        "question" => "name",
                        "value" => "that"
                      },
                      %{
                        "answer" => "1992-12-12",
-                       "dimensions" => [400, 800],
-                       "position" => [100, 100],
+                       "size" => [100, 100],
+                       "center" => [100, 100],
                        "question" => "birthdate",
                        "value" => "1992-12-12"
                      },
                      %{
                        "answer" => 120,
-                       "dimensions" => [400, 800],
-                       "position" => [100, 100],
+                       "size" => [100, 100],
+                       "center" => [100, 100],
                        "question" => "height",
                        "value" => 120
                      }
                    ]
                  },
                  %{
+                   "size" => [400, 800],
                    "background" => %{"color" => "#E5E7EB"},
                    "labels" => [
                      %{
                        "answer" => "Moscow",
-                       "dimensions" => [400, 800],
-                       "position" => [100, 100],
+                       "size" => [100, 100],
+                       "center" => [100, 100],
                        "question" => "city",
                        "value" => "Moscow"
                      },
                      %{
                        "answer" => "this",
-                       "dimensions" => [400, 800],
-                       "position" => [100, 100],
+                       "size" => [100, 100],
+                       "center" => [100, 100],
                        "question" => "most_important_in_life",
                        "value" => "this"
                      },
                      %{
                        "answer" => "this",
-                       "dimensions" => [400, 800],
-                       "position" => [100, 100],
+                       "size" => [100, 100],
+                       "center" => [100, 100],
                        "question" => "interests",
                        "value" => "this"
                      }
                    ]
                  },
                  %{
+                   "size" => [400, 800],
                    "background" => %{
                      "proxy" =>
                        "https://pretend-this-is-real.example.com/pyh8f3a1A2gLlSfzCeXnBkg6QXUe01MvQGMkZkxznXQ/fit/1000/1000/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL2I",
@@ -164,54 +167,56 @@ defmodule TWeb.MobileAuthControllerTest do
                    "labels" => [
                      %{
                        "answer" => "that",
-                       "dimensions" => [400, 800],
-                       "position" => [100, 100],
+                       "size" => [100, 100],
+                       "center" => [100, 100],
                        "question" => "interests",
                        "value" => "that"
                      },
                      %{
                        "answer" => "asdf",
-                       "dimensions" => [400, 800],
-                       "position" => [100, 100],
+                       "size" => [100, 100],
+                       "center" => [100, 100],
                        "question" => "first_date_idea",
                        "value" => "asdf"
                      },
                      %{
                        "answer" => "not really",
-                       "dimensions" => [400, 800],
-                       "position" => [100, 100],
+                       "size" => [100, 100],
+                       "center" => [100, 100],
                        "question" => "alcohol",
                        "value" => "not really"
                      }
                    ]
                  },
                  %{
+                   "size" => [400, 800],
                    "background" => %{"color" => "#E5E7EB"},
                    "labels" => [
                      %{
                        "answer" => "lol no",
-                       "dimensions" => [400, 800],
-                       "position" => [100, 100],
+                       "size" => [100, 100],
+                       "center" => [100, 100],
                        "question" => "books",
                        "value" => "lol no"
                      },
                      %{
                        "answer" => "nah",
-                       "dimensions" => [400, 800],
-                       "position" => [100, 100],
+                       "size" => [100, 100],
+                       "center" => [100, 100],
                        "question" => "currently_studying",
                        "value" => "nah"
                      },
                      %{
                        "answer" => "rice",
-                       "dimensions" => [400, 800],
-                       "position" => [100, 100],
+                       "size" => [100, 100],
+                       "center" => [100, 100],
                        "question" => "music",
                        "value" => "rice"
                      }
                    ]
                  },
                  %{
+                   "size" => [400, 800],
                    "background" => %{
                      "proxy" =>
                        "https://pretend-this-is-real.example.com/bFHtU2r9NcoFJyBjJ_guaCOi3pi8uYb8sndTRt3yys0/fit/1000/1000/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL2M",
@@ -221,22 +226,22 @@ defmodule TWeb.MobileAuthControllerTest do
                    "labels" => [
                      %{
                        "answer" => "nah",
-                       "dimensions" => [400, 800],
-                       "position" => [100, 100],
+                       "size" => [100, 100],
+                       "center" => [100, 100],
                        "question" => "smoking",
                        "value" => "nah"
                      },
                      %{
                        "answer" => "bottles",
-                       "dimensions" => [400, 800],
-                       "position" => [100, 100],
+                       "size" => [100, 100],
+                       "center" => [100, 100],
                        "question" => "sports",
                        "value" => "bottles"
                      },
                      %{
                        "answer" => "no",
-                       "dimensions" => [400, 800],
-                       "position" => [100, 100],
+                       "size" => [100, 100],
+                       "center" => [100, 100],
                        "question" => "tv_shows",
                        "value" => "no"
                      }

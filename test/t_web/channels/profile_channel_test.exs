@@ -17,10 +17,26 @@ defmodule TWeb.ProfileChannelTest do
                profile: %{
                  user_id: user.id,
                  story: [
-                   %{"background" => %{"color" => "#E5E7EB"}, "labels" => []},
-                   %{"background" => %{"color" => "#E5E7EB"}, "labels" => []},
-                   %{"background" => %{"color" => "#E5E7EB"}, "labels" => []},
-                   %{"background" => %{"color" => "#E5E7EB"}, "labels" => []}
+                   %{
+                     "background" => %{"color" => "#E5E7EB"},
+                     "size" => [400, 800],
+                     "labels" => []
+                   },
+                   %{
+                     "background" => %{"color" => "#E5E7EB"},
+                     "size" => [400, 800],
+                     "labels" => []
+                   },
+                   %{
+                     "background" => %{"color" => "#E5E7EB"},
+                     "size" => [400, 800],
+                     "labels" => []
+                   },
+                   %{
+                     "background" => %{"color" => "#E5E7EB"},
+                     "size" => [400, 800],
+                     "labels" => []
+                   }
                  ],
                  song: nil,
                  birthdate: nil,

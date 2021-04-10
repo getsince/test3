@@ -144,20 +144,33 @@ defmodule TWeb.ProfileView do
     story =
       [bg_pages, labels_per_page]
       |> Enum.zip()
-      |> Enum.map(fn {bg, labels} -> Map.merge(bg, %{"labels" => labels}) end)
+      |> Enum.map(fn {bg, labels} ->
+        Map.merge(bg, %{"size" => [400, 800], "labels" => labels})
+      end)
 
     postprocess_story(story)
   end
 
   if Mix.env() == :test do
     defp position_label(label) do
-      Map.merge(%{"position" => [100, 100], "dimensions" => [400, 800]}, label)
+      Map.merge(%{"center" => [100, 100], "size" => [100, 100]}, label)
     end
   else
     defp position_label(label) do
       x = :rand.uniform(400)
       y = :rand.uniform(800)
-      Map.merge(%{"position" => [x, y], "dimensions" => [400, 800], "size" => [100, 100]}, label)
+      width = 50 + :rand.uniform(50)
+      height = 20 + :rand.uniform(80)
+
+      Map.merge(
+        %{
+          "position" => [x, y],
+          "center" => [x, y],
+          "dimensions" => [400, 800],
+          "size" => [width, height]
+        },
+        label
+      )
     end
   end
 

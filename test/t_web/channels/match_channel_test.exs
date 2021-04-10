@@ -25,10 +25,10 @@ defmodule TWeb.MatchChannelTest do
       profile: %{
         birthdate: nil,
         story: [
-          %{"background" => %{"color" => "#E5E7EB"}, "labels" => []},
-          %{"background" => %{"color" => "#E5E7EB"}, "labels" => []},
-          %{"background" => %{"color" => "#E5E7EB"}, "labels" => []},
-          %{"background" => %{"color" => "#E5E7EB"}, "labels" => []}
+          %{"background" => %{"color" => "#E5E7EB"}, "size" => [400, 800], "labels" => []},
+          %{"background" => %{"color" => "#E5E7EB"}, "size" => [400, 800], "labels" => []},
+          %{"background" => %{"color" => "#E5E7EB"}, "size" => [400, 800], "labels" => []},
+          %{"background" => %{"color" => "#E5E7EB"}, "size" => [400, 800], "labels" => []}
         ],
         city: nil,
         first_date_idea: nil,

@@ -220,7 +220,8 @@ defmodule TWeb.ProfileView do
           "position" => [x, y],
           "center" => [x, y],
           "dimensions" => [400, 800],
-          "size" => [width, height]
+          "size" => [width, height],
+          "rotation" => :rand.uniform(30) - 60
         },
         label
       )

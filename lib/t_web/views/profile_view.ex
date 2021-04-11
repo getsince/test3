@@ -88,20 +88,44 @@ defmodule TWeb.ProfileView do
 
     labels =
       [
-        if(name, do: %{"question" => "name", "answer" => name, "value" => name}),
+        if(name,
+          do: %{"question" => "name", "answer" => name, "value" => emoji_value(["🏷", name])}
+        ),
         if(birthdate,
-          do: %{"question" => "birthdate", "answer" => birthdate, "value" => birthdate}
+          do: %{
+            "question" => "birthdate",
+            "answer" => birthdate,
+            "value" => emoji_value(["🎂", age(birthdate)])
+          }
         ),
-        if(height, do: %{"question" => "height", "answer" => height, "value" => height}),
-        if(city, do: %{"question" => "city", "answer" => city, "value" => city}),
+        if(height,
+          do: %{
+            "question" => "height",
+            "answer" => height,
+            "value" => emoji_value(["📏", height]) <> "см"
+          }
+        ),
+        if(city,
+          do: %{"question" => "city", "answer" => city, "value" => emoji_value(["🏙", city])}
+        ),
         if(occupation,
-          do: %{"question" => "occupation", "answer" => occupation, "value" => occupation}
+          do: %{
+            "question" => "occupation",
+            "answer" => occupation,
+            "value" => emoji_value(["💼", occupation])
+          }
         ),
-        if(job, do: %{"question" => "job", "answer" => job, "value" => job}),
+        if(job, do: %{"question" => "job", "answer" => job, "value" => emoji_value(["💼", job])}),
         if(university,
-          do: %{"question" => "university", "answer" => university, "value" => university}
+          do: %{
+            "question" => "university",
+            "answer" => university,
+            "value" => emoji_value(["🎓", university])
+          }
         ),
-        if(major, do: %{"question" => "major", "answer" => major, "value" => major}),
+        if(major,
+          do: %{"question" => "major", "answer" => major, "value" => emoji_value(["🎓", major])}
+        ),
         if(most_important_in_life,
           do: %{
             "question" => "most_important_in_life",
@@ -110,7 +134,11 @@ defmodule TWeb.ProfileView do
           }
         ),
         Enum.map(interests || [], fn interest ->
-          %{"question" => "interests", "answer" => interest, "value" => interest}
+          %{
+            "question" => "interests",
+            "answer" => interest,
+            "value" => emoji_value(["🎮", interest])
+          }
         end),
         if(first_date_idea,
           do: %{
@@ -122,7 +150,7 @@ defmodule TWeb.ProfileView do
         if(free_form, do: %{"value" => free_form}),
         Enum.map(tastes || %{}, fn {k, v} ->
           v = if is_list(v), do: Enum.join(v, ", "), else: v
-          %{"question" => k, "answer" => v, "value" => v}
+          %{"question" => k, "answer" => v, "value" => emoji_value([render_taste_emoji(k), v])}
         end)
       ]
       |> List.flatten()
@@ -137,8 +165,8 @@ defmodule TWeb.ProfileView do
         approx_labels_count_per_page = ceil(length(labels) / bg_pages_count)
 
         labels
-        |> Enum.map(fn label -> position_label(label) end)
         |> Enum.chunk_every(approx_labels_count_per_page)
+        |> Enum.map(&position_labels/1)
       end
 
     story =
@@ -151,17 +179,42 @@ defmodule TWeb.ProfileView do
     postprocess_story(story)
   end
 
+  defp emoji_value(vals) do
+    vals |> Enum.reject(&is_nil/1) |> Enum.join("\n")
+  end
+
+  defp age(date) do
+    to_string(calc_diff(date, Date.utc_today()))
+  end
+
+  defp calc_diff(%Date{year: y1, month: m1, day: d1}, %Date{year: y2, month: m2, day: d2})
+       when m2 > m1 or (m2 == m1 and d2 >= d1) do
+    y2 - y1
+  end
+
+  defp calc_diff(%Date{year: y1}, %Date{year: y2}), do: y2 - y1 - 1
+
+  defp render_taste_emoji("music"), do: "🎧"
+  defp render_taste_emoji("sports"), do: "⛷"
+  defp render_taste_emoji("alcohol"), do: "🥃"
+  defp render_taste_emoji("smoking"), do: "🚬"
+  defp render_taste_emoji("books"), do: "📚"
+  defp render_taste_emoji("currently_studying"), do: "🧠"
+  defp render_taste_emoji("tv_shows"), do: "📺"
+  defp render_taste_emoji("languages"), do: "👅"
+  defp render_taste_emoji("musical_instruments"), do: "🥁"
+  defp render_taste_emoji("movies"), do: "🎥"
+  defp render_taste_emoji("social_networks"), do: "📱"
+  defp render_taste_emoji("cuisines"), do: "🍕"
+  defp render_taste_emoji("pets"), do: "🐶"
+  defp render_taste_emoji(_other), do: nil
+
   if Mix.env() == :test do
-    defp position_label(label) do
+    defp position_label(label, _width, _height, _x, _y) do
       Map.merge(%{"center" => [100, 100], "size" => [100, 100]}, label)
     end
   else
-    defp position_label(label) do
-      x = :rand.uniform(400)
-      y = :rand.uniform(800)
-      width = 50 + :rand.uniform(50)
-      height = 20 + :rand.uniform(80)
-
+    defp position_label(label, width, height, x, y) do
       Map.merge(
         %{
           "position" => [x, y],
@@ -173,6 +226,31 @@ defmodule TWeb.ProfileView do
       )
     end
   end
+
+  defp position_labels(labels) do
+    position_labels(labels, _prev_width = 0, _prev_hight = 225)
+  end
+
+  defp position_labels([label | rest], prev_width, prev_height) do
+    width = 150 + :rand.uniform(50)
+    height = 100 + :rand.uniform(80)
+
+    {x, y} =
+      if prev_width + width >= 400 do
+        # move to next row
+        {width / 2 + 10, prev_height + 10 + height / 2}
+      else
+        # move to next column
+        {prev_width + width / 2 + 10, prev_height - 75 + height / 2}
+      end
+
+    [
+      position_label(label, width, height, x, y)
+      | position_labels(rest, x + width / 2, y + height / 2)
+    ]
+  end
+
+  defp position_labels([], _prev_width, _prev_height), do: []
 
   defp fill_bg_pages(pages, min_count) when min_count > 0 do
     do_fill_bg_pages(pages, min_count)

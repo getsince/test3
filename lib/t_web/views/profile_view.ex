@@ -149,8 +149,15 @@ defmodule TWeb.ProfileView do
         ),
         if(free_form, do: %{"value" => free_form}),
         Enum.map(tastes || %{}, fn {k, v} ->
-          v = if is_list(v), do: Enum.join(v, ", "), else: v
-          %{"question" => k, "answer" => v, "value" => emoji_value([render_taste_emoji(k), v])}
+          v
+          |> List.wrap()
+          |> Enum.map(fn taste ->
+            %{
+              "question" => k,
+              "answer" => taste,
+              "value" => emoji_value([render_taste_emoji(k), taste])
+            }
+          end)
         end)
       ]
       |> List.flatten()
@@ -180,7 +187,7 @@ defmodule TWeb.ProfileView do
   end
 
   defp emoji_value(vals) do
-    vals |> Enum.reject(&is_nil/1) |> Enum.join("\n")
+    vals |> Enum.reject(&is_nil/1) |> Enum.join(" ")
   end
 
   defp age(date) do
@@ -221,7 +228,7 @@ defmodule TWeb.ProfileView do
           "center" => [x, y],
           "dimensions" => [400, 800],
           "size" => [width, height],
-          "rotation" => :rand.uniform(30) - 60
+          "rotation" => 30 - :rand.uniform(60)
         },
         label
       )
@@ -233,13 +240,13 @@ defmodule TWeb.ProfileView do
   end
 
   defp position_labels([label | rest], prev_width, prev_height) do
-    width = 150 + :rand.uniform(50)
-    height = 100 + :rand.uniform(80)
+    width = 80 + :rand.uniform(50)
+    height = 50 + :rand.uniform(80)
 
     {x, y} =
       if prev_width + width >= 400 do
         # move to next row
-        {width / 2 + 10, prev_height + 10 + height / 2}
+        {width / 2 + 10, prev_height + 30 + height / 2}
       else
         # move to next column
         {prev_width + width / 2 + 10, prev_height - 75 + height / 2}

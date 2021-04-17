@@ -111,7 +111,7 @@ defmodule TWeb.MobileAuthControllerTest do
                        "size" => [100, 100],
                        "center" => [100, 100],
                        "question" => "name",
-                       "value" => "🏷\nthat"
+                       "value" => "🏷 that"
                      },
                      %{
                        "answer" => "1992-12-12",
@@ -119,14 +119,14 @@ defmodule TWeb.MobileAuthControllerTest do
                        "center" => [100, 100],
                        "question" => "birthdate",
                        #  one day it would break
-                       "value" => "🎂\n28"
+                       "value" => "🎂 28"
                      },
                      %{
                        "answer" => 120,
                        "size" => [100, 100],
                        "center" => [100, 100],
                        "question" => "height",
-                       "value" => "📏\n120см"
+                       "value" => "📏 120см"
                      }
                    ]
                  },
@@ -139,7 +139,7 @@ defmodule TWeb.MobileAuthControllerTest do
                        "size" => [100, 100],
                        "center" => [100, 100],
                        "question" => "city",
-                       "value" => "🏙\nMoscow"
+                       "value" => "🏙 Moscow"
                      },
                      %{
                        "answer" => "this",
@@ -153,7 +153,7 @@ defmodule TWeb.MobileAuthControllerTest do
                        "size" => [100, 100],
                        "center" => [100, 100],
                        "question" => "interests",
-                       "value" => "🎮\nthis"
+                       "value" => "🎮 this"
                      }
                    ]
                  },
@@ -171,7 +171,7 @@ defmodule TWeb.MobileAuthControllerTest do
                        "size" => [100, 100],
                        "center" => [100, 100],
                        "question" => "interests",
-                       "value" => "🎮\nthat"
+                       "value" => "🎮 that"
                      },
                      %{
                        "answer" => "asdf",
@@ -185,7 +185,7 @@ defmodule TWeb.MobileAuthControllerTest do
                        "size" => [100, 100],
                        "center" => [100, 100],
                        "question" => "alcohol",
-                       "value" => "🥃\nnot really"
+                       "value" => "🥃 not really"
                      }
                    ]
                  },
@@ -198,21 +198,21 @@ defmodule TWeb.MobileAuthControllerTest do
                        "size" => [100, 100],
                        "center" => [100, 100],
                        "question" => "books",
-                       "value" => "📚\nlol no"
+                       "value" => "📚 lol no"
                      },
                      %{
                        "answer" => "nah",
                        "size" => [100, 100],
                        "center" => [100, 100],
                        "question" => "currently_studying",
-                       "value" => "🧠\nnah"
+                       "value" => "🧠 nah"
                      },
                      %{
                        "answer" => "rice",
                        "size" => [100, 100],
                        "center" => [100, 100],
                        "question" => "music",
-                       "value" => "🎧\nrice"
+                       "value" => "🎧 rice"
                      }
                    ]
                  },
@@ -230,21 +230,21 @@ defmodule TWeb.MobileAuthControllerTest do
                        "size" => [100, 100],
                        "center" => [100, 100],
                        "question" => "smoking",
-                       "value" => "🚬\nnah"
+                       "value" => "🚬 nah"
                      },
                      %{
                        "answer" => "bottles",
                        "size" => [100, 100],
                        "center" => [100, 100],
                        "question" => "sports",
-                       "value" => "⛷\nbottles"
+                       "value" => "⛷ bottles"
                      },
                      %{
                        "answer" => "no",
                        "size" => [100, 100],
                        "center" => [100, 100],
                        "question" => "tv_shows",
-                       "value" => "📺\nno"
+                       "value" => "📺 no"
                      }
                    ]
                  }

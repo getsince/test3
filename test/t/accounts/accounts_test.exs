@@ -4,7 +4,7 @@ defmodule T.AccountsTest do
 
   alias T.Accounts
   alias T.Accounts.Profile
-  alias T.Feeds.PersonalityOverlapJob
+  # alias T.Feeds.PersonalityOverlapJob
 
   describe "save_photo/2" do
     test "pushes photo into existing profile's photos array" do
@@ -138,71 +138,44 @@ defmodule T.AccountsTest do
       assert errors_on(changeset) == %{
                # TODO
                #  gender: ["can't be blank"],
-               name: ["can't be blank"],
-               photos: ["should have at least 1 item(s)"]
+               name: ["can't be blank"]
              }
 
       apple_music_song = apple_music_song()
 
       assert {:ok, profile} =
                Accounts.onboard_profile(profile, %{
-                 birthdate: "1992-12-12",
                  song: apple_music_song,
-                 city: "Moscow",
-                 first_date_idea: "asdf",
                  gender: "M",
-                 height: 120,
-                 interests: ["this", "that"],
-                 most_important_in_life: "this",
-                 name: "that",
-                 photos: ["a", "b", "c", "d"],
-                 tastes: %{
-                   music: ["rice"],
-                   sports: ["bottles"],
-                   alcohol: "not really",
-                   smoking: "nah",
-                   books: ["lol no"],
-                   tv_shows: ["no"],
-                   currently_studying: ["nah"]
-                 }
+                 name: "that"
                })
 
       profile = Profile |> Repo.get!(profile.user_id) |> Repo.preload(:user)
 
-      assert_enqueued(worker: PersonalityOverlapJob, args: %{user_id: profile.user_id})
+      # TODO
+      # assert_enqueued(worker: PersonalityOverlapJob, args: %{user_id: profile.user_id})
 
-      assert profile.hidden? == false
+      # no story, so still hidden
+      assert profile.hidden?
       assert profile.user.onboarded_at
 
       assert %Profile{
-               birthdate: ~D[1992-12-12],
-               city: "Moscow",
                song: ^apple_music_song,
-               first_date_idea: "asdf",
-               free_form: nil,
                gender: "M",
-               height: 120,
-               hidden?: false,
-               interests: ["this", "that"],
-               job: nil,
-               #  last_active: ~U[2021-01-14 22:56:25Z],
-               major: nil,
-               most_important_in_life: "this",
                name: "that",
-               occupation: nil,
-               photos: ["a", "b", "c", "d"],
-               tastes: %{
-                 "alcohol" => "not really",
-                 "books" => ["lol no"],
-                 "currently_studying" => ["nah"],
-                 "music" => ["rice"],
-                 "smoking" => "nah",
-                 "sports" => ["bottles"],
-                 "tv_shows" => ["no"]
-               },
                times_liked: 0,
-               university: nil
+               story: nil
              } = profile
+
+      assert {:ok, profile} =
+               Accounts.update_profile(profile, %{
+                 story: profile_story()
+               })
+
+      profile = Profile |> Repo.get!(profile.user_id) |> Repo.preload(:user)
+
+      assert profile.hidden? == false
+      assert profile.user.onboarded_at
     end
 
     @tag skip: true
@@ -312,34 +285,6 @@ defmodule T.AccountsTest do
       #          Accounts.onboard_profile(profile.user_id, %{})
 
       # assert onboarded_at
-    end
-  end
-
-  describe "update_profile_photo_at_position/3" do
-    defp photos(user_id) do
-      Profile
-      |> where(user_id: ^user_id)
-      |> select([p], p.photos)
-      |> Repo.one!()
-    end
-
-    test "it works" do
-      {:ok, %{profile: %Profile{user_id: user_id, photos: photos}}} =
-        Accounts.register_user(%{phone_number: phone_number()})
-
-      refute photos
-
-      assert :ok = Accounts.update_profile_photo_at_position(user_id, "photo-2", 2)
-      assert photos(user_id) == ["photo-2"]
-
-      assert :ok = Accounts.update_profile_photo_at_position(user_id, "photo-1", 1)
-      assert photos(user_id) == ["photo-1", "photo-2"]
-
-      assert :ok = Accounts.update_profile_photo_at_position(user_id, "photo-4", 4)
-      assert photos(user_id) == ["photo-1", "photo-2", nil, "photo-4"]
-
-      assert :ok = Accounts.update_profile_photo_at_position(user_id, "photo-3", 3)
-      assert photos(user_id) == ["photo-1", "photo-2", "photo-3", "photo-4"]
     end
   end
 

@@ -85,21 +85,8 @@ defmodule TWeb.FeedChannelTest do
                  profile: %{
                    song: nil,
                    story: story,
-                   birthdate: nil,
-                   city: nil,
-                   first_date_idea: nil,
-                   free_form: nil,
                    gender: "F",
-                   height: nil,
-                   interests: [],
-                   job: nil,
-                   major: nil,
-                   most_important_in_life: nil,
                    name: nil,
-                   occupation: nil,
-                   photos: [],
-                   tastes: %{},
-                   university: nil,
                    user_id: p.user_id
                  }
                }

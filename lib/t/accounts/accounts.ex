@@ -17,7 +17,7 @@ defmodule T.Accounts do
     APNSDevice
   }
 
-  alias T.Feeds.PersonalityOverlapJob
+  # alias T.Feeds.PersonalityOverlapJob
 
   # def subscribe_to_new_users do
   #   Phoenix.PubSub.subscribe(T.PubSub, "new_users")
@@ -470,15 +470,12 @@ defmodule T.Accounts do
 
       {:ok, nil}
     end)
-    |> Ecto.Multi.run(:show_profile, fn repo, %{user: user} ->
-      {1, nil} =
-        Profile
-        |> where(user_id: ^user.id)
-        |> repo.update_all(set: [hidden?: false])
-
-      {:ok, nil}
+    |> Ecto.Multi.run(:show_profile, fn _repo, %{user: user} ->
+      {count, nil} = maybe_unhide_profile_with_story(user.id)
+      {:ok, count >= 1}
     end)
-    |> Oban.insert(:schedule_overlap_job, PersonalityOverlapJob.new(%{"user_id" => user_id}))
+    # TODO
+    # |> Oban.insert(:schedule_overlap_job, PersonalityOverlapJob.new(%{"user_id" => user_id}))
     |> Repo.transaction()
     |> case do
       {:ok, %{user: user, profile: %Profile{} = profile}} ->
@@ -496,50 +493,29 @@ defmodule T.Accounts do
   end
 
   def update_profile(%Profile{} = profile, attrs, opts \\ []) do
-    profile
-    |> Profile.changeset(attrs, opts)
-    |> Repo.update(returning: true)
+    Ecto.Multi.new()
+    |> Ecto.Multi.update(:profile, Profile.changeset(profile, attrs, opts), returning: true)
+    |> Ecto.Multi.run(:maybe_unhide, fn _repo, %{profile: profile} ->
+      has_story? = !!profile.story
+      hidden? = profile.hidden?
+      result = if hidden? and has_story?, do: maybe_unhide_profile_with_story(profile.user_id)
+      {:ok, result}
+    end)
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{profile: profile}} -> {:ok, profile}
+      {:error, :profile, %Ecto.Changeset{} = changeset, _changes} -> {:error, changeset}
+    end
   end
 
-  # TODO
-  def update_profile_photo_at_position(user_id, s3_key, position) when position in [1, 2, 3, 4] do
-    sql = "update profiles set photos[$1] = $2 where user_id = $3"
-
-    %Postgrex.Result{num_rows: 1} =
-      Repo.query!(sql, [position, s3_key, Ecto.Bigflake.UUID.dump!(user_id)])
-
-    Media.pic3d_job(s3_key) |> Ecto.Changeset.change() |> Oban.insert()
-
-    :ok
-  end
-
-  def validate_profile_photos(%Profile{} = profile) do
-    profile
-    |> Profile.photos_changeset(%{}, validate_required?: true)
-    |> Repo.update()
-  end
-
-  def validate_profile_general_info(%Profile{} = profile) do
-    profile
-    |> Profile.general_info_changeset(%{}, validate_required?: true)
-    |> Repo.update()
-  end
-
-  def validate_profile_work_and_education(%Profile{} = profile) do
-    profile
-    |> Profile.work_and_education_changeset(%{})
-    |> Repo.update()
-  end
-
-  def validate_profile_about(%Profile{} = profile) do
-    profile
-    |> Profile.about_self_changeset(%{})
-    |> Repo.update()
-  end
-
-  def validate_profile_tastes(%Profile{} = profile) do
-    profile
-    |> Profile.tastes_changeset(%{})
-    |> Repo.update()
+  defp maybe_unhide_profile_with_story(user_id) when is_binary(user_id) do
+    Profile
+    |> where(user_id: ^user_id)
+    |> where([p], not is_nil(p.story))
+    |> join(:inner, [p], u in User, on: u.id == p.user_id)
+    |> where([_, u], not is_nil(u.onboarded_at))
+    |> where([_, u], is_nil(u.deleted_at))
+    |> where([_, u], is_nil(u.blocked_at))
+    |> Repo.update_all(set: [hidden?: false])
   end
 end

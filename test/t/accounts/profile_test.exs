@@ -352,4 +352,16 @@ defmodule T.Accounts.ProfileTest do
       assert errors_on(changeset) == %{}
     end
   end
+
+  describe "song_changeset/2" do
+    test "can nillify song" do
+      %{profile: profile} = onboarded_user()
+      assert profile.song
+
+      assert %Ecto.Changeset{valid?: true} =
+               changeset = Profile.changeset(profile, %{"song" => nil})
+
+      refute apply_changes(changeset).song
+    end
+  end
 end

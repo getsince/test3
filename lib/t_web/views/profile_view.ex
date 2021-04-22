@@ -7,28 +7,28 @@ defmodule TWeb.ProfileView do
     profile
     |> Map.take([
       :user_id,
-      :photos,
+      # :photos,
       :song,
       :name,
-      :gender,
-      :birthdate,
-      :height,
-      :city,
-      :occupation,
-      :job,
-      :university,
-      :major,
-      :most_important_in_life,
-      :interests,
-      :first_date_idea,
-      :free_form,
-      :tastes
+      :gender
+      # :birthdate,
+      # :height,
+      # :city,
+      # :occupation,
+      # :job,
+      # :university,
+      # :major,
+      # :most_important_in_life,
+      # :interests,
+      # :first_date_idea,
+      # :free_form,
+      # :tastes
     ])
-    |> Map.update!(:photos, fn photos ->
-      (photos || [])
-      |> Enum.reject(&is_nil/1)
-      |> Enum.map(&s3_key_urls/1)
-    end)
+    # |> Map.update!(:photos, fn photos ->
+    #   (photos || [])
+    #   |> Enum.reject(&is_nil/1)
+    #   |> Enum.map(&s3_key_urls/1)
+    # end)
     |> Map.update!(:song, fn song ->
       if song, do: extract_song_info(song)
     end)

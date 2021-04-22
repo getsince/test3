@@ -23,28 +23,15 @@ defmodule TWeb.MatchChannelTest do
       online: online?,
       # last_active: last_active,
       profile: %{
-        birthdate: nil,
         story: [
           %{"background" => %{"color" => "#E5E7EB"}, "size" => [400, 800], "labels" => []},
           %{"background" => %{"color" => "#E5E7EB"}, "size" => [400, 800], "labels" => []},
           %{"background" => %{"color" => "#E5E7EB"}, "size" => [400, 800], "labels" => []},
           %{"background" => %{"color" => "#E5E7EB"}, "size" => [400, 800], "labels" => []}
         ],
-        city: nil,
-        first_date_idea: nil,
-        free_form: nil,
         gender: "F",
-        height: nil,
-        interests: [],
-        job: nil,
-        major: nil,
-        most_important_in_life: nil,
         name: nil,
-        occupation: nil,
-        photos: [],
         song: nil,
-        tastes: %{},
-        university: nil,
         user_id: match.user_id_2
       }
     }

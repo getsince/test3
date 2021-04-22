@@ -146,33 +146,21 @@ defmodule T.Factory do
 
   def onboarding_attrs(gender \\ "M") do
     %{
-      birthdate: "1992-12-12",
       story: profile_story(),
       song: apple_music_song(),
-      city: "Moscow",
-      first_date_idea: "asdf",
       gender: gender,
-      height: 120,
-      interests: ["this", "that"],
-      most_important_in_life: "this",
-      name: "that",
-      photos: ["a", "b", "c", "d"],
-      tastes: %{
-        music: ["rice"],
-        sports: ["bottles"],
-        alcohol: "not really",
-        smoking: "nah",
-        books: ["lol no"],
-        tv_shows: ["no"],
-        currently_studying: ["nah"]
-      }
+      name: "that"
     }
   end
 
   alias T.Accounts
 
-  def onboarded_user do
-    {:ok, user} = Accounts.register_user(%{"phone_number" => phone_number()})
+  def registered_user(phone_number \\ phone_number()) do
+    {:ok, user} = Accounts.register_user(%{"phone_number" => phone_number})
+    user
+  end
+
+  def onboarded_user(user \\ registered_user()) do
     {:ok, profile} = Accounts.onboard_profile(user.profile, onboarding_attrs())
     %Accounts.User{user | profile: profile}
   end

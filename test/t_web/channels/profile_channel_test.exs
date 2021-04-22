@@ -488,4 +488,22 @@ defmodule TWeb.ProfileChannelTest do
       # TODO
     end
   end
+
+  describe "updates after onboarded" do
+    setup do
+      user = onboarded_user()
+      {:ok, user: user, socket: connected_socket(user)}
+    end
+
+    setup :subscribe_and_join
+
+    test "can reset song", %{user: user, socket: socket} do
+      assert user.profile.song
+
+      ref = push(socket, "submit", %{"profile" => %{"song" => ""}})
+      assert_reply ref, :ok, %{profile: %{song: nil}}
+
+      refute Repo.get!(Accounts.Profile, user.id).song
+    end
+  end
 end

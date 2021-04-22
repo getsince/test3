@@ -120,6 +120,10 @@ defmodule TWeb.ProfileChannel do
   #   end
   # end
 
+  defp with_song(%{"song" => none} = params) when none in [nil, ""] do
+    Map.put(params, "song", nil)
+  end
+
   defp with_song(%{"song" => song_id} = params) do
     Map.put(params, "song", Music.get_song(song_id))
   end

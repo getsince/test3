@@ -60,18 +60,20 @@ defmodule T.PushNotifications.APNSJob do
     base_notification(device_id, "match")
     |> Notification.put_alert(%{"title" => title, "body" => body})
     |> Notification.put_badge(1)
+    |> put_tab("matches")
   end
 
-  defp build_notification("yo", device_id, data) do
-    %{"sender_name" => sender_name} = data
+  # defp build_notification("yo", device_id, data) do
+  #   %{"sender_name" => sender_name} = data
 
-    title = "#{sender_name || "noname"} зовёт тебя пообщаться!"
-    body = "Не упусти момент 😼"
+  #   title = "#{sender_name || "noname"} зовёт тебя пообщаться!"
+  #   body = "Не упусти момент 😼"
 
-    base_notification(device_id, "match")
-    |> Notification.put_alert(%{"title" => title, "body" => body})
-    |> Notification.put_badge(1)
-  end
+  #   base_notification(device_id, "match")
+  #   |> Notification.put_alert(%{"title" => title, "body" => body})
+  #   |> Notification.put_badge(1)
+  #   |> put_tab("matches")
+  # end
 
   # defp build_notification("pending_match_activated", device_id, _data) do
   #   title = "Твоя симпатия взаимна!"
@@ -97,6 +99,7 @@ defmodule T.PushNotifications.APNSJob do
     base_notification(device_id, "message")
     |> Notification.put_alert(%{"title" => title, "body" => body})
     |> Notification.put_badge(1)
+    |> put_tab("matches")
   end
 
   defp build_notification("support", device_id, _data) do
@@ -106,6 +109,7 @@ defmodule T.PushNotifications.APNSJob do
     base_notification(device_id, "support")
     |> Notification.put_alert(%{"title" => title, "body" => body})
     |> Notification.put_badge(1)
+    |> put_tab("support")
   end
 
   defp build_notification("timeslot_offer", device_id, _data) do
@@ -115,6 +119,7 @@ defmodule T.PushNotifications.APNSJob do
     base_notification(device_id, "timeslot_offer")
     |> Notification.put_alert(%{"title" => title, "body" => body})
     |> Notification.put_badge(1)
+    |> put_tab("dates")
   end
 
   defp build_notification("timeslot_accepted", device_id, _data) do
@@ -124,6 +129,7 @@ defmodule T.PushNotifications.APNSJob do
     base_notification(device_id, "timeslot_accepted")
     |> Notification.put_alert(%{"title" => title, "body" => body})
     |> Notification.put_badge(1)
+    |> put_tab("dates")
   end
 
   defp build_notification("timeslot_reminder", device_id, _data) do
@@ -133,6 +139,7 @@ defmodule T.PushNotifications.APNSJob do
     base_notification(device_id, "timeslot_reminder")
     |> Notification.put_alert(%{"title" => title, "body" => body})
     |> Notification.put_badge(1)
+    |> put_tab("dates")
   end
 
   defp build_notification("timeslot_started", device_id, _data) do
@@ -142,6 +149,7 @@ defmodule T.PushNotifications.APNSJob do
     base_notification(device_id, "timeslot_started")
     |> Notification.put_alert(%{"title" => title, "body" => body})
     |> Notification.put_badge(1)
+    |> put_tab("dates")
   end
 
   defp base_notification(device_id, collapse_id) do
@@ -151,5 +159,11 @@ defmodule T.PushNotifications.APNSJob do
       # TODO thread id
       collapse_id: collapse_id
     }
+  end
+
+  defp put_tab(notifacation, tab) do
+    notifacation
+    |> Notification.put_mutable_content()
+    |> Notification.put_custom(%{"tab" => tab})
   end
 end

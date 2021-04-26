@@ -6,6 +6,44 @@ defmodule Dev do
 
   @task_supervisor T.TaskSupervisor
 
+  # def push_notification(
+  #       dev_id \\ "8DD777E4366CAA4CE148B8BC77ECF37673A603C78B3D2F2E91C09F1EE07DE178"
+  #     ) do
+  #   message = ""
+
+  #   topic = Application.fetch_env!(:pigeon, :apns)[:apns_default].topic
+
+  #   message
+  #   |> Notification.new(dev_id, topic)
+  #   |> Notification.put_alert(%{
+  #     "title" => "Это матч!",
+  #     # "subtitle" => "Five Card Draw",
+  #     "body" => "Вася пупкин ждёт тебя!"
+  #   })
+  #   |> Notification.put_custom(%{"thread_id" => "1"})
+  #   |> Notification.put_badge(1)
+  #   # |> Notification.put_category()
+  #   # |> Notification.put_content_available()
+  #   # |> Notification.put_custom()
+  #   # |> Notification.put_mutable_content()
+  #   # |> Map.put(:collapse_id, "1")
+  #   |> APNS.push()
+  # end
+
+  def test_notification do
+    device_id = "4566740ae17319d7cb223b06ac206ba78492827bcafc3276f8d6cfc161312c2f"
+    # 10e569dfab7f976996abea20e6467c7b44f5ab6374491d3c98347131289b7fb0
+
+    %Notification{
+      device_token: device_id,
+      topic: Application.fetch_env!(:pigeon, :apns)[:apns_default].topic
+    }
+    |> Notification.put_alert(%{"title" => "test", "body" => "body test"})
+    |> Notification.put_custom(%{"tab" => "dates"})
+    |> Notification.put_mutable_content()
+    |> APNS.push()
+  end
+
   def position do
     position_labels(Enum.map(1..4, fn _ -> %{} end))
   end

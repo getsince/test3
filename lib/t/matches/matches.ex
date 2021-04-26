@@ -586,7 +586,7 @@ defmodule T.Matches do
     |> Notification.put_alert(%{"title" => title, "body" => body})
     |> Notification.put_mutable_content()
     |> Notification.put_badge(1)
-    |> Notification.put_custom(%{"ack_id" => ack_id})
+    |> Notification.put_custom(%{"ack_id" => ack_id, "tab" => "matches"})
   end
 
   defp base_notification(device_id, collapse_id) do

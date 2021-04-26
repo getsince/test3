@@ -9,16 +9,25 @@ defmodule T.Twilio do
   # TODO cache
   # TODO lower ttl
   # TODO don't leak secrets to logs
-  def ice_servers do
-    %{account_sid: account_sid, key_sid: key_sid, auth_token: auth_token} = creds()
+  if Mix.env() == :test do
+    def ice_servers do
+      # TODO
+      %{}
+    end
+  else
+    def ice_servers do
+      %{account_sid: account_sid, key_sid: key_sid, auth_token: auth_token} = creds()
 
-    url = "https://api.twilio.com/2010-04-01/Accounts/#{account_sid}/Tokens.json"
-    body = ""
-    headers = []
-    opts = [hackney: [basic_auth: {key_sid, auth_token}]]
+      url = "https://api.twilio.com/2010-04-01/Accounts/#{account_sid}/Tokens.json"
+      body = ""
+      headers = []
+      opts = [hackney: [basic_auth: {key_sid, auth_token}]]
 
-    %HTTPoison.Response{status_code: 201, body: body} = HTTPoison.post!(url, body, headers, opts)
-    %{"ice_servers" => ice_servers} = Jason.decode!(body)
-    ice_servers
+      %HTTPoison.Response{status_code: 201, body: body} =
+        HTTPoison.post!(url, body, headers, opts)
+
+      %{"ice_servers" => ice_servers} = Jason.decode!(body)
+      ice_servers
+    end
   end
 end

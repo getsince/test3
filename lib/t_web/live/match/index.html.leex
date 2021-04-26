@@ -48,6 +48,9 @@
               <% else %>
                 <button phx-click="yo" phx-value-match="<%= match.id %>" class="px-2 text-green-400 bg-green-100 border border-green-400">yo</button>
               <% end %>
+              <%= if @pushkit_ids[match.profile.user_id] do %>
+                <button phx-click="push-call" phx-value-user="<%= match.profile.user_id %>" class="px-2 text-indigo-400 bg-indigo-100 border border-indigo-400">pushkit call</button>
+              <% end %>
             </td>
           </tr>
         <% end %>

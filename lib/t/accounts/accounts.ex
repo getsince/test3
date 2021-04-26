@@ -14,7 +14,8 @@ defmodule T.Accounts do
     UserNotifier,
     UserReport,
     UserDeletionJob,
-    APNSDevice
+    APNSDevice,
+    PushKitDevice
   }
 
   # alias T.Feeds.PersonalityOverlapJob
@@ -387,6 +388,34 @@ defmodule T.Accounts do
     |> Repo.delete_all()
   end
 
+  def save_pushkit_device_id(user_id, token, device_id) do
+    %UserToken{id: token_id} = token |> UserToken.token_and_context_query("mobile") |> Repo.one!()
+
+    # duplicate device_id conflict target?
+    # TODO ensure tokens are deleted on logout
+    Repo.insert!(%PushKitDevice{user_id: user_id, token_id: token_id, device_id: device_id},
+      on_conflict: {:replace, [:device_id, :updated_at]},
+      conflict_target: [:user_id, :token_id]
+    )
+
+    :ok
+  end
+
+  @doc "remove_pushkit_device(device_id_base_16)"
+  def remove_pushkit_device(device_id) do
+    PushKitDevice
+    |> where(device_id: ^Base.decode16!(device_id))
+    |> Repo.delete_all()
+  end
+
+  def list_pushkit_devices(user_id) when is_binary(user_id) do
+    PushKitDevice
+    |> where(user_id: ^user_id)
+    |> select([d], d.device_id)
+    |> Repo.all()
+    |> Enum.map(&Base.encode16/1)
+  end
+
   ## Session
 
   @doc """
@@ -396,6 +425,16 @@ defmodule T.Accounts do
     {token, user_token} = UserToken.build_token(user, context)
     Repo.insert!(user_token)
     token
+  end
+
+  def list_user_session_tokens(user_id, context) do
+    user_id
+    |> UserToken.user_and_contexts_query(context)
+    |> order_by([t], desc: t.id)
+    |> Repo.all()
+    |> Enum.map(fn %UserToken{token: raw_token} = t ->
+      %T.Accounts.UserToken{t | token: UserToken.encoded_token(raw_token)}
+    end)
   end
 
   @doc """

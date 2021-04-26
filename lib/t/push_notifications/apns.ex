@@ -33,4 +33,18 @@ defmodule T.PushNotifications.APNS do
     |> Notification.put_mutable_content()
     |> Notification.put_custom(%{"tab" => tab})
   end
+
+  def pushkit_call(device_id, payload) when is_binary(device_id) do
+    push_all_envs(%Notification{
+      device_token: device_id,
+      topic: topic() <> ".voip",
+      push_type: "voip",
+      expiration: 0,
+      payload: payload
+    })
+  end
+
+  def pushkit_call(device_ids, payload) when is_list(device_ids) do
+    Enum.map(device_ids, fn id -> pushkit_call(id, payload) end)
+  end
 end

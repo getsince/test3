@@ -11,7 +11,7 @@ defmodule TWeb.MatchChannelTest do
   describe "join with no matches" do
     test "no matches returned duh, and presence state is empty", %{socket: socket, me: me} do
       assert {:ok, reply, _socket} = subscribe_and_join(socket, "matches:" <> me.id, %{})
-      assert reply == %{matches: []}
+      assert reply == %{matches: [], ice_servers: %{}}
       assert_push "presence_state", push
       assert push == %{}
     end

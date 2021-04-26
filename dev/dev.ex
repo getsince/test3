@@ -32,13 +32,15 @@ defmodule Dev do
   # end
 
   def test_notification do
-    device_id = "4566740ae17319d7cb223b06ac206ba78492827bcafc3276f8d6cfc161312c2f"
+    device_id = "b79f763fcc12b49a6bb8ced9ef309b3b5c62d366e16dce909b1f06f52c4cc882"
     # 10e569dfab7f976996abea20e6467c7b44f5ab6374491d3c98347131289b7fb0
 
-    APNS.base_notification(device_id, "dates_test")
+    APNS.base_notification(device_id, Ecto.UUID.generate())
     |> Notification.put_alert(%{"title" => "test", "body" => "body test"})
-    |> APNS.put_tab("dates")
-    |> APNS.push_all_envs()
+    |> Notification.put_custom(%{"thread-id" => "1"})
+    # |> APNS.put_tab("dates")
+    # |> APNS.push_all_envs()
+    |> Pigeon.APNS.push()
   end
 
   def position do
@@ -83,6 +85,26 @@ defmodule Dev do
   end
 
   defp position_labels([], _prev_width, _prev_height), do: []
+
+  def pushkit_call(
+        dev_id \\ "2ed2642e2a8d09e3d3b1a9bf380398dc6d312a2393b95fd0faa8d3e744d85f5e",
+        caller_id \\ "00000177-6518-778a-b8e8-56408d820000",
+        caller_name \\ "Somebody"
+      ) do
+    n = %Notification{
+      device_token: dev_id,
+      topic: Application.fetch_env!(:pigeon, :apns)[:apns_default].topic <> ".voip",
+      push_type: "voip",
+      expiration: 0,
+      payload: %{
+        "user_id" => caller_id,
+        "name" => caller_name
+      }
+    }
+
+    n
+    |> APNS.push_all_envs()
+  end
 
   def send_yo do
     leo = "00000177-679a-ad79-0242-ac1100030000"

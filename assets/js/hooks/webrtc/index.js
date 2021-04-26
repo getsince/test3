@@ -1,6 +1,5 @@
 const mediaConstraints = {
   audio: true,
-  video: true,
 };
 
 const reportError = (where) => (error) => {

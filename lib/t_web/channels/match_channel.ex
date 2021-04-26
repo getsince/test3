@@ -17,7 +17,8 @@ defmodule TWeb.MatchChannel do
     mates = Enum.map(matches, & &1.profile.user_id)
     send(self(), :after_join)
 
-    {:ok, %{matches: render_matches(topic, matches)}, assign(socket, mates: mates)}
+    {:ok, %{matches: render_matches(topic, matches), ice_servers: T.Twilio.ice_servers()},
+     assign(socket, mates: mates)}
   end
 
   @impl true
@@ -32,8 +33,22 @@ defmodule TWeb.MatchChannel do
     {:reply, :ok, socket}
   end
 
+  def handle_in("call" = event, %{"mate" => mate}, socket) do
+    me = T.Repo.preload(socket.assigns.current_user, [:profile])
+
+    msg = {decode_call_event(event), me(socket)}
+    trace(socket, msg)
+    Phoenix.PubSub.broadcast!(@pubsub, mate_topic(mate), msg)
+
+    mate
+    |> Accounts.list_pushkit_devices()
+    |> T.PushNotifications.APNS.pushkit_call(%{"user_id" => me.id, "name" => me.profile.name})
+
+    {:reply, :ok, assign(socket, current_user: me)}
+  end
+
   def handle_in(event, %{"mate" => mate}, socket)
-      when event in ["call", "pick-up", "hang-up"] do
+      when event in ["pick-up", "hang-up"] do
     msg = {decode_call_event(event), me(socket)}
     trace(socket, msg)
     Phoenix.PubSub.broadcast!(@pubsub, mate_topic(mate), msg)

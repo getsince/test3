@@ -5,7 +5,7 @@ defmodule TWeb.MatchLive.Index do
 
   @pubsub T.PubSub
 
-  @default_assigns [feed: [], likers: [], presences: [], matches: []]
+  @default_assigns [feed: [], likers: [], presences: [], matches: [], pushkit_ids: %{}]
   # TODO matches can be temp as well
   @temporary_assigns [feed: [], likers: [], user_options: []]
 
@@ -43,7 +43,8 @@ defmodule TWeb.MatchLive.Index do
        me: me,
        matches: matches,
        user_options: user_options(),
-       presences: presences(topic(me.id))
+       presences: presences(topic(me.id)),
+       pushkit_ids: pushkit_ids()
      ), temporary_assigns: @temporary_assigns}
   end
 
@@ -64,9 +65,9 @@ defmodule TWeb.MatchLive.Index do
 
   defp apply_action(%{"mate_id" => mate_id}, :call, socket) do
     if connected?(socket) do
-      %{me: me, presences: presences} = socket.assigns
+      %{me: me, presences: presences, pushkit_ids: pushkit_ids} = socket.assigns
 
-      if presences[mate_id] && socket.assigns[:call] do
+      if (presences[mate_id] || pushkit_ids[mate_id]) && socket.assigns[:call] do
         update_in_call(socket, true)
       else
         push_patch(socket, to: Routes.match_index_path(socket, :show, me.id), replace: true)
@@ -109,8 +110,22 @@ defmodule TWeb.MatchLive.Index do
   end
 
   def handle_event("call", %{"user" => user_id}, socket) do
-    me = socket.assigns.me
+    %{me: me} = socket.assigns
     Phoenix.PubSub.broadcast!(@pubsub, topic(user_id), {:call, me.id})
+    socket = assign(socket, call: {:calling, user_id})
+    path = Routes.match_index_path(socket, :call, me.id, user_id)
+    {:noreply, push_patch(socket, to: path)}
+  end
+
+  def handle_event("push-call", %{"user" => user_id}, socket) do
+    %{me: me, pushkit_ids: pushkit_ids} = socket.assigns
+    pushkit_dev_id = Map.fetch!(pushkit_ids, user_id)
+
+    T.PushNotifications.APNS.pushkit_call(pushkit_dev_id, %{
+      "user_id" => me.id,
+      "name" => me.profile.name
+    })
+
     socket = assign(socket, call: {:calling, user_id})
     path = Routes.match_index_path(socket, :call, me.id, user_id)
     {:noreply, push_patch(socket, to: path)}
@@ -283,6 +298,14 @@ defmodule TWeb.MatchLive.Index do
     |> Ecto.Query.select([_, p], {p.name, p.user_id})
     |> order_by([_, p], desc: p.times_liked)
     |> Repo.all()
+  end
+
+  defp pushkit_ids do
+    Accounts.PushKitDevice
+    # TODO group devices per user
+    |> Ecto.Query.select([d], {d.user_id, d.device_id})
+    |> Repo.all()
+    |> Map.new(fn {user_id, device_id} -> {user_id, Base.encode16(device_id)} end)
   end
 
   defp all_likers(me_id) do

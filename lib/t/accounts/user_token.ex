@@ -75,11 +75,11 @@ defmodule T.Accounts.UserToken do
   @doc """
   Gets all tokens for the given user for the given contexts.
   """
-  def user_and_contexts_query(user, :all) do
-    from t in T.Accounts.UserToken, where: t.user_id == ^user.id
+  def user_and_contexts_query(user_id, :all) do
+    from t in T.Accounts.UserToken, where: t.user_id == ^user_id
   end
 
-  def user_and_contexts_query(user, [_ | _] = contexts) do
-    from t in T.Accounts.UserToken, where: t.user_id == ^user.id and t.context in ^contexts
+  def user_and_contexts_query(user_id, [_ | _] = contexts) do
+    from t in T.Accounts.UserToken, where: t.user_id == ^user_id and t.context in ^contexts
   end
 end

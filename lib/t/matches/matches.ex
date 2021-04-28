@@ -479,7 +479,7 @@ defmodule T.Matches do
 
   ###################### YO ######################
 
-  alias Pigeon.APNS
+  alias PushNotifications.APNS
   alias Pigeon.APNS.Notification
 
   @doc "send_yo(match: match_id, from: user_id)"
@@ -515,7 +515,7 @@ defmodule T.Matches do
             device_id = Base.encode16(device_id)
             build_yo_notification(device_id, message, ack_id)
           end)
-          |> Enum.map(&apns_push_all_workers/1)
+          |> Enum.map(&APNS.push_all_envs/1)
           |> List.flatten()
           |> Enum.reduce([], fn %Notification{response: r, device_token: device_id} = n, acc ->
             if r in [:bad_device_token, :unregistered] do
@@ -549,17 +549,6 @@ defmodule T.Matches do
     end
   end
 
-  defp apns_push_all_workers(%Notification{} = notification) do
-    Application.fetch_env!(:pigeon, :apns)
-    |> Enum.map(fn {worker, _} -> APNS.push(notification, to: worker) end)
-    |> case do
-      [n] -> n
-      [%Notification{response: :success} = n, _n] -> n
-      [_n, %Notification{response: :success} = n] -> n
-      [_, _] = fails -> fails
-    end
-  end
-
   def ack_yo(ack_id) do
     Phoenix.PubSub.broadcast!(T.PubSub, "yo_ack:#{ack_id}", :ack)
   end
@@ -582,23 +571,12 @@ defmodule T.Matches do
   defp render_gender(_it), do: "оно"
 
   defp build_yo_notification(device_id, [title, body], ack_id) do
-    base_notification(device_id, "yo")
+    APNS.base_notification(device_id, "yo")
     |> Notification.put_alert(%{"title" => title, "body" => body})
     |> Notification.put_mutable_content()
     |> Notification.put_badge(1)
-    |> Notification.put_custom(%{"ack_id" => ack_id, "tab" => "matches"})
-  end
-
-  defp base_notification(device_id, collapse_id) do
-    %Notification{
-      device_token: device_id,
-      topic: topic(),
-      collapse_id: collapse_id
-    }
-  end
-
-  defp topic do
-    Application.fetch_env!(:pigeon, :apns)[:apns_default].topic
+    |> Notification.put_custom(%{"ack_id" => ack_id})
+    |> APNS.put_tab("matches")
   end
 
   def profile_info(user_id) do

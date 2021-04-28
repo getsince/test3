@@ -1,7 +1,8 @@
 defmodule Dev do
   alias T.{Media, Accounts}
   alias T.Accounts.{Profile}
-  alias Pigeon.APNS
+  # alias Pigeon.APNS
+  alias T.PushNotifications.APNS
   alias Pigeon.APNS.Notification
 
   @task_supervisor T.TaskSupervisor
@@ -34,14 +35,10 @@ defmodule Dev do
     device_id = "4566740ae17319d7cb223b06ac206ba78492827bcafc3276f8d6cfc161312c2f"
     # 10e569dfab7f976996abea20e6467c7b44f5ab6374491d3c98347131289b7fb0
 
-    %Notification{
-      device_token: device_id,
-      topic: Application.fetch_env!(:pigeon, :apns)[:apns_default].topic
-    }
+    APNS.base_notification(device_id, "dates_test")
     |> Notification.put_alert(%{"title" => "test", "body" => "body test"})
-    |> Notification.put_custom(%{"tab" => "dates"})
-    |> Notification.put_mutable_content()
-    |> APNS.push()
+    |> APNS.put_tab("dates")
+    |> APNS.push_all_envs()
   end
 
   def position do
@@ -225,7 +222,7 @@ defmodule Dev do
     # |> Notification.put_custom()
     # |> Notification.put_mutable_content()
     # |> Map.put(:collapse_id, "1")
-    |> APNS.push()
+    |> APNS.push_all_envs()
   end
 
   def rex do

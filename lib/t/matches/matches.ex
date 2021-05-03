@@ -580,12 +580,11 @@ defmodule T.Matches do
   defp render_gender(_it), do: "оно"
 
   defp build_yo_notification(device_id, [title, body], ack_id) do
-    APNS.base_notification(device_id, "yo")
-    |> Notification.put_alert(%{"title" => title, "body" => body})
-    |> Notification.put_mutable_content()
-    |> Notification.put_badge(1)
-    |> Notification.put_custom(%{"ack_id" => ack_id})
-    |> APNS.put_tab("matches")
+    APNS.build_notification(device_id, "yo", %{
+      "ack_id" => ack_id,
+      "title" => title,
+      "body" => body
+    })
   end
 
   def profile_info(user_id) do

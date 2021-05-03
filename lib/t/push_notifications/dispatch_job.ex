@@ -17,8 +17,9 @@ defmodule T.PushNotifications.DispatchJob do
     if match = alive_match(match_id) do
       %Matches.Match{user_id_1: uid1, user_id_2: uid2} = match
 
-      uid1 |> Matches.device_ids() |> schedule_apns("match")
-      uid2 |> Matches.device_ids() |> schedule_apns("match")
+      data = %{"match_id" => match_id}
+      uid1 |> Matches.device_ids() |> schedule_apns("match", data)
+      uid2 |> Matches.device_ids() |> schedule_apns("match", data)
 
       :ok
     else
@@ -33,33 +34,16 @@ defmodule T.PushNotifications.DispatchJob do
       %Matches.Match{user_id_1: uid1, user_id_2: uid2} = match
 
       [receiver_id] = [uid1, uid2] -- [author_id]
-      receiver_id |> Matches.device_ids() |> schedule_apns("message")
+
+      receiver_id
+      |> Matches.device_ids()
+      |> schedule_apns("message", %{"match_id" => match_id, "author_id" => author_id})
 
       :ok
     else
       :discard
     end
   end
-
-  # TODO remove, yos are not schedulable
-  # defp handle_type("yo", args) do
-  #   %{"match_id" => match_id, "sender_id" => sender_id} = args
-
-  #   if match = alive_match(match_id) do
-  #     %Matches.Match{user_id_1: uid1, user_id_2: uid2} = match
-
-  #     [receiver_id] = [uid1, uid2] -- [sender_id]
-  #     # TODO if not devices -> send SMS
-
-  #     receiver_id
-  #     |> Matches.device_ids()
-  #     |> schedule_apns("yo", %{"sender_name" => Matches.profile_name(sender_id)})
-
-  #     :ok
-  #   else
-  #     :discard
-  #   end
-  # end
 
   defp handle_type("support", args) do
     %{"user_id" => user_id} = args
@@ -71,7 +55,7 @@ defmodule T.PushNotifications.DispatchJob do
     %{"match_id" => match_id, "receiver_id" => receiver_id} = args
 
     if alive_match(match_id) do
-      receiver_id |> Matches.device_ids() |> schedule_apns(type)
+      receiver_id |> Matches.device_ids() |> schedule_apns(type, %{"match_id" => match_id})
       :ok
     else
       :discard
@@ -93,8 +77,9 @@ defmodule T.PushNotifications.DispatchJob do
           Matches.schedule_timeslot_ended(match, timeslot)
         end
 
-        uid1 |> Matches.device_ids() |> schedule_apns(type)
-        uid2 |> Matches.device_ids() |> schedule_apns(type)
+        data = %{"match_id" => match_id}
+        uid1 |> Matches.device_ids() |> schedule_apns(type, data)
+        uid2 |> Matches.device_ids() |> schedule_apns(type, data)
 
         :ok
       end
@@ -113,9 +98,11 @@ defmodule T.PushNotifications.DispatchJob do
 
       unless timeslot do
         %Matches.Match{user_id_1: uid1, user_id_2: uid2} = match
+
         data = %{"match_id" => match_id}
         uid1 |> Matches.device_ids() |> schedule_apns(type, data)
         uid2 |> Matches.device_ids() |> schedule_apns(type, data)
+
         :ok
       end
     end

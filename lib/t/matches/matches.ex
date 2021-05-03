@@ -55,21 +55,17 @@ defmodule T.Matches do
     success
   end
 
-  defp notify_subscribers({:ok, %{timeslot: timeslot}} = success, [:timeslot, :offered, to_mate]) do
-    Phoenix.PubSub.broadcast(
-      @pubsub,
-      pubsub_user_topic(to_mate),
-      {__MODULE__, [:timeslot, :offered], timeslot}
-    )
-
+  defp notify_subscribers({:ok, %{timeslot: timeslot}} = success, event) do
+    _ = notify_subscribers({:ok, timeslot}, event)
     success
   end
 
-  defp notify_subscribers({:ok, %Timeslot{} = timeslot} = success, [:timeslot, :accepted, to_mate]) do
+  defp notify_subscribers({:ok, %Timeslot{} = timeslot} = success, [:timeslot, event, to_mate])
+       when event in [:offered, :accepted, :cancelled] do
     Phoenix.PubSub.broadcast(
       @pubsub,
       pubsub_user_topic(to_mate),
-      {__MODULE__, [:timeslot, :accepted], timeslot}
+      {__MODULE__, [:timeslot, event], timeslot}
     )
 
     success
@@ -270,6 +266,36 @@ defmodule T.Matches do
 
     Oban.insert_all([accepted_push, reminder_push, started_push])
     notify_subscribers({:ok, timeslot}, [:timeslot, :accepted, mate])
+  end
+
+  @doc "cancel_slot(match: <match-id>, from: <user-id>)"
+  def cancel_slot(opts) do
+    match_id = Keyword.fetch!(opts, :match)
+    offerer = Keyword.fetch!(opts, :from)
+
+    %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} = get_match_for_user(match_id, offerer)
+    [mate] = [uid1, uid2] -- [offerer]
+
+    {1, [%Timeslot{selected_slot: selected_slot} = timeslot]} =
+      Timeslot
+      |> where(match_id: ^match_id)
+      |> where(picker: ^mate)
+      |> select([t], t)
+      |> Repo.delete_all()
+
+    if selected_slot do
+      push =
+        PushNotifications.DispatchJob.new(%{
+          "type" => "timeslot_cancelled",
+          "match_id" => match_id
+        })
+
+      Oban.insert_all([push])
+    end
+
+    notify_subscribers({:ok, timeslot}, [:timeslot, :cancelled, mate])
+
+    :ok
   end
 
   defp timeslot_changeset(timeslot, attrs, reference) do

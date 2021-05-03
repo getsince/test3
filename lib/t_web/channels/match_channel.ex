@@ -78,6 +78,11 @@ defmodule TWeb.MatchChannel do
     {:reply, :ok, socket}
   end
 
+  def handle_in("cancel-slot", %{"match_id" => match}, socket) do
+    :ok = Matches.cancel_slot(match: match, from: me(socket))
+    {:reply, :ok, socket}
+  end
+
   def handle_in("ice-servers", _params, socket) do
     {:reply, {:ok, %{ice_servers: T.Twilio.ice_servers()}}, socket}
   end
@@ -125,6 +130,12 @@ defmodule TWeb.MatchChannel do
   def handle_info({Matches, [:timeslot, :accepted], timeslot}, socket) do
     %Matches.Timeslot{selected_slot: slot, match_id: match_id} = timeslot
     push(socket, "slot_accepted", %{"match_id" => match_id, "selected_slot" => slot})
+    {:noreply, socket}
+  end
+
+  def handle_info({Matches, [:timeslot, :cancelled], timeslot}, socket) do
+    %Matches.Timeslot{match_id: match_id} = timeslot
+    push(socket, "slot_cancelled", %{"match_id" => match_id})
     {:noreply, socket}
   end
 

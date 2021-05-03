@@ -101,6 +101,26 @@ defmodule T.PushNotifications.DispatchJob do
     end || :discard
   end
 
+  defp handle_type("timeslot_cancelled" = type, args) do
+    %{"match_id" => match_id} = args
+
+    if match = alive_match(match_id) do
+      timeslot =
+        Matches.Timeslot
+        |> where(match_id: ^match_id)
+        |> where([t], not is_nil(t.selected_slot))
+        |> Repo.one()
+
+      unless timeslot do
+        %Matches.Match{user_id_1: uid1, user_id_2: uid2} = match
+        data = %{"match_id" => match_id}
+        uid1 |> Matches.device_ids() |> schedule_apns(type, data)
+        uid2 |> Matches.device_ids() |> schedule_apns(type, data)
+        :ok
+      end
+    end
+  end
+
   defp handle_type("timeslot_ended", args) do
     %{"match_id" => match_id} = args
 

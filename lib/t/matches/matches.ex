@@ -210,7 +210,7 @@ defmodule T.Matches do
 
   # TODO delete stale slots
   # can list where I'm picker, where I'm not picker, where slot is selected
-  def list_relevant_slots(user_id, reference \\ DateTime.utc_now()) do
+  def list_relevant_slots(user_id) do
     my_matches =
       Match
       |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
@@ -219,23 +219,6 @@ defmodule T.Matches do
     Timeslot
     |> join(:inner, [t], m in subquery(my_matches), on: t.match_id == m.id)
     |> Repo.all()
-    |> filter_relevant_slots(reference)
-  end
-
-  def filter_relevant_slots(timeslots, reference) do
-    reference = prev_slot(reference)
-
-    timeslots
-    |> Enum.map(fn %Timeslot{slots: slots} = timeslot ->
-      %Timeslot{timeslot | slots: Enum.filter(slots, &future_slot?(&1, reference))}
-    end)
-    |> Enum.filter(fn %Timeslot{slots: slots, selected_slot: selected_slot} ->
-      if selected_slot do
-        future_slot?(selected_slot, reference)
-      else
-        not Enum.empty?(slots)
-      end
-    end)
   end
 
   @doc "accept_slot(timestamp, match: <match_id>, picker: <user_id>)"

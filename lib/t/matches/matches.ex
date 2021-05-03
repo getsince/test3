@@ -10,7 +10,7 @@ defmodule T.Matches do
 
   alias T.{Repo, Media, PushNotifications}
   alias T.Accounts.{User, Profile}
-  alias T.Matches.{Match, Message, Yo, Timeslot}
+  alias T.Matches.{Match, SeenMatch, Message, Yo, Timeslot}
 
   @pubsub T.PubSub
   @topic to_string(__MODULE__)
@@ -214,7 +214,102 @@ defmodule T.Matches do
 
     Timeslot
     |> join(:inner, [t], m in subquery(my_matches), on: t.match_id == m.id)
+    |> select([t], %Timeslot{t | seen?: coalesce(t.seen?, false)})
     |> Repo.all()
+    |> postprocess_seen(user_id)
+  end
+
+  defp postprocess_seen(timeslots, user_id) do
+    Enum.map(timeslots, fn timeslot ->
+      %Timeslot{picker_id: picker_id, seen?: seen?, selected_slot: selected_slot} = timeslot
+
+      seen? =
+        cond do
+          # slot is picked
+          selected_slot ->
+            # if our user is the picker -> they've seen it
+            # otherwise we look into :seen?
+            picker_id == user_id || seen?
+
+          # no slot is picked, and our user is picker
+          picker_id == user_id ->
+            # we look into `:seen?`
+            seen?
+
+          # no slot is picked, and our user is not picker
+          # -> they've offered the slot, so they've seen it
+          true ->
+            true
+        end
+
+      %Timeslot{timeslot | seen?: seen?}
+    end)
+  end
+
+  @spec mark_timeslot_seen_or_delete_expired(Ecto.UUID.t(), keyword) :: :deleted | :seen | false
+  @doc "mark_timeslot_seen_or_delete_expired(<match-id>, by: <user-id>)"
+  def mark_timeslot_seen_or_delete_expired(match_id, opts) do
+    by_user_id = Keyword.fetch!(opts, :by)
+    reference = opts[:reference] || DateTime.utc_now()
+
+    {:ok, result} =
+      Repo.transact(fn ->
+        timeslot = Repo.get_by!(Timeslot, match_id: match_id)
+
+        result =
+          if expired?(timeslot, reference) do
+            if timeslot.picker_id == by_user_id do
+              delete_expired_timeslot(match_id, reference) && :deleted
+            end || false
+          else
+            mark_timeslot_seen(match_id, by_user_id) && :seen
+          end
+
+        {:ok, result}
+      end)
+
+    result
+  end
+
+  defp expired?(%Timeslot{selected_slot: nil, slots: slots}, reference) do
+    filter_valid_slots(slots, reference) == []
+  end
+
+  defp expired?(%Timeslot{selected_slot: selected_slot}, reference) do
+    not future_slot?(selected_slot, reference)
+  end
+
+  defp mark_timeslot_seen(match_id, by_user_id) do
+    {count, _} =
+      Timeslot
+      |> where(match_id: ^match_id)
+      # TODO refactor rename picker -> actor and set it to offerer after slot is picked and use it here
+      # if no selected slot -> picker can mark as seen
+      # otherwise it's offerer who can mark as seen
+      |> where(
+        [t],
+        fragment(
+          "case when ? is null then ? = ? else ? != ? end",
+          t.selected_slot,
+          t.picker_id,
+          type(^by_user_id, Ecto.UUID),
+          t.picker_id,
+          type(^by_user_id, Ecto.UUID)
+        )
+      )
+      |> Repo.update_all(set: [seen?: true])
+
+    count == 1
+  end
+
+  defp delete_expired_timeslot(match_id, _reference) do
+    {count, _} =
+      Timeslot
+      |> where(match_id: ^match_id)
+      # |> where(expired)
+      |> Repo.delete_all([])
+
+    count == 1
   end
 
   @doc "accept_slot(timestamp, match: <match_id>, picker: <user_id>)"
@@ -235,7 +330,7 @@ defmodule T.Matches do
       |> where(picker_id: ^picker)
       |> where([t], ^slot in t.slots)
       |> select([t], t)
-      |> Repo.update_all(set: [selected_slot: slot])
+      |> Repo.update_all(set: [selected_slot: slot, seen?: false])
 
     accepted_push =
       PushNotifications.DispatchJob.new(%{
@@ -433,12 +528,27 @@ defmodule T.Matches do
   #################### HELPERS ####################
 
   def get_current_matches(user_id) do
+    seen = SeenMatch |> where(by_user_id: ^user_id)
+
     Match
     |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
     |> where(alive?: true)
+    |> join(:left, [m], s in subquery(seen), on: m.id == s.match_id)
+    |> select([m, s], %Match{m | seen?: not is_nil(s.match_id)})
     |> Repo.all()
     |> preload_match_profiles(user_id)
     |> with_timeslots(user_id)
+  end
+
+  # TODO broadcast
+  @doc "mark_match_seen(<match-id>, by: <user-id>)"
+  def mark_match_seen(match_id, opts) do
+    by_user_id = Keyword.fetch!(opts, :by)
+
+    %SeenMatch{by_user_id: by_user_id, match_id: match_id}
+    |> change()
+    |> unique_constraint(:seen, name: :seen_matches_pkey)
+    |> Repo.insert()
   end
 
   def get_match_for_user(match_id, user_id) do

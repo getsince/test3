@@ -49,14 +49,16 @@ defmodule T.Feeds do
     |> notify_subscribers(:liked)
   end
 
-  # defp mark_seen(multi, by_user_id, user_id) do
-  #   changeset =
-  #     %SeenProfile{by_user_id: by_user_id, user_id: user_id}
-  #     |> change()
-  #     |> unique_constraint(:seen, name: :seen_profiles_pkey)
+  # TODO broadcast
+  @doc "mark_profile_seen(user_id, by: <user-id>)"
+  def mark_profile_seen(user_id, opts) do
+    by_user_id = Keyword.fetch!(opts, :by)
 
-  #   Ecto.Multi.insert(multi, :seen, changeset)
-  # end
+    %SeenProfile{by_user_id: by_user_id, user_id: user_id}
+    |> change()
+    |> unique_constraint(:seen, name: :seen_profiles_pkey)
+    |> Repo.insert()
+  end
 
   defp mark_liked(multi, by_user_id, user_id) do
     changeset =
@@ -95,9 +97,23 @@ defmodule T.Feeds do
       on: p.user_id == m.user_id_1 or p.user_id == m.user_id_2
     )
     |> where([p, l, m], is_nil(m.id))
+    |> select([p, l], %Profile{p | seen?: coalesce(l.seen?, false)})
     # TODO index
     |> order_by([p, l], desc: l.inserted_at)
     |> Repo.all()
+  end
+
+  @doc "mark_liker_seen(<user-id>, by: <user-id>)"
+  def mark_liker_seen(user_id, opts) do
+    liked_id = Keyword.fetch!(opts, :by)
+
+    {count, _} =
+      ProfileLike
+      |> where(user_id: ^liked_id)
+      |> where(by_user_id: ^user_id)
+      |> Repo.update_all(set: [seen?: true])
+
+    count == 1
   end
 
   ######################### FEED #########################
@@ -156,10 +172,14 @@ defmodule T.Feeds do
     real ++ fakes
   end
 
-  @doc "batched_demo_feed(profile, loaded: 13) or demo_feed(next_ids, loaded: 13)"
-  def batched_demo_feed(profile_or_next_ids, opts \\ [])
+  @doc "batched_demo_feed(profile or user_id, loaded: 13)"
+  def batched_demo_feed(profile, opts \\ [])
 
   def batched_demo_feed(%{user_id: user_id} = _profile, opts) do
+    batched_demo_feed(user_id, opts)
+  end
+
+  def batched_demo_feed(user_id, opts) do
     first_real = "00000177-679a-ad79-0242-ac1100030000"
     kj = "00000177-8336-5e0e-0242-ac1100030000"
 
@@ -188,13 +208,23 @@ defmodule T.Feeds do
       |> Enum.shuffle()
 
     ids = real ++ fakes
-    batched_demo_feed(ids, opts)
+    batched_demo_feed_cont(ids, user_id, opts)
   end
 
-  def batched_demo_feed(next_ids, opts) when is_list(next_ids) do
+  @doc "batched_demo_feed_cont([<user-id>], <user-id>, loaded: 13)"
+  def batched_demo_feed_cont(next_ids, user_id, opts) when is_list(next_ids) do
     loaded_count = opts[:loaded] || 10
     {to_fetch, next_ids} = Enum.split(next_ids, loaded_count)
-    loaded = Profile |> where([p], p.user_id in ^to_fetch) |> Repo.all()
+
+    seen = SeenProfile |> where(by_user_id: ^user_id)
+
+    loaded =
+      Profile
+      |> where([p], p.user_id in ^to_fetch)
+      |> join(:left, [p], s in subquery(seen), on: p.user_id == s.user_id)
+      |> select([p, s], %Profile{p | seen?: not is_nil(s.user_id)})
+      |> Repo.all()
+
     %{loaded: loaded, next_ids: next_ids}
   end
 

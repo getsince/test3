@@ -40,10 +40,12 @@ defmodule TWeb.MatchChannel do
     trace(socket, msg)
     Phoenix.PubSub.broadcast!(@pubsub, mate_topic(mate), msg)
 
+    # TODO if no pushkit device and user not online, resply that call didn't happen
     mate
     |> Accounts.list_pushkit_devices()
     |> T.PushNotifications.APNS.pushkit_call(%{"user_id" => me.id, "name" => me.profile.name})
 
+    # reply with how the call happened, user online / pushkit?
     {:reply, :ok, assign(socket, current_user: me)}
   end
 
@@ -61,6 +63,16 @@ defmodule TWeb.MatchChannel do
 
   def handle_in("call-ended", %{"mate" => _mate}, socket) do
     {:reply, :ok, update_in_call(socket, false)}
+  end
+
+  def handle_in("seen-slot", %{"match_id" => match_id}, socket) do
+    result = Matches.mark_timeslot_seen_or_delete_expired(match_id, by: me(socket))
+    {:reply, {:ok, %{result: result}}, socket}
+  end
+
+  def handle_in("seen-match", %{"match_id" => match_id}, socket) do
+    Matches.mark_match_seen(match_id, by: me(socket))
+    {:reply, :ok, socket}
   end
 
   def handle_in("yo", %{"match_id" => match}, socket) do
@@ -164,7 +176,9 @@ defmodule TWeb.MatchChannel do
     mate = Accounts.get_profile!(mate_id)
     socket = track_self_for_mate(socket, mate_id)
 
-    rendered = render_match(match_id, mate, mate_online?(socket, mate_id))
+    rendered =
+      render_match(match_id, mate, _timeslot = nil, mate_online?(socket, mate_id), _seen? = false)
+
     push(socket, "matched", %{match: rendered})
 
     {:noreply, socket}
@@ -245,19 +259,24 @@ defmodule TWeb.MatchChannel do
     mate_id in presences(socket)
   end
 
-  defp render_match(match_id, profile, maybe_timeslot \\ nil, online?) do
+  defp render_match(match_id, profile, maybe_timeslot, online?, seen?) do
     %{
       id: match_id,
       online: online?,
       profile: render_profile(profile),
       timeslot: maybe_timeslot && render_timeslot(maybe_timeslot),
-      last_active: profile.last_active
+      last_active: profile.last_active,
+      seen?: seen?
     }
   end
 
   defp render_matches(topic, matches) do
     online = topic |> Presence.list() |> Map.keys()
-    Enum.map(matches, &render_match(&1.id, &1.profile, &1.timeslot, &1.profile.user_id in online))
+
+    Enum.map(
+      matches,
+      &render_match(&1.id, &1.profile, &1.timeslot, &1.profile.user_id in online, &1.seen?)
+    )
   end
 
   defp render_profile(profile) do
@@ -265,13 +284,22 @@ defmodule TWeb.MatchChannel do
   end
 
   # TODO move to view
-  defp render_timeslot(%Matches.Timeslot{match_id: match, selected_slot: selected_slot})
+  defp render_timeslot(%Matches.Timeslot{
+         match_id: match,
+         selected_slot: selected_slot,
+         seen?: seen?
+       })
        when not is_nil(selected_slot) do
-    %{"match_id" => match, "selected_slot" => selected_slot}
+    %{"match_id" => match, "selected_slot" => selected_slot, "seen?" => seen?}
   end
 
-  defp render_timeslot(%Matches.Timeslot{match_id: match, picker_id: picker, slots: slots}) do
-    %{"match_id" => match, "slots" => slots, "picker" => picker}
+  defp render_timeslot(%Matches.Timeslot{
+         match_id: match,
+         picker_id: picker,
+         slots: slots,
+         seen?: seen?
+       }) do
+    %{"match_id" => match, "slots" => slots, "picker" => picker, "seen?" => seen?}
   end
 
   defp trace(socket, message) do

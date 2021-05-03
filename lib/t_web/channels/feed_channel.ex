@@ -12,6 +12,7 @@ defmodule TWeb.FeedChannel do
 
     %Accounts.Profile{} = my_profile = Accounts.get_profile!(socket.assigns.current_user)
 
+    # TODO remove check for batched
     if params["batched"] do
       %{loaded: feed, next_ids: next_ids} =
         Feeds.batched_demo_feed(my_profile, loaded: params["count"] || 3)
@@ -20,6 +21,7 @@ defmodule TWeb.FeedChannel do
        %{
          feed: render_profiles(feed),
          has_more: not Enum.empty?(next_ids),
+         # TODO remove own profile
          own_profile: render_profile(my_profile)
        }, assign(socket, profile: my_profile, next_ids: next_ids)}
     else
@@ -29,6 +31,13 @@ defmodule TWeb.FeedChannel do
   end
 
   @impl true
+  # TODO possibly batch
+  def handle_in("seen", %{"profile_id" => profile_id}, socket) do
+    # TODO broadcast
+    Feeds.mark_profile_seen(profile_id, by: socket.assigns.current_user.id)
+    {:reply, :ok, socket}
+  end
+
   def handle_in("like", %{"profile_id" => profile_id}, socket) do
     # TODO verify_can_see_profile(socket, profile_id)
     user = socket.assigns.current_user
@@ -37,10 +46,10 @@ defmodule TWeb.FeedChannel do
   end
 
   def handle_in("more", params, socket) do
-    %{next_ids: next_ids} = socket.assigns
+    %{next_ids: next_ids, current_user: me} = socket.assigns
 
     %{loaded: feed, next_ids: next_ids} =
-      Feeds.batched_demo_feed(next_ids, loaded: params["count"] || 5)
+      Feeds.batched_demo_feed_cont(next_ids, me.id, loaded: params["count"] || 5)
 
     cursor = %{feed: render_profiles(feed), has_more: not Enum.empty?(next_ids)}
     {:reply, {:ok, cursor}, assign(socket, next_ids: next_ids)}
@@ -53,7 +62,7 @@ defmodule TWeb.FeedChannel do
   #### MISC ####
 
   defp render_profile(profile) do
-    render(ProfileView, "show.json", profile: profile)
+    render(ProfileView, "feed_show.json", profile: profile)
   end
 
   defp render_profiles(profiles) do

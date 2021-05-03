@@ -80,6 +80,7 @@ defmodule TWeb.FeedChannelTest do
                match: %{
                  id: match_id,
                  online: false,
+                 seen?: false,
                  last_active: last_active,
                  timeslot: nil,
                  profile: %{

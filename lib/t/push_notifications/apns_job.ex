@@ -117,6 +117,17 @@ defmodule T.PushNotifications.APNSJob do
     |> APNS.put_tab("dates")
   end
 
+  defp build_notification("timeslot_cancelled", device_id, data) do
+    title = "Дейт отменён"
+    body = "Тебя больше не хотят видеть"
+
+    APNS.base_notification(device_id, "timeslot_cancelled")
+    |> Notification.put_alert(%{"title" => title, "body" => body})
+    |> Notification.put_custom(data)
+    |> Notification.put_badge(1)
+    |> APNS.put_tab("dates")
+  end
+
   defp build_notification("timeslot_reminder", device_id, _data) do
     title = "Скоро свиданочка"
     body = "Приготовься, у тебя 15 минут"

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 12.5
+-- Dumped from database version 13.1 (Debian 13.1-1.pgdg100+1)
 -- Dumped by pg_dump version 13.2
 
 SET statement_timeout = 0;
@@ -44,7 +44,7 @@ DECLARE
 BEGIN
   IF NEW.state = 'available' THEN
     channel = 'public.oban_insert';
-    notice = json_build_object('queue', NEW.queue, 'state', NEW.state);
+    notice = json_build_object('queue', NEW.queue);
 
     PERFORM pg_notify(channel, notice::text);
   END IF;
@@ -100,7 +100,8 @@ CREATE TABLE public.interests_overlap (
 CREATE TABLE public.liked_profiles (
     by_user_id uuid NOT NULL,
     user_id uuid NOT NULL,
-    inserted_at timestamp(0) without time zone NOT NULL
+    inserted_at timestamp(0) without time zone NOT NULL,
+    "seen?" boolean
 );
 
 
@@ -127,7 +128,8 @@ CREATE TABLE public.match_timeslot (
     picker_id uuid NOT NULL,
     slots timestamp(0) without time zone[] DEFAULT ARRAY[]::timestamp without time zone[],
     selected_slot timestamp(0) without time zone,
-    inserted_at timestamp(0) without time zone NOT NULL
+    inserted_at timestamp(0) without time zone NOT NULL,
+    "seen?" boolean
 );
 
 
@@ -141,22 +143,6 @@ CREATE TABLE public.matches (
     user_id_2 uuid NOT NULL,
     "alive?" boolean DEFAULT true NOT NULL,
     inserted_at timestamp(0) without time zone NOT NULL
-);
-
-
---
--- Name: oban_beats; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.oban_beats (
-    node text NOT NULL,
-    queue text NOT NULL,
-    nonce text NOT NULL,
-    "limit" integer NOT NULL,
-    paused boolean DEFAULT false NOT NULL,
-    running bigint[] DEFAULT ARRAY[]::integer[] NOT NULL,
-    inserted_at timestamp without time zone DEFAULT timezone('UTC'::text, now()) NOT NULL,
-    started_at timestamp without time zone NOT NULL
 );
 
 
@@ -229,18 +215,6 @@ CREATE TABLE public.phones (
 
 
 --
--- Name: phone_ips; Type: VIEW; Schema: public; Owner: -
---
-
-CREATE VIEW public.phone_ips AS
- SELECT (phones.meta ->> 'ip'::text) AS ip,
-    timezone('Europe/Moscow'::text, timezone('UTC'::text, max(phones.inserted_at))) AS "timestamp",
-    array_agg(phones.phone_number) AS phones
-   FROM public.phones
-  GROUP BY (phones.meta ->> 'ip'::text);
-
-
---
 -- Name: profile_feeds; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -275,7 +249,7 @@ CREATE TABLE public.profiles (
     tastes jsonb DEFAULT '{}'::jsonb NOT NULL,
     times_liked integer DEFAULT 0 NOT NULL,
     "hidden?" boolean DEFAULT true NOT NULL,
-    last_active timestamp(0) without time zone DEFAULT '2021-01-16 13:59:03.068207'::timestamp without time zone NOT NULL,
+    last_active timestamp(0) without time zone DEFAULT '2021-04-22 12:45:30.216066'::timestamp without time zone NOT NULL,
     song jsonb,
     story jsonb
 );
@@ -306,26 +280,23 @@ CREATE TABLE public.referral_codes (
 
 
 --
--- Name: referral_codes_with_count; Type: VIEW; Schema: public; Owner: -
---
-
-CREATE VIEW public.referral_codes_with_count AS
-SELECT
-    NULL::character varying(255) AS code,
-    NULL::character varying(255) AS inviter_phone,
-    NULL::text AS inviter_ip,
-    NULL::bigint AS invited_count,
-    NULL::character varying[] AS invited_phones,
-    NULL::text[] AS invited_ips;
-
-
---
 -- Name: schema_migrations; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.schema_migrations (
     version bigint NOT NULL,
     inserted_at timestamp(0) without time zone
+);
+
+
+--
+-- Name: seen_matches; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.seen_matches (
+    by_user_id uuid NOT NULL,
+    match_id uuid NOT NULL,
+    inserted_at timestamp(0) without time zone NOT NULL
 );
 
 
@@ -511,6 +482,14 @@ ALTER TABLE ONLY public.schema_migrations
 
 
 --
+-- Name: seen_matches seen_matches_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.seen_matches
+    ADD CONSTRAINT seen_matches_pkey PRIMARY KEY (by_user_id, match_id);
+
+
+--
 -- Name: seen_profiles seen_profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -551,6 +530,13 @@ ALTER TABLE ONLY public.users_tokens
 
 
 --
+-- Name: apns_devices_device_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX apns_devices_device_id_index ON public.apns_devices USING btree (device_id);
+
+
+--
 -- Name: interests_overlap_user_id_1_user_id_2_score_desc_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -569,13 +555,6 @@ CREATE INDEX liked_profiles_user_id_by_user_id_index ON public.liked_profiles US
 --
 
 CREATE UNIQUE INDEX matches_user_id_1_user_id_2_index ON public.matches USING btree (user_id_1, user_id_2);
-
-
---
--- Name: oban_beats_inserted_at_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX oban_beats_inserted_at_index ON public.oban_beats USING btree (inserted_at);
 
 
 --
@@ -632,29 +611,6 @@ CREATE UNIQUE INDEX users_tokens_context_token_index ON public.users_tokens USIN
 --
 
 CREATE INDEX users_tokens_user_id_index ON public.users_tokens USING btree (user_id);
-
-
---
--- Name: referral_codes_with_count _RETURN; Type: RULE; Schema: public; Owner: -
---
-
-CREATE OR REPLACE VIEW public.referral_codes_with_count AS
- SELECT c.code,
-    p.phone_number AS inviter_phone,
-    c.inviter_ip,
-    c.invited_count,
-    c.invited_phones,
-    c.invited_ips
-   FROM (( SELECT c_1.code,
-            (c_1.meta ->> 'visit'::text) AS visit,
-            (c_1.meta ->> 'ip'::text) AS inviter_ip,
-            count(p_1.phone_number) AS invited_count,
-            array_agg(p_1.phone_number) AS invited_phones,
-            array_agg((p_1.meta ->> 'ip'::text)) AS invited_ips
-           FROM (public.referral_codes c_1
-             JOIN public.phones p_1 ON (((c_1.code)::text = (p_1.meta ->> 'code'::text))))
-          GROUP BY c_1.code) c
-     JOIN public.phones p ON ((c.visit = (p.meta ->> 'visit'::text))));
 
 
 --
@@ -793,6 +749,22 @@ ALTER TABLE ONLY public.pushkit_devices
 
 
 --
+-- Name: seen_matches seen_matches_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.seen_matches
+    ADD CONSTRAINT seen_matches_by_user_id_fkey FOREIGN KEY (by_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: seen_matches seen_matches_match_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.seen_matches
+    ADD CONSTRAINT seen_matches_match_id_fkey FOREIGN KEY (match_id) REFERENCES public.matches(id) ON DELETE CASCADE;
+
+
+--
 -- Name: seen_profiles seen_profiles_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -887,3 +859,6 @@ INSERT INTO public."schema_migrations" (version) VALUES (20210323124108);
 INSERT INTO public."schema_migrations" (version) VALUES (20210407205627);
 INSERT INTO public."schema_migrations" (version) VALUES (20210407211518);
 INSERT INTO public."schema_migrations" (version) VALUES (20210430215633);
+INSERT INTO public."schema_migrations" (version) VALUES (20210504090355);
+INSERT INTO public."schema_migrations" (version) VALUES (20210504100737);
+INSERT INTO public."schema_migrations" (version) VALUES (20210504125559);

@@ -19,7 +19,14 @@ defmodule TWeb.LikeChannel do
   end
 
   defp render_profile(profile) do
-    render(ProfileView, "show.json", profile: profile)
+    render(ProfileView, "feed_show.json", profile: profile)
+  end
+
+  @impl true
+  # TODO possibly batch
+  def handle_in("seen", %{"user_id" => user_id}, socket) do
+    Feeds.mark_liker_seen(user_id, by: socket.assigns.current_user.id)
+    {:reply, :ok, socket}
   end
 
   @impl true
@@ -28,4 +35,8 @@ defmodule TWeb.LikeChannel do
     push(socket, "liked", %{liker: render_profile(liker)})
     {:noreply, socket}
   end
+
+  # def handle_info({Feeds, [:seen, :liker], liker_id}, socket) do
+  #   push(socket, )
+  # end
 end

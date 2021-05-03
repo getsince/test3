@@ -3,32 +3,17 @@ defmodule TWeb.ProfileView do
   alias T.Accounts.Profile
   alias T.Media
 
+  def render("feed_show.json", %{profile: %Profile{} = profile}) do
+    render_profile(profile, [:user_id, :song, :name, :gender, :seen?])
+  end
+
   def render("show.json", %{profile: %Profile{} = profile}) do
+    render_profile(profile, [:user_id, :song, :name, :gender])
+  end
+
+  defp render_profile(profile, fields) do
     profile
-    |> Map.take([
-      :user_id,
-      # :photos,
-      :song,
-      :name,
-      :gender
-      # :birthdate,
-      # :height,
-      # :city,
-      # :occupation,
-      # :job,
-      # :university,
-      # :major,
-      # :most_important_in_life,
-      # :interests,
-      # :first_date_idea,
-      # :free_form,
-      # :tastes
-    ])
-    # |> Map.update!(:photos, fn photos ->
-    #   (photos || [])
-    #   |> Enum.reject(&is_nil/1)
-    #   |> Enum.map(&s3_key_urls/1)
-    # end)
+    |> Map.take(fields)
     |> Map.update!(:song, fn song ->
       if song, do: extract_song_info(song)
     end)

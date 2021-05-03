@@ -46,6 +46,7 @@ defmodule T.Accounts.Profile do
     # field :tastes_list, {:array, :map}, virtual: true
     field :tastes, :map
     field :feed_reason, :string, virtual: true
+    field :seen?, :boolean, virtual: true
   end
 
   defp maybe_validate_required(changeset, opts, fun) when is_function(fun, 1) do

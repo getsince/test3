@@ -78,8 +78,8 @@ defmodule TWeb.MatchChannel do
     {:reply, :ok, socket}
   end
 
-  def handle_in("cancel-slot", %{"match_id" => match}, socket) do
-    :ok = Matches.cancel_slot(match: match, from: me(socket))
+  def handle_in("cancel-slot", %{"match_id" => match_id}, socket) do
+    Matches.cancel_slot(match_id, by: me(socket))
     {:reply, :ok, socket}
   end
 

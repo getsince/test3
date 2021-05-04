@@ -268,18 +268,19 @@ defmodule T.Matches do
     notify_subscribers({:ok, timeslot}, [:timeslot, :accepted, mate])
   end
 
-  @doc "cancel_slot(match: <match-id>, from: <user-id>)"
-  def cancel_slot(opts) do
-    match_id = Keyword.fetch!(opts, :match)
-    offerer = Keyword.fetch!(opts, :from)
+  @doc "cancel_slot(<match-id>, by: <user-id>)"
+  def cancel_slot(match_id, opts) do
+    by_user_id = Keyword.fetch!(opts, :by)
 
-    %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} = get_match_for_user(match_id, offerer)
-    [mate] = [uid1, uid2] -- [offerer]
+    %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} =
+      get_match_for_user(match_id, by_user_id)
+
+    [mate] = [uid1, uid2] -- [by_user_id]
 
     {1, [%Timeslot{selected_slot: selected_slot} = timeslot]} =
       Timeslot
       |> where(match_id: ^match_id)
-      |> where(picker: ^mate)
+      # |> where([t], t.picker_id in ^[])
       |> select([t], t)
       |> Repo.delete_all()
 

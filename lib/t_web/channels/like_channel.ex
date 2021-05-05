@@ -24,7 +24,7 @@ defmodule TWeb.LikeChannel do
 
   @impl true
   # TODO possibly batch
-  def handle_in("seen", %{"user_id" => user_id}, socket) do
+  def handle_in("seen-like", %{"profile_id" => user_id}, socket) do
     Feeds.mark_liker_seen(user_id, by: socket.assigns.current_user.id)
     {:reply, :ok, socket}
   end

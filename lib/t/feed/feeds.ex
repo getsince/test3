@@ -4,6 +4,7 @@ defmodule T.Feeds do
 
   alias T.{Repo, Matches, Accounts}
   alias T.Accounts.Profile
+  alias T.PushNotifications.DispatchJob
   alias T.Feeds.{Feed, SeenProfile, ProfileLike, PersonalityOverlap}
 
   @pubsub T.PubSub
@@ -42,6 +43,7 @@ defmodule T.Feeds do
     Ecto.Multi.new()
     # |> mark_seen(by_user_id, user_id)
     |> mark_liked(by_user_id, user_id)
+    |> schedule_like_push_notification()
     |> bump_likes_count(user_id)
     |> Matches.match_if_mutual_m(by_user_id, user_id)
     |> Repo.transaction()
@@ -67,6 +69,14 @@ defmodule T.Feeds do
       |> unique_constraint(:like, name: :liked_profiles_pkey)
 
     Ecto.Multi.insert(multi, :like, changeset)
+  end
+
+  defp schedule_like_push_notification(multi) do
+    Ecto.Multi.run(multi, :push_notification, fn _repo, %{like: like} ->
+      %ProfileLike{by_user_id: by_user_id, user_id: user_id} = like
+      job = DispatchJob.new(%{"type" => "like", "by_user_id" => by_user_id, "user_id" => user_id})
+      Oban.insert(job)
+    end)
   end
 
   defp bump_likes_count(multi, user_id) do

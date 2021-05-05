@@ -15,43 +15,52 @@ defmodule T.FeedsTest do
     end
 
     test "creates match if user is already liked and the liker is not hidden", %{
-      profiles: [p1, p2]
+      profiles: profiles
     } do
-      insert(:like, user: p1.user, by_user: p2.user)
+      [%{user_id: uid1}, %{user_id: uid2}] = profiles
+      assert {:ok, %{match: nil}} = Feeds.like_profile(uid2, uid1)
 
       assert {:ok, %{match: %Match{id: match_id, alive?: true} = match}} =
-               Feeds.like_profile(p1.user_id, p2.user_id)
+               Feeds.like_profile(uid1, uid2)
 
-      assert times_liked(p2.user_id) == 1
-      # assert_seen(by_user_id: p1.user_id, user_id: p2.user_id)
-      assert_liked(by_user_id: p1.user_id, user_id: p2.user_id)
+      assert times_liked(uid2) == 1
+      assert_liked(by_user_id: uid1, user_id: uid2)
 
-      # one match never hide nobody
-      refute_hidden([p1.user_id, p2.user_id])
+      user_ids = [uid1, uid2]
+      refute_hidden(user_ids)
 
-      assert p1.user_id in [match.user_id_1, match.user_id_2]
-      assert p2.user_id in [match.user_id_1, match.user_id_2]
-
-      assert_receive {Matches, [:matched, ^match_id], [_, _] = user_ids}
+      assert_lists_equal(user_ids, [match.user_id_1, match.user_id_2])
+      assert_receive {Matches, [:matched, ^match_id], ^user_ids}
       assert_receive {Matches, [:matched, ^match_id], ^user_ids}
 
-      assert p1.user_id in user_ids
-      assert p2.user_id in user_ids
-
-      assert [%{args: %{"match_id" => ^match_id, "type" => "match"}}] =
-               all_enqueued(worker: T.PushNotifications.DispatchJob)
+      assert [
+               %Oban.Job{args: %{"type" => "match", "match_id" => ^match_id}},
+               %Oban.Job{
+                 args: %{"type" => "like", "by_user_id" => ^uid1, "user_id" => ^uid2}
+               },
+               %Oban.Job{
+                 args: %{"type" => "like", "by_user_id" => ^uid2, "user_id" => ^uid1}
+               }
+             ] = all_enqueued(worker: T.PushNotifications.DispatchJob)
     end
 
-    test "doesn't create match if not yet liked", %{profiles: [p1, p2]} do
-      assert {:ok, %{match: nil}} = Feeds.like_profile(p1.user_id, p2.user_id)
+    test "doesn't create match if not yet liked", %{profiles: profiles} do
+      [%{user_id: liker_id}, %{user_id: liked_id}] = profiles
 
-      assert times_liked(p2.user_id) == 1
-      # assert_seen(by_user_id: p1.user_id, user_id: p2.user_id)
-      assert_liked(by_user_id: p1.user_id, user_id: p2.user_id)
-      refute_hidden([p1.user_id, p2.user_id])
+      assert times_liked(liked_id) == 0
+      assert {:ok, %{match: nil}} = Feeds.like_profile(liker_id, liked_id)
+      assert times_liked(liked_id) == 1
+
+      assert_liked(by_user_id: liker_id, user_id: liked_id)
+      refute_hidden([liker_id, liked_id])
 
       refute_receive _anything
-      assert [] = all_enqueued(worker: T.PushNotifications.DispatchJob)
+
+      assert [
+               %Oban.Job{
+                 args: %{"type" => "like", "by_user_id" => ^liker_id, "user_id" => ^liked_id}
+               }
+             ] = all_enqueued(worker: T.PushNotifications.DispatchJob)
     end
 
     test "double like doesn't raise", %{profiles: [p1, p2]} do

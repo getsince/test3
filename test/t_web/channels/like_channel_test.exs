@@ -95,7 +95,7 @@ defmodule TWeb.LikeChannelTest do
         socket = connected_socket(liker)
         {:ok, _reply, socket} = subscribe_and_join(socket, "feed:" <> liker.id, %{})
         ref = push(socket, "like", %{"profile_id" => me.id})
-        assert_reply ref, nil
+        assert_reply ref, :ok, %{}
       end)
 
       assert_push "liked", %{like: like}

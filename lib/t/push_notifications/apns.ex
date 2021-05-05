@@ -62,6 +62,16 @@ defmodule T.PushNotifications.APNS do
     |> put_tab("matches")
   end
 
+  def build_notification("like", device_id, data) do
+    title = "Ты кому-то нравишься"
+    body = "Конец"
+
+    base_notification(device_id, "like", data)
+    |> Notification.put_alert(%{"title" => title, "body" => body})
+    |> Notification.put_badge(1)
+    |> put_tab("likes")
+  end
+
   def build_notification("yo", device_id, data) do
     %{"title" => title, "body" => body, "ack_id" => ack_id} = data
 

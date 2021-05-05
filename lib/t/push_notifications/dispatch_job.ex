@@ -27,6 +27,15 @@ defmodule T.PushNotifications.DispatchJob do
     end
   end
 
+  defp handle_type("like", args) do
+    %{"by_user_id" => by_user_id, "user_id" => user_id} = args
+
+    data = %{"by_user_id" => by_user_id}
+    user_id |> Matches.device_ids() |> schedule_apns("like", data)
+
+    :ok
+  end
+
   defp handle_type("message", args) do
     %{"match_id" => match_id, "author_id" => author_id} = args
 

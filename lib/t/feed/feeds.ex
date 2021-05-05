@@ -2,7 +2,7 @@ defmodule T.Feeds do
   @moduledoc "Feeds and liking feeds"
   import Ecto.{Query, Changeset}
 
-  alias T.{Repo, Matches}
+  alias T.{Repo, Matches, Accounts}
   alias T.Accounts.Profile
   alias T.Feeds.{Feed, SeenProfile, ProfileLike, PersonalityOverlap}
 
@@ -18,10 +18,10 @@ defmodule T.Feeds do
   end
 
   defp notify_subscribers(
-         {:ok, %{like: %ProfileLike{by_user_id: from, user_id: to}}} = success,
+         {:ok, %{like: %ProfileLike{user_id: to} = like}} = success,
          :liked = event
        ) do
-    msg = {__MODULE__, event, from}
+    msg = {__MODULE__, event, like}
     Phoenix.PubSub.broadcast(@pubsub, pubsub_likes_topic(to), msg)
     success
   end
@@ -81,6 +81,7 @@ defmodule T.Feeds do
     end)
   end
 
+  # TODO remove after nobody is using like_channel version 1
   def all_likers(user_id) do
     likers =
       ProfileLike
@@ -101,6 +102,31 @@ defmodule T.Feeds do
     # TODO index
     |> order_by([p, l], desc: l.inserted_at)
     |> Repo.all()
+  end
+
+  # this one is used in like_channel version 2 and above
+  def all_profile_likes_with_liker_profile(user_id) do
+    matches =
+      Matches.Match
+      |> where(alive?: true)
+      |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
+
+    ProfileLike
+    |> where(user_id: ^user_id)
+    |> join(:inner, [l], p in Profile, on: p.user_id == l.by_user_id)
+    |> join(:left, [l, p], m in subquery(matches),
+      on: p.user_id == m.user_id_1 or p.user_id == m.user_id_2
+    )
+    |> where([l, p, m], is_nil(m.id))
+    |> select([l, p], %ProfileLike{l | liker_profile: p, seen?: coalesce(l.seen?, false)})
+    |> order_by([l, p], desc: l.inserted_at)
+    |> Repo.all()
+  end
+
+  def preload_liker_profile(%ProfileLike{liker_profile: %Profile{}} = like), do: like
+
+  def preload_liker_profile(%ProfileLike{by_user_id: by_user_id, liker_profile: nil} = like) do
+    %ProfileLike{like | liker_profile: Accounts.get_profile!(by_user_id)}
   end
 
   @doc "mark_liker_seen(<user-id>, by: <user-id>)"

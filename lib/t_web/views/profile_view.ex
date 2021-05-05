@@ -1,6 +1,7 @@
 defmodule TWeb.ProfileView do
   use TWeb, :view
   alias T.Accounts.Profile
+  alias T.Feeds.ProfileLike
   alias T.Media
 
   def render("feed_show.json", %{profile: %Profile{} = profile}) do
@@ -9,6 +10,20 @@ defmodule TWeb.ProfileView do
 
   def render("show.json", %{profile: %Profile{} = profile}) do
     render_profile(profile, [:user_id, :song, :name, :gender])
+  end
+
+  def render("like.json", %{like: like}) do
+    %ProfileLike{
+      seen?: seen?,
+      inserted_at: inserted_at,
+      liker_profile: %Profile{} = liker_profile
+    } = like
+
+    %{
+      seen?: !!seen?,
+      inserted_at: DateTime.from_naive!(inserted_at, "Etc/UTC"),
+      profile: render_profile(liker_profile, [:user_id, :song, :name, :gender])
+    }
   end
 
   defp render_profile(profile, fields) do

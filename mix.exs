@@ -77,8 +77,7 @@ defmodule T.MixProject do
       {:bigflake, "0.5.0"},
       {:nimble_csv, "~> 1.1", only: :dev},
       {:imgproxy, "~> 1.0"},
-      # TODO until https://github.com/nietaki/rexbug/issues/47 is merged
-      {:rexbug, github: "ruslandoga/rexbug"},
+      {:rexbug, "~> 1.0"},
       {:nadia, "~> 0.7.0"}
     ]
   end

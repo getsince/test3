@@ -45,6 +45,11 @@ defmodule TWeb.FeedChannel do
     {:reply, :ok, socket}
   end
 
+  def handle_in("dislike", %{"profile_id" => profile_id}, socket) do
+    Feeds.dislike_liker(profile_id, by: socket.assigns.current_user.id)
+    {:reply, :ok, socket}
+  end
+
   def handle_in("more", params, socket) do
     %{next_ids: next_ids, current_user: me} = socket.assigns
 

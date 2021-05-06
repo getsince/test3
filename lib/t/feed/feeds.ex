@@ -52,6 +52,19 @@ defmodule T.Feeds do
   end
 
   # TODO broadcast
+  def dislike_liker(liker_id, opts) do
+    by_user_id = Keyword.fetch!(opts, :by)
+
+    {count, _other} =
+      ProfileLike
+      |> where(by_user_id: ^liker_id)
+      |> where(user_id: ^by_user_id)
+      |> Repo.delete_all()
+
+    count == 1
+  end
+
+  # TODO broadcast
   @doc "mark_profile_seen(user_id, by: <user-id>)"
   def mark_profile_seen(user_id, opts) do
     by_user_id = Keyword.fetch!(opts, :by)

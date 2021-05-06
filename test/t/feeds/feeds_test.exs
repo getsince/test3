@@ -36,9 +36,6 @@ defmodule T.FeedsTest do
       assert [
                %Oban.Job{args: %{"type" => "match", "match_id" => ^match_id}},
                %Oban.Job{
-                 args: %{"type" => "like", "by_user_id" => ^uid1, "user_id" => ^uid2}
-               },
-               %Oban.Job{
                  args: %{"type" => "like", "by_user_id" => ^uid2, "user_id" => ^uid1}
                }
              ] = all_enqueued(worker: T.PushNotifications.DispatchJob)

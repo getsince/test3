@@ -43,9 +43,9 @@ defmodule T.Feeds do
     Ecto.Multi.new()
     # |> mark_seen(by_user_id, user_id)
     |> mark_liked(by_user_id, user_id)
-    |> schedule_like_push_notification()
     |> bump_likes_count(user_id)
     |> Matches.match_if_mutual_m(by_user_id, user_id)
+    |> maybe_schedule_like_push_notification()
     |> Repo.transaction()
     |> Matches.maybe_notify_of_match()
     |> notify_subscribers(:liked)
@@ -71,11 +71,18 @@ defmodule T.Feeds do
     Ecto.Multi.insert(multi, :like, changeset)
   end
 
-  defp schedule_like_push_notification(multi) do
-    Ecto.Multi.run(multi, :push_notification, fn _repo, %{like: like} ->
-      %ProfileLike{by_user_id: by_user_id, user_id: user_id} = like
-      job = DispatchJob.new(%{"type" => "like", "by_user_id" => by_user_id, "user_id" => user_id})
-      Oban.insert(job)
+  defp maybe_schedule_like_push_notification(multi) do
+    Ecto.Multi.run(multi, :push_notification, fn _repo, %{like: like, match: match} ->
+      if match do
+        {:ok, nil}
+      else
+        %ProfileLike{by_user_id: by_user_id, user_id: user_id} = like
+
+        job =
+          DispatchJob.new(%{"type" => "like", "by_user_id" => by_user_id, "user_id" => user_id})
+
+        Oban.insert(job)
+      end
     end)
   end
 

@@ -691,7 +691,7 @@ defmodule T.Matches do
   defp render_gender(_it), do: "оно"
 
   defp build_yo_notification(device_id, [title, body], ack_id) do
-    APNS.build_notification(device_id, "yo", %{
+    APNS.build_notification("yo", device_id, %{
       "ack_id" => ack_id,
       "title" => title,
       "body" => body

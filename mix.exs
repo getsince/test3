@@ -5,7 +5,7 @@ defmodule T.MixProject do
     [
       app: :t,
       version: "0.1.6",
-      elixir: "~> 1.11",
+      elixir: "~> 1.12",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
@@ -76,7 +76,7 @@ defmodule T.MixProject do
       {:sentry, "~> 8.0"},
       {:bigflake, "0.5.0"},
       {:nimble_csv, "~> 1.1", only: :dev},
-      {:imgproxy, "~> 1.0"},
+      {:imgproxy, github: "ruslandoga/imgproxy"},
       {:rexbug, "~> 1.0"},
       {:nadia, "~> 0.7.0"}
     ]

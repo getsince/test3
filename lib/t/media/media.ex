@@ -177,7 +177,7 @@ defmodule T.Media do
     |> String.slice(0..7)
   end
 
-  defp sha256(secret, msg), do: :crypto.hmac(:sha256, secret, msg)
+  defp sha256(secret, msg), do: :crypto.mac(:hmac, :sha256, secret, msg)
 
   def pic3d_job(s3_key) do
     %Oban.Job{

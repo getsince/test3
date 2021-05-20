@@ -45,7 +45,9 @@ defmodule TWeb.MobileAuthControllerTest do
                Accounts.onboard_profile(user.profile, %{
                  song: apple_music_song(),
                  gender: "M",
-                 name: "that"
+                 name: "that",
+                 latitude: 50,
+                 longitude: 50
                })
 
       code = PasswordlessAuth.generate_code(phone_number)

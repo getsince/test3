@@ -12,7 +12,7 @@ defmodule TWeb.ProfileChannel do
   end
 
   defp render_profile(profile) do
-    render(ProfileView, "show.json", profile: profile)
+    render(ProfileView, "show_with_location.json", profile: profile)
   end
 
   @impl true

@@ -138,7 +138,8 @@ defmodule T.AccountsTest do
       assert errors_on(changeset) == %{
                # TODO
                #  gender: ["can't be blank"],
-               name: ["can't be blank"]
+               name: ["can't be blank"],
+               location: ["can't be blank"]
              }
 
       apple_music_song = apple_music_song()
@@ -147,7 +148,9 @@ defmodule T.AccountsTest do
                Accounts.onboard_profile(profile, %{
                  song: apple_music_song,
                  gender: "M",
-                 name: "that"
+                 name: "that",
+                 latitude: 50,
+                 longitude: 50
                })
 
       profile = Profile |> Repo.get!(profile.user_id) |> Repo.preload(:user)

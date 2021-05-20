@@ -148,6 +148,8 @@ defmodule T.Factory do
     %{
       story: profile_story(),
       song: apple_music_song(),
+      latitude: 50.0,
+      longitude: 50.0,
       gender: gender,
       name: "that"
     }

@@ -8,6 +8,7 @@ defmodule T.Accounts.Profile do
     belongs_to :user, T.Accounts.User, primary_key: true
 
     field :story, {:array, :map}
+    field :location, Geo.PostGIS.Geometry
 
     field :photos, {:array, :string}
     field :times_liked, :integer
@@ -27,7 +28,7 @@ defmodule T.Accounts.Profile do
     # audio
     field :song, :map
 
-    # TODO replace with location?
+    # TODO remove?
     field :city, :string
 
     # work and education
@@ -59,13 +60,29 @@ defmodule T.Accounts.Profile do
   end
 
   def essential_info_changeset(profile, attrs, opts \\ []) do
+    attrs = prepare_location(attrs)
+
     profile
-    |> cast(attrs, [:name, :gender])
+    |> cast(attrs, [:name, :gender, :location])
     |> maybe_validate_required(opts, fn changeset ->
-      validate_required(changeset, [:name, :gender])
+      validate_required(changeset, [:name, :gender, :location])
     end)
     |> validate_inclusion(:gender, ["M", "F"])
     |> validate_length(:name, max: 100)
+  end
+
+  defp prepare_location(%{"latitude" => lat, "longitude" => lon} = attrs) do
+    Map.put(attrs, "location", point(lat, lon))
+  end
+
+  defp prepare_location(%{latitude: lat, longitude: lon} = attrs) do
+    Map.put(attrs, :location, point(lat, lon))
+  end
+
+  defp prepare_location(attrs), do: attrs
+
+  defp point(lat, lon) do
+    %Geo.Point{coordinates: {lon, lat}, srid: 4326}
   end
 
   @tastes [

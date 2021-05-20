@@ -13,7 +13,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:13
+        image: postgis/postgis:13-3.0-alpine
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres

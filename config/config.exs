@@ -1,6 +1,8 @@
 import Config
 
 config :t, ecto_repos: [T.Repo]
+config :t, T.Repo, types: T.PostgresTypes
+
 config :phoenix, :json_library, Jason
 config :pigeon, json_library: Jason
 

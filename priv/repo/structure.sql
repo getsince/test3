@@ -3,7 +3,7 @@
 --
 
 -- Dumped from database version 13.1 (Debian 13.1-1.pgdg100+1)
--- Dumped by pg_dump version 13.2
+-- Dumped by pg_dump version 13.3
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -15,6 +15,20 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
+
+--
+-- Name: postgis; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA public;
+
+
+--
+-- Name: EXTENSION postgis; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON EXTENSION postgis IS 'PostGIS geometry and geography spatial types and functions';
+
 
 --
 -- Name: oban_job_state; Type: TYPE; Schema: public; Owner: -
@@ -251,7 +265,8 @@ CREATE TABLE public.profiles (
     "hidden?" boolean DEFAULT true NOT NULL,
     last_active timestamp(0) without time zone DEFAULT '2021-04-22 12:45:30.216066'::timestamp without time zone NOT NULL,
     song jsonb,
-    story jsonb
+    story jsonb,
+    location public.geography(Point,4326)
 );
 
 
@@ -593,6 +608,13 @@ CREATE INDEX profiles_gender_hidden_times_liked_desc_index ON public.profiles US
 
 
 --
+-- Name: profiles_location_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX profiles_location_index ON public.profiles USING gist (location);
+
+
+--
 -- Name: users_phone_number_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -862,3 +884,5 @@ INSERT INTO public."schema_migrations" (version) VALUES (20210430215633);
 INSERT INTO public."schema_migrations" (version) VALUES (20210504090355);
 INSERT INTO public."schema_migrations" (version) VALUES (20210504100737);
 INSERT INTO public."schema_migrations" (version) VALUES (20210504125559);
+INSERT INTO public."schema_migrations" (version) VALUES (20210520105939);
+INSERT INTO public."schema_migrations" (version) VALUES (20210520110036);

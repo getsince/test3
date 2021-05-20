@@ -12,6 +12,13 @@ defmodule TWeb.ProfileView do
     render_profile(profile, [:user_id, :song, :name, :gender])
   end
 
+  def render("show_with_location.json", %{profile: %Profile{} = profile}) do
+    profile
+    |> render_profile([:user_id, :song, :name, :gender])
+    |> Map.put(:latitude, lat(profile.location))
+    |> Map.put(:longitude, lon(profile.location))
+  end
+
   def render("like.json", %{like: like}) do
     %ProfileLike{
       seen?: seen?,
@@ -25,6 +32,12 @@ defmodule TWeb.ProfileView do
       profile: render_profile(liker_profile, [:user_id, :song, :name, :gender])
     }
   end
+
+  defp lat(%Geo.Point{coordinates: {_lon, lat}}), do: lat
+  defp lat(nil), do: nil
+
+  defp lon(%Geo.Point{coordinates: {lon, _lat}}), do: lon
+  defp lon(nil), do: nil
 
   defp render_profile(profile, fields) do
     profile

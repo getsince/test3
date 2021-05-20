@@ -16,6 +16,8 @@ defmodule TWeb.ProfileChannelTest do
       assert reply == %{
                profile: %{
                  user_id: user.id,
+                 latitude: nil,
+                 longitude: nil,
                  story: [
                    %{
                      "background" => %{"color" => "#E5E7EB"},
@@ -138,7 +140,8 @@ defmodule TWeb.ProfileChannelTest do
       assert reply == %{
                profile: %{
                  gender: ["can't be blank"],
-                 name: ["can't be blank"]
+                 name: ["can't be blank"],
+                 location: ["can't be blank"]
                }
              }
 
@@ -153,6 +156,8 @@ defmodule TWeb.ProfileChannelTest do
             "name" => "hey that's me CLARISA",
             "song" => "203709340",
             "gender" => "F",
+            "latitude" => 50,
+            "longitude" => 50,
             # TODO validate photos are on s3
             "story" => profile_story()
           }
@@ -163,6 +168,8 @@ defmodule TWeb.ProfileChannelTest do
       assert reply == %{
                profile: %{
                  user_id: user.id,
+                 latitude: 50,
+                 longitude: 50,
                  story: [
                    %{
                      "background" => %{

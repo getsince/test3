@@ -78,7 +78,8 @@ defmodule T.MixProject do
       {:nimble_csv, "~> 1.1", only: :dev},
       {:imgproxy, github: "ruslandoga/imgproxy"},
       {:rexbug, "~> 1.0"},
-      {:nadia, "~> 0.7.0"}
+      {:nadia, "~> 0.7.0"},
+      {:geo_postgis, "~> 3.4"}
     ]
   end
 

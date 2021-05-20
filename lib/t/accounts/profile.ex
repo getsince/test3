@@ -64,7 +64,7 @@ defmodule T.Accounts.Profile do
     |> cast(attrs, [:song])
   end
 
-  @known_genders ["M", "F"]
+  @known_genders ["M", "F", "N"]
 
   def essential_info_changeset(profile, attrs, opts \\ []) do
     attrs = attrs |> prepare_location() |> prepare_filters()

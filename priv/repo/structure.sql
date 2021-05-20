@@ -266,7 +266,8 @@ CREATE TABLE public.profiles (
     last_active timestamp(0) without time zone DEFAULT '2021-04-22 12:45:30.216066'::timestamp without time zone NOT NULL,
     song jsonb,
     story jsonb,
-    location public.geography(Point,4326)
+    location public.geography(Point,4326),
+    filters jsonb DEFAULT '{}'::jsonb
 );
 
 
@@ -886,3 +887,4 @@ INSERT INTO public."schema_migrations" (version) VALUES (20210504100737);
 INSERT INTO public."schema_migrations" (version) VALUES (20210504125559);
 INSERT INTO public."schema_migrations" (version) VALUES (20210520105939);
 INSERT INTO public."schema_migrations" (version) VALUES (20210520110036);
+INSERT INTO public."schema_migrations" (version) VALUES (20210520113351);

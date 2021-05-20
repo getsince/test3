@@ -12,11 +12,14 @@ defmodule TWeb.ProfileView do
     render_profile(profile, [:user_id, :song, :name, :gender])
   end
 
-  def render("show_with_location.json", %{profile: %Profile{} = profile}) do
+  def render("show_with_location.json", %{
+        profile: %Profile{location: location, filters: filters} = profile
+      }) do
     profile
     |> render_profile([:user_id, :song, :name, :gender])
-    |> Map.put(:latitude, lat(profile.location))
-    |> Map.put(:longitude, lon(profile.location))
+    |> Map.put(:latitude, lat(location))
+    |> Map.put(:longitude, lon(location))
+    |> Map.put(:gender_preference, genders(filters))
   end
 
   def render("like.json", %{like: like}) do
@@ -38,6 +41,9 @@ defmodule TWeb.ProfileView do
 
   defp lon(%Geo.Point{coordinates: {lon, _lat}}), do: lon
   defp lon(nil), do: nil
+
+  defp genders(%Profile.Filters{genders: genders}), do: genders
+  defp genders(nil), do: nil
 
   defp render_profile(profile, fields) do
     profile

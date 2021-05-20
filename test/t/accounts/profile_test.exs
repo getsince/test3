@@ -9,7 +9,8 @@ defmodule T.Accounts.ProfileTest do
       assert errors_on(changeset) == %{
                gender: ["can't be blank"],
                name: ["can't be blank"],
-               location: ["can't be blank"]
+               location: ["can't be blank"],
+               filters: ["can't be blank"]
              }
     end
 
@@ -51,13 +52,14 @@ defmodule T.Accounts.ProfileTest do
   end
 
   describe "changeset/3" do
-    test "with valida info" do
+    test "with valid info" do
       attrs = %{
         song: apple_music_song(),
         gender: "M",
         name: "Some Name",
         latitude: 50,
-        longitude: 50
+        longitude: 50,
+        gender_preference: ["F"]
       }
 
       assert %Ecto.Changeset{valid?: true} =

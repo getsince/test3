@@ -18,6 +18,7 @@ defmodule TWeb.ProfileChannelTest do
                  user_id: user.id,
                  latitude: nil,
                  longitude: nil,
+                 gender_preference: nil,
                  story: [
                    %{
                      "background" => %{"color" => "#E5E7EB"},
@@ -159,7 +160,8 @@ defmodule TWeb.ProfileChannelTest do
             "latitude" => 50,
             "longitude" => 50,
             # TODO validate photos are on s3
-            "story" => profile_story()
+            "story" => profile_story(),
+            "gender_preference" => ["F", "M"]
           }
         })
 
@@ -170,6 +172,7 @@ defmodule TWeb.ProfileChannelTest do
                  user_id: user.id,
                  latitude: 50,
                  longitude: 50,
+                 gender_preference: ["F", "M"],
                  story: [
                    %{
                      "background" => %{

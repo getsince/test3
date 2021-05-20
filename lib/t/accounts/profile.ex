@@ -10,6 +10,11 @@ defmodule T.Accounts.Profile do
     field :story, {:array, :map}
     field :location, Geo.PostGIS.Geometry
 
+    embeds_one :filters, Filters, primary_key: false, on_replace: :delete do
+      # ["F"] or ["F", "M"], etc.
+      field :genders, {:array, :string}
+    end
+
     field :photos, {:array, :string}
     field :times_liked, :integer
 
@@ -59,16 +64,29 @@ defmodule T.Accounts.Profile do
     |> cast(attrs, [:song])
   end
 
+  @known_genders ["M", "F"]
+
   def essential_info_changeset(profile, attrs, opts \\ []) do
-    attrs = prepare_location(attrs)
+    attrs = attrs |> prepare_location() |> prepare_filters()
 
     profile
     |> cast(attrs, [:name, :gender, :location])
     |> maybe_validate_required(opts, fn changeset ->
       validate_required(changeset, [:name, :gender, :location])
     end)
-    |> validate_inclusion(:gender, ["M", "F"])
+    |> validate_inclusion(:gender, @known_genders)
     |> validate_length(:name, max: 100)
+    |> cast_embed(:filters,
+      required: !!opts[:validate_required?],
+      with: fn changeset, attrs ->
+        changeset
+        |> cast(attrs, [:genders])
+        |> validate_subset(:genders, @known_genders)
+        |> maybe_validate_required(opts, fn changeset ->
+          validate_required(changeset, [:genders])
+        end)
+      end
+    )
   end
 
   defp prepare_location(%{"latitude" => lat, "longitude" => lon} = attrs) do
@@ -84,6 +102,16 @@ defmodule T.Accounts.Profile do
   defp point(lat, lon) do
     %Geo.Point{coordinates: {lon, lat}, srid: 4326}
   end
+
+  defp prepare_filters(%{"gender_preference" => genders} = attrs) do
+    Map.put(attrs, "filters", %{"genders" => genders})
+  end
+
+  defp prepare_filters(%{gender_preference: genders} = attrs) do
+    Map.put(attrs, :filters, %{genders: genders})
+  end
+
+  defp prepare_filters(attrs), do: attrs
 
   @tastes [
     :music,

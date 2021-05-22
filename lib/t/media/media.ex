@@ -14,7 +14,7 @@ defmodule T.Media do
   end
 
   def s3_url(s3_key) do
-    Path.join(s3_url(), s3_key)
+    Path.join(s3_url(), URI.encode(s3_key))
   end
 
   def imgproxy_url(key_or_url, opts \\ [])
@@ -185,5 +185,28 @@ defmodule T.Media do
       queue: "pic3d",
       worker: "S.Pic3dJob"
     }
+  end
+
+  @sticker_labels [
+    "Британская Высшая Школа Дизайна",
+    "РУДН",
+    "Первый МГМУ им. Сеченова",
+    "НИУ ВШЭ",
+    "МФТИ",
+    "МИСиС",
+    "МГУ",
+    "МГИМО"
+  ]
+
+  for label <- @sticker_labels do
+    def known_sticker_label_url(unquote(label)), do: s3_url(unquote(label)) <> ".png"
+  end
+
+  def known_sticker_label_url(_other), do: nil
+
+  def known_stickers do
+    Map.new(@sticker_labels, fn label ->
+      {label, s3_url(label) <> ".png"}
+    end)
   end
 end

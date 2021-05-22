@@ -46,6 +46,10 @@ defmodule TWeb.ProfileChannel do
     {:reply, {:ok, %{token: token}}, socket}
   end
 
+  def handle_in("known-stickers", _params, socket) do
+    {:reply, {:ok, %{stickers: T.Media.known_stickers()}}, socket}
+  end
+
   def handle_in("submit", %{"profile" => params}, socket) do
     %{profile: profile, current_user: user} = socket.assigns
     params = params |> with_song() |> replace_story_photo_urls_with_s3keys()

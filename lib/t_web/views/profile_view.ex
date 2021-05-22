@@ -336,13 +336,27 @@ defmodule TWeb.ProfileView do
   end
 
   defp postprocess_story(story) when is_list(story) do
-    Enum.map(story, fn
+    story
+    |> Enum.map(fn
       %{"background" => %{"s3_key" => key} = bg} = page when not is_nil(key) ->
         bg = Map.merge(bg, s3_key_urls(key))
         %{page | "background" => bg}
 
       other_page ->
         other_page
+    end)
+    |> Enum.map(fn %{"labels" => labels} = page ->
+      %{page | "labels" => add_urls_to_labels(labels)}
+    end)
+  end
+
+  defp add_urls_to_labels(labels) do
+    Enum.map(labels, fn label ->
+      if answer = label["answer"] do
+        if url = Media.known_sticker_label_url(answer) do
+          Map.put(label, "url", url)
+        end
+      end || label
     end)
   end
 

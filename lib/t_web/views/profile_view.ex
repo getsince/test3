@@ -108,43 +108,25 @@ defmodule TWeb.ProfileView do
     labels =
       [
         if(name,
-          do: %{"question" => "name", "answer" => name, "value" => emoji_value(["🏷", name])}
+          do: %{"question" => "name", "answer" => name, "value" => name}
         ),
         if(birthdate,
-          do: %{
-            "question" => "birthdate",
-            "answer" => birthdate,
-            "value" => emoji_value(["🎂", age(birthdate)])
-          }
+          do: %{"question" => "birthdate", "answer" => birthdate, "value" => age(birthdate)}
         ),
         if(height,
-          do: %{
-            "question" => "height",
-            "answer" => height,
-            "value" => emoji_value(["📏", height]) <> "см"
-          }
+          do: %{"question" => "height", "answer" => height, "value" => to_string(height) <> "см"}
         ),
         if(city,
-          do: %{"question" => "city", "answer" => city, "value" => emoji_value(["🏙", city])}
+          do: %{"question" => "city", "answer" => city, "value" => city}
         ),
         if(occupation,
-          do: %{
-            "question" => "occupation",
-            "answer" => occupation,
-            "value" => emoji_value(["💼", occupation])
-          }
+          do: %{"question" => "occupation", "answer" => occupation, "value" => occupation}
         ),
-        if(job, do: %{"question" => "job", "answer" => job, "value" => emoji_value(["💼", job])}),
+        if(job, do: %{"question" => "job", "answer" => job, "value" => job}),
         if(university,
-          do: %{
-            "question" => "university",
-            "answer" => university,
-            "value" => emoji_value(["🎓", university])
-          }
+          do: %{"question" => "university", "answer" => university, "value" => university}
         ),
-        if(major,
-          do: %{"question" => "major", "answer" => major, "value" => emoji_value(["🎓", major])}
-        ),
+        if(major, do: %{"question" => "major", "answer" => major, "value" => major}),
         if(most_important_in_life,
           do: %{
             "question" => "most_important_in_life",
@@ -153,11 +135,7 @@ defmodule TWeb.ProfileView do
           }
         ),
         Enum.map(interests || [], fn interest ->
-          %{
-            "question" => "interests",
-            "answer" => interest,
-            "value" => emoji_value(["🎮", interest])
-          }
+          %{"question" => "interests", "answer" => interest, "value" => interest}
         end),
         if(first_date_idea,
           do: %{
@@ -174,7 +152,7 @@ defmodule TWeb.ProfileView do
             %{
               "question" => k,
               "answer" => taste,
-              "value" => emoji_value([render_taste_emoji(k), taste])
+              "value" => taste
             }
           end)
         end)
@@ -205,10 +183,6 @@ defmodule TWeb.ProfileView do
     postprocess_story(story)
   end
 
-  defp emoji_value(vals) do
-    vals |> Enum.reject(&is_nil/1) |> Enum.join(" ")
-  end
-
   defp age(date) do
     to_string(calc_diff(date, Date.utc_today()))
   end
@@ -219,21 +193,6 @@ defmodule TWeb.ProfileView do
   end
 
   defp calc_diff(%Date{year: y1}, %Date{year: y2}), do: y2 - y1 - 1
-
-  defp render_taste_emoji("music"), do: "🎧"
-  defp render_taste_emoji("sports"), do: "⛷"
-  defp render_taste_emoji("alcohol"), do: "🥃"
-  defp render_taste_emoji("smoking"), do: "🚬"
-  defp render_taste_emoji("books"), do: "📚"
-  defp render_taste_emoji("currently_studying"), do: "🧠"
-  defp render_taste_emoji("tv_shows"), do: "📺"
-  defp render_taste_emoji("languages"), do: "👅"
-  defp render_taste_emoji("musical_instruments"), do: "🥁"
-  defp render_taste_emoji("movies"), do: "🎥"
-  defp render_taste_emoji("social_networks"), do: "📱"
-  defp render_taste_emoji("cuisines"), do: "🍕"
-  defp render_taste_emoji("pets"), do: "🐶"
-  defp render_taste_emoji(_other), do: nil
 
   if Mix.env() == :test do
     defp position_label(label, _width, _height, _x, _y) do

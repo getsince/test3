@@ -78,7 +78,7 @@ defmodule TWeb.MobileAuthControllerTest do
                        "center" => [100, 100],
                        "question" => "name",
                        "size" => [100, 100],
-                       "value" => "🏷 that"
+                       "value" => "that"
                      }
                    ],
                    "size" => [400, 800]

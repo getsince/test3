@@ -73,7 +73,7 @@ class WebRTC {
 
     switch (state) {
       case "failed":
-      case "disconnected":
+      // case "disconnected":
       case "closed":
         this.hook.pushEvent("disconnected", {});
       default:
@@ -88,9 +88,9 @@ class WebRTC {
     this.hook.el.dispatchEvent(event);
   }
 
-  async connect(localVideo) {
+  async connect() {
     const localStream = await devices.getUserMedia(mediaConstraints);
-    setVideoStream(localVideo, localStream);
+    // setVideoStream(localVideo, localStream);
     this.peerConnection = await this.createPeerConnection(localStream);
   }
 
@@ -120,8 +120,7 @@ class WebRTC {
     });
   }
 
-  disconnect({ localVideo, remoteVideo }) {
-    unsetVideoStream(localVideo);
+  disconnect(remoteVideo) {
     unsetVideoStream(remoteVideo);
 
     if (this.peerConnection) {
@@ -147,7 +146,6 @@ class WebRTC {
 const WebRTCHook = {
   async mounted() {
     let remoteVideo = this.el.querySelector("#remote-video");
-    let localVideo = this.el.querySelector("#local-video");
 
     let { initiator, mate, me } = this.el.dataset;
     initiator = JSON.parse(initiator);
@@ -158,7 +156,7 @@ const WebRTCHook = {
     setVideoStream(remoteVideo, webrtc.remoteStream);
 
     if (initiator) {
-      await webrtc.connect(localVideo);
+      await webrtc.connect();
       await webrtc.call(mate);
     }
 
@@ -171,7 +169,7 @@ const WebRTCHook = {
           switch (message.content.type) {
             case "offer":
               log("peer offered: ", message.content);
-              await webrtc.connect(localVideo);
+              await webrtc.connect();
               await webrtc.answerCall(message.content);
               break;
             case "answer":
@@ -184,6 +182,7 @@ const WebRTCHook = {
               if (!webrtc.peerConnection) break;
               webrtc.receiveRemote(message.content);
           }
+          break;
 
         case "ice-candidate":
           log("candidate: ", message.content);
@@ -204,8 +203,8 @@ const WebRTCHook = {
     if (this.webrtc) {
       console.log("!!! destroyed");
       let remoteVideo = this.el.querySelector("#remote-video");
-      let localVideo = this.el.querySelector("#local-video");
-      this.webrtc.disconnect({ remoteVideo, localVideo });
+      // let localVideo = this.el.querySelector("#local-video");
+      this.webrtc.disconnect(remoteVideo);
     }
   },
 };

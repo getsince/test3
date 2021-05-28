@@ -6,7 +6,7 @@ defmodule TWeb.MatchChannel do
   @pubsub T.PubSub
 
   @impl true
-  def join("matches:" <> user_id = topic, _params, socket) do
+  def join("matches:" <> user_id = topic, params, socket) do
     user_id = String.downcase(user_id)
     ChannelHelpers.verify_user_id(socket, user_id)
     Matches.subscribe_for_user(user_id)
@@ -18,17 +18,17 @@ defmodule TWeb.MatchChannel do
     send(self(), :after_join)
 
     {:ok, %{matches: render_matches(topic, matches), ice_servers: T.Twilio.ice_servers()},
-     assign(socket, mates: mates)}
+     assign(socket, mates: mates, in_call?: !!params["in_call?"])}
   end
 
   @impl true
   def handle_in("peer-message" = event, %{"mate" => mate, "body" => _} = payload, socket) do
     # TODO repsond with error?
     # TODO and current_call(socket) == mate?
-    if mate in presences(socket) do
-      trace(socket, %{"event" => event, "payload" => payload})
-      TWeb.Endpoint.broadcast!(mate_topic(mate), event, Map.put(payload, "mate", me(socket)))
-    end
+    # if mate in presences(socket) do
+    trace(socket, %{"event" => event, "payload" => payload})
+    TWeb.Endpoint.broadcast!(mate_topic(mate), event, Map.put(payload, "mate", me(socket)))
+    # end
 
     {:reply, :ok, socket}
   end
@@ -123,6 +123,7 @@ defmodule TWeb.MatchChannel do
   end
 
   def handle_info({call_event, mate}, socket) when call_event in [:call, :pick_up, :hang_up] do
+    # IO.inspect("pushing #{call_event}", label: "match-channel")
     push(socket, encode_call_event(call_event), %{mate: mate})
     {:noreply, socket}
   end

@@ -17,6 +17,7 @@ defmodule T.PushNotifications.APNS do
 
   defp topic do
     Application.fetch_env!(:pigeon, :apns)[:apns_default].topic
+    # "app.getsince.another"
   end
 
   defp base_notification(device_id, type, data) do

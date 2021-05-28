@@ -31,6 +31,88 @@ defmodule Dev do
   #   |> APNS.push()
   # end
 
+  "amYWsQWgDcOlLFkBDbDIZ7HXuP0wCrs0bol2wEHRr6Q="
+
+  def save_my_pushkit_token do
+    T.Accounts.save_pushkit_device_id(
+      "00000179-b463-2a92-1e00-8a0e24440000",
+      "ofXkAm-GFl86F9w2D_nD8Xl4e7XM91MaFLKKFrVw8mM",
+      Base.decode64!("LtJkLiqNCePTsam/OAOY3G0xKiOTuV/Q+qjT50TYX14=")
+    )
+  end
+
+  def save_putin_pushkit_token do
+    T.Accounts.save_pushkit_device_id(
+      "00000179-b46a-4a20-1e00-8a0e24440000",
+      "EYm85-92Ula67nTO0RUBVEgsvkGsOrz_z2NG2XPDjy8",
+      Base.decode64!("amYWsQWgDcOlLFkBDbDIZ7HXuP0wCrs0bol2wEHRr6Q=")
+    )
+  end
+
+  def pushkit_call(
+        dev_id \\ "FD8502163BF321CE5CAC82F04FE570DD17727C347D75F99E66009BD46D3864D4",
+        caller_id \\ "00000179-b46a-4a20-1e00-8a0e24440000",
+        caller_name \\ "налоговая"
+      ) do
+    n = %Notification{
+      device_token: dev_id,
+      # topic: "app.getsince.another.voip",
+      topic: Application.fetch_env!(:pigeon, :apns)[:apns_default].topic <> ".voip",
+      push_type: "voip",
+      expiration: 0,
+      payload: %{
+        "user_id" => caller_id,
+        "name" => caller_name
+      }
+    }
+
+    n
+    |> APNS.push_all_envs()
+  end
+
+  # 00000179-b463-2a92-1e00-8a0e24440000 (token=ofXkAm-GFl86F9w2D_nD8Xl4e7XM91MaFLKKFrVw8mM)
+  def add_me do
+    T.Accounts.get_user_by_phone_number("+79778467871")
+
+    # token = T.Accounts.generate_user_session_token(me, "mobile")
+    # T.Accounts.UserToken.encoded_token(token)
+  end
+
+  # 00000179-b46a-4a20-1e00-8a0e24440000 (token=EYm85-92Ula67nTO0RUBVEgsvkGsOrz_z2NG2XPDjy8)
+  def add_putin do
+    phone_number = "+79778467872"
+
+    T.Accounts.register_user(%{phone_number: phone_number})
+    putin = T.Accounts.get_user_by_phone_number(phone_number)
+
+    T.Accounts.onboard_profile(putin.profile, %{
+      name: "Putin",
+      gender: "M",
+      latitude: 50,
+      longitude: 50
+    })
+
+    token = T.Accounts.generate_user_session_token(putin, "mobile")
+    T.Accounts.UserToken.encoded_token(token)
+  end
+
+  # 00000179-b46b-52f2-1e00-8a0e24440000 (token=t8ss42xvk5cKboBGH8YWq1vDDhd2sQ4i8AhkrrYpAWc)
+  def add_navalny do
+    phone_number = "+79778467873"
+    T.Accounts.register_user(%{phone_number: phone_number})
+    navalny = T.Accounts.get_user_by_phone_number(phone_number)
+
+    T.Accounts.onboard_profile(navalny.profile, %{
+      name: "Navalny",
+      gender: "M",
+      latitude: 50,
+      longitude: 50
+    })
+
+    token = T.Accounts.generate_user_session_token(navalny, "mobile")
+    T.Accounts.UserToken.encoded_token(token)
+  end
+
   def test_notification do
     device_id = "b79f763fcc12b49a6bb8ced9ef309b3b5c62d366e16dce909b1f06f52c4cc882"
     # 10e569dfab7f976996abea20e6467c7b44f5ab6374491d3c98347131289b7fb0
@@ -85,26 +167,6 @@ defmodule Dev do
   end
 
   defp position_labels([], _prev_width, _prev_height), do: []
-
-  def pushkit_call(
-        dev_id \\ "2ed2642e2a8d09e3d3b1a9bf380398dc6d312a2393b95fd0faa8d3e744d85f5e",
-        caller_id \\ "00000177-6518-778a-b8e8-56408d820000",
-        caller_name \\ "Somebody"
-      ) do
-    n = %Notification{
-      device_token: dev_id,
-      topic: Application.fetch_env!(:pigeon, :apns)[:apns_default].topic <> ".voip",
-      push_type: "voip",
-      expiration: 0,
-      payload: %{
-        "user_id" => caller_id,
-        "name" => caller_name
-      }
-    }
-
-    n
-    |> APNS.push_all_envs()
-  end
 
   def send_yo do
     leo = "00000177-679a-ad79-0242-ac1100030000"

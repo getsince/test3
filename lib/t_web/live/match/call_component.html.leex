@@ -3,7 +3,7 @@
 
   <%= if start_webrtc?(@call) do %>
   <div id="webrtc" class="flex" phx-hook="WebRTCHook" data-initiator="<%= @initiator? %>" data-mate="<%= @mate %>" data-me="<%= @me %>">
-    <video id="local-video" class="w-32 h-32" autoplay></video>
+    <%# <video id="local-video" class="w-32 h-32" autoplay></video> %>
     <video id="remote-video" class="w-32 h-32" autoplay></video>
   </div>
   <% end %>

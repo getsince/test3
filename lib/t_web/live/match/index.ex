@@ -86,6 +86,7 @@ defmodule TWeb.MatchLive.Index do
         socket
 
       {s, mate} when s in [:calling, :called, :picked_up] ->
+        # IO.inspect("hanging-up!!! on #{topic(mate)}")
         Phoenix.PubSub.broadcast!(@pubsub, topic(mate), {:hang_up, me.id})
         assign(socket, call: nil)
     end
@@ -126,6 +127,8 @@ defmodule TWeb.MatchLive.Index do
       "name" => me.profile.name
     })
 
+    # |> IO.inspect(label: "pushkit push")
+
     socket = assign(socket, call: {:calling, user_id})
     path = Routes.match_index_path(socket, :call, me.id, user_id)
     {:noreply, push_patch(socket, to: path)}
@@ -145,6 +148,7 @@ defmodule TWeb.MatchLive.Index do
 
   def handle_event("hang-up", _params, socket) do
     %{call: {_state, mate}, me: me} = socket.assigns
+    # IO.inspect("hang-up")
     Phoenix.PubSub.broadcast!(@pubsub, topic(mate), {:hang_up, me.id})
     path = Routes.match_index_path(socket, :show, me.id)
     {:noreply, socket |> assign(call: nil) |> push_patch(to: path)}

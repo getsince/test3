@@ -241,7 +241,7 @@ if config_env() == :dev do
     salt: System.fetch_env!("IMGPROXY_SALT")
 
   # Do not include metadata nor timestamps in development logs
-  config :logger, :console, format: "[$level] $message\n"
+  # config :logger, :console, format: "[$level] $message\n"
 
   config :nadia, token: System.fetch_env!("TG_BOT_KEY")
 

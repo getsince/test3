@@ -33,7 +33,7 @@ defmodule T.MediaTest do
              "бокс" =>
                "https://pretend-this-is-real.s3.amazonaws.com/%D0%B1%D0%BE%D0%BA%D1%81.svg",
              "большой теннис" =>
-               "https://pretend-this-is-real.s3.amazonaws.com/%D0%B1%D0%BE%D0%BB%D1%8C%D1%88%D0%BE%D0%B9%20%D1%82%D0%B5%D0%BD%D0%BD%D0%B8%D1%81",
+               "https://pretend-this-is-real.s3.amazonaws.com/%D0%B1%D0%BE%D0%BB%D1%8C%D1%88%D0%BE%D0%B9%20%D1%82%D0%B5%D0%BD%D0%BD%D0%B8%D1%81.svg",
              "велосипед" =>
                "https://pretend-this-is-real.s3.amazonaws.com/%D0%B2%D0%B5%D0%BB%D0%BE%D1%81%D0%B8%D0%BF%D0%B5%D0%B4.svg",
              "вино" =>

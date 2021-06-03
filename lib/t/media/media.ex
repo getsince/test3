@@ -188,25 +188,53 @@ defmodule T.Media do
   end
 
   @sticker_labels [
-    "Британская Высшая Школа Дизайна",
-    "РУДН",
-    "Первый МГМУ им. Сеченова",
-    "НИУ ВШЭ",
-    "МФТИ",
-    "МИСиС",
-    "МГУ",
-    "МГИМО"
+    "Британская Высшая Школа Дизайна.png",
+    "РУДН.png",
+    "Первый МГМУ им. Сеченова.png",
+    "НИУ ВШЭ.png",
+    "МФТИ.png",
+    "МИСиС.png",
+    "МГУ.png",
+    "МГИМО.png",
+    "футбол.svg",
+    "фотография.svg",
+    "тренажерный зал.svg",
+    "суши.svg",
+    "сигареты.svg",
+    "рисование.svg",
+    "программирование.svg",
+    "пицца.svg",
+    "писательство.svg",
+    "пиво.svg",
+    "настольный теннис.svg",
+    "кошка.svg",
+    "коктейли.svg",
+    "кальян.svg",
+    "вино.svg",
+    "Санкт-Петербург.svg",
+    "Москва.svg",
+    "велосипед.svg",
+    "большой теннис",
+    "бокс.svg",
+    "баскетбол.svg",
+    "YouTube.svg",
+    "VK.svg",
+    "Telegram.svg",
+    "Instagram.svg",
+    "Facebook.svg"
   ]
 
-  for label <- @sticker_labels do
-    def known_sticker_label_url(unquote(label)), do: s3_url(unquote(label)) <> ".png"
+  for label_with_extension <- @sticker_labels do
+    label = String.replace(label_with_extension, [".svg", ".png"], "")
+    def known_sticker_label_url(unquote(label)), do: s3_url(unquote(label_with_extension))
   end
 
   def known_sticker_label_url(_other), do: nil
 
   def known_stickers do
-    Map.new(@sticker_labels, fn label ->
-      {label, s3_url(label) <> ".png"}
+    Map.new(@sticker_labels, fn label_with_extension ->
+      label = String.replace(label_with_extension, [".svg", ".png"], "")
+      {label, s3_url(label_with_extension)}
     end)
   end
 end

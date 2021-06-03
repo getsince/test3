@@ -1,5 +1,5 @@
 <%= if assigns[:call] do %>
-  <%= live_modal @socket, TWeb.MatchLive.CallComponent,
+  <%= live_modal TWeb.MatchLive.CallComponent,
     title: "VoiceCall",
     call: @call,
     me: @me.id,

@@ -10,17 +10,17 @@ defmodule TWeb.LiveHelpers do
 
   ## Examples
 
-      <%= live_modal @socket, TWeb.UserLive.FormComponent,
+      <%= live_modal TWeb.UserLive.FormComponent,
         id: @user.id || :new,
         title: gettext("User Form"),
         action: @live_action,
         user: @user,
         return_to: Routes.user_path(@socket, :index) %>
   """
-  def live_modal(_socket, component, opts) do
+  def live_modal(component, opts) do
     path = Keyword.fetch!(opts, :return_to)
     title = Keyword.fetch!(opts, :title)
     modal_opts = [id: :modal, title: title, return_to: path, component: component, opts: opts]
-    live_component(_socket = nil, TWeb.ModalComponent, modal_opts)
+    live_component(TWeb.ModalComponent, modal_opts)
   end
 end

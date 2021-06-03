@@ -17,7 +17,7 @@ defmodule TWeb.ModalComponent do
           <%= live_patch "✕", to: @return_to %>
         </div>
 
-        <%= live_component @socket, @component, @opts %>
+        <%= live_component @component, @opts %>
       </div>
     </div>
     """

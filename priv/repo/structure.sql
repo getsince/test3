@@ -616,6 +616,13 @@ CREATE INDEX profiles_location_index ON public.profiles USING gist (location);
 
 
 --
+-- Name: pushkit_devices_device_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX pushkit_devices_device_id_index ON public.pushkit_devices USING btree (device_id);
+
+
+--
 -- Name: users_phone_number_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -888,3 +895,4 @@ INSERT INTO public."schema_migrations" (version) VALUES (20210504125559);
 INSERT INTO public."schema_migrations" (version) VALUES (20210520105939);
 INSERT INTO public."schema_migrations" (version) VALUES (20210520110036);
 INSERT INTO public."schema_migrations" (version) VALUES (20210520113351);
+INSERT INTO public."schema_migrations" (version) VALUES (20210603235924);

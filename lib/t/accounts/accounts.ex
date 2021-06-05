@@ -371,12 +371,15 @@ defmodule T.Accounts do
   def save_apns_device_id(user_id, token, device_id) do
     %UserToken{id: token_id} = token |> UserToken.token_and_context_query("mobile") |> Repo.one!()
 
-    # duplicate device_id conflict target?
-    # TODO ensure tokens are deleted on logout
-    Repo.insert!(%APNSDevice{user_id: user_id, token_id: token_id, device_id: device_id},
-      on_conflict: {:replace, [:device_id, :updated_at]},
-      conflict_target: [:user_id, :token_id]
-    )
+    prev_device_q =
+      APNSDevice
+      |> where([d], d.user_id == ^user_id and d.token_id == ^token_id)
+      |> or_where(device_id: ^device_id)
+
+    Repo.transaction(fn ->
+      Repo.delete_all(prev_device_q)
+      Repo.insert!(%APNSDevice{user_id: user_id, token_id: token_id, device_id: device_id})
+    end)
 
     :ok
   end
@@ -391,12 +394,15 @@ defmodule T.Accounts do
   def save_pushkit_device_id(user_id, token, device_id) do
     %UserToken{id: token_id} = token |> UserToken.token_and_context_query("mobile") |> Repo.one!()
 
-    # duplicate device_id conflict target?
-    # TODO ensure tokens are deleted on logout
-    Repo.insert!(%PushKitDevice{user_id: user_id, token_id: token_id, device_id: device_id},
-      on_conflict: {:replace, [:device_id, :updated_at]},
-      conflict_target: [:user_id, :token_id]
-    )
+    prev_device_q =
+      PushKitDevice
+      |> where([d], d.user_id == ^user_id and d.token_id == ^token_id)
+      |> or_where(device_id: ^device_id)
+
+    Repo.transaction(fn ->
+      Repo.delete_all(prev_device_q)
+      Repo.insert!(%PushKitDevice{user_id: user_id, token_id: token_id, device_id: device_id})
+    end)
 
     :ok
   end

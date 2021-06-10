@@ -35,7 +35,7 @@ config :logger, Sentry.LoggerBackend,
 config :t, Oban,
   repo: T.Repo,
   plugins: [Oban.Plugins.Pruner],
-  queues: [default: 10, emails: 20, sms: 20, personality: 20, apns: 100]
+  queues: [default: 10, emails: 20, sms: 20, personality: 20, apns: 100, likes: 100]
 
 config :ex_aws,
   json_codec: Jason,

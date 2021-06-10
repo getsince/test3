@@ -1,5 +1,6 @@
 defmodule TWeb.FeedChannelTest do
   use TWeb.ChannelCase
+  use Oban.Testing, repo: T.Repo
   alias T.{Feeds, Matches}
 
   setup do
@@ -92,6 +93,35 @@ defmodule TWeb.FeedChannelTest do
                  }
                }
              }
+    end
+
+    test "with timeout and cancel", %{socket: socket, me: me, profile: p} do
+      ref = push(socket, "like", %{"profile_id" => p.user_id, "timeout?" => true})
+
+      assert_reply ref, :ok, reply, 1000
+      assert reply == %{}
+
+      by_user_id = me.id
+      user_id = p.user_id
+
+      assert [
+               %Oban.Job{
+                 args: %{"by_user_id" => ^by_user_id, "user_id" => ^user_id},
+                 inserted_at: inserted_at,
+                 queue: "likes",
+                 replace: nil,
+                 scheduled_at: scheduled_at
+               }
+             ] = all_enqueued(worker: T.Feeds.LikeJob)
+
+      assert_in_delta DateTime.diff(scheduled_at, inserted_at, :second), 10, 1
+
+      ref = push(socket, "cancel-like", %{"profile_id" => p.user_id})
+
+      assert_reply ref, :ok, reply, 1000
+      assert reply == %{cancelled: true}
+
+      assert [] == all_enqueued(worker: T.Feeds.LikeJob)
     end
   end
 

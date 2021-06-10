@@ -38,11 +38,25 @@ defmodule TWeb.FeedChannel do
     {:reply, :ok, socket}
   end
 
-  def handle_in("like", %{"profile_id" => profile_id}, socket) do
+  # TODO test with timeout
+  def handle_in("like", %{"profile_id" => profile_id} = params, socket) do
     # TODO verify_can_see_profile(socket, profile_id)
     user = socket.assigns.current_user
-    Feeds.like_profile(user.id, profile_id)
+
+    if params["timeout?"] do
+      Feeds.schedule_like_profile(user.id, profile_id)
+    else
+      Feeds.like_profile(user.id, profile_id)
+    end
+
     {:reply, :ok, socket}
+  end
+
+  # TODO test
+  def handle_in("cancel-like", %{"profile_id" => profile_id}, socket) do
+    user = socket.assigns.current_user
+    cancelled? = Feeds.cancel_like_profile(user.id, profile_id)
+    {:reply, {:ok, %{cancelled: cancelled?}}, socket}
   end
 
   def handle_in("dislike", %{"profile_id" => profile_id}, socket) do

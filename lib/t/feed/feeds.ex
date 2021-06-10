@@ -5,7 +5,7 @@ defmodule T.Feeds do
   alias T.{Repo, Matches, Accounts}
   alias T.Accounts.Profile
   alias T.PushNotifications.DispatchJob
-  alias T.Feeds.{Feed, SeenProfile, ProfileLike, PersonalityOverlap}
+  alias T.Feeds.{Feed, SeenProfile, ProfileLike, PersonalityOverlap, LikeJob}
 
   @pubsub T.PubSub
   @topic to_string(__MODULE__)
@@ -37,8 +37,8 @@ defmodule T.Feeds do
 
   ######################### LIKE #########################
 
-  # TODO forbid liking if more than 3 active matches? or rather if hidden?
-  # TODO auth, check they are in our feed, check no more than 5 per day
+  # TODO auth, check user_id in by_user_id feed
+  @doc false
   def like_profile(by_user_id, user_id) do
     Ecto.Multi.new()
     # |> mark_seen(by_user_id, user_id)
@@ -49,6 +49,30 @@ defmodule T.Feeds do
     |> Repo.transaction()
     |> Matches.maybe_notify_of_match()
     |> notify_subscribers(:liked)
+  end
+
+  # TODO test
+  def schedule_like_profile(by_user_id, user_id, schedule_in_seconds \\ 10) do
+    args = %{"by_user_id" => by_user_id, "user_id" => user_id}
+    job = LikeJob.new(args, schedule_in: schedule_in_seconds)
+    Oban.insert(job)
+  end
+
+  defp get_like_job(by_user_id, user_id) do
+    Oban.Job
+    |> where(worker: ^dump_worker_to_string(LikeJob))
+    |> where([j], j.args["by_user_id"] == ^by_user_id and j.args["user_id"] == ^user_id)
+    |> Repo.one()
+  end
+
+  defp dump_worker_to_string(worker) do
+    worker |> to_string() |> String.replace_leading("Elixir.", "")
+  end
+
+  # TODO test
+  def cancel_like_profile(by_user_id, user_id) do
+    cancelled? = if job = get_like_job(by_user_id, user_id), do: Oban.cancel_job(job.id)
+    !!cancelled?
   end
 
   # TODO broadcast

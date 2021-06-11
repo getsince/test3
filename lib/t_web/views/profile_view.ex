@@ -289,8 +289,15 @@ defmodule TWeb.ProfileView do
       "#E5E7EB"
     end
   else
+    since_pink = "#" <> Base.encode16(<<249, 126, 172>>)
+    since_blue = "#" <> Base.encode16(<<74, 92, 235>>)
+    since_green = "#" <> Base.encode16(<<9, 186, 111>>)
+    since_red = "#" <> Base.encode16(<<219, 59, 47>>)
+    since_gray = "#" <> Base.encode16(<<96, 96, 96>>)
+    colors = [since_pink, since_blue, since_green, since_red, since_gray]
+
     defp random_bg_color do
-      Enum.random(["#E5E7EB", "#FCA5A5", "#FBBF24", "#6EE7B7", "#3B82F6", "#93C5FD", "#BE185D"])
+      Enum.random(unquote(colors))
     end
   end
 

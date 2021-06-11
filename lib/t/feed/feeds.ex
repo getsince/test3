@@ -58,11 +58,11 @@ defmodule T.Feeds do
     Oban.insert(job)
   end
 
-  defp get_like_job(by_user_id, user_id) do
+  defp list_like_jobs(by_user_id, user_id) do
     Oban.Job
     |> where(worker: ^dump_worker_to_string(LikeJob))
     |> where([j], j.args["by_user_id"] == ^by_user_id and j.args["user_id"] == ^user_id)
-    |> Repo.one()
+    |> Repo.all()
   end
 
   defp dump_worker_to_string(worker) do
@@ -71,8 +71,9 @@ defmodule T.Feeds do
 
   # TODO test
   def cancel_like_profile(by_user_id, user_id) do
-    cancelled? = if job = get_like_job(by_user_id, user_id), do: Oban.cancel_job(job.id)
-    !!cancelled?
+    jobs = list_like_jobs(by_user_id, user_id)
+    cancelled_jobs = Enum.map(jobs, fn job -> Oban.cancel_job(job.id) end)
+    not Enum.empty?(cancelled_jobs)
   end
 
   # TODO broadcast

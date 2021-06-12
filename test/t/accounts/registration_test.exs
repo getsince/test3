@@ -15,7 +15,6 @@ defmodule T.Accounts.RegistrationTest do
       assert {:ok,
               %Accounts.User{
                 blocked_at: nil,
-                deleted_at: nil,
                 onboarded_at: nil,
                 phone_number: ^phone_number,
                 profile: %Accounts.Profile{

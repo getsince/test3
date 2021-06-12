@@ -512,7 +512,6 @@ defmodule T.Matches do
     not_blocked_or_deleted_user =
       User
       |> where([u], is_nil(u.blocked_at))
-      |> where([u], is_nil(u.deleted_at))
       |> where(id: ^user_id)
 
     Profile

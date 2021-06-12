@@ -12,7 +12,6 @@ defmodule T.Accounts.User do
     field :phone_number, :string
 
     field :onboarded_at, :utc_datetime
-    field :deleted_at, :utc_datetime
     field :blocked_at, :utc_datetime
 
     has_one :profile, Profile

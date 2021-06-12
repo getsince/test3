@@ -38,6 +38,7 @@
   "joken": {:hex, :joken, "2.3.0", "62a979c46f2c81dcb8ddc9150453b60d3757d1ac393c72bb20fc50a7b0827dc6", [:mix], [{:jose, "~> 1.10", [hex: :jose, repo: "hexpm", optional: false]}], "hexpm", "57b263a79c0ec5d536ac02d569c01e6b4de91bd1cb825625fe90eab4feb7bc1e"},
   "jose": {:hex, :jose, "1.11.1", "59da64010c69aad6cde2f5b9248b896b84472e99bd18f246085b7b9fe435dcdb", [:mix, :rebar3], [], "hexpm", "078f6c9fb3cd2f4cfafc972c814261a7d1e8d2b3685c0a76eb87e158efff1ac5"},
   "kadabra": {:hex, :kadabra, "0.4.5", "dff2ac761751df1d5e746c5bb32bccf30f26371b153ff4d99d620a172ad466aa", [:mix], [{:hpack, "~> 0.2.3", [hex: :hpack_erl, repo: "hexpm", optional: false]}], "hexpm", "8656a78f48e89ecb21769fdd15fd7562d317b234f602664089ce10124e9ab959"},
+  "locus": {:hex, :locus, "1.16.0", "8f4ae64e7dce3be02c4dc2803c3032beca3d32895e1b3fed9fc4f4a4fe656826", [:rebar3], [{:tls_certificate_check, "~> 1.5", [hex: :tls_certificate_check, repo: "hexpm", optional: false]}], "hexpm", "759099a8bd9e238104c83f4b97c6da346db78c8178776e37d6955d538daed361"},
   "metrics": {:hex, :metrics, "1.0.1", "25f094dea2cda98213cecc3aeff09e940299d950904393b2a29d191c346a8486", [:rebar3], [], "hexpm", "69b09adddc4f74a40716ae54d140f93beb0fb8978d8636eaded0c31b6f099f16"},
   "mime": {:hex, :mime, "1.6.0", "dabde576a497cef4bbdd60aceee8160e02a6c89250d6c0b29e56c0dfb00db3d2", [:mix], [], "hexpm", "31a1a8613f8321143dde1dafc36006a17d28d02bdfecb9e95a880fa7aabd19a7"},
   "mimerl": {:hex, :mimerl, "1.2.0", "67e2d3f571088d5cfd3e550c383094b47159f3eee8ffa08e64106cdf5e981be3", [:rebar3], [], "hexpm", "f278585650aa581986264638ebf698f8bb19df297f66ad91b18910dfc6e19323"},
@@ -74,5 +75,6 @@
   "telemetry": {:hex, :telemetry, "0.4.3", "a06428a514bdbc63293cd9a6263aad00ddeb66f608163bdec7c8995784080818", [:rebar3], [], "hexpm", "eb72b8365ffda5bed68a620d1da88525e326cb82a75ee61354fc24b844768041"},
   "telemetry_metrics": {:hex, :telemetry_metrics, "0.6.0", "da9d49ee7e6bb1c259d36ce6539cd45ae14d81247a2b0c90edf55e2b50507f7b", [:mix], [{:telemetry, "~> 0.4", [hex: :telemetry, repo: "hexpm", optional: false]}], "hexpm", "5cfe67ad464b243835512aa44321cee91faed6ea868d7fb761d7016e02915c3d"},
   "telemetry_poller": {:hex, :telemetry_poller, "0.5.1", "21071cc2e536810bac5628b935521ff3e28f0303e770951158c73eaaa01e962a", [:rebar3], [{:telemetry, "~> 0.4", [hex: :telemetry, repo: "hexpm", optional: false]}], "hexpm", "4cab72069210bc6e7a080cec9afffad1b33370149ed5d379b81c7c5f0c663fd4"},
+  "tls_certificate_check": {:hex, :tls_certificate_check, "1.6.0", "661c287fc3f7823f6a299834664a5932ac9d369befec2883172de0623a4aea12", [:rebar3], [{:ssl_verify_fun, "1.1.6", [hex: :ssl_verify_fun, repo: "hexpm", optional: false]}], "hexpm", "42476e2e40717f09fbf1b559a8a6975b394e46c94bb5ebb043a18269a46401c0"},
   "unicode_util_compat": {:hex, :unicode_util_compat, "0.7.0", "bc84380c9ab48177092f43ac89e4dfa2c6d62b40b8bd132b1059ecc7232f9a78", [:rebar3], [], "hexpm", "25eee6d67df61960cf6a794239566599b09e17e668d3700247bc498638152521"},
 }

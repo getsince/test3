@@ -80,7 +80,8 @@ defmodule T.MixProject do
       {:rexbug, "~> 1.0"},
       {:nadia, "~> 0.7.0"},
       {:geo_postgis, "~> 3.4"},
-      {:finch, "~> 0.7.0"}
+      {:finch, "~> 0.7.0"},
+      {:locus, "~> 1.16"}
     ]
   end
 

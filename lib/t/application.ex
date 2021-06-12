@@ -24,6 +24,8 @@ defmodule T.Application do
       ]
       |> Enum.reject(&is_nil/1)
 
+    maybe_setup_locus()
+
     :telemetry.attach_many(
       "oban-errors",
       [[:oban, :job, :exception], [:oban, :circuit, :trip]],
@@ -53,6 +55,12 @@ defmodule T.Application do
     if Application.get_env(:t, :run_migrations_on_start?) do
       Logger.info("Running migrations")
       T.Release.Migrator
+    end
+  end
+
+  defp maybe_setup_locus do
+    if key = Application.get_env(:t, :maxmind_license_key) do
+      T.Location.setup(key)
     end
   end
 end

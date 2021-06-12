@@ -215,7 +215,7 @@ defmodule T.Accounts do
         |> repo.one()
 
       if match_id do
-        T.Matches.unmatch_and_unhide(user: from_user_id, match: match_id)
+        T.Matches.unmatch(user: from_user_id, match: match_id)
       else
         {:ok, nil}
       end
@@ -317,7 +317,7 @@ defmodule T.Accounts do
         |> select([m], m.id)
         |> repo.all()
         |> Enum.map(fn match_id ->
-          T.Matches.unmatch_and_unhide(user: user_id, match: match_id)
+          T.Matches.unmatch(user: user_id, match: match_id)
         end)
 
       {:ok, unmatches}

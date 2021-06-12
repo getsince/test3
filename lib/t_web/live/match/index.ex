@@ -100,7 +100,7 @@ defmodule TWeb.MatchLive.Index do
 
   def handle_event("unmatch", %{"match" => match_id}, socket) do
     me = socket.assigns.me
-    {:ok, _} = Matches.unmatch_and_unhide(user: me.id, match: match_id)
+    {:ok, _} = Matches.unmatch(user: me.id, match: match_id)
     {:noreply, socket}
   end
 

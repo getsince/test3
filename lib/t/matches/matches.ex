@@ -9,7 +9,7 @@ defmodule T.Matches do
   import Ecto.Query
 
   alias T.{Repo, Media, PushNotifications}
-  alias T.Accounts.{User, Profile}
+  alias T.Accounts.Profile
   alias T.Matches.{Match, SeenMatch, Message, Yo, Timeslot}
 
   @pubsub T.PubSub
@@ -35,7 +35,7 @@ defmodule T.Matches do
     Phoenix.PubSub.subscribe(@pubsub, pubsub_user_topic(user_id))
   end
 
-  defp notify_subscribers({:ok, %{unmatch: user_ids}} = success, [:unmatched, match_id] = event) do
+  defp notify_subscribers({:ok, user_ids} = success, [:unmatched, match_id] = event) do
     msg = {__MODULE__, event, user_ids}
     Phoenix.PubSub.broadcast(@pubsub, pubsub_match_topic(match_id), msg)
     success
@@ -465,7 +465,8 @@ defmodule T.Matches do
 
   ######################## UNMATCH ########################
 
-  defp unmatch(params) do
+  @doc "unmatch(user: <uuid>, match: <uuid>)"
+  def unmatch(params) do
     user_id = Keyword.fetch!(params, :user)
     match_id = Keyword.fetch!(params, :match)
 
@@ -480,48 +481,7 @@ defmodule T.Matches do
       {1, [user_ids]} -> {:ok, user_ids}
       {0, _} -> {:error, :match_not_found}
     end
-  end
-
-  @spec unhide(user_ids :: [Ecto.UUID.t()]) :: unhidden_user_ids :: [Ecto.UUID.t()]
-  defp unhide(user_ids) when is_list(user_ids) do
-    Enum.reduce(user_ids, [], fn id, unhidden ->
-      # TODO and if match count < 3
-      if unhide_profile_if_not_blocked_or_deleted(id) do
-        [id | unhidden]
-      else
-        unhidden
-      end
-    end)
-  end
-
-  @doc "unmatch_and_unhide(user: <uuid>, match: <uuid>)"
-  def unmatch_and_unhide(params) do
-    match_id = Keyword.fetch!(params, :match)
-
-    Repo.transact(fn ->
-      with {:ok, user_ids} <- unmatch(params),
-           unhide <- unhide(user_ids),
-           do: {:ok, %{unmatch: user_ids, unhide: unhide}}
-
-      # TODO remove all scheduled notifications
-    end)
     |> notify_subscribers([:unmatched, match_id])
-  end
-
-  defp unhide_profile_if_not_blocked_or_deleted(user_id) do
-    not_blocked_or_deleted_user =
-      User
-      |> where([u], is_nil(u.blocked_at))
-      |> where(id: ^user_id)
-
-    Profile
-    |> where(user_id: ^user_id)
-    |> join(:inner, [p], u in subquery(not_blocked_or_deleted_user), on: u.id == p.user_id)
-    |> Repo.update_all(set: [hidden?: false])
-    |> case do
-      {1, nil} -> true
-      {0, nil} -> false
-    end
   end
 
   #################### HELPERS ####################

@@ -86,6 +86,16 @@ CREATE TABLE public.apns_devices (
 
 
 --
+-- Name: call_traces; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.call_traces (
+    event jsonb NOT NULL,
+    inserted_at timestamp(0) without time zone NOT NULL
+);
+
+
+--
 -- Name: emails; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -364,8 +374,7 @@ CREATE TABLE public.users (
     inserted_at timestamp(0) without time zone NOT NULL,
     updated_at timestamp(0) without time zone NOT NULL,
     blocked_at timestamp(0) without time zone,
-    onboarded_at timestamp(0) without time zone,
-    deleted_at timestamp with time zone
+    onboarded_at timestamp(0) without time zone
 );
 
 
@@ -896,3 +905,5 @@ INSERT INTO public."schema_migrations" (version) VALUES (20210520105939);
 INSERT INTO public."schema_migrations" (version) VALUES (20210520110036);
 INSERT INTO public."schema_migrations" (version) VALUES (20210520113351);
 INSERT INTO public."schema_migrations" (version) VALUES (20210603235924);
+INSERT INTO public."schema_migrations" (version) VALUES (20210605084428);
+INSERT INTO public."schema_migrations" (version) VALUES (20210612185455);

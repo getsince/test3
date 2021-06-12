@@ -13,7 +13,6 @@ defmodule T.Accounts do
     UserToken,
     UserNotifier,
     UserReport,
-    UserDeletionJob,
     APNSDevice,
     PushKitDevice
   }
@@ -109,11 +108,7 @@ defmodule T.Accounts do
   # TODO in one transaction
   defp get_or_register_user(phone_number) do
     if u = get_user_by_phone_number(phone_number) do
-      if u.deleted_at do
-        {:error, :user_deleted}
-      else
-        {:ok, ensure_has_profile(u)}
-      end
+      {:ok, ensure_has_profile(u)}
     else
       register_user(%{phone_number: phone_number})
     end
@@ -298,55 +293,16 @@ defmodule T.Accounts do
     end
   end
 
-  defp hide_profile(repo, user_id) do
-    Profile
-    |> where(user_id: ^user_id)
-    |> repo.update_all(set: [hidden?: true])
-  end
-
-  defp delete_user_q(user_id) do
-    rand = to_string(:rand.uniform(1_000_000))
-
-    User
-    |> where(id: ^user_id)
-    |> update([u],
-      set: [
-        deleted_at: fragment("now()"),
-        phone_number: fragment("? || '-DELETED-' || ?", u.phone_number, ^rand)
-      ]
-    )
-  end
-
-  @two_days_in_seconds 2 * 24 * 60 * 60
-
   def delete_user(user_id) do
     Ecto.Multi.new()
-    |> Ecto.Multi.run(:delete_user, fn repo, _changes ->
-      {1, nil} = repo.update_all(delete_user_q(user_id), [])
-      {:ok, nil}
-    end)
-    |> Ecto.Multi.run(:hide_profile, fn repo, _changes ->
-      hide_profile(repo, user_id)
-      {:ok, nil}
-    end)
-    |> Ecto.Multi.run(:delete_sessions, fn repo, _changes ->
-      {_, tokens} =
-        UserToken
-        |> where(user_id: ^user_id)
-        |> select([t], t.token)
-        |> repo.delete_all()
-
-      # for token <- tokens do
-      #   encoded_token = UserToken.encoded_token(token)
-      #   # TODO no web in here
-      #   TWeb.Endpoint.broadcast("user_socket:#{encoded_token}", "disconnect", %{})
-      # end
-
-      {:ok, tokens}
-    end)
     |> unmatch_all(user_id)
-    |> Oban.insert(:deletion_job, fn _ ->
-      UserDeletionJob.new(%{"user_id" => user_id}, schedule_in: @two_days_in_seconds)
+    |> Ecto.Multi.run(:delete_user, fn _repo, _changes ->
+      {1, _} =
+        User
+        |> where(id: ^user_id)
+        |> Repo.delete_all()
+
+      {:ok, true}
     end)
     |> Repo.transaction()
   end
@@ -559,7 +515,6 @@ defmodule T.Accounts do
     |> where([p], not is_nil(p.story))
     |> join(:inner, [p], u in User, on: u.id == p.user_id)
     |> where([_, u], not is_nil(u.onboarded_at))
-    |> where([_, u], is_nil(u.deleted_at))
     |> where([_, u], is_nil(u.blocked_at))
     |> Repo.update_all(set: [hidden?: false])
   end

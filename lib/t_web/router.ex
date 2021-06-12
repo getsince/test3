@@ -79,6 +79,7 @@ defmodule TWeb.Router do
 
   scope "/api", TWeb do
     pipe_through [:api, :fetch_current_user_from_bearer_token, :require_authenticated_user]
+    get "/ip-location", LocationController, :get
     post "/upload-preflight", MediaController, :create_upload_form
     post "/ios/device-token", DeviceController, :create_ios_token
     post "/ios/push-token", DeviceController, :create_push_token

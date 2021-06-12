@@ -137,6 +137,8 @@ if config_env() == :prod do
     username: System.fetch_env!("DASHBOARD_USERNAME"),
     password: System.fetch_env!("DASHBOARD_PASSWORD")
 
+  config :t, maxmind_license_key: System.fetch_env!("MAXMIND_LICENSE_KEY")
+
   config :imgproxy,
     prefix: System.fetch_env!("IMGPROXY_PREFIX"),
     key: System.fetch_env!("IMGPROXY_KEY"),

@@ -5,10 +5,9 @@ defmodule T.Music.API do
   @impl true
   def get_song(id) when is_binary(id) do
     url = "https://api.music.apple.com/v1/catalog/ru/songs/#{URI.encode_www_form(id)}"
-
-    %HTTPoison.Response{body: body, status_code: 200} =
-      HTTPoison.get!(url, [{"Authorization", "Bearer #{T.Music.token()}"}])
-
+    headers = [{"Authorization", "Bearer #{T.Music.token()}"}]
+    req = Finch.build(:get, url, headers)
+    {:ok, %Finch.Response{status: 200, body: body}} = Finch.request(req, T.Finch)
     Jason.decode!(body)
   end
 end

@@ -10,6 +10,7 @@ defmodule T.Application do
     children =
       [
         {Finch, name: T.Finch},
+        T.Twilio,
         {Phoenix.PubSub, name: T.PubSub},
         TWeb.Presence,
         TWeb.UserSocket.Monitor,

@@ -17,7 +17,7 @@ defmodule TWeb.MatchChannel do
     mates = Enum.map(matches, & &1.profile.user_id)
     send(self(), :after_join)
 
-    {:ok, %{matches: render_matches(topic, matches), ice_servers: T.Twilio.ice_servers()},
+    {:ok, %{matches: render_matches(topic, matches)},
      assign(socket, mates: mates, in_call?: !!params["in_call?"])}
   end
 

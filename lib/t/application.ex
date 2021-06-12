@@ -9,6 +9,7 @@ defmodule T.Application do
   def start(_type, _args) do
     children =
       [
+        {Finch, name: T.Finch},
         {Phoenix.PubSub, name: T.PubSub},
         TWeb.Presence,
         TWeb.UserSocket.Monitor,

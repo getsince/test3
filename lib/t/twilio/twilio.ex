@@ -19,15 +19,17 @@ defmodule T.Twilio do
       %{account_sid: account_sid, key_sid: key_sid, auth_token: auth_token} = creds()
 
       url = "https://api.twilio.com/2010-04-01/Accounts/#{account_sid}/Tokens.json"
-      body = ""
-      headers = []
-      opts = [hackney: [basic_auth: {key_sid, auth_token}]]
+      headers = [{"Authorization", basic_auth(key_sid, auth_token)}]
 
-      %HTTPoison.Response{status_code: 201, body: body} =
-        HTTPoison.post!(url, body, headers, opts)
+      req = Finch.build(:post, url, headers)
+      {:ok, %Finch.Response{status: 201, body: body}} = Finch.request(req, T.Finch)
 
       %{"ice_servers" => ice_servers} = Jason.decode!(body)
       ice_servers
+    end
+
+    defp basic_auth(username, password) do
+      "Basic " <> Base.encode64(username <> ":" <> password)
     end
   end
 end

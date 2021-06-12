@@ -5,8 +5,8 @@ defmodule T.MatchesTest do
   alias Matches.{Match, Message}
 
   describe "unmatch" do
-    test "match no longer, hidden no longer, unmatched broadcasted" do
-      [%{user_id: p1_id} = p1, %{user_id: p2_id} = p2] = insert_list(2, :profile, hidden?: true)
+    test "match no longer, unmatched broadcasted" do
+      [%{user_id: p1_id} = p1, %{user_id: p2_id} = p2] = insert_list(2, :profile, hidden?: false)
 
       %Match{id: match_id} =
         insert(:match, user_id_1: p1.user_id, user_id_2: p2.user_id, alive?: true)
@@ -19,7 +19,7 @@ defmodule T.MatchesTest do
 
       Matches.subscribe_for_match(match_id)
 
-      assert {:ok, _changes} = Matches.unmatch_and_unhide(user: p1.user_id, match: match_id)
+      assert {:ok, _user_ids} = Matches.unmatch(user: p1.user_id, match: match_id)
 
       assert_receive {Matches, [:unmatched, ^match_id], [_, _] = user_ids}
       assert p1.user_id in user_ids

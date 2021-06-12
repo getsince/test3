@@ -106,7 +106,7 @@ defmodule TWeb.MatchChannel do
 
   def handle_in("unmatch", %{"match_id" => match_id}, socket) do
     me = socket.assigns.current_user.id
-    Matches.unmatch_and_unhide(user: me, match: match_id)
+    Matches.unmatch(user: me, match: match_id)
     {:reply, :ok, socket}
   end
 

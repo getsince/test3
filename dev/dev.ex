@@ -31,7 +31,7 @@ defmodule Dev do
   #   |> APNS.push()
   # end
 
-  "amYWsQWgDcOlLFkBDbDIZ7HXuP0wCrs0bol2wEHRr6Q="
+  # "amYWsQWgDcOlLFkBDbDIZ7HXuP0wCrs0bol2wEHRr6Q="
 
   def save_my_pushkit_token do
     T.Accounts.save_pushkit_device_id(

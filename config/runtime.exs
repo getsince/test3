@@ -144,10 +144,9 @@ if config_env() == :prod do
     key: System.fetch_env!("IMGPROXY_KEY"),
     salt: System.fetch_env!("IMGPROXY_SALT")
 
-  config :ex_aws,
-    s3: [
-      bucket: System.fetch_env!("AWS_S3_BUCKET")
-    ]
+  config :t, T.Media,
+    user_bucket: System.fetch_env!("AWS_S3_BUCKET"),
+    static_bucket: System.fetch_env!("AWS_S3_BUCKET_STATIC")
 
   if demo_phones = System.get_env("DEMO_PHONES") do
     demo_phones
@@ -247,10 +246,9 @@ if config_env() == :dev do
 
   config :nadia, token: System.fetch_env!("TG_BOT_KEY")
 
-  config :ex_aws,
-    s3: [
-      bucket: System.fetch_env!("AWS_S3_BUCKET")
-    ]
+  config :t, T.Media,
+    user_bucket: System.fetch_env!("AWS_S3_BUCKET"),
+    static_bucket: System.fetch_env!("AWS_S3_BUCKET_STATIC")
 end
 
 if config_env() == :test do
@@ -280,12 +278,13 @@ if config_env() == :test do
   config :t, Oban, crontab: false, queues: false, plugins: false
   # config :t, T.Mailer, adapter: Bamboo.TestAdapter, our_address: "kindly@example.com"
 
+  config :t, T.Media,
+    user_bucket: "pretend-this-is-real",
+    static_bucket: "pretend-this-is-static"
+
   config :ex_aws,
     access_key_id: "AWS_ACCESS_KEY_ID",
-    secret_access_key: "AWS_SECRET_ACCESS_KEY",
-    s3: [
-      bucket: "pretend-this-is-real"
-    ]
+    secret_access_key: "AWS_SECRET_ACCESS_KEY"
 
   config :imgproxy,
     prefix: "https://pretend-this-is-real.example.com",

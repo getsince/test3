@@ -1,41 +1,63 @@
 defmodule T.Media do
-  def bucket do
-    # TODO use mox in test env
-    Application.fetch_env!(:ex_aws, :s3)[:bucket]
+  @moduledoc "Functions to interact with user generated and static media on AWS S3"
+  alias __MODULE__.{Static, Client}
+
+  # TODO use mox in test env
+
+  def user_bucket, do: bucket(:user_bucket)
+  def static_bucket, do: bucket(:static_bucket)
+
+  defp bucket(name) do
+    Application.fetch_env!(:t, __MODULE__)[name]
   end
 
-  def presigned_url(method \\ :get, key) do
-    {:ok, url} = ExAws.S3.presigned_url(ExAws.Config.new(:s3), method, bucket(), key)
+  def user_presigned_url(method \\ :get, key) do
+    presigned_url(method, user_bucket(), key)
+  end
+
+  def static_presigned_url(method \\ :get, key) do
+    presigned_url(method, static_bucket(), key)
+  end
+
+  defp presigned_url(method, bucket, key) do
+    {:ok, url} = ExAws.S3.presigned_url(ExAws.Config.new(:s3), method, bucket, key)
     url
   end
 
-  def s3_url do
-    "https://#{bucket()}.s3.amazonaws.com"
+  def user_s3_url, do: s3_url(user_bucket())
+  def user_s3_url(s3_key), do: s3_url(user_bucket(), s3_key)
+  def static_s3_url, do: s3_url(static_bucket())
+  def static_s3_url(s3_key), do: s3_url(static_bucket(), s3_key)
+
+  defp s3_url(bucket) do
+    "https://#{bucket}.s3.amazonaws.com"
   end
 
-  def s3_url(s3_key) do
-    Path.join(s3_url(), URI.encode(s3_key))
+  defp s3_url(bucket, s3_key) do
+    Path.join(s3_url(bucket), URI.encode(s3_key))
   end
 
-  def imgproxy_url(key_or_url, opts \\ [])
-
-  def imgproxy_url("http" <> _rest = url, opts) do
+  defp imgproxy_url("http" <> _rest = url, opts) do
     # TODO vary by device, sharpen
     default_opts = [width: 1000, height: 1000, enlarge: "0", resize: "fit"]
     opts = Keyword.merge(default_opts, opts)
     Imgproxy.url(url, opts)
   end
 
-  def imgproxy_url(s3_key, opts) do
-    imgproxy_url(s3_url(s3_key), opts)
+  def user_imgproxy_url(s3_key, opts \\ []) do
+    imgproxy_url(user_s3_url(s3_key), opts)
+  end
+
+  def static_imgproxy_url(s3_key, opts \\ []) do
+    imgproxy_url(static_s3_url(s3_key), opts)
   end
 
   def clean_url(presigned_url) do
     if presigned_url, do: URI.to_string(%URI{URI.parse(presigned_url) | query: nil})
   end
 
-  def file_exists?(key) do
-    bucket()
+  def user_file_exists?(key) do
+    user_bucket()
     |> ExAws.S3.head_object(key)
     |> ExAws.request()
     |> case do
@@ -49,6 +71,16 @@ defmodule T.Media do
 
     %{
       region: Application.fetch_env!(:ex_aws, :region),
+      access_key_id: env[:access_key_id] || System.fetch_env!("AWS_ACCESS_KEY_ID"),
+      secret_access_key: env[:secret_access_key] || System.fetch_env!("AWS_SECRET_ACCESS_KEY")
+    }
+  end
+
+  def eu_north_presign_config do
+    env = Application.get_all_env(:ex_aws)
+
+    %{
+      region: "eu-north-1",
       access_key_id: env[:access_key_id] || System.fetch_env!("AWS_ACCESS_KEY_ID"),
       secret_access_key: env[:secret_access_key] || System.fetch_env!("AWS_SECRET_ACCESS_KEY")
     }
@@ -96,7 +128,7 @@ defmodule T.Media do
         )
 
   """
-  def sign_form_upload(config \\ presign_config(), bucket \\ bucket(), opts) do
+  def sign_form_upload(config \\ presign_config(), bucket \\ user_bucket(), opts) do
     key = Keyword.fetch!(opts, :key)
     max_file_size = Keyword.fetch!(opts, :max_file_size)
     content_type = Keyword.fetch!(opts, :content_type)
@@ -187,54 +219,60 @@ defmodule T.Media do
     }
   end
 
-  @sticker_labels [
-    "Британская Высшая Школа Дизайна.png",
-    "РУДН.png",
-    "Первый МГМУ им. Сеченова.png",
-    "НИУ ВШЭ.png",
-    "МФТИ.png",
-    "МИСиС.png",
-    "МГУ.png",
-    "МГИМО.png",
-    "футбол.svg",
-    "фотография.svg",
-    "тренажерный зал.svg",
-    "суши.svg",
-    "сигареты.svg",
-    "рисование.svg",
-    "программирование.svg",
-    "пицца.svg",
-    "писательство.svg",
-    "пиво.svg",
-    "настольный теннис.svg",
-    "кошка.svg",
-    "коктейли.svg",
-    "кальян.svg",
-    "вино.svg",
-    "Санкт-Петербург.svg",
-    "Москва.svg",
-    "велосипед.svg",
-    "большой теннис.svg",
-    "бокс.svg",
-    "баскетбол.svg",
-    "YouTube.svg",
-    "VK.svg",
-    "Telegram.svg",
-    "Instagram.svg",
-    "Facebook.svg"
-  ]
-
-  for label_with_extension <- @sticker_labels do
-    label = String.replace(label_with_extension, [".svg", ".png"], "")
-    def known_sticker_label_url(unquote(label)), do: s3_url(unquote(label_with_extension))
+  def sticker_cache_busting_url(key, e_tag) do
+    static_s3_url(key) <> "?d=" <> e_tag
   end
 
-  def known_sticker_label_url(_other), do: nil
+  def sticker_cache_busting_url(%Static.Object{key: key, e_tag: e_tag}) do
+    sticker_cache_busting_url(key, e_tag)
+  end
+
+  def known_sticker_label_url(label) do
+    if key_and_e_tag = Static.lookup_key_and_e_tag(label) do
+      {key, e_tag} = key_and_e_tag
+      sticker_cache_busting_url(key, e_tag)
+    end
+  end
 
   def known_stickers do
-    Map.new(@sticker_labels, fn label_with_extension ->
-      label = String.replace(label_with_extension, [".svg", ".png"], "")
-      {label, s3_url(label_with_extension)}
+    Map.new(Static.list(), fn %Static.Object{label: label, key: key, e_tag: e_tag} ->
+      {label, sticker_cache_busting_url(key, e_tag)}
     end)
+  end
+
+  def list_static_files do
+    Client.list_objects(static_bucket())
+  end
+
+  def delete_sticker_by_key(key) do
+    result =
+      static_bucket()
+      |> ExAws.S3.delete_object(key)
+      |> ExAws.request!(region: "eu-north-1")
+
+    Static.notify_s3_updated()
+
+    result
+  end
+
+  def rename_static_file(from_key, to_key) do
+    bucket = static_bucket()
+    opts = [region: "eu-north-1"]
+
+    # TODO copied object is not public
+    %{status_code: 200} =
+      copy_result =
+      bucket
+      |> ExAws.S3.put_object_copy(to_key, bucket, from_key)
+      |> ExAws.request!(opts)
+
+    %{status_code: 204} =
+      delete_result =
+      bucket
+      |> ExAws.S3.delete_object(from_key)
+      |> ExAws.request!(opts)
+
+    Static.notify_s3_updated()
+    [copy_result, delete_result]
   end
 end

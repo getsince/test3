@@ -1,0 +1,49 @@
+<div class="min-h-screen w-full" phx-drop-target="<%= @uploads.sticker.ref %>">
+  <h2 class="text-lg p-4 flex items-center">
+    Stickers
+    <form class="ml-2 h-full flex items-center" action="#" method="post" phx-change="validate-upload-form" phx-submit="submit-upload-form">
+      <label class="flex items-center">
+        <div class="bg-gray-200 rounded p-1 hover:bg-gray-300 transition cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </div>
+        <span class="ml-2 text-sm text-gray-600">(or drag-and-drop anywhere)</span>
+        <%= live_file_input @uploads.sticker, class: "hidden" %>
+      </label>
+    </form>
+  </h2>
+
+  <div class="flex flex-wrap">
+  <%= for entry <- @uploads.sticker.entries do %>
+    <div class="flex items-center w-full md:w-1/2 lg:w-1/3 p-3 bg-yellow-100 transition">
+      <%= live_img_preview entry, class: "w-36 h-36 object-contain hover:bg-gray-200 transition" %>
+
+      <div class="ml-4">
+        <p class="font-semibold mb-2"><%= entry.client_name %></p>
+        <p class="text-sm text-gray-700">progress: <%= entry.progress %>%</p>
+
+        <%= for err <- upload_errors(@uploads.sticker, entry) do %>
+          <p class="text-sm text-red-300"><%= error_to_string(err) %></p>
+        <% end %>
+
+        <button phx-click="cancel-upload" phx-value-ref="<%= entry.ref %>" class="mt-2 leading-6 px-2 rounded bg-red-200 text-red-700 hover:bg-red-300 transition">cancel</button>
+      </div>
+    </div>
+  <% end %>
+
+  <%= for sticker <- @stickers do %>
+    <div class="flex items-center w-full md:w-1/2 lg:w-1/3 p-3 hover:bg-gray-100 transition">
+      <img src="<%= Media.sticker_cache_busting_url(sticker) %>" class="w-36 h-36 object-contain hover:bg-gray-200 transition"/>
+      <div class="ml-4">
+        <p class="font-semibold mb-2"><%= sticker.label %></p>
+        <%= if size = sticker.meta[:size] do %>
+          <p class="text-sm text-gray-700">size: <%= format_bytes(size) %></p>
+        <% end %>
+        <%= if last_modified = sticker.meta[:last_modified] do %>
+          <p class="text-sm text-gray-700">last modified: <%= last_modified %></p>
+        <% end %>
+        <button phx-click="delete-sticker" phx-value-key="<%= sticker.key %>" class="mt-2 leading-6 px-2 rounded bg-red-200 text-red-700 hover:bg-red-300 transition">delete</button>
+      </div>
+    </div>
+  <% end %>
+  </div>
+</div>

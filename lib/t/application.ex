@@ -12,6 +12,7 @@ defmodule T.Application do
         {Finch, name: T.Finch},
         T.Twilio,
         {Phoenix.PubSub, name: T.PubSub},
+        T.Media.Static,
         TWeb.Presence,
         TWeb.UserSocket.Monitor,
         T.Matches.Yo,

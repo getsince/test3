@@ -7,6 +7,7 @@ config :phoenix, :json_library, Jason
 config :pigeon, json_library: Jason
 
 config :t, T.Music, adapter: T.Music.API
+config :t, T.Media.Client, adapter: T.Media.S3Client
 
 config :sentry,
   enable_source_code_context: true,

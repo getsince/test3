@@ -319,7 +319,7 @@ defmodule TWeb.ProfileView do
   defp add_urls_to_labels(labels) do
     Enum.map(labels, fn label ->
       if answer = label["answer"] do
-        if url = Media.known_sticker_label_url(answer) do
+        if url = Media.known_sticker_url(answer) do
           Map.put(label, "url", url)
         end
       end || label

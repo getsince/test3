@@ -57,7 +57,7 @@ defmodule TWeb.StickerLive.Index do
 
   defp presign_upload(entry, socket) do
     uploads = socket.assigns.uploads
-    key = Media.fix_macos_unicode(entry.client_name)
+    key = entry.client_name |> Media.fix_macos_unicode() |> trim_extension()
 
     config = Media.eu_north_presign_config()
     bucket = Media.static_bucket()
@@ -108,4 +108,9 @@ defmodule TWeb.StickerLive.Index do
   defp memory_unit(:GB), do: 1024 * 1024 * 1024
   defp memory_unit(:MB), do: 1024 * 1024
   defp memory_unit(:KB), do: 1024
+
+  defp trim_extension(s3_key) do
+    extname = Path.extname(s3_key)
+    String.replace_trailing(s3_key, extname, "")
+  end
 end

@@ -227,16 +227,15 @@ defmodule T.Media do
     sticker_cache_busting_url(key, e_tag)
   end
 
-  def known_sticker_label_url(label) do
-    if key_and_e_tag = Static.lookup_key_and_e_tag(label) do
-      {key, e_tag} = key_and_e_tag
-      sticker_cache_busting_url(key, e_tag)
+  def known_sticker_url(key) do
+    if etag = Static.lookup_etag(key) do
+      sticker_cache_busting_url(key, etag)
     end
   end
 
   def known_stickers do
-    Map.new(Static.list(), fn %Static.Object{label: label, key: key, e_tag: e_tag} ->
-      {label, sticker_cache_busting_url(key, e_tag)}
+    Map.new(Static.list(), fn %Static.Object{key: key, e_tag: e_tag} ->
+      {key, sticker_cache_busting_url(key, e_tag)}
     end)
   end
 

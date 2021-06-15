@@ -16,14 +16,13 @@ defmodule T.Media.Static do
   end
 
   defmodule Object do
-    @enforce_keys [:key, :label, :e_tag, :meta]
-    defstruct [:key, :label, :e_tag, :meta]
+    @enforce_keys [:key, :e_tag, :meta]
+    defstruct [:key, :e_tag, :meta]
 
     def new(ets_row) do
-      {label, key, e_tag, last_modified, size} = ets_row
+      {key, e_tag, last_modified, size} = ets_row
 
       %__MODULE__{
-        label: label,
         key: key,
         e_tag: e_tag,
         meta: %{last_modified: last_modified, size: size}
@@ -35,16 +34,16 @@ defmodule T.Media.Static do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
-  def lookup_key_and_e_tag(label) do
-    case :ets.lookup(@table, label) do
-      [{^label, key, e_tag, _last_modified, _size}] -> {key, e_tag}
+  def lookup_etag(key) do
+    case :ets.lookup(@table, key) do
+      [{^key, e_tag, _last_modified, _size}] -> e_tag
       [] -> nil
     end
   end
 
-  def lookup_object(label) do
-    case :ets.lookup(@table, label) do
-      [{^label, _key, _e_tag, _last_modified, _size} = row] -> Object.new(row)
+  def lookup_object(key) do
+    case :ets.lookup(@table, key) do
+      [{^key, _e_tag, _last_modified, _size} = row] -> Object.new(row)
       [] -> nil
     end
   end
@@ -87,14 +86,9 @@ defmodule T.Media.Static do
     Enum.map(Media.list_static_files(), fn object ->
       %{e_tag: e_tag, key: key, last_modified: last_modified, size: size} = object
       e_tag = String.replace(e_tag, "\"", "")
-      ets_row = {trim_extension(key), key, e_tag, last_modified, size}
+      ets_row = {key, e_tag, last_modified, size}
       true = :ets.insert(@table, ets_row)
       Object.new(ets_row)
     end)
-  end
-
-  defp trim_extension(s3_key) do
-    extname = Path.extname(s3_key)
-    String.replace_trailing(s3_key, extname, "")
   end
 end

@@ -57,7 +57,7 @@ defmodule TWeb.StickerLive.Index do
 
   defp presign_upload(entry, socket) do
     uploads = socket.assigns.uploads
-    key = entry.client_name
+    key = Media.fix_macos_unicode(entry.client_name)
 
     config = Media.eu_north_presign_config()
     bucket = Media.static_bucket()

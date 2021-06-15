@@ -69,7 +69,6 @@ defmodule T.MixProject do
       {:ex_machina, "~> 2.4", only: :test},
       {:assertions, "~> 0.18.1", only: :test},
       {:floki, ">= 0.0.0", only: :test},
-      {:httpoison, "~> 1.8", override: true},
       {:pigeon, "~> 1.5"},
       {:kadabra, "~> 0.4.4"},
       {:sentry, "~> 8.0"},
@@ -77,7 +76,6 @@ defmodule T.MixProject do
       {:nimble_csv, "~> 1.1", only: :dev},
       {:imgproxy, github: "ruslandoga/imgproxy"},
       {:rexbug, "~> 1.0"},
-      {:nadia, "~> 0.7.0"},
       {:geo_postgis, "~> 3.4"},
       {:finch, "~> 0.7.0"},
       {:locus, "~> 1.16"}

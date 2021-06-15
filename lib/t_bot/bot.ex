@@ -1,27 +1,27 @@
 defmodule T.Bot do
   @moduledoc "TG bot for admins"
+  @adapter Application.compile_env!(:t, [__MODULE__, :adapter])
 
-  def token do
-    Application.fetch_env!(:nadia, :token)
+  defp config(key), do: config()[key]
+
+  defp config do
+    Application.fetch_env!(:t, __MODULE__)
   end
 
-  def room_id do
-    Application.fetch_env!(:nadia, :room_id)
-  end
+  def token, do: config(:token)
+  def room_id, do: config(:room_id)
 
   def set_webhook do
-    Nadia.set_webhook(url: TWeb.Router.Helpers.bot_url(TWeb.Endpoint, :webhook, token()))
+    @adapter.set_webhook(TWeb.Router.Helpers.bot_url(TWeb.Endpoint, :webhook, token()))
   end
 
   def post_new_user(phone_number) do
-    Nadia.send_message(room_id(), "new user #{phone_number}")
+    @adapter.send_message(room_id(), "new user #{phone_number}")
   end
 
   def post_user_onboarded(phone_number) do
-    Nadia.send_message(room_id(), "user onboarded #{phone_number}")
+    @adapter.send_message(room_id(), "user onboarded #{phone_number}")
   end
 
-  def handle(params) do
-    IO.inspect(params)
-  end
+  def handle(_params), do: :ok
 end

@@ -40,6 +40,8 @@ defmodule TWeb.ConnCase do
       Ecto.Adapters.SQL.Sandbox.mode(T.Repo, {:shared, self()})
     end
 
+    Mox.stub_with(MockBot, StubBot)
+
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
 end

@@ -6,6 +6,9 @@ config :t, T.Repo, types: T.PostgresTypes
 config :phoenix, :json_library, Jason
 config :pigeon, json_library: Jason
 
+config :ex_aws,
+  http_client: T.FinchHttpClient
+
 config :t, T.Music, adapter: T.Music.API
 config :t, T.Media.Client, adapter: T.Media.S3Client
 

@@ -1,6 +1,7 @@
 defmodule T.MediaTest do
   use ExUnit.Case, async: true
   alias T.Media
+  doctest Media, import: true
 
   test "known_stickers" do
     assert Media.known_stickers() == %{

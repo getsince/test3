@@ -275,4 +275,29 @@ defmodule T.Media do
     Static.notify_s3_updated()
     [copy_result, delete_result]
   end
+
+  @doc """
+  Related: https://cloud.google.com/storage/docs/gsutil/addlhelp/Filenameencodingandinteroperabilityproblems
+
+  Example:
+
+      iex> String.codepoints("ай")
+      ["а", "и", "̆"]
+
+      iex> fix_macos_unicode("ай") |> String.codepoints()
+      ["а", "й"]
+
+      iex> String.codepoints("йё")
+      ["и", "̆", "е", "̈"]
+
+      iex> fix_macos_unicode("йё") |> String.codepoints()
+      ["й", "ё"]
+
+  """
+  def fix_macos_unicode(key) do
+    String.replace(key, ["й", "ё"], fn
+      "й" -> "й"
+      "ё" -> "ё"
+    end)
+  end
 end

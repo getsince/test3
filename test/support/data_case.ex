@@ -34,6 +34,8 @@ defmodule T.DataCase do
       Ecto.Adapters.SQL.Sandbox.mode(T.Repo, {:shared, self()})
     end
 
+    Mox.stub_with(MockBot, StubBot)
+
     :ok
   end
 

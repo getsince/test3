@@ -21,12 +21,12 @@ defmodule TWeb.MatchLive.Index do
         Matches.subscribe_for_user(me.id)
         Feeds.subscribe_for_likes(me.id)
 
-        for match <- matches do
+        Enum.each(matches, fn %Matches.Match{id: match_id} = match ->
           mate_id = mate_id(match, me.id)
           {:ok, _} = Presence.track(self(), topic(mate_id), me.id, %{})
           TWeb.Endpoint.subscribe(topic(me.id))
-          Matches.subscribe_for_match(match.id)
-        end
+          Matches.subscribe_for_match(match_id)
+        end)
 
         assign(socket,
           feed: Feeds.demo_feed(me.profile, fakes_count: 20),

@@ -1,11 +1,11 @@
 defmodule TWeb.ProfileController do
   use TWeb, :controller
   alias T.Accounts
-  alias T.Accounts.Profile
+  alias T.Accounts.{Profile, User}
 
   # TODO test
   def update(conn, %{"profile" => params}) do
-    user = conn.assigns.current_user
+    %User{} = user = conn.assigns.current_user
     %Profile{} = profile = Accounts.get_profile!(user)
 
     f =

@@ -55,7 +55,6 @@ defmodule T.MixProject do
       {:ex_aws_s3, "~> 2.0"},
       {:ex_aws_sns, "~> 2.1"},
       # {:ex_aws_ses, "~> 2.1"},
-      {:hackney, "~> 1.9"},
       {:sweet_xml, "~> 0.6"},
       # {:plug_attack, "~> 0.3"},
       # # TODO

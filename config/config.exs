@@ -11,6 +11,7 @@ config :ex_aws,
 
 config :t, T.Music, adapter: T.Music.API
 config :t, T.Media.Client, adapter: T.Media.S3Client
+config :t, T.Bot, adapter: T.Bot.API
 
 config :sentry,
   enable_source_code_context: true,

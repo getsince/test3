@@ -8,8 +8,6 @@ import Config
 
 # config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase
 
-config :nadia, recv_timeout: 20
-
 config :t, TWeb.Endpoint,
   render_errors: [view: TWeb.ErrorView, accepts: ~w(json), layout: false],
   pubsub_server: T.PubSub,
@@ -52,7 +50,7 @@ if config_env() == :prod do
   config :sentry,
     dsn: System.fetch_env!("SENTRY_DSN")
 
-  config :nadia,
+  config :t, T.Bot,
     token: System.fetch_env!("TG_BOT_KEY"),
     room_id: System.fetch_env!("TG_ROOM_ID") |> String.to_integer()
 
@@ -244,7 +242,7 @@ if config_env() == :dev do
   # Do not include metadata nor timestamps in development logs
   # config :logger, :console, format: "[$level] $message\n"
 
-  config :nadia, token: System.fetch_env!("TG_BOT_KEY")
+  config :t, T.Bot, token: System.fetch_env!("TG_BOT_KEY")
 
   config :t, T.Media,
     user_bucket: System.fetch_env!("AWS_S3_BUCKET"),
@@ -291,7 +289,7 @@ if config_env() == :test do
     key: "fafafa",
     salt: "bababa"
 
-  config :nadia,
+  config :t, T.Bot,
     token: "asdfasdfasdf",
     room_id: String.to_integer("-1234")
 end

@@ -51,6 +51,8 @@ defmodule TWeb.ChannelCase do
       Sandbox.stop_owner(owner)
     end)
 
+    Mox.stub_with(MockBot, StubBot)
+
     :ok
   end
 

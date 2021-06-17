@@ -12,22 +12,16 @@ defmodule TWeb.FeedChannel do
 
     %Accounts.Profile{} = my_profile = Accounts.get_profile!(socket.assigns.current_user)
 
-    # TODO remove check for batched
-    if params["batched"] do
-      %{loaded: feed, next_ids: next_ids} =
-        Feeds.batched_demo_feed(my_profile, loaded: params["count"] || 3)
+    %{loaded: feed, next_ids: next_ids} =
+      Feeds.batched_demo_feed(my_profile, loaded: params["count"] || 3)
 
-      {:ok,
-       %{
-         feed: render_profiles(feed),
-         has_more: not Enum.empty?(next_ids),
-         # TODO remove own profile
-         own_profile: render_profile(my_profile)
-       }, assign(socket, profile: my_profile, next_ids: next_ids)}
-    else
-      feed = Feeds.demo_feed(my_profile)
-      {:ok, %{feed: render_profiles(feed), own_profile: render_profile(my_profile)}, socket}
-    end
+    {:ok,
+     %{
+       feed: render_profiles(feed),
+       has_more: not Enum.empty?(next_ids),
+       # TODO remove own profile
+       own_profile: render_profile(my_profile)
+     }, assign(socket, profile: my_profile, next_ids: next_ids)}
   end
 
   @impl true

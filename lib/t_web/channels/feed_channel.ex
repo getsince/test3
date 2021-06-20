@@ -10,17 +10,18 @@ defmodule TWeb.FeedChannel do
 
     # ChannelHelpers.ensure_onboarded(socket)
 
-    %Accounts.Profile{} = my_profile = Accounts.get_profile!(socket.assigns.current_user)
+    %{screen_width: screen_width, current_user: current_user} = socket.assigns
+    %Accounts.Profile{} = my_profile = Accounts.get_profile!(current_user)
 
     %{loaded: feed, next_ids: next_ids} =
       Feeds.batched_demo_feed(my_profile, loaded: params["count"] || 3)
 
     {:ok,
      %{
-       feed: render_profiles(feed),
+       feed: render_profiles(feed, screen_width),
        has_more: not Enum.empty?(next_ids),
        # TODO remove own profile
-       own_profile: render_profile(my_profile)
+       own_profile: render_profile(my_profile, screen_width)
      }, assign(socket, profile: my_profile, next_ids: next_ids)}
   end
 
@@ -59,12 +60,12 @@ defmodule TWeb.FeedChannel do
   end
 
   def handle_in("more", params, socket) do
-    %{next_ids: next_ids, current_user: me} = socket.assigns
+    %{next_ids: next_ids, current_user: me, screen_width: screen_width} = socket.assigns
 
     %{loaded: feed, next_ids: next_ids} =
       Feeds.batched_demo_feed_cont(next_ids, me.id, loaded: params["count"] || 5)
 
-    cursor = %{feed: render_profiles(feed), has_more: not Enum.empty?(next_ids)}
+    cursor = %{feed: render_profiles(feed, screen_width), has_more: not Enum.empty?(next_ids)}
     {:reply, {:ok, cursor}, assign(socket, next_ids: next_ids)}
   end
 
@@ -74,11 +75,11 @@ defmodule TWeb.FeedChannel do
 
   #### MISC ####
 
-  defp render_profile(profile) do
-    render(ProfileView, "feed_show.json", profile: profile)
+  defp render_profile(profile, screen_width) do
+    render(ProfileView, "feed_show.json", profile: profile, screen_width: screen_width)
   end
 
-  defp render_profiles(profiles) do
-    Enum.map(profiles, &render_profile/1)
+  defp render_profiles(profiles, screen_width) do
+    Enum.map(profiles, &render_profile(&1, screen_width))
   end
 end

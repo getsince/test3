@@ -4,25 +4,26 @@ defmodule TWeb.ProfileView do
   alias T.Feeds.ProfileLike
   alias T.Media
 
-  def render("feed_show.json", %{profile: %Profile{} = profile}) do
-    render_profile(profile, [:user_id, :song, :name, :gender, :seen?])
+  def render("feed_show.json", %{profile: %Profile{} = profile, screen_width: screen_width}) do
+    render_profile(profile, [:user_id, :song, :name, :gender, :seen?], screen_width)
   end
 
-  def render("show.json", %{profile: %Profile{} = profile}) do
-    render_profile(profile, [:user_id, :song, :name, :gender])
+  def render("show.json", %{profile: %Profile{} = profile, screen_width: screen_width}) do
+    render_profile(profile, [:user_id, :song, :name, :gender], screen_width)
   end
 
   def render("show_with_location.json", %{
-        profile: %Profile{location: location, filters: filters} = profile
+        profile: %Profile{location: location, filters: filters} = profile,
+        screen_width: screen_width
       }) do
     profile
-    |> render_profile([:user_id, :song, :name, :gender])
+    |> render_profile([:user_id, :song, :name, :gender], screen_width)
     |> Map.put(:latitude, lat(location))
     |> Map.put(:longitude, lon(location))
     |> Map.put(:gender_preference, genders(filters))
   end
 
-  def render("like.json", %{like: like}) do
+  def render("like.json", %{like: like, screen_width: screen_width}) do
     %ProfileLike{
       seen?: seen?,
       inserted_at: inserted_at,
@@ -32,7 +33,7 @@ defmodule TWeb.ProfileView do
     %{
       seen?: !!seen?,
       inserted_at: DateTime.from_naive!(inserted_at, "Etc/UTC"),
-      profile: render_profile(liker_profile, [:user_id, :song, :name, :gender])
+      profile: render_profile(liker_profile, [:user_id, :song, :name, :gender], screen_width)
     }
   end
 
@@ -45,13 +46,13 @@ defmodule TWeb.ProfileView do
   defp genders(%Profile.Filters{genders: genders}), do: genders
   defp genders(nil), do: nil
 
-  defp render_profile(profile, fields) do
+  defp render_profile(profile, fields, screen_width) do
     profile
     |> Map.take(fields)
     |> Map.update!(:song, fn song ->
       if song, do: extract_song_info(song)
     end)
-    |> Map.merge(%{story: render_story_from_profile(profile)})
+    |> Map.merge(%{story: render_story_from_profile(profile, screen_width)})
   end
 
   defp extract_song_info(%{
@@ -78,11 +79,11 @@ defmodule TWeb.ProfileView do
     }
   end
 
-  defp render_story_from_profile(%Profile{story: [_ | _] = story}) do
-    postprocess_story(story)
+  defp render_story_from_profile(%Profile{story: [_ | _] = story}, screen_width) do
+    postprocess_story(story, screen_width)
   end
 
-  defp render_story_from_profile(%Profile{} = profile) do
+  defp render_story_from_profile(%Profile{} = profile, screen_width) do
     %Profile{
       name: name,
       photos: photos,
@@ -180,7 +181,7 @@ defmodule TWeb.ProfileView do
         Map.merge(bg, %{"size" => [400, 800], "labels" => labels})
       end)
 
-    postprocess_story(story)
+    postprocess_story(story, screen_width)
   end
 
   defp age(date) do
@@ -301,11 +302,11 @@ defmodule TWeb.ProfileView do
     end
   end
 
-  defp postprocess_story(story) when is_list(story) do
+  defp postprocess_story(story, screen_width) when is_list(story) do
     story
     |> Enum.map(fn
       %{"background" => %{"s3_key" => key} = bg} = page when not is_nil(key) ->
-        bg = Map.merge(bg, s3_key_urls(key))
+        bg = Map.merge(bg, s3_key_urls(key, screen_width))
         %{page | "background" => bg}
 
       other_page ->
@@ -326,7 +327,7 @@ defmodule TWeb.ProfileView do
     end)
   end
 
-  defp s3_key_urls(key) when is_binary(key) do
-    %{"proxy" => Media.user_imgproxy_cdn_url(key)}
+  defp s3_key_urls(key, width) when is_binary(key) do
+    %{"proxy" => Media.user_imgproxy_cdn_url(key, width)}
   end
 end

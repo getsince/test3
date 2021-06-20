@@ -7,12 +7,15 @@ defmodule TWeb.ProfileChannel do
   @impl true
   def join("profile:" <> user_id, _params, socket) do
     ChannelHelpers.verify_user_id(socket, user_id)
-    %Profile{} = profile = Accounts.get_profile!(socket.assigns.current_user)
-    {:ok, %{profile: render_profile(profile)}, assign(socket, uploads: %{}, profile: profile)}
+    %{screen_width: screen_width, current_user: current_user} = socket.assigns
+    %Profile{} = profile = Accounts.get_profile!(current_user)
+
+    {:ok, %{profile: render_profile(profile, screen_width)},
+     assign(socket, uploads: %{}, profile: profile)}
   end
 
-  defp render_profile(profile) do
-    render(ProfileView, "show_with_location.json", profile: profile)
+  defp render_profile(profile, screen_width) do
+    render(ProfileView, "show_with_location.json", profile: profile, screen_width: screen_width)
   end
 
   @impl true
@@ -35,8 +38,11 @@ defmodule TWeb.ProfileChannel do
   end
 
   def handle_in("get-me", _params, socket) do
-    %Profile{} = profile = Accounts.get_profile!(socket.assigns.current_user)
-    {:reply, {:ok, %{profile: render_profile(profile)}}, assign(socket, profile: profile)}
+    %{screen_width: screen_width, current_user: current_user} = socket.assigns
+    %Profile{} = profile = Accounts.get_profile!(current_user)
+
+    {:reply, {:ok, %{profile: render_profile(profile, screen_width)}},
+     assign(socket, profile: profile)}
   end
 
   # TODO refresh after two hours
@@ -51,7 +57,7 @@ defmodule TWeb.ProfileChannel do
   end
 
   def handle_in("submit", %{"profile" => params}, socket) do
-    %{profile: profile, current_user: user} = socket.assigns
+    %{profile: profile, current_user: user, screen_width: screen_width} = socket.assigns
     params = params |> with_song() |> replace_story_photo_urls_with_s3keys()
 
     # TODO check photos exist in s3
@@ -64,7 +70,8 @@ defmodule TWeb.ProfileChannel do
 
     case f.() do
       {:ok, profile} ->
-        {:reply, {:ok, %{profile: render_profile(profile)}}, assign(socket, profile: profile)}
+        {:reply, {:ok, %{profile: render_profile(profile, screen_width)}},
+         assign(socket, profile: profile)}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:reply, {:error, %{profile: render(ErrorView, "changeset.json", changeset: changeset)}},

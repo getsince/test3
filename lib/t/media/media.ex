@@ -44,17 +44,19 @@ defmodule T.Media do
 
   Accepts `opts` that are passed to imgproxy URL builder.
   """
-  def user_imgproxy_cdn_url(s3_key_or_url, opts \\ [])
 
-  def user_imgproxy_cdn_url("http" <> _rest = source_url, opts) do
-    # TODO vary by device, sharpen
-    default_opts = [width: 1000, height: 1000, enlarge: "0", resize: "fit"]
-    opts = Keyword.merge(default_opts, opts)
-    Imgproxy.url(source_url, opts)
+  def user_imgproxy_cdn_url("http" <> _rest = source_url, requested_width) do
+    # TODO sharpen?
+    Imgproxy.url(source_url,
+      width: image_width_bucket(requested_width),
+      height: 0,
+      enlarge: "0",
+      resize: "fit"
+    )
   end
 
-  def user_imgproxy_cdn_url(s3_key, opts) do
-    user_imgproxy_cdn_url(user_s3_url(s3_key), opts)
+  def user_imgproxy_cdn_url(s3_key, requested_width) do
+    user_imgproxy_cdn_url(user_s3_url(s3_key), requested_width)
   end
 
   defp static_cdn_url(s3_key) do
@@ -315,5 +317,57 @@ defmodule T.Media do
       "й" -> "й"
       "ё" -> "ё"
     end)
+  end
+
+  @doc """
+  Picks a width bucket for the requested width, where width is measured in pixels.
+
+  Related: https://iosref.com/res
+
+  Example:
+
+      # iPhone 12 Pro Max
+      iex> image_width_bucket(1284)
+      1200
+
+      # iPhone 12 / 12 Pro
+      iex> image_width_bucket(1170)
+      1200
+
+      # iPhone 12 mini
+      iex> image_width_bucket(1080)
+      1000
+
+      # iPhone 11 Pro Max and XS Max
+      iex> image_width_bucket(1242)
+      1200
+
+      # iPhone 11 Pro and XS, X
+      iex> image_width_bucket(1125)
+      1200
+
+      # iPhone 11 and XR
+      iex> image_width_bucket(828)
+      800
+
+      # iPhone 8+ and 7+, 6s+, 6+
+      iex> image_width_bucket(1242)
+      1200
+
+      # iPhone SE (gen 2) and 8, 7, 6s, 6
+      iex> image_width_bucket(750)
+      800
+
+      # iPhone SE (gen 1) and 5s, 5c, 5
+      iex> image_width_bucket(640)
+      800
+
+  """
+  def image_width_bucket(requested_width) do
+    cond do
+      requested_width >= 1100 -> 1200
+      requested_width >= 900 -> 1000
+      true -> 800
+    end
   end
 end

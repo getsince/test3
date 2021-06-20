@@ -113,7 +113,7 @@ defmodule TWeb.ProfileChannel do
     %{"s3_key" => s3_key_from_proxy_url(proxy_url)}
   end
 
-  defp s3_key_from_proxy_url("https://seeing.getsince.app/" <> path) do
+  defp s3_key_from_proxy_url("https://d1l2m9fv9eekdw.cloudfront.net/" <> path) do
     "https://of-course-i-still-love-you.s3.amazonaws.com/" <> s3_key =
       path |> String.split("/") |> List.last() |> Base.decode64!(padding: false)
 

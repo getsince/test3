@@ -144,7 +144,8 @@ if config_env() == :prod do
 
   config :t, T.Media,
     user_bucket: System.fetch_env!("AWS_S3_BUCKET"),
-    static_bucket: System.fetch_env!("AWS_S3_BUCKET_STATIC")
+    static_bucket: System.fetch_env!("AWS_S3_BUCKET_STATIC"),
+    static_cdn: System.fetch_env!("STATIC_CDN")
 
   if demo_phones = System.get_env("DEMO_PHONES") do
     demo_phones
@@ -246,7 +247,8 @@ if config_env() == :dev do
 
   config :t, T.Media,
     user_bucket: System.fetch_env!("AWS_S3_BUCKET"),
-    static_bucket: System.fetch_env!("AWS_S3_BUCKET_STATIC")
+    static_bucket: System.fetch_env!("AWS_S3_BUCKET_STATIC"),
+    static_cdn: System.fetch_env!("STATIC_CDN")
 end
 
 if config_env() == :test do
@@ -278,14 +280,15 @@ if config_env() == :test do
 
   config :t, T.Media,
     user_bucket: "pretend-this-is-real",
-    static_bucket: "pretend-this-is-static"
+    static_bucket: "pretend-this-is-static",
+    static_cdn: "https://d4321.cloudfront.net"
 
   config :ex_aws,
     access_key_id: "AWS_ACCESS_KEY_ID",
     secret_access_key: "AWS_SECRET_ACCESS_KEY"
 
   config :imgproxy,
-    prefix: "https://pretend-this-is-real.example.com",
+    prefix: "https://d1234.cloudfront.net",
     key: "fafafa",
     salt: "bababa"
 

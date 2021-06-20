@@ -327,6 +327,6 @@ defmodule TWeb.ProfileView do
   end
 
   defp s3_key_urls(key) when is_binary(key) do
-    %{"s3" => Media.user_s3_url(key), "proxy" => Media.user_imgproxy_url(key)}
+    %{"proxy" => Media.user_imgproxy_cdn_url(key)}
   end
 end

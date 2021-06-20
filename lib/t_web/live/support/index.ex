@@ -98,7 +98,7 @@ defmodule TWeb.SupportLive.Index do
 
   defp render_message(%Support.Message{kind: "photo", data: %{"s3_key" => s3_key}}) do
     ~E"""
-    <img src="<%= Media.user_imgproxy_url(s3_key) %>" class="w-64 mt-2 border border-gray-800 rounded" />
+    <img src="<%= Media.user_imgproxy_cdn_url(s3_key) %>" class="w-64 mt-2 border border-gray-800 rounded" />
     """
   end
 

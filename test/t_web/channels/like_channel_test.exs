@@ -118,8 +118,7 @@ defmodule TWeb.LikeChannelTest do
                    %{
                      "background" => %{
                        "proxy" =>
-                         "https://pretend-this-is-real.example.com/ZUj5Q59uKDQBvOlFPlOAbTkVwyfuRl_xrqiZVOCC0mM/fit/1000/1000/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Bob3RvLmpwZw",
-                       "s3" => "https://pretend-this-is-real.s3.amazonaws.com/photo.jpg",
+                         "https://d1234.cloudfront.net/ZUj5Q59uKDQBvOlFPlOAbTkVwyfuRl_xrqiZVOCC0mM/fit/1000/1000/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Bob3RvLmpwZw",
                        "s3_key" => "photo.jpg"
                      },
                      "labels" => [

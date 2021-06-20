@@ -43,10 +43,11 @@ defmodule TWeb.MessageView do
   end
 
   defp maybe_render_url("photo", %{"s3_key" => s3_key} = data) do
-    Map.put(data, "url", Media.user_imgproxy_url(s3_key))
+    Map.put(data, "url", Media.user_imgproxy_cdn_url(s3_key))
   end
 
   defp maybe_render_url("audio", %{"s3_key" => s3_key} = data) do
+    # TODO use cdn
     Map.put(data, "url", Media.user_s3_url(s3_key))
   end
 

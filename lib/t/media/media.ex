@@ -4,13 +4,28 @@ defmodule T.Media do
 
   # TODO use mox in test env
 
+  @doc """
+  Bucket for user-generated content. Like photos, audios, etc.
+  """
   def user_bucket, do: bucket(:user_bucket)
+
+  @doc """
+  Bucket for static content, like stickers.
+  """
   def static_bucket, do: bucket(:static_bucket)
+
+  defp static_cdn_endpoint, do: cdn_endpoint(:static_cdn)
+
+  defp cdn_endpoint(name) do
+    Application.fetch_env!(:t, __MODULE__)[name]
+  end
 
   defp bucket(name) do
     Application.fetch_env!(:t, __MODULE__)[name]
   end
 
+  # TODO presigned urls are not used right now
+  # probably we should start using them at some point
   def user_presigned_url(method \\ :get, key) do
     presigned_url(method, user_bucket(), key)
   end
@@ -24,36 +39,38 @@ defmodule T.Media do
     url
   end
 
-  def user_s3_url, do: s3_url(user_bucket())
-  def user_s3_url(s3_key), do: s3_url(user_bucket(), s3_key)
-  def static_s3_url, do: s3_url(static_bucket())
-  def static_s3_url(s3_key), do: s3_url(static_bucket(), s3_key)
+  @doc """
+  Builds a URL to an image on S3 that gets resized by imgproxy and cached by a CDN.
 
-  defp s3_url(bucket) do
-    "https://#{bucket}.s3.amazonaws.com"
-  end
+  Accepts `opts` that are passed to imgproxy URL builder.
+  """
+  def user_imgproxy_cdn_url(s3_key_or_url, opts \\ [])
 
-  defp s3_url(bucket, s3_key) do
-    Path.join(s3_url(bucket), URI.encode(s3_key))
-  end
-
-  defp imgproxy_url("http" <> _rest = url, opts) do
+  def user_imgproxy_cdn_url("http" <> _rest = source_url, opts) do
     # TODO vary by device, sharpen
     default_opts = [width: 1000, height: 1000, enlarge: "0", resize: "fit"]
     opts = Keyword.merge(default_opts, opts)
-    Imgproxy.url(url, opts)
+    Imgproxy.url(source_url, opts)
   end
 
-  def user_imgproxy_url(s3_key, opts \\ []) do
-    imgproxy_url(user_s3_url(s3_key), opts)
+  def user_imgproxy_cdn_url(s3_key, opts) do
+    user_imgproxy_cdn_url(user_s3_url(s3_key), opts)
   end
 
-  def static_imgproxy_url(s3_key, opts \\ []) do
-    imgproxy_url(static_s3_url(s3_key), opts)
+  defp static_cdn_url(s3_key) do
+    Path.join([static_cdn_endpoint(), URI.encode(s3_key)])
   end
 
-  def clean_url(presigned_url) do
-    if presigned_url, do: URI.to_string(%URI{URI.parse(presigned_url) | query: nil})
+  def static_s3_url, do: s3_url(static_bucket())
+  def user_s3_url, do: s3_url(user_bucket())
+
+  # TODO make private
+  def user_s3_url(s3_key) do
+    Path.join([user_s3_url(), s3_key])
+  end
+
+  defp s3_url(bucket) do
+    "https://#{bucket}.s3.amazonaws.com"
   end
 
   def user_file_exists?(key) do
@@ -219,23 +236,23 @@ defmodule T.Media do
     }
   end
 
-  def sticker_cache_busting_url(key, e_tag) do
-    static_s3_url(key) <> "?d=" <> e_tag
+  def sticker_cache_busting_cdn_url(key, e_tag) do
+    static_cdn_url(key) <> "?d=" <> e_tag
   end
 
-  def sticker_cache_busting_url(%Static.Object{key: key, e_tag: e_tag}) do
-    sticker_cache_busting_url(key, e_tag)
+  def sticker_cache_busting_cdn_url(%Static.Object{key: key, e_tag: e_tag}) do
+    sticker_cache_busting_cdn_url(key, e_tag)
   end
 
   def known_sticker_url(key) do
     if etag = Static.lookup_etag(key) do
-      sticker_cache_busting_url(key, etag)
+      sticker_cache_busting_cdn_url(key, etag)
     end
   end
 
   def known_stickers do
     Map.new(Static.list(), fn %Static.Object{key: key, e_tag: e_tag} ->
-      {key, sticker_cache_busting_url(key, e_tag)}
+      {key, sticker_cache_busting_cdn_url(key, e_tag)}
     end)
   end
 

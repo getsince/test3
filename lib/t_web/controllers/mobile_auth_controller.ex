@@ -21,7 +21,8 @@ defmodule TWeb.MobileAuthController do
         |> json(%{
           token: Accounts.UserToken.encoded_token(token),
           user: render_user(user),
-          profile: TWeb.ProfileView.render("show.json", profile: user.profile)
+          # TODO proper screen_width
+          profile: TWeb.ProfileView.render("show.json", profile: user.profile, screen_width: 1000)
         })
 
       {:error, _reason} ->

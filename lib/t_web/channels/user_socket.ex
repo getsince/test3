@@ -19,9 +19,14 @@ defmodule TWeb.UserSocket do
   # channel "user:*", TWeb.UserChannel
 
   @impl true
-  def connect(%{"token" => token}, socket, _connect_info) do
+  def connect(%{"token" => token} = params, socket, _connect_info) do
     if user = Accounts.get_user_by_session_token(token, "mobile") do
-      {:ok, assign(socket, current_user: user, token: token)}
+      {:ok,
+       assign(socket,
+         current_user: user,
+         token: token,
+         screen_width: params["screen_width"] || 1000
+       )}
     else
       # TODO return reason (like user deleted, or invalid token)
       :error

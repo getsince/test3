@@ -11,13 +11,14 @@ defmodule TWeb.MatchChannel do
     ChannelHelpers.verify_user_id(socket, user_id)
     Matches.subscribe_for_user(user_id)
 
+    screen_width = socket.assigns.screen_width
     matches = Matches.get_current_matches(user_id)
     Enum.each(matches, &Matches.subscribe_for_match(&1.id))
 
     mates = Enum.map(matches, & &1.profile.user_id)
     send(self(), :after_join)
 
-    {:ok, %{matches: render_matches(topic, matches)},
+    {:ok, %{matches: render_matches(topic, matches, screen_width)},
      assign(socket, mates: mates, in_call?: !!params["in_call?"])}
   end
 
@@ -112,7 +113,8 @@ defmodule TWeb.MatchChannel do
 
   def handle_in("fetch", _params, socket) do
     matches = Matches.get_current_matches(socket.assigns.current_user.id)
-    {:reply, {:ok, %{matches: render_matches(socket.topic, matches)}}, socket}
+    screen_width = socket.assigns.screen_width
+    {:reply, {:ok, %{matches: render_matches(socket.topic, matches, screen_width)}}, socket}
   end
 
   @impl true
@@ -176,9 +178,17 @@ defmodule TWeb.MatchChannel do
     mate_id = mate_id(me, user_ids)
     mate = Accounts.get_profile!(mate_id)
     socket = track_self_for_mate(socket, mate_id)
+    screen_width = socket.assigns.screen_width
 
     rendered =
-      render_match(match_id, mate, _timeslot = nil, mate_online?(socket, mate_id), _seen? = false)
+      render_match(
+        match_id,
+        mate,
+        _timeslot = nil,
+        mate_online?(socket, mate_id),
+        _seen? = false,
+        screen_width
+      )
 
     push(socket, "matched", %{match: rendered})
 
@@ -260,28 +270,35 @@ defmodule TWeb.MatchChannel do
     mate_id in presences(socket)
   end
 
-  defp render_match(match_id, profile, maybe_timeslot, online?, seen?) do
+  defp render_match(match_id, profile, maybe_timeslot, online?, seen?, screen_width) do
     %{
       id: match_id,
       online: online?,
-      profile: render_profile(profile),
+      profile: render_profile(profile, screen_width),
       timeslot: maybe_timeslot && render_timeslot(maybe_timeslot),
       last_active: profile.last_active,
       seen?: seen?
     }
   end
 
-  defp render_matches(topic, matches) do
+  defp render_matches(topic, matches, screen_width) do
     online = topic |> Presence.list() |> Map.keys()
 
     Enum.map(
       matches,
-      &render_match(&1.id, &1.profile, &1.timeslot, &1.profile.user_id in online, &1.seen?)
+      &render_match(
+        &1.id,
+        &1.profile,
+        &1.timeslot,
+        &1.profile.user_id in online,
+        &1.seen?,
+        screen_width
+      )
     )
   end
 
-  defp render_profile(profile) do
-    render(ProfileView, "show.json", profile: profile)
+  defp render_profile(profile, screen_width) do
+    render(ProfileView, "show.json", profile: profile, screen_width: screen_width)
   end
 
   # TODO move to view

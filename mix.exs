@@ -66,7 +66,6 @@ defmodule T.MixProject do
       {:floki, ">= 0.0.0", only: :test},
       {:pigeon, "~> 1.5"},
       {:kadabra, "~> 0.4.4"},
-      # TODO use finch in sentry
       {:sentry, "~> 8.0"},
       {:bigflake, "0.5.0"},
       {:imgproxy, github: "ruslandoga/imgproxy"},

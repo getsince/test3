@@ -1,4 +1,4 @@
-defmodule T.FinchHttpClient do
+defmodule T.ExAws.FinchHttpClient do
   @moduledoc false
   # adapts https://github.com/ex-aws/ex_aws/blob/master/lib/ex_aws/request/hackney.ex to use finch
   @behaviour ExAws.Request.HttpClient

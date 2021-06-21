@@ -7,7 +7,10 @@ config :phoenix, :json_library, Jason
 config :pigeon, json_library: Jason
 
 config :ex_aws,
-  http_client: T.FinchHttpClient
+  http_client: T.ExAws.FinchHttpClient
+
+config :sentry,
+  client: T.Sentry.FinchHTTPClient
 
 config :t, T.Music, adapter: T.Music.API
 config :t, T.Media.Client, adapter: T.Media.S3Client

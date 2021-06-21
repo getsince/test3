@@ -44,7 +44,7 @@ defmodule T.Matches do
 
   defp notify_subscribers({:ok, %{match: match}} = success, [:matched]) do
     if match do
-      %Match{id: match_id, user_id_1: uid1, user_id_2: uid2, alive?: true} = match
+      %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} = match
       uids = Enum.map([uid1, uid2], &String.downcase/1)
       msg = {__MODULE__, [:matched, match_id], uids}
 
@@ -134,7 +134,7 @@ defmodule T.Matches do
     Ecto.Multi.run(multi, :match, fn _repo, %{mutual: mutual} ->
       if mutual do
         [user_id_1, user_id_2] = Enum.sort(user_ids)
-        Repo.insert(%Match{user_id_1: user_id_1, user_id_2: user_id_2, alive?: true})
+        Repo.insert(%Match{user_id_1: user_id_1, user_id_2: user_id_2})
       else
         {:ok, nil}
       end
@@ -147,12 +147,12 @@ defmodule T.Matches do
     end)
   end
 
-  defp schedule_match_push(%Match{alive?: true, id: match_id}) do
+  defp schedule_match_push(%Match{id: match_id}) do
     job = PushNotifications.DispatchJob.new(%{"type" => "match", "match_id" => match_id})
     Oban.insert(job)
   end
 
-  # defp schedule_yo_push(%Match{alive?: true, id: match_id}, sender_id) do
+  # defp schedule_yo_push(%Match{id: match_id}, sender_id) do
   #   job =
   #     PushNotifications.DispatchJob.new(%{
   #       "type" => "yo",
@@ -211,7 +211,6 @@ defmodule T.Matches do
     my_matches =
       Match
       |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
-      |> where(alive?: true)
 
     Timeslot
     |> join(:inner, [t], m in subquery(my_matches), on: t.match_id == m.id)
@@ -476,10 +475,8 @@ defmodule T.Matches do
       Match
       |> where(id: ^match_id)
       |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
-      |> where(alive?: true)
-      |> update(set: [alive?: false])
       |> select([m], [m.user_id_1, m.user_id_2])
-      |> Repo.update_all([])
+      |> Repo.delete_all()
       |> case do
         {1, [user_ids]} -> {:ok, user_ids}
         {0, _} -> {:error, :match_not_found}
@@ -509,7 +506,6 @@ defmodule T.Matches do
 
     Match
     |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
-    |> where(alive?: true)
     |> join(:left, [m], s in subquery(seen), on: m.id == s.match_id)
     |> select([m, s], %Match{m | seen?: not is_nil(s.match_id)})
     |> Repo.all()
@@ -532,7 +528,6 @@ defmodule T.Matches do
     Match
     |> where(id: ^match_id)
     |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
-    |> where(alive?: true)
     |> Repo.one!()
     |> preload_mate(user_id)
   end
@@ -588,7 +583,6 @@ defmodule T.Matches do
       Match
       |> where(id: ^match)
       |> where([m], ^from == m.user_id_1 or ^from == m.user_id_2)
-      |> where(alive?: true)
       |> Repo.one()
 
     if match do

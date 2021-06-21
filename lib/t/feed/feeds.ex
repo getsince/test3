@@ -145,7 +145,6 @@ defmodule T.Feeds do
 
     matches =
       Matches.Match
-      |> where(alive?: true)
       |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
 
     Profile
@@ -164,7 +163,6 @@ defmodule T.Feeds do
   def all_profile_likes_with_liker_profile(user_id) do
     matches =
       Matches.Match
-      |> where(alive?: true)
       |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
 
     ProfileLike

@@ -14,7 +14,7 @@ defmodule TWeb.LikeChannelTest do
 
     test "with likers", %{me: me, socket: socket} do
       [matched | likers] = insert_list(3, :profile)
-      insert(:match, alive?: true, user_id_1: me.id, user_id_2: matched.user_id)
+      insert(:match, user_id_1: me.id, user_id_2: matched.user_id)
       Enum.each(likers, fn l -> insert(:like, by_user: l.user, user: me) end)
 
       assert {:ok, %{likers: likers}, _socket} =
@@ -52,7 +52,7 @@ defmodule TWeb.LikeChannelTest do
 
     test "with likers", %{me: me, socket: socket} do
       [matched | likers] = insert_list(3, :profile)
-      insert(:match, alive?: true, user_id_1: me.id, user_id_2: matched.user_id)
+      insert(:match, user_id_1: me.id, user_id_2: matched.user_id)
       Enum.each(likers, fn l -> insert(:like, by_user: l.user, user: me) end)
 
       assert {:ok, %{likes: likes}, _socket} =

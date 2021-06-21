@@ -110,7 +110,7 @@ defmodule T.Feeds.SeenTest do
 
     test "seeing slot makes it seen" do
       [picker, offerer] = insert_list(2, :profile)
-      match = insert(:match, user_id_1: picker.user_id, user_id_2: offerer.user_id, alive?: true)
+      match = insert(:match, user_id_1: picker.user_id, user_id_2: offerer.user_id)
 
       # offered slot is seen by offerer, not seen by picker
       assert {:ok, %{timeslot: %Matches.Timeslot{seen?: nil = _doenst_matter}}} =
@@ -197,7 +197,7 @@ defmodule T.Feeds.SeenTest do
     # TODO broadcast deletion
     test "seeing expired timeslot.slots deletes it" do
       [picker, offerer] = insert_list(2, :profile)
-      match = insert(:match, user_id_1: picker.user_id, user_id_2: offerer.user_id, alive?: true)
+      match = insert(:match, user_id_1: picker.user_id, user_id_2: offerer.user_id)
 
       assert {:ok, %{timeslot: %Matches.Timeslot{seen?: nil = _doenst_matter}}} =
                Matches.save_slots_offer(@slots,
@@ -232,7 +232,7 @@ defmodule T.Feeds.SeenTest do
 
     test "seeing expired timeslot.selected_slot deletes it" do
       [picker, offerer] = insert_list(2, :profile)
-      match = insert(:match, user_id_1: picker.user_id, user_id_2: offerer.user_id, alive?: true)
+      match = insert(:match, user_id_1: picker.user_id, user_id_2: offerer.user_id)
 
       assert {:ok, %{timeslot: %Matches.Timeslot{seen?: nil = _doenst_matter}}} =
                Matches.save_slots_offer(@slots,
@@ -281,7 +281,7 @@ defmodule T.Feeds.SeenTest do
         )
       end
 
-      match = insert(:match, user_id_1: picker.user_id, user_id_2: offerer.user_id, alive?: true)
+      match = insert(:match, user_id_1: picker.user_id, user_id_2: offerer.user_id)
 
       assert_raise Ecto.NoResultsError, fn ->
         Matches.mark_timeslot_seen_or_delete_expired(match.id, by: picker.user_id)
@@ -297,7 +297,7 @@ defmodule T.Feeds.SeenTest do
 
       insert_list(10, :profile)
       |> Enum.each(fn p ->
-        insert(:match, user_id_1: my_profile.user_id, user_id_2: p.user_id, alive?: true)
+        insert(:match, user_id_1: my_profile.user_id, user_id_2: p.user_id)
       end)
 
       # I get matches, no match is "seen"
@@ -328,7 +328,7 @@ defmodule T.Feeds.SeenTest do
     test "double mark_match_seen doesn't raise but returns invalid changeset" do
       me = insert(:user)
       not_me = insert(:user)
-      match = insert(:match, user_id_1: me.id, user_id_2: not_me.id, alive?: true)
+      match = insert(:match, user_id_1: me.id, user_id_2: not_me.id)
 
       assert {:ok, %Matches.SeenMatch{}} = Matches.mark_match_seen(match.id, by: me.id)
 

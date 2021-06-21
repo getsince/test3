@@ -152,7 +152,6 @@ CREATE TABLE public.matches (
     id uuid NOT NULL,
     user_id_1 uuid NOT NULL,
     user_id_2 uuid NOT NULL,
-    "alive?" boolean DEFAULT true NOT NULL,
     inserted_at timestamp(0) without time zone NOT NULL
 );
 
@@ -873,3 +872,4 @@ INSERT INTO public."schema_migrations" (version) VALUES (20210617192511);
 INSERT INTO public."schema_migrations" (version) VALUES (20210617192521);
 INSERT INTO public."schema_migrations" (version) VALUES (20210617223758);
 INSERT INTO public."schema_migrations" (version) VALUES (20210621092132);
+INSERT INTO public."schema_migrations" (version) VALUES (20210621153637);

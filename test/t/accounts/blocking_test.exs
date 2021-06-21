@@ -25,9 +25,7 @@ defmodule T.Accounts.BlockingTest do
 
     test "unmatches if there is a match", %{reporter: reporter, reported: reported} do
       assert {:ok, %{match: nil}} = Feeds.like_profile(reporter.id, reported.id)
-
-      assert {:ok, %{match: %Match{id: match_id, alive?: true}}} =
-               Feeds.like_profile(reported.id, reporter.id)
+      assert {:ok, %{match: %Match{id: match_id}}} = Feeds.like_profile(reported.id, reporter.id)
 
       Matches.subscribe_for_match(match_id)
 
@@ -80,9 +78,7 @@ defmodule T.Accounts.BlockingTest do
       other = onboarded_user()
 
       assert {:ok, %{match: nil}} = Feeds.like_profile(user.id, other.id)
-
-      assert {:ok, %{match: %Match{id: match_id, alive?: true}}} =
-               Feeds.like_profile(other.id, user.id)
+      assert {:ok, %{match: %Match{id: match_id}}} = Feeds.like_profile(other.id, user.id)
 
       Matches.subscribe_for_match(match_id)
 

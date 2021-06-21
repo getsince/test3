@@ -2,6 +2,32 @@ defmodule Dev do
   alias T.PushNotifications.APNS
   alias Pigeon.APNS.Notification
 
+  def clean_likes_for_unmatched do
+    import Ecto.Query
+    alias T.Matches.Match
+    alias T.Feeds.ProfileLike
+    alias T.Repo
+
+    # get all matches with alive=false
+    # for these matches, delete all likes
+
+    dead_pairs =
+      Match
+      |> where(alive?: false)
+      |> select([m], [m.user_id_1, m.user_id_2])
+      |> Repo.all()
+
+    IO.inspect(dead_pairs, label: "dead pairs")
+
+    Enum.each(dead_pairs, fn [uid1, uid2] ->
+      {_, _} =
+        ProfileLike
+        |> where([l], l.by_user_id == ^uid1 and l.user_id == ^uid2)
+        |> or_where([l], l.by_user_id == ^uid2 and l.user_id == ^uid1)
+        |> Repo.delete_all()
+    end)
+  end
+
   def save_my_pushkit_token do
     T.Accounts.save_pushkit_device_id(
       "00000179-b463-2a92-1e00-8a0e24440000",

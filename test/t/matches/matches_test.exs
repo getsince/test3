@@ -1,15 +1,22 @@
 defmodule T.MatchesTest do
   use T.DataCase, async: true
   use Oban.Testing, repo: T.Repo
-  alias T.{Matches, Accounts.Profile}
+  alias T.{Matches, Feeds, Accounts.Profile}
   alias Matches.{Match, Message}
 
   describe "unmatch" do
-    test "match no longer, unmatched broadcasted" do
+    test "match no longer, likes no longer, unmatched broadcasted" do
       [%{user_id: p1_id} = p1, %{user_id: p2_id} = p2] = insert_list(2, :profile, hidden?: false)
 
-      %Match{id: match_id} =
-        insert(:match, user_id_1: p1.user_id, user_id_2: p2.user_id, alive?: true)
+      assert {:ok, %{match: nil}} = Feeds.like_profile(p1_id, p2_id)
+
+      assert [] == Feeds.all_profile_likes_with_liker_profile(p1_id)
+
+      assert [%Feeds.ProfileLike{by_user_id: ^p1_id, user_id: ^p2_id}] =
+               Feeds.all_profile_likes_with_liker_profile(p2_id)
+
+      assert {:ok, %{match: %Match{alive?: true, id: match_id}}} =
+               Feeds.like_profile(p2_id, p1_id)
 
       assert [%Match{id: ^match_id, profile: %Profile{user_id: ^p2_id}}] =
                Matches.get_current_matches(p1.user_id)
@@ -18,6 +25,9 @@ defmodule T.MatchesTest do
                Matches.get_current_matches(p2.user_id)
 
       Matches.subscribe_for_match(match_id)
+
+      assert [] == Feeds.all_profile_likes_with_liker_profile(p1_id)
+      assert [] == Feeds.all_profile_likes_with_liker_profile(p2_id)
 
       assert {:ok, _user_ids} = Matches.unmatch(user: p1.user_id, match: match_id)
 
@@ -30,7 +40,14 @@ defmodule T.MatchesTest do
 
       assert [] == Matches.get_current_matches(p1.user_id)
       assert [] == Matches.get_current_matches(p2.user_id)
-      assert [] = all_enqueued(worker: T.PushNotifications.DispatchJob)
+
+      assert [] == Feeds.all_profile_likes_with_liker_profile(p1_id)
+      assert [] == Feeds.all_profile_likes_with_liker_profile(p2_id)
+
+      assert [
+               %Oban.Job{args: %{"match_id" => ^match_id, "type" => "match"}},
+               %Oban.Job{args: %{"by_user_id" => ^p1_id, "type" => "like", "user_id" => ^p2_id}}
+             ] = all_enqueued(worker: T.PushNotifications.DispatchJob)
     end
   end
 

@@ -105,19 +105,6 @@ CREATE TABLE public.emails (
 
 
 --
--- Name: interests_overlap; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.interests_overlap (
-    user_id_1 uuid NOT NULL,
-    user_id_2 uuid NOT NULL,
-    score integer NOT NULL,
-    inserted_at timestamp(0) without time zone NOT NULL,
-    updated_at timestamp(0) without time zone NOT NULL
-);
-
-
---
 -- Name: liked_profiles; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -244,9 +231,7 @@ CREATE TABLE public.phones (
 
 CREATE TABLE public.profile_feeds (
     user_id uuid NOT NULL,
-    date date NOT NULL,
-    profiles jsonb NOT NULL,
-    inserted_at timestamp(0) without time zone NOT NULL
+    feeded_id uuid NOT NULL
 );
 
 
@@ -419,14 +404,6 @@ ALTER TABLE ONLY public.apns_devices
 
 
 --
--- Name: interests_overlap interests_overlap_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.interests_overlap
-    ADD CONSTRAINT interests_overlap_pkey PRIMARY KEY (user_id_1, user_id_2);
-
-
---
 -- Name: liked_profiles liked_profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -471,7 +448,7 @@ ALTER TABLE ONLY public.oban_jobs
 --
 
 ALTER TABLE ONLY public.profile_feeds
-    ADD CONSTRAINT profile_feeds_pkey PRIMARY KEY (user_id, date);
+    ADD CONSTRAINT profile_feeds_pkey PRIMARY KEY (user_id, feeded_id);
 
 
 --
@@ -559,13 +536,6 @@ ALTER TABLE ONLY public.users_tokens
 --
 
 CREATE UNIQUE INDEX apns_devices_device_id_index ON public.apns_devices USING btree (device_id);
-
-
---
--- Name: interests_overlap_user_id_1_user_id_2_score_desc_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX interests_overlap_user_id_1_user_id_2_score_desc_index ON public.interests_overlap USING btree (user_id_1, user_id_2, score DESC) WHERE (score > 0);
 
 
 --
@@ -676,22 +646,6 @@ ALTER TABLE ONLY public.apns_devices
 
 
 --
--- Name: interests_overlap interests_overlap_user_id_1_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.interests_overlap
-    ADD CONSTRAINT interests_overlap_user_id_1_fkey FOREIGN KEY (user_id_1) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: interests_overlap interests_overlap_user_id_2_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.interests_overlap
-    ADD CONSTRAINT interests_overlap_user_id_2_fkey FOREIGN KEY (user_id_2) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
 -- Name: liked_profiles liked_profiles_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -753,6 +707,14 @@ ALTER TABLE ONLY public.matches
 
 ALTER TABLE ONLY public.matches
     ADD CONSTRAINT matches_user_id_2_fkey FOREIGN KEY (user_id_2) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: profile_feeds profile_feeds_feeded_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.profile_feeds
+    ADD CONSTRAINT profile_feeds_feeded_id_fkey FOREIGN KEY (feeded_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
@@ -907,3 +869,7 @@ INSERT INTO public."schema_migrations" (version) VALUES (20210520113351);
 INSERT INTO public."schema_migrations" (version) VALUES (20210603235924);
 INSERT INTO public."schema_migrations" (version) VALUES (20210605084428);
 INSERT INTO public."schema_migrations" (version) VALUES (20210612185455);
+INSERT INTO public."schema_migrations" (version) VALUES (20210617192511);
+INSERT INTO public."schema_migrations" (version) VALUES (20210617192521);
+INSERT INTO public."schema_migrations" (version) VALUES (20210617223758);
+INSERT INTO public."schema_migrations" (version) VALUES (20210621092132);

@@ -4,7 +4,6 @@ defmodule T.AccountsTest do
 
   alias T.Accounts
   alias T.Accounts.Profile
-  # alias T.Feeds.PersonalityOverlapJob
 
   describe "save_photo/2" do
     test "pushes photo into existing profile's photos array" do
@@ -154,9 +153,6 @@ defmodule T.AccountsTest do
                })
 
       profile = Profile |> Repo.get!(profile.user_id) |> Repo.preload(:user)
-
-      # TODO
-      # assert_enqueued(worker: PersonalityOverlapJob, args: %{user_id: profile.user_id})
 
       # no story, so still hidden
       assert profile.hidden?

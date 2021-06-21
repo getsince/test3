@@ -17,8 +17,6 @@ defmodule T.Accounts do
     PushKitDevice
   }
 
-  # alias T.Feeds.PersonalityOverlapJob
-
   # def subscribe_to_new_users do
   #   Phoenix.PubSub.subscribe(T.PubSub, "new_users")
   # end
@@ -479,8 +477,6 @@ defmodule T.Accounts do
       {count, nil} = maybe_unhide_profile_with_story(user.id)
       {:ok, count >= 1}
     end)
-    # TODO
-    # |> Oban.insert(:schedule_overlap_job, PersonalityOverlapJob.new(%{"user_id" => user_id}))
     |> Repo.transaction()
     |> case do
       {:ok, %{user: user, profile: %Profile{} = profile}} ->

@@ -1,7 +1,7 @@
 defmodule T.Factory do
   use ExMachina.Ecto, repo: T.Repo
   alias T.Accounts.{User, Profile}
-  alias T.Feeds.{ProfileLike, SeenProfile, Feed, PersonalityOverlap}
+  alias T.Feeds.{ProfileLike, SeenProfile, Feed}
   alias T.Matches.{Match, Message, Timeslot}
 
   def user_factory do
@@ -27,10 +27,6 @@ defmodule T.Factory do
 
   def seen_factory do
     %SeenProfile{}
-  end
-
-  def personality_overlap_factory do
-    %PersonalityOverlap{}
   end
 
   def match_factory do

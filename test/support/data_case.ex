@@ -61,7 +61,6 @@ defmodule T.DataCase do
 
   import Ecto.Query
   import Assertions
-  import T.Factory
 
   def assert_seen(opts) do
     assert SeenProfile |> where(^opts) |> Repo.one!()
@@ -116,21 +115,6 @@ defmodule T.DataCase do
         |> Repo.update_all(set: [times_liked: likes])
 
       %Profile{profile | times_liked: likes}
-    end)
-  end
-
-  def personality_overlap(profiles, me, scores) do
-    profiles
-    |> Enum.shuffle()
-    |> Enum.zip(scores)
-    |> Enum.map(fn {profile, score} ->
-      insert(:personality_overlap,
-        score: score,
-        user_id_1: profile.user_id,
-        user_id_2: me.user_id
-      )
-
-      profile
     end)
   end
 

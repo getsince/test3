@@ -5,7 +5,7 @@ defmodule T.Feeds do
   alias T.{Repo, Matches, Accounts}
   alias T.Accounts.Profile
   alias T.PushNotifications.DispatchJob
-  alias T.Feeds.{Feed, SeenProfile, ProfileLike, PersonalityOverlap, LikeJob}
+  alias T.Feeds.{Feed, SeenProfile, ProfileLike, LikeJob}
 
   @pubsub T.PubSub
   @topic to_string(__MODULE__)
@@ -383,12 +383,6 @@ defmodule T.Feeds do
 
     most_overlap =
       common_q
-      |> join(:inner, [p], po in PersonalityOverlap,
-        on:
-          (p.user_id == po.user_id_1 and po.user_id_2 == ^profile.user_id) or
-            (p.user_id == po.user_id_2 and po.user_id_1 == ^profile.user_id)
-      )
-      |> order_by([p, po], desc: po.score)
       |> where([p], p.user_id not in ^filter_out_ids)
       |> limit(1)
       |> Repo.all()
@@ -401,12 +395,6 @@ defmodule T.Feeds do
       |> join(:inner, [p], pl in ProfileLike,
         on: p.user_id == pl.by_user_id and pl.user_id == ^profile.user_id
       )
-      |> join(:left, [p, pl], po in PersonalityOverlap,
-        on:
-          (p.user_id == po.user_id_1 and pl.by_user_id == po.user_id_2) or
-            (p.user_id == po.user_id_2 and pl.by_user_id == po.user_id_1)
-      )
-      |> order_by([..., po], desc_nulls_last: po.score)
       |> where([p], p.user_id not in ^filter_out_ids)
       |> limit(2)
       |> Repo.all()
@@ -418,12 +406,6 @@ defmodule T.Feeds do
       common_q
       |> where([p], p.times_liked == 0)
       |> where([p], p.user_id not in ^filter_out_ids)
-      |> join(:left, [p], po in PersonalityOverlap,
-        on:
-          (p.user_id == po.user_id_1 and po.user_id_2 == ^profile.user_id) or
-            (p.user_id == po.user_id_2 and po.user_id_1 == ^profile.user_id)
-      )
-      |> order_by([p, po], desc_nulls_last: po.score)
       |> limit(2)
       |> Repo.all()
       |> with_reason("non rated with (possible) overlap")

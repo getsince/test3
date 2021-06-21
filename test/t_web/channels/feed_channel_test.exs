@@ -12,15 +12,8 @@ defmodule TWeb.FeedChannelTest do
 
   describe "join" do
     test "and get feed", %{socket: socket, me: %{profile: me}} do
-      profiles = insert_list(20, :profile, gender: "F", city: me.city)
-
-      [_place1 | [_2 | _rest]] = most_liked(profiles, 30..15)
-      [_3 | [place4 | _rest]] = personality_overlap(profiles, me, 30..10)
-      assert {:ok, %{match: nil}} = Feeds.like_profile(place4.user_id, me.user_id)
-
-      assert {:ok, %{feed: feed}, _socket} =
-               subscribe_and_join(socket, "feed:" <> me.user_id, %{"timezone" => "Europe/Moscow"})
-
+      insert_list(20, :profile, gender: "F", city: me.city)
+      assert {:ok, %{feed: feed}, _socket} = subscribe_and_join(socket, "feed:" <> me.user_id)
       assert length(feed) == 3
     end
   end

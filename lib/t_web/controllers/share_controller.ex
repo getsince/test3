@@ -44,7 +44,8 @@ defmodule TWeb.ShareController do
   defp maybe_postback(%{"ref" => "startapp", "click_id" => click_id}) do
     Task.start(fn ->
       url = "http://www.startappinstalls.com/trackinstall/selfservice?d=&startapp=" <> click_id
-      HTTPoison.get!(url)
+      req = Finch.build(:get, url)
+      Finch.request(req, T.Finch)
     end)
   end
 

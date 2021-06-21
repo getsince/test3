@@ -54,16 +54,11 @@ defmodule T.MixProject do
       {:ex_aws, "~> 2.1"},
       {:ex_aws_s3, "~> 2.0"},
       {:ex_aws_sns, "~> 2.1"},
-      # {:ex_aws_ses, "~> 2.1"},
       {:sweet_xml, "~> 0.6"},
-      # {:plug_attack, "~> 0.3"},
-      # # TODO
-      # {:bamboo_ses, "~> 0.1.6"},
-      # {:bamboo, "~> 1.6"},
       {:oban, "~> 2.3"},
       {:remote_ip, "~> 1.0.0"},
       {:ex_phone_number, "~> 0.2"},
-      # TODO
+      # TODO remove
       {:passwordless_auth, "~> 0.3.0"},
       {:mox, "~> 1.0", only: :test},
       {:ex_machina, "~> 2.4", only: :test},
@@ -71,9 +66,9 @@ defmodule T.MixProject do
       {:floki, ">= 0.0.0", only: :test},
       {:pigeon, "~> 1.5"},
       {:kadabra, "~> 0.4.4"},
+      # TODO use finch in sentry
       {:sentry, "~> 8.0"},
       {:bigflake, "0.5.0"},
-      {:nimble_csv, "~> 1.1", only: :dev},
       {:imgproxy, github: "ruslandoga/imgproxy"},
       {:rexbug, "~> 1.0"},
       {:geo_postgis, "~> 3.4"},

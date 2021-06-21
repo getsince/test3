@@ -15,8 +15,7 @@ defmodule T.MatchesTest do
       assert [%Feeds.ProfileLike{by_user_id: ^p1_id, user_id: ^p2_id}] =
                Feeds.all_profile_likes_with_liker_profile(p2_id)
 
-      assert {:ok, %{match: %Match{alive?: true, id: match_id}}} =
-               Feeds.like_profile(p2_id, p1_id)
+      assert {:ok, %{match: %Match{id: match_id}}} = Feeds.like_profile(p2_id, p1_id)
 
       assert [%Match{id: ^match_id, profile: %Profile{user_id: ^p2_id}}] =
                Matches.get_current_matches(p1.user_id)
@@ -54,7 +53,7 @@ defmodule T.MatchesTest do
   describe "add_message" do
     setup do
       [p1, p2] = insert_list(2, :profile, hidden?: true)
-      match = insert(:match, user_id_1: p1.user_id, user_id_2: p2.user_id, alive?: true)
+      match = insert(:match, user_id_1: p1.user_id, user_id_2: p2.user_id)
       {:ok, match: match, profiles: [p1, p2]}
     end
 
@@ -164,7 +163,7 @@ defmodule T.MatchesTest do
   describe "list_messages" do
     setup do
       [p1, p2] = insert_list(2, :profile, hidden?: true)
-      match = insert(:match, user_id_1: p1.user_id, user_id_2: p2.user_id, alive?: true)
+      match = insert(:match, user_id_1: p1.user_id, user_id_2: p2.user_id)
       texts = ["oh, hey", "hey hey", "wow wow", "nice hey", "wow well", "yep yeah"]
 
       messages =

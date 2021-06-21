@@ -11,7 +11,6 @@ defmodule T.Matches.Match do
     field :profile, :map, virtual: true
     field :seen?, :boolean, virtual: true
     field :timeslot, :map, virtual: true
-    field :alive?, :boolean
 
     # embeds_one :slot_offer, Timeslot do
     #   field :offerer, Ecto.Bigflake.UUID

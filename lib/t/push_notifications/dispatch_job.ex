@@ -133,7 +133,6 @@ defmodule T.PushNotifications.DispatchJob do
   defp alive_match(match_id) do
     Matches.Match
     |> where(id: ^match_id)
-    |> where(alive?: true)
     |> Repo.one()
   end
 

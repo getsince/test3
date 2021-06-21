@@ -19,9 +19,7 @@ defmodule T.FeedsTest do
     } do
       [%{user_id: uid1}, %{user_id: uid2}] = profiles
       assert {:ok, %{match: nil}} = Feeds.like_profile(uid2, uid1)
-
-      assert {:ok, %{match: %Match{id: match_id, alive?: true} = match}} =
-               Feeds.like_profile(uid1, uid2)
+      assert {:ok, %{match: %Match{id: match_id} = match}} = Feeds.like_profile(uid1, uid2)
 
       assert times_liked(uid2) == 1
       assert_liked(by_user_id: uid1, user_id: uid2)

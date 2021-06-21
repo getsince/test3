@@ -206,7 +206,6 @@ defmodule T.Accounts do
 
       match_id =
         T.Matches.Match
-        |> where(alive?: true)
         |> where(user_id_1: ^u1)
         |> where(user_id_2: ^u2)
         |> select([m], m.id)
@@ -314,7 +313,6 @@ defmodule T.Accounts do
     Ecto.Multi.run(multi, :unmatch, fn repo, _changes ->
       unmatches =
         T.Matches.Match
-        |> where(alive?: true)
         |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
         |> select([m], m.id)
         |> repo.all()

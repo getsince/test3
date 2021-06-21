@@ -29,14 +29,13 @@ defmodule TWeb.AudioLive.Index do
     import Ecto.Query
     [user_id_1, user_id_2] = Enum.sort([me.id, mate.id])
 
-    T.Repo.insert!(%T.Matches.Match{user_id_1: user_id_1, user_id_2: user_id_2, alive?: true},
+    T.Repo.insert!(%T.Matches.Match{user_id_1: user_id_1, user_id_2: user_id_2},
       on_conflict: :nothing
     )
 
     T.Matches.Match
     |> where(user_id_1: ^user_id_1)
     |> where(user_id_2: ^user_id_2)
-    |> where(alive?: true)
     |> T.Repo.one!()
   end
 

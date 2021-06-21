@@ -24,17 +24,9 @@ defmodule T.Matches.TimeslotsTest do
       end
     end
 
-    test "with dead match", %{profiles: [p1, p2]} do
-      match = insert(:match, user_id_1: p1.user_id, user_id_2: p2.user_id, alive?: false)
-
-      assert_raise Ecto.NoResultsError, fn ->
-        Matches.save_slots_offer(@slots, match: match.id, from: p1.user_id, reference: @reference)
-      end
-    end
-
     test "with match we are not part of", %{profiles: [p1, p2]} do
       p3 = insert(:profile, hidden?: false)
-      match = insert(:match, user_id_1: p1.user_id, user_id_2: p2.user_id, alive?: true)
+      match = insert(:match, user_id_1: p1.user_id, user_id_2: p2.user_id)
 
       assert_raise Ecto.NoResultsError, fn ->
         Matches.save_slots_offer(@slots, match: match.id, from: p3.user_id, reference: @reference)
@@ -155,17 +147,9 @@ defmodule T.Matches.TimeslotsTest do
       end
     end
 
-    test "with dead match", %{profiles: [p1, p2]} do
-      match = insert(:match, user_id_1: p1.user_id, user_id_2: p2.user_id, alive?: false)
-
-      assert_raise Ecto.NoResultsError, fn ->
-        Matches.accept_slot(@slot, match: match.id, picker: p1.user_id, reference: @reference)
-      end
-    end
-
     test "with match we are not part of", %{profiles: [p1, p2]} do
       p3 = insert(:profile, hidden?: false)
-      match = insert(:match, user_id_1: p1.user_id, user_id_2: p2.user_id, alive?: true)
+      match = insert(:match, user_id_1: p1.user_id, user_id_2: p2.user_id)
 
       assert_raise Ecto.NoResultsError, fn ->
         Matches.accept_slot(@slot, match: match.id, picker: p3.user_id, reference: @reference)
@@ -348,7 +332,7 @@ defmodule T.Matches.TimeslotsTest do
   end
 
   defp with_match(%{profiles: [p1, p2]}) do
-    {:ok, match: insert(:match, user_id_1: p1.user_id, user_id_2: p2.user_id, alive?: true)}
+    {:ok, match: insert(:match, user_id_1: p1.user_id, user_id_2: p2.user_id)}
   end
 
   defp with_offer(%{profiles: [p1, _p2], match: match}) do

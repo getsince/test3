@@ -54,7 +54,7 @@ defmodule T.PushNotifications.APNS do
   end
 
   def build_notification("match", device_id, data) do
-    title = "Твоя симпатия взаимна 🎉"
+    title = "Это новый мэтч!"
     body = "Скорее заходи!"
 
     base_notification(device_id, "match", data)
@@ -64,8 +64,8 @@ defmodule T.PushNotifications.APNS do
   end
 
   def build_notification("like", device_id, data) do
-    title = "Ты кому-то нравишься"
-    body = "Конец"
+    title = "У тебя новый лайк"
+    body = "Заходи посмотреть 🤫"
 
     base_notification(device_id, "like", data)
     |> Notification.put_alert(%{"title" => title, "body" => body})
@@ -93,8 +93,8 @@ defmodule T.PushNotifications.APNS do
   end
 
   def build_notification("support", device_id, data) do
-    title = "Пссс..."
-    body = "Сообщение от поддержки 🌚"
+    title = "Привет!"
+    body = "Это сообщение от поддержки 🌚"
 
     base_notification(device_id, "support", data)
     |> Notification.put_alert(%{"title" => title, "body" => body})
@@ -103,8 +103,8 @@ defmodule T.PushNotifications.APNS do
   end
 
   def build_notification("timeslot_offer", device_id, data) do
-    title = "Тили-тили тесто"
-    body = "Тебя на свиданку пригласили"
+    title = "Тебя пригласили на свидание!"
+    body = "Заходи, чтобы ответить на приглашение 👀"
 
     base_notification(device_id, "timeslot_offer", data)
     |> Notification.put_alert(%{"title" => title, "body" => body})
@@ -113,8 +113,8 @@ defmodule T.PushNotifications.APNS do
   end
 
   def build_notification("timeslot_accepted", device_id, data) do
-    title = "Тили-тили тесто"
-    body = "У кого-то свиданочка намечается"
+    title = "Твое приглашение на дэйт принято"
+    body = "Добавь аудио-дэйт в календарь, чтобы не пропустить 🙌"
 
     base_notification(device_id, "timeslot_accepted", data)
     |> Notification.put_alert(%{"title" => title, "body" => body})
@@ -123,8 +123,8 @@ defmodule T.PushNotifications.APNS do
   end
 
   def build_notification("timeslot_cancelled", device_id, data) do
-    title = "Дейт отменён"
-    body = "Тебя больше не хотят видеть"
+    title = "Твой дэйт отменён"
+    body = "Попробуй предложить другое время 👉"
 
     base_notification(device_id, "timeslot_cancelled", data)
     |> Notification.put_alert(%{"title" => title, "body" => body})
@@ -134,8 +134,8 @@ defmodule T.PushNotifications.APNS do
   end
 
   def build_notification("timeslot_reminder", device_id, data) do
-    title = "Скоро свиданочка"
-    body = "Приготовься, у тебя 15 минут"
+    title = "Аудио-дэйт совсем скоро"
+    body = "Приготовься, у тебя 15 минут 👋"
 
     base_notification(device_id, "timeslot_reminder", data)
     |> Notification.put_alert(%{"title" => title, "body" => body})
@@ -144,8 +144,8 @@ defmodule T.PushNotifications.APNS do
   end
 
   def build_notification("timeslot_started", device_id, data) do
-    title = "Свидангу начинается"
-    body = "Скорее заходи!"
+    title = "Аудио-дэйт начинается"
+    body = "Скорее заходи и звони 🖤"
 
     base_notification(device_id, "timeslot_started", data)
     |> Notification.put_alert(%{"title" => title, "body" => body})

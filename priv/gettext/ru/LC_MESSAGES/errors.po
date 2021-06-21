@@ -17,7 +17,7 @@ msgstr "нельзя пустым"
 msgid "has already been taken"
 msgstr "занято"
 
-#: lib/t/accounts/user.ex:35
+#: lib/t/accounts/user.ex:36
 msgid "is invalid"
 msgstr "не тот формат"
 
@@ -92,18 +92,3 @@ msgstr ""
 
 msgid "must be equal to %{number}"
 msgstr ""
-
-#, elixir-format
-#: lib/t/accounts/profile.ex:149
-msgid "should have at least 7 tastes"
-msgstr "минимум 7 вкусов"
-
-#, elixir-format
-#: lib/t/accounts/profile.ex:77
-msgid "too old"
-msgstr "слишком стар"
-
-#, elixir-format
-#: lib/t/accounts/profile.ex:76
-msgid "too young"
-msgstr "сликом молод"

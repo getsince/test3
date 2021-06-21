@@ -3,6 +3,8 @@ defmodule T.PushNotifications.APNS do
   alias Pigeon.APNS.Notification
   alias Pigeon.APNS
 
+  import T.Gettext
+
   def push_all_envs(%Notification{} = n) do
     Application.fetch_env!(:pigeon, :apns)
     |> Enum.map(fn {worker, _} -> APNS.push(n, to: worker) end)
@@ -54,8 +56,8 @@ defmodule T.PushNotifications.APNS do
   end
 
   def build_notification("match", device_id, data) do
-    title = "Это новый мэтч!"
-    body = "Скорее заходи!"
+    title = dgettext("apns", "Это новый мэтч!")
+    body = dgettext("apns", "Скорее заходи!")
 
     base_notification(device_id, "match", data)
     |> Notification.put_alert(%{"title" => title, "body" => body})
@@ -64,8 +66,8 @@ defmodule T.PushNotifications.APNS do
   end
 
   def build_notification("like", device_id, data) do
-    title = "У тебя новый лайк"
-    body = "Заходи посмотреть 🤫"
+    title = dgettext("apns", "У тебя новый лайк")
+    body = dgettext("apns", "Заходи посмотреть 🤫")
 
     base_notification(device_id, "like", data)
     |> Notification.put_alert(%{"title" => title, "body" => body})
@@ -83,8 +85,8 @@ defmodule T.PushNotifications.APNS do
   end
 
   def build_notification("message", device_id, data) do
-    title = "Тебе отправили сообщение ;)"
-    body = "Не веришь? Проверь"
+    title = dgettext("apns", "Тебе отправили сообщение ;)")
+    body = dgettext("apns", "Не веришь? Проверь")
 
     base_notification(device_id, "message", data)
     |> Notification.put_alert(%{"title" => title, "body" => body})
@@ -93,8 +95,8 @@ defmodule T.PushNotifications.APNS do
   end
 
   def build_notification("support", device_id, data) do
-    title = "Привет!"
-    body = "Это сообщение от поддержки 🌚"
+    title = dgettext("apns", "Привет!")
+    body = dgettext("apns", "Это сообщение от поддержки 🌚")
 
     base_notification(device_id, "support", data)
     |> Notification.put_alert(%{"title" => title, "body" => body})
@@ -103,8 +105,8 @@ defmodule T.PushNotifications.APNS do
   end
 
   def build_notification("timeslot_offer", device_id, data) do
-    title = "Тебя пригласили на свидание!"
-    body = "Заходи, чтобы ответить на приглашение 👀"
+    title = dgettext("apns", "Тебя пригласили на свидание!")
+    body = dgettext("apns", "Заходи, чтобы ответить на приглашение 👀")
 
     base_notification(device_id, "timeslot_offer", data)
     |> Notification.put_alert(%{"title" => title, "body" => body})
@@ -113,8 +115,8 @@ defmodule T.PushNotifications.APNS do
   end
 
   def build_notification("timeslot_accepted", device_id, data) do
-    title = "Твое приглашение на дэйт принято"
-    body = "Добавь аудио-дэйт в календарь, чтобы не пропустить 🙌"
+    title = dgettext("apns", "Твое приглашение на дэйт принято")
+    body = dgettext("apns", "Добавь аудио-дэйт в календарь, чтобы не пропустить 🙌")
 
     base_notification(device_id, "timeslot_accepted", data)
     |> Notification.put_alert(%{"title" => title, "body" => body})
@@ -123,8 +125,8 @@ defmodule T.PushNotifications.APNS do
   end
 
   def build_notification("timeslot_cancelled", device_id, data) do
-    title = "Твой дэйт отменён"
-    body = "Попробуй предложить другое время 👉"
+    title = dgettext("apns", "Твой дэйт отменён")
+    body = dgettext("apns", "Попробуй предложить другое время 👉")
 
     base_notification(device_id, "timeslot_cancelled", data)
     |> Notification.put_alert(%{"title" => title, "body" => body})
@@ -134,8 +136,8 @@ defmodule T.PushNotifications.APNS do
   end
 
   def build_notification("timeslot_reminder", device_id, data) do
-    title = "Аудио-дэйт совсем скоро"
-    body = "Приготовься, у тебя 15 минут 👋"
+    title = dgettext("apns", "Аудио-дэйт совсем скоро")
+    body = dgettext("apns", "Приготовься, у тебя 15 минут 👋")
 
     base_notification(device_id, "timeslot_reminder", data)
     |> Notification.put_alert(%{"title" => title, "body" => body})
@@ -144,8 +146,8 @@ defmodule T.PushNotifications.APNS do
   end
 
   def build_notification("timeslot_started", device_id, data) do
-    title = "Аудио-дэйт начинается"
-    body = "Скорее заходи и звони 🖤"
+    title = dgettext("apns", "Аудио-дэйт начинается")
+    body = dgettext("apns", "Скорее заходи и звони 🖤")
 
     base_notification(device_id, "timeslot_started", data)
     |> Notification.put_alert(%{"title" => title, "body" => body})

@@ -11,6 +11,7 @@ defmodule T.Matches do
   alias T.{Repo, Media, PushNotifications}
   alias T.Accounts.Profile
   alias T.Matches.{Match, SeenMatch, Message, Yo, Timeslot}
+  alias T.Feeds.ProfileLike
 
   @pubsub T.PubSub
   @topic to_string(__MODULE__)
@@ -101,7 +102,7 @@ defmodule T.Matches do
 
   defp with_mutual_liker(multi, by_user_id, user_id) do
     Ecto.Multi.run(multi, :mutual, fn _repo, _changes ->
-      T.Feeds.ProfileLike
+      ProfileLike
       # if I am liked
       |> where(user_id: ^by_user_id)
       # by who I liked
@@ -470,16 +471,33 @@ defmodule T.Matches do
     user_id = Keyword.fetch!(params, :user)
     match_id = Keyword.fetch!(params, :match)
 
-    Match
-    |> where(id: ^match_id)
-    |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
-    |> where(alive?: true)
-    |> update(set: [alive?: false])
-    |> select([m], [m.user_id_1, m.user_id_2])
-    |> Repo.update_all([])
+    Ecto.Multi.new()
+    |> Ecto.Multi.run(:unmatch, fn _repo, _changes ->
+      Match
+      |> where(id: ^match_id)
+      |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
+      |> where(alive?: true)
+      |> update(set: [alive?: false])
+      |> select([m], [m.user_id_1, m.user_id_2])
+      |> Repo.update_all([])
+      |> case do
+        {1, [user_ids]} -> {:ok, user_ids}
+        {0, _} -> {:error, :match_not_found}
+      end
+    end)
+    |> Ecto.Multi.run(:delete_likes, fn _repo, %{unmatch: [uid1, uid2]} ->
+      {count, _} =
+        ProfileLike
+        |> where([l], l.by_user_id == ^uid1 and l.user_id == ^uid2)
+        |> or_where([l], l.by_user_id == ^uid2 and l.user_id == ^uid1)
+        |> Repo.delete_all()
+
+      {:ok, count}
+    end)
+    |> Repo.transaction()
     |> case do
-      {1, [user_ids]} -> {:ok, user_ids}
-      {0, _} -> {:error, :match_not_found}
+      {:ok, %{unmatch: user_ids}} -> {:ok, user_ids}
+      {:error, :unmatch, reason, _changes} -> {:error, reason}
     end
     |> notify_subscribers([:unmatched, match_id])
   end

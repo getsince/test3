@@ -1,0 +1,47 @@
+## "msgid"s in this file come from POT (.pot) files.
+##
+## Do not add, change, or remove "msgid"s manually here as
+## they're tied to the ones in the corresponding POT file
+## (with the same domain).
+##
+## Use "mix gettext.extract --merge" or "mix gettext.merge"
+## to merge POT files into PO files.
+msgid ""
+msgstr ""
+"Language: en\n"
+"Plural-Forms: nplurals=2\n"
+
+#, elixir-format
+#: lib/t/matches.ex:596
+msgid "%{sender} зовёт тебя пообщаться!"
+msgstr ""
+
+#, elixir-format
+#: lib/t/matches.ex:658
+msgid "Since: %{sender_name} зовёт тебя пообщаться!\nНе упусти момент, пока %{sender_gender} онлайн 😼\nЗаходи в Since\n"
+msgstr ""
+
+#, elixir-format
+#: lib/t/matches.ex:595 lib/t/matches.ex:655
+msgid "Кто-то там"
+msgstr ""
+
+#, elixir-format
+#: lib/t/matches.ex:597
+msgid "Не упусти момент 😼"
+msgstr ""
+
+#, elixir-format
+#: lib/t/matches.ex:671
+msgid "он"
+msgstr ""
+
+#, elixir-format
+#: lib/t/matches.ex:670
+msgid "она"
+msgstr ""
+
+#, elixir-format
+#: lib/t/matches.ex:672
+msgid "оно"
+msgstr ""

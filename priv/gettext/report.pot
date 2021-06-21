@@ -11,6 +11,6 @@ msgid ""
 msgstr ""
 
 #, elixir-format
-#: lib/t/accounts/user_notifier.ex:15
-msgid "Your Since code is: %{code}."
+#: lib/t/accounts.ex:229
+msgid "Расскажи, что произошло и мы постараемся помочь. Будем стараться, чтобы подобный опыт не повторился в будущем!"
 msgstr ""

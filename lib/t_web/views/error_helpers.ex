@@ -39,9 +39,9 @@ defmodule TWeb.ErrorHelpers do
     # should be written to the errors.po file. The :count option is
     # set by Ecto and indicates we should also apply plural rules.
     if count = opts[:count] do
-      Gettext.dngettext(TWeb.Gettext, "errors", msg, msg, count, opts)
+      Gettext.dngettext(T.Gettext, "errors", msg, msg, count, opts)
     else
-      Gettext.dgettext(TWeb.Gettext, "errors", msg, opts)
+      Gettext.dgettext(T.Gettext, "errors", msg, opts)
     end
   end
 end

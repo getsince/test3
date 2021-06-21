@@ -22,7 +22,7 @@ defmodule TWeb do
       use Phoenix.Controller, namespace: TWeb
 
       import Plug.Conn
-      import TWeb.Gettext
+      import T.Gettext
       alias TWeb.Router.Helpers, as: Routes
       alias TWeb.ControllerHelpers
     end
@@ -73,7 +73,7 @@ defmodule TWeb do
     quote do
       use Phoenix.Channel
       alias TWeb.ChannelHelpers
-      import TWeb.Gettext
+      import T.Gettext
       import Phoenix.View
     end
   end
@@ -89,7 +89,8 @@ defmodule TWeb do
       # Import basic rendering functionality (render, render_layout, etc)
       import Phoenix.View
 
-      import TWeb.{ErrorHelpers, Gettext}
+      import TWeb.ErrorHelpers
+      import T.Gettext
       alias TWeb.Router.Helpers, as: Routes
     end
   end

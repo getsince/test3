@@ -12,6 +12,6 @@ msgstr ""
 "Plural-Forms: nplurals=2\n"
 
 #, elixir-format
-#: lib/t/accounts/user_notifier.ex:19
+#: lib/t/accounts/user_notifier.ex:15
 msgid "Your Since code is: %{code}."
 msgstr ""

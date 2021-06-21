@@ -1,0 +1,102 @@
+## "msgid"s in this file come from POT (.pot) files.
+##
+## Do not add, change, or remove "msgid"s manually here as
+## they're tied to the ones in the corresponding POT file
+## (with the same domain).
+##
+## Use "mix gettext.extract --merge" or "mix gettext.merge"
+## to merge POT files into PO files.
+msgid ""
+msgstr ""
+"Language: ru\n"
+"Plural-Forms: nplurals=3\n"
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:149
+msgid "Аудио-дэйт начинается"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:139
+msgid "Аудио-дэйт совсем скоро"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:119
+msgid "Добавь аудио-дэйт в календарь, чтобы не пропустить 🙌"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:70
+msgid "Заходи посмотреть 🤫"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:109
+msgid "Заходи, чтобы ответить на приглашение 👀"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:89
+msgid "Не веришь? Проверь"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:129
+msgid "Попробуй предложить другое время 👉"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:98
+msgid "Привет!"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:140
+msgid "Приготовься, у тебя 15 минут 👋"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:150
+msgid "Скорее заходи и звони 🖤"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:60
+msgid "Скорее заходи!"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:118
+msgid "Твое приглашение на дэйт принято"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:128
+msgid "Твой дэйт отменён"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:88
+msgid "Тебе отправили сообщение ;)"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:108
+msgid "Тебя пригласили на свидание!"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:69
+msgid "У тебя новый лайк"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:59
+msgid "Это новый мэтч!"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:99
+msgid "Это сообщение от поддержки 🌚"
+msgstr ""

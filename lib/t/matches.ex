@@ -7,6 +7,7 @@ defmodule T.Matches do
   """
 
   import Ecto.Query
+  import T.Gettext
 
   alias T.{Repo, Media, PushNotifications}
   alias T.Accounts.Profile
@@ -591,8 +592,9 @@ defmodule T.Matches do
       {sender_name, sender_gender} = profile_info(from)
       raw_device_ids = device_ids(mate_id)
 
-      title = "#{sender_name || "Кто-то там"} зовёт тебя пообщаться!"
-      body = "Не упусти момент 😼"
+      sender = sender_name || dgettext("yo", "Кто-то там")
+      title = dgettext("yo", "%{sender} зовёт тебя пообщаться!", sender: sender)
+      body = dgettext("yo", "Не упусти момент 😼")
       message = [title, body]
       ack_id = Ecto.UUID.generate()
 
@@ -650,16 +652,24 @@ defmodule T.Matches do
   end
 
   defp yo_sms_message(sender_name, sender_gender) do
-    """
-    Since: #{sender_name || "Кто-то там"} зовёт тебя пообщаться!
-    Не упусти момент, пока #{render_gender(sender_gender)} онлайн 😼
-    Заходи в Since
-    """
+    sender_name = sender_name || dgettext("yo", "Кто-то там")
+    sender_gender = render_gender(sender_gender)
+
+    dgettext(
+      "yo",
+      """
+      Since: %{sender_name} зовёт тебя пообщаться!
+      Не упусти момент, пока %{sender_gender} онлайн 😼
+      Заходи в Since
+      """,
+      sender_name: sender_name,
+      sender_gender: sender_gender
+    )
   end
 
-  defp render_gender("F"), do: "она"
-  defp render_gender("M"), do: "он"
-  defp render_gender(_it), do: "оно"
+  defp render_gender("F"), do: dgettext("yo", "она")
+  defp render_gender("M"), do: dgettext("yo", "он")
+  defp render_gender(_it), do: dgettext("yo", "оно")
 
   defp build_yo_notification(device_id, [title, body], ack_id) do
     APNS.build_notification("yo", device_id, %{

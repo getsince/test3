@@ -1,7 +1,7 @@
 defmodule T.Accounts.User do
   use Ecto.Schema
   import Ecto.Changeset
-  import TWeb.Gettext
+  import T.Gettext
   alias T.Accounts.Profile
 
   # https://hexdocs.pm/pow/lock_users.html#content

@@ -5,6 +5,8 @@ defmodule T.Accounts do
 
   import Ecto.Query, warn: false
   import Ecto.Changeset
+  import T.Gettext
+
   alias T.{Repo, Media}
 
   alias T.Accounts.{
@@ -224,7 +226,10 @@ defmodule T.Accounts do
           "kind" => "text",
           "data" => %{
             "text" =>
-              "Расскажи, что произошло и мы постараемся помочь. Будем стараться, чтобы подобный опыт не повторился в будущем!"
+              dgettext(
+                "report",
+                "Расскажи, что произошло и мы постараемся помочь. Будем стараться, чтобы подобный опыт не повторился в будущем!"
+              )
           }
         })
 

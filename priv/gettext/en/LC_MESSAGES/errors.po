@@ -19,7 +19,7 @@ msgid "has already been taken"
 msgstr ""
 
 ## From Ecto.Changeset.put_change/3
-#: lib/t/accounts/user.ex:35
+#: lib/t/accounts/user.ex:36
 msgid "is invalid"
 msgstr ""
 
@@ -95,19 +95,4 @@ msgid "must be greater than or equal to %{number}"
 msgstr ""
 
 msgid "must be equal to %{number}"
-msgstr ""
-
-#, elixir-format, fuzzy
-#: lib/t/accounts/profile.ex:149
-msgid "should have at least 7 tastes"
-msgstr ""
-
-#, elixir-format
-#: lib/t/accounts/profile.ex:77
-msgid "too old"
-msgstr ""
-
-#, elixir-format
-#: lib/t/accounts/profile.ex:76
-msgid "too young"
 msgstr ""

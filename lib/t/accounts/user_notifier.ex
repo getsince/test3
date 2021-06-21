@@ -1,5 +1,5 @@
 defmodule T.Accounts.UserNotifier do
-  import TWeb.Gettext
+  import T.Gettext
 
   @adapter Application.compile_env!(:t, __MODULE__)[:adapter] ||
              raise("Need :adapter set for #{__MODULE__}")

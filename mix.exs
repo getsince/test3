@@ -64,7 +64,7 @@ defmodule T.MixProject do
       {:ex_machina, "~> 2.4", only: :test},
       {:assertions, "~> 0.18.1", only: :test},
       {:floki, ">= 0.0.0", only: :test},
-      {:pigeon, "~> 1.5"},
+      {:pigeon, github: "ruslandoga/pigeon", branch: "drop-httpoison-and-make-poison-optional"},
       {:kadabra, "~> 0.4.4"},
       {:sentry, "~> 8.0"},
       {:bigflake, "0.5.0"},

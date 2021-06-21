@@ -296,7 +296,7 @@ defmodule T.Accounts do
   def delete_user(user_id) do
     Ecto.Multi.new()
     |> unmatch_all(user_id)
-    |> Ecto.Multi.run(:delete_sessions, fn _repo, _changes ->
+    |> Ecto.Multi.run(:session_tokens, fn _repo, _changes ->
       tokens = UserToken |> where(user_id: ^user_id) |> select([ut], ut.token) |> Repo.all()
       {:ok, tokens}
     end)

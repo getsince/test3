@@ -11,8 +11,8 @@ defmodule T.Bot do
   def token, do: config(:token)
   def room_id, do: config(:room_id)
 
-  def set_webhook do
-    @adapter.set_webhook(TWeb.Router.Helpers.bot_url(TWeb.Endpoint, :webhook, token()))
+  def set_webhook(url) do
+    @adapter.set_webhook(url)
   end
 
   def post_new_user(phone_number) do

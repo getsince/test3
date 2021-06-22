@@ -73,6 +73,12 @@ defmodule TWeb.FeedChannel do
     ChannelHelpers.report(socket, report)
   end
 
+  def handle_in("onboarding-feed", _params, socket) do
+    %{screen_width: screen_width} = socket.assigns
+    feed = T.Feeds.onboarding_feed()
+    {:reply, {:ok, %{feed: render_profiles(feed, screen_width)}}, socket}
+  end
+
   #### MISC ####
 
   defp render_profile(profile, screen_width) do

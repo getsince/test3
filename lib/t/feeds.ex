@@ -252,6 +252,20 @@ defmodule T.Feeds do
     real ++ fakes
   end
 
+  def onboarding_feed do
+    user_ids = [
+      "0000017a-2ed5-a8b1-0242-ac1100030000",
+      "0000017a-2f3f-45d9-0242-ac1100030000",
+      "0000017a-2e20-ef74-0242-ac1100030000",
+      "0000017a-2dda-4b8b-0242-ac1100030000",
+      "00000177-868a-728a-0242-ac1100030000"
+    ]
+
+    Profile
+    |> where([p], p.user_id in ^user_ids)
+    |> Repo.all()
+  end
+
   @doc "batched_demo_feed(profile or user_id, loaded: 13)"
   def batched_demo_feed(profile, opts \\ [])
 

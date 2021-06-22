@@ -18,6 +18,12 @@ defmodule TWeb.ProfileChannel do
     render(ProfileView, "show_with_location.json", profile: profile, screen_width: screen_width)
   end
 
+  defp render_onboarding_feed(profiles, screen_width) do
+    Enum.map(profiles, fn profile ->
+      render(ProfileView, "show.json", profile: profile, screen_width: screen_width)
+    end)
+  end
+
   @impl true
   def handle_in("upload-preflight", %{"media" => params}, socket) do
     "image/" <> _rest =
@@ -90,6 +96,12 @@ defmodule TWeb.ProfileChannel do
     end
 
     {:reply, :ok, socket}
+  end
+
+  def handle_in("onboarding-feed", _payload, socket) do
+    %{screen_width: screen_width} = socket.assigns
+    feed = T.Feeds.onboarding_feed()
+    {:reply, {:ok, %{feed: render_onboarding_feed(feed, screen_width)}}, socket}
   end
 
   defp with_song(%{"song" => none} = params) when none in [nil, ""] do

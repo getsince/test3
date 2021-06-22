@@ -4,10 +4,6 @@ defmodule TWeb.ProfileView do
   alias T.Feeds.ProfileLike
   alias T.Media
 
-  def render("feed_show.json", %{profile: %Profile{} = profile, screen_width: screen_width}) do
-    render_profile(profile, [:user_id, :song, :name, :gender, :seen?], screen_width)
-  end
-
   def render("show.json", %{profile: %Profile{} = profile, screen_width: screen_width}) do
     render_profile(profile, [:user_id, :song, :name, :gender], screen_width)
   end

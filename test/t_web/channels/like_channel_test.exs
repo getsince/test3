@@ -6,42 +6,6 @@ defmodule TWeb.LikeChannelTest do
     {:ok, me: me, socket: connected_socket(me)}
   end
 
-  describe "join version 1" do
-    test "with no likers", %{me: me, socket: socket} do
-      assert {:ok, reply, _socket} = subscribe_and_join(socket, "likes:" <> me.id, %{})
-      assert reply == %{likers: [], version: 1}
-    end
-
-    test "with likers", %{me: me, socket: socket} do
-      [matched | likers] = insert_list(3, :profile)
-      insert(:match, user_id_1: me.id, user_id_2: matched.user_id)
-      Enum.each(likers, fn l -> insert(:like, by_user: l.user, user: me) end)
-
-      assert {:ok, %{likers: likers}, _socket} =
-               subscribe_and_join(socket, "likes:" <> me.id, %{})
-
-      # likers rendered as profiles
-      assert [
-               %{
-                 gender: "M",
-                 name: nil,
-                 seen?: false,
-                 song: nil,
-                 story: [_ | _],
-                 user_id: _
-               },
-               %{
-                 gender: "M",
-                 name: nil,
-                 seen?: false,
-                 song: nil,
-                 story: [_ | _],
-                 user_id: _
-               }
-             ] = likers
-    end
-  end
-
   describe "join version 2" do
     test "with no likers", %{me: me, socket: socket} do
       assert {:ok, reply, _socket} =
@@ -88,7 +52,9 @@ defmodule TWeb.LikeChannelTest do
 
   describe "like notification" do
     test "notified when liked", %{me: me, socket: socket} do
-      assert {:ok, _reply, _socket} = subscribe_and_join(socket, "likes:" <> me.id, %{})
+      assert {:ok, _reply, _socket} =
+               subscribe_and_join(socket, "likes:" <> me.id, %{"version" => 2})
+
       %{id: liker_id} = liker = onboarded_user()
 
       spawn(fn ->

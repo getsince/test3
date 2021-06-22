@@ -82,7 +82,7 @@ defmodule TWeb.FeedChannel do
   #### MISC ####
 
   defp render_profile(profile, screen_width) do
-    render(ProfileView, "feed_show.json", profile: profile, screen_width: screen_width)
+    render(ProfileView, "show.json", profile: profile, screen_width: screen_width)
   end
 
   defp render_profiles(profiles, screen_width) do

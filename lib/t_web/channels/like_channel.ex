@@ -16,30 +16,10 @@ defmodule TWeb.LikeChannel do
     {:ok, %{likes: render_likes(likes, screen_width), version: version}, socket}
   end
 
-  def join("likes:" <> user_id, _params, socket) do
-    user_id = verify_and_normalize_user_id(socket, user_id)
-
-    version = 1
-    socket = assign(socket, version: version)
-    Feeds.subscribe_for_likes(user_id)
-    screen_width = socket.assigns.screen_width
-
-    likers = Feeds.all_likers(user_id)
-    {:ok, %{likers: render_profiles(likers, screen_width), version: version}, socket}
-  end
-
   defp verify_and_normalize_user_id(socket, user_id) do
     user_id = String.downcase(user_id)
     ChannelHelpers.verify_user_id(socket, user_id)
     user_id
-  end
-
-  defp render_profiles(profiles, screen_width) when is_list(profiles) do
-    Enum.map(profiles, &render_profile(&1, screen_width))
-  end
-
-  defp render_profile(profile, screen_width) do
-    render(ProfileView, "feed_show.json", profile: profile, screen_width: screen_width)
   end
 
   defp render_likes(likes, screen_width) when is_list(likes) do

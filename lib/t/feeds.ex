@@ -137,29 +137,6 @@ defmodule T.Feeds do
     end)
   end
 
-  # TODO remove after nobody is using like_channel version 1
-  def all_likers(user_id) do
-    likers =
-      ProfileLike
-      |> where(user_id: ^user_id)
-
-    matches =
-      Matches.Match
-      |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
-
-    Profile
-    |> join(:inner, [p], l in subquery(likers), on: p.user_id == l.by_user_id)
-    |> join(:left, [p, l], m in subquery(matches),
-      on: p.user_id == m.user_id_1 or p.user_id == m.user_id_2
-    )
-    |> where([p, l, m], is_nil(m.id))
-    |> select([p, l], %Profile{p | seen?: coalesce(l.seen?, false)})
-    # TODO index
-    |> order_by([p, l], desc: l.inserted_at)
-    |> Repo.all()
-  end
-
-  # this one is used in like_channel version 2 and above
   def all_profile_likes_with_liker_profile(user_id) do
     matches =
       Matches.Match
@@ -306,17 +283,13 @@ defmodule T.Feeds do
   end
 
   @doc "batched_demo_feed_cont([<user-id>], <user-id>, loaded: 13)"
-  def batched_demo_feed_cont(next_ids, user_id, opts) when is_list(next_ids) do
+  def batched_demo_feed_cont(next_ids, _user_id, opts) when is_list(next_ids) do
     loaded_count = opts[:loaded] || 10
     {to_fetch, next_ids} = Enum.split(next_ids, loaded_count)
-
-    seen = SeenProfile |> where(by_user_id: ^user_id)
 
     loaded =
       Profile
       |> where([p], p.user_id in ^to_fetch)
-      |> join(:left, [p], s in subquery(seen), on: p.user_id == s.user_id)
-      |> select([p, s], %Profile{p | seen?: not is_nil(s.user_id)})
       |> Repo.all()
 
     %{loaded: loaded, next_ids: next_ids}

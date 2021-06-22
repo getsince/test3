@@ -238,9 +238,15 @@ defmodule T.Feeds do
       "00000177-868a-728a-0242-ac1100030000"
     ]
 
-    Profile
-    |> where([p], p.user_id in ^user_ids)
-    |> Repo.all()
+    profiles =
+      Profile
+      |> where([p], p.user_id in ^user_ids)
+      |> Repo.all()
+      |> Map.new(fn profile -> {profile.user_id, profile} end)
+
+    user_ids
+    |> Enum.map(fn user_id -> profiles[user_id] end)
+    |> Enum.reject(&is_nil/1)
   end
 
   @doc "batched_demo_feed(profile or user_id, loaded: 13)"

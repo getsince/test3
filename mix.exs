@@ -71,7 +71,7 @@ defmodule T.MixProject do
       {:imgproxy, github: "ruslandoga/imgproxy"},
       {:rexbug, "~> 1.0"},
       {:geo_postgis, "~> 3.4"},
-      {:finch, "~> 0.7.0"},
+      {:finch, "~> 0.8"},
       {:locus, "~> 1.16"}
     ]
   end

@@ -3,18 +3,16 @@ defmodule T.Feeds.SeenTest do
   alias T.{Feeds, Matches}
 
   describe "feed" do
-    # TODO seen profile is not returned in feed
     @tag skip: true
-    test "seen profile is returned in feed as seen" do
+    test "seen profile is not returned in feed" do
       my_profile = insert(:profile)
-      assert %{loaded: [], next_ids: []} == Feeds.batched_demo_feed(my_profile)
+      assert %{loaded: [], next_ids: []} == Feeds.init_batched_feed(my_profile)
 
       insert_list(10, :profile, gender: "F")
 
       # I get the feed, nobody is "seen"
-      assert %{loaded: not_seen, next_ids: []} = Feeds.batched_demo_feed(my_profile)
+      assert %{loaded: not_seen, next_ids: []} = Feeds.init_batched_feed(my_profile)
       assert length(not_seen) == 10
-      Enum.each(not_seen, fn p -> assert p.seen? == false end)
 
       # then I "see" some profiles (test broadcast)
       to_be_seen = Enum.take(not_seen, 3)
@@ -26,7 +24,7 @@ defmodule T.Feeds.SeenTest do
       end)
 
       # then I get feed again, and those profiles I've seen are marked as "seen"
-      assert %{loaded: loaded, next_ids: []} = Feeds.batched_demo_feed(my_profile)
+      assert %{loaded: loaded, next_ids: []} = Feeds.init_batched_feed(my_profile)
 
       {seen, not_seen} = Enum.split(loaded, 3)
       Enum.each(seen, fn p -> assert p.seen? == true end)

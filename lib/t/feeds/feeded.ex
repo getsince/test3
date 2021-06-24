@@ -1,4 +1,4 @@
-defmodule T.Feeds.Feed do
+defmodule T.Feeds.Feeded do
   @moduledoc false
   use Ecto.Schema
   alias T.Accounts.User
@@ -7,8 +7,6 @@ defmodule T.Feeds.Feed do
   @foreign_key_type Ecto.Bigflake.UUID
   schema "profile_feeds" do
     belongs_to :user, User, primary_key: true
-    field :date, :date, primary_key: true
-    field :profiles, :map
-    timestamps(updated_at: false)
+    belongs_to :feeded, User, primary_key: true
   end
 end

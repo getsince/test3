@@ -11,18 +11,15 @@ defmodule TWeb.FeedChannel do
     # ChannelHelpers.ensure_onboarded(socket)
 
     %{screen_width: screen_width, current_user: current_user} = socket.assigns
+    profiles_to_load = params["count"] || 3
+
     %Accounts.Profile{} = my_profile = Accounts.get_profile!(current_user)
 
     %{loaded: feed, next_ids: next_ids} =
-      Feeds.batched_demo_feed(my_profile, loaded: params["count"] || 3)
+      Feeds.init_batched_feed(my_profile, loaded: profiles_to_load)
 
-    {:ok,
-     %{
-       feed: render_profiles(feed, screen_width),
-       has_more: not Enum.empty?(next_ids),
-       # TODO remove own profile
-       own_profile: render_profile(my_profile, screen_width)
-     }, assign(socket, profile: my_profile, next_ids: next_ids)}
+    socket = assign(socket, profile: my_profile, next_ids: next_ids)
+    {:ok, %{feed: render_profiles(feed, screen_width)}, socket}
   end
 
   @impl true
@@ -59,11 +56,14 @@ defmodule TWeb.FeedChannel do
     {:reply, :ok, socket}
   end
 
+  # TODO when user changes profile settings, refresh profile in memory
+  # otherwise we might continue fetching wrong feed
   def handle_in("more", params, socket) do
-    %{next_ids: next_ids, current_user: me, screen_width: screen_width} = socket.assigns
+    %{next_ids: next_ids, profile: my_profile, screen_width: screen_width} = socket.assigns
+    profiles_to_load = params["count"] || 3
 
     %{loaded: feed, next_ids: next_ids} =
-      Feeds.batched_demo_feed_cont(next_ids, me.id, loaded: params["count"] || 5)
+      Feeds.continue_batched_feed(next_ids, my_profile, loaded: profiles_to_load)
 
     cursor = %{feed: render_profiles(feed, screen_width), has_more: not Enum.empty?(next_ids)}
     {:reply, {:ok, cursor}, assign(socket, next_ids: next_ids)}

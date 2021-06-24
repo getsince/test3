@@ -29,7 +29,8 @@ defmodule TWeb.MatchLive.Index do
         end)
 
         assign(socket,
-          feed: Feeds.demo_feed(me.profile, fakes_count: 20),
+          # TODO
+          feed: [],
           likers: all_likers(me.id)
         )
       else

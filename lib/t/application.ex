@@ -49,7 +49,8 @@ defmodule T.Application do
 
   # Conditionally disable crontab, queues, or plugins here.
   defp oban_config do
-    Application.get_env(:t, Oban)
+    config = Application.get_env(:t, Oban)
+    config |> Keyword.put(:queues, false) |> Keyword.put(:plugins, false)
   end
 
   defp maybe_migrator do

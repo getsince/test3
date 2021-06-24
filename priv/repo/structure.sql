@@ -105,6 +105,16 @@ CREATE TABLE public.emails (
 
 
 --
+-- Name: gender_preferences; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.gender_preferences (
+    user_id uuid NOT NULL,
+    gender character varying(255) NOT NULL
+);
+
+
+--
 -- Name: liked_profiles; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -403,6 +413,14 @@ ALTER TABLE ONLY public.apns_devices
 
 
 --
+-- Name: gender_preferences gender_preferences_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.gender_preferences
+    ADD CONSTRAINT gender_preferences_pkey PRIMARY KEY (user_id, gender);
+
+
+--
 -- Name: liked_profiles liked_profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -645,6 +663,14 @@ ALTER TABLE ONLY public.apns_devices
 
 
 --
+-- Name: gender_preferences gender_preferences_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.gender_preferences
+    ADD CONSTRAINT gender_preferences_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: liked_profiles liked_profiles_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -873,3 +899,4 @@ INSERT INTO public."schema_migrations" (version) VALUES (20210617192521);
 INSERT INTO public."schema_migrations" (version) VALUES (20210617223758);
 INSERT INTO public."schema_migrations" (version) VALUES (20210621092132);
 INSERT INTO public."schema_migrations" (version) VALUES (20210621153637);
+INSERT INTO public."schema_migrations" (version) VALUES (20210624195942);

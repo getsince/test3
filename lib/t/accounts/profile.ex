@@ -10,6 +10,7 @@ defmodule T.Accounts.Profile do
     field :story, {:array, :map}
     field :location, Geo.PostGIS.Geometry
 
+    # TODO remove
     embeds_one :filters, Filters, primary_key: false, on_replace: :delete do
       # ["F"] or ["F", "M"], etc.
       field :genders, {:array, :string}

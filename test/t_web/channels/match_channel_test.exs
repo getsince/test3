@@ -81,65 +81,6 @@ defmodule TWeb.MatchChannelTest do
 
       {:ok, match: match, messages: messages}
     end
-
-    @tag skip: true
-    test "a match with some messages but we don't provide last_message_id", %{
-      socket: socket,
-      match: match,
-      user: user,
-      messages: [m1, m2, m3]
-    } do
-      assert {:ok, reply, _socket} = subscribe_and_join(socket, "match:" <> match.id, %{})
-
-      assert reply == %{
-               messages: [
-                 %{
-                   author_id: user.id,
-                   data: %{"text" => "hey"},
-                   id: m1.id,
-                   kind: "text",
-                   timestamp: DateTime.from_naive!(m1.inserted_at, "Etc/UTC")
-                 },
-                 %{
-                   author_id: user.id,
-                   data: %{"text" => "hoi"},
-                   id: m2.id,
-                   kind: "text",
-                   timestamp: DateTime.from_naive!(m2.inserted_at, "Etc/UTC")
-                 },
-                 %{
-                   author_id: user.id,
-                   data: %{"text" => "let's go"},
-                   id: m3.id,
-                   kind: "text",
-                   timestamp: DateTime.from_naive!(m3.inserted_at, "Etc/UTC")
-                 }
-               ]
-             }
-    end
-
-    @tag skip: true
-    test "a match with some messages and we provide last_message_id", %{
-      socket: socket,
-      match: match,
-      user: user,
-      messages: [_m1, m2, m3]
-    } do
-      assert {:ok, reply, _socket} =
-               subscribe_and_join(socket, "match:" <> match.id, %{"last_message_id" => m2.id})
-
-      assert reply == %{
-               messages: [
-                 %{
-                   author_id: user.id,
-                   data: %{"text" => "let's go"},
-                   id: m3.id,
-                   kind: "text",
-                   timestamp: DateTime.from_naive!(m3.inserted_at, "Etc/UTC")
-                 }
-               ]
-             }
-    end
   end
 
   describe "wrong join" do
@@ -148,73 +89,6 @@ defmodule TWeb.MatchChannelTest do
     test "a wrong user id", %{socket: socket} do
       assert {:error, %{reason: "join crashed"}} =
                subscribe_and_join(socket, "matches:" <> Ecto.UUID.generate(), %{})
-    end
-  end
-
-  describe "post message" do
-    setup :subscribe_and_join
-
-    @tag skip: true
-    test "it gets broadcasted (once)", %{socket: socket, user: user, match: match} do
-      ref =
-        push(socket, "message", %{
-          "message" => %{
-            "kind" => "text",
-            "data" => %{"text" => "hey"}
-          }
-        })
-
-      assert_reply ref, :ok, reply
-      assert reply == %{}
-      assert_broadcast "message:new", broadcast
-
-      [%{id: id, inserted_at: inserted_at}] = Matches.list_messages(match.id)
-
-      assert broadcast == %{
-               message: %{
-                 author_id: user.id,
-                 data: %{"text" => "hey"},
-                 id: id,
-                 kind: "text",
-                 timestamp: DateTime.from_naive!(inserted_at, "Etc/UTC")
-               }
-             }
-    end
-
-    @tag skip: true
-    test "post invalid message", %{socket: socket} do
-      ref = push(socket, "message", %{"message" => %{"kind" => "text"}})
-      assert_reply ref, :error, reply
-      assert reply == %{message: %{data: ["can't be blank"]}}
-    end
-  end
-
-  describe "upload preflight" do
-    setup :subscribe_and_join
-
-    @tag skip: true
-    test "it kinda works, but not sure", %{socket: socket} do
-      ref = push(socket, "upload-preflight", %{"media" => %{"content-type" => "audio/aac"}})
-      assert_reply ref, :ok, reply
-
-      assert %{
-               fields: %{
-                 "acl" => "public-read",
-                 "content-type" => "audio/aac",
-                 "key" => key,
-                 "policy" => _policy,
-                 "x-amz-algorithm" => "AWS4-HMAC-SHA256",
-                 # "AWS_ACCESS_KEY_ID/20210116/eu-central-1/s3/aws4_request",
-                 "x-amz-credential" => _creds,
-                 # "20210116T005301Z",
-                 "x-amz-date" => _date,
-                 "x-amz-server-side-encryption" => "AES256",
-                 # "5261439017fa0c08b0c6119e2f6228eb0a2918d8d81a759cb879a4934f353bdf"
-                 "x-amz-signature" => _signature
-               },
-               key: key,
-               url: "https://pretend-this-is-real.s3.amazonaws.com"
-             } = reply
     end
   end
 

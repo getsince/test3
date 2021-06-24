@@ -1,7 +1,7 @@
 defmodule T.Factory do
   use ExMachina.Ecto, repo: T.Repo
-  alias T.Accounts.{User, Profile}
-  alias T.Feeds.{ProfileLike, SeenProfile, Feed}
+  alias T.Accounts.{User, Profile, GenderPreference}
+  alias T.Feeds.{ProfileLike, SeenProfile, Feeded}
   alias T.Matches.{Match, Message, Timeslot}
 
   def user_factory do
@@ -17,8 +17,12 @@ defmodule T.Factory do
     }
   end
 
-  def feed_factory do
-    %Feed{}
+  def gender_preference_factory do
+    %GenderPreference{}
+  end
+
+  def feeded_factory do
+    %Feeded{}
   end
 
   def like_factory do

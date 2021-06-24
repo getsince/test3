@@ -16,7 +16,8 @@ defmodule T.Accounts do
     UserNotifier,
     UserReport,
     APNSDevice,
-    PushKitDevice
+    PushKitDevice,
+    GenderPreference
   }
 
   # def subscribe_to_new_users do
@@ -453,7 +454,7 @@ defmodule T.Accounts do
     Repo.get!(Profile, user_id)
   end
 
-  def onboard_profile(%Profile{user_id: user_id}, attrs) do
+  def onboard_profile(%Profile{user_id: user_id} = profile, attrs) do
     Ecto.Multi.new()
     |> Ecto.Multi.run(:user, fn repo, _changes ->
       user = repo.get!(User, user_id)
@@ -467,6 +468,7 @@ defmodule T.Accounts do
     |> Ecto.Multi.update(:profile, fn %{user: %{profile: profile}} ->
       Profile.changeset(profile, attrs, validate_required?: true)
     end)
+    |> update_profile_gender_preferences(profile)
     |> Ecto.Multi.run(:mark_onboarded, fn repo, %{user: user} ->
       {1, nil} =
         User
@@ -499,6 +501,7 @@ defmodule T.Accounts do
   def update_profile(%Profile{} = profile, attrs, opts \\ []) do
     Ecto.Multi.new()
     |> Ecto.Multi.update(:profile, Profile.changeset(profile, attrs, opts), returning: true)
+    |> update_profile_gender_preferences(profile)
     |> Ecto.Multi.run(:maybe_unhide, fn _repo, %{profile: profile} ->
       has_story? = !!profile.story
       hidden? = profile.hidden?
@@ -510,6 +513,46 @@ defmodule T.Accounts do
       {:ok, %{profile: profile}} -> {:ok, profile}
       {:error, :profile, %Ecto.Changeset{} = changeset, _changes} -> {:error, changeset}
     end
+  end
+
+  # TODO test
+  defp update_profile_gender_preferences(
+         multi,
+         %Profile{user_id: user_id, filters: %Profile.Filters{genders: [_ | _] = old_genders}}
+       ) do
+    Ecto.Multi.run(multi, :update_profile_gender_preferences, fn _repo, %{profile: new_profile} ->
+      %Profile{filters: %Profile.Filters{genders: new_genders}} = new_profile
+
+      # TODO
+      new_genders = new_genders || []
+
+      to_add = new_genders -- old_genders
+      to_remove = old_genders -- new_genders
+
+      GenderPreference
+      |> where(user_id: ^user_id)
+      |> where([p], p.gender in ^to_remove)
+      |> Repo.delete_all()
+
+      insert_all_gender_preferences(to_add, user_id)
+
+      {:ok, [to_add: to_add, to_remove: to_remove]}
+    end)
+  end
+
+  defp update_profile_gender_preferences(multi, %Profile{user_id: user_id}) do
+    Ecto.Multi.run(multi, :update_profile_gender_preferences, fn _repo, %{profile: new_profile} ->
+      %Profile{filters: %Profile.Filters{genders: new_genders}} = new_profile
+      insert_all_gender_preferences(new_genders || [], user_id)
+      {:ok, [to_add: new_genders, to_remove: []]}
+    end)
+  end
+
+  defp insert_all_gender_preferences(genders, user_id) when is_list(genders) do
+    Repo.insert_all(
+      GenderPreference,
+      Enum.map(genders, fn g -> %{user_id: user_id, gender: g} end)
+    )
   end
 
   defp maybe_unhide_profile_with_story(user_id) when is_binary(user_id) do

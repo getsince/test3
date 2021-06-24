@@ -3,9 +3,9 @@ defmodule T.Feeds do
   import Ecto.{Query, Changeset}
 
   alias T.{Repo, Matches, Accounts}
-  alias T.Accounts.Profile
+  alias T.Accounts.{Profile, UserReport, GenderPreference}
   alias T.PushNotifications.DispatchJob
-  alias T.Feeds.{Feed, SeenProfile, ProfileLike, LikeJob}
+  alias T.Feeds.{Feeded, SeenProfile, ProfileLike, LikeJob}
 
   @pubsub T.PubSub
   @topic to_string(__MODULE__)
@@ -175,60 +175,7 @@ defmodule T.Feeds do
 
   ######################### FEED #########################
 
-  def get_or_create_feed(%Profile{} = profile, date \\ Date.utc_today(), opts \\ []) do
-    f = fn -> get_feed(profile, date, opts) || create_feed(profile, date) end
-    {:ok, profiles} = Repo.transaction(f)
-    Enum.shuffle(profiles)
-  end
-
-  def use_demo_feed(use?) when is_boolean(use?) do
-    Application.put_env(:t, :use_demo_feed?, use?)
-  end
-
-  def use_demo_feed? do
-    !!Application.get_env(:t, :use_demo_feed?)
-  end
-
-  @doc "demo_feed(profile, count: 13)"
-  def demo_feed(profile, opts \\ []) do
-    # user_ids = [
-    #   "00000177-679a-ad79-0242-ac1100030000",
-    #   "00000177-8ae4-b4c4-0242-ac1100030000",
-    #   "00000177-830a-a7d0-0242-ac1100030000",
-    #   "00000177-82ed-c4c9-0242-ac1100030000",
-    #   "00000177-809e-4ef7-0242-ac1100030000",
-    #   "00000177-7d1f-61be-0242-ac1100030000"
-    # ]
-
-    first_real = "00000177-679a-ad79-0242-ac1100030000"
-    kj = "00000177-8336-5e0e-0242-ac1100030000"
-
-    already_liked = ProfileLike |> where(by_user_id: ^profile.user_id) |> select([s], s.user_id)
-
-    real =
-      Profile
-      |> where([p], p.user_id != ^profile.user_id)
-      |> where([p], p.user_id != ^kj)
-      |> where([p], p.user_id >= ^first_real)
-      |> where([p], p.user_id not in subquery(already_liked))
-      |> where([p], not p.hidden?)
-      |> Repo.all()
-      |> Enum.shuffle()
-
-    fakes =
-      Profile
-      |> where([p], p.user_id < ^first_real)
-      |> where([p], p.user_id not in subquery(already_liked))
-      |> where([p], p.gender == "F")
-      |> maybe_limit(opts[:fakes_count])
-
-      # |> order_by([p], desc: p.user_id)
-      |> Repo.all()
-      |> Enum.shuffle()
-
-    real ++ fakes
-  end
-
+  @spec onboarding_feed :: [%Profile{}]
   def onboarding_feed do
     user_ids = [
       "0000017a-2ed5-a8b1-0242-ac1100030000",
@@ -249,205 +196,148 @@ defmodule T.Feeds do
     |> Enum.reject(&is_nil/1)
   end
 
-  @doc "batched_demo_feed(profile or user_id, loaded: 13)"
-  def batched_demo_feed(profile, opts \\ [])
+  @spec init_batched_feed(%Profile{}, Keyword.t()) :: %{
+          loaded: [%Profile{}],
+          next_ids: [Ecto.UUID.t()]
+        }
+  @doc "init_batched_feed(profile, loaded: 13)"
+  def init_batched_feed(%Profile{user_id: user_id} = profile, opts \\ []) do
+    # why feed run out? user has seen everybody, now unsee everybody and build feed (TODO)
 
-  def batched_demo_feed(%{user_id: user_id} = _profile, opts) do
-    batched_demo_feed(user_id, opts)
+    cached_feed_f = fn ->
+      get_cached_feed_or_nil(user_id) || push_more_to_cached_feed(profile, 40)
+    end
+
+    {:ok, user_ids} = Repo.transaction(cached_feed_f)
+
+    case user_ids do
+      [] -> %{loaded: [], next_ids: []}
+      _not_empty -> continue_batched_feed(user_ids, profile, opts)
+    end
   end
 
-  def batched_demo_feed(user_id, opts) do
-    first_real = "00000177-679a-ad79-0242-ac1100030000"
-    kj = "00000177-8336-5e0e-0242-ac1100030000"
+  @doc """
+  Continues fetching from next_ids returned from `init_batched_feed/2`.
 
-    already_liked = ProfileLike |> where(by_user_id: ^user_id) |> select([s], s.user_id)
+  After each fetch, it asynchronously pushes more profiles to cached feed.
+  After each fetch, it asynchronously removes loaded ids from cached feed.
+  """
+  @spec continue_batched_feed([Ecto.UUID.t()], %Profile{}, Keyword.t()) :: %{
+          loaded: [%Profile{}],
+          next_ids: [Ecto.UUID.t()]
+        }
+  def continue_batched_feed(next_ids, profile, opts \\ [])
 
-    real =
-      Profile
-      |> where([p], p.user_id != ^user_id)
-      |> where([p], p.user_id != ^kj)
-      |> where([p], p.user_id >= ^first_real)
-      |> where([p], p.user_id not in subquery(already_liked))
-      |> where([p], not p.hidden?)
-      |> select([p], p.user_id)
-      |> Repo.all()
-      |> Enum.shuffle()
-
-    fakes =
-      Profile
-      |> where([p], p.user_id < ^first_real)
-      |> where([p], p.user_id not in subquery(already_liked))
-      |> where([p], p.gender == "F")
-      |> maybe_limit(opts[:fakes_count])
-      |> select([p], p.user_id)
-      # |> order_by([p], desc: p.user_id)
-      |> Repo.all()
-      |> Enum.shuffle()
-
-    ids = real ++ fakes
-    batched_demo_feed_cont(ids, user_id, opts)
+  def continue_batched_feed([], profile, opts) do
+    init_batched_feed(profile, opts)
   end
 
-  @doc "batched_demo_feed_cont([<user-id>], <user-id>, loaded: 13)"
-  def batched_demo_feed_cont(next_ids, _user_id, opts) when is_list(next_ids) do
+  def continue_batched_feed(next_ids, %Profile{user_id: user_id} = profile, opts)
+      when is_list(next_ids) do
     loaded_count = opts[:loaded] || 10
     {to_fetch, next_ids} = Enum.split(next_ids, loaded_count)
 
-    loaded =
-      Profile
-      |> where([p], p.user_id in ^to_fetch)
-      |> Repo.all()
+    next_ids_len = length(next_ids)
 
-    %{loaded: loaded, next_ids: next_ids}
+    if next_ids_len < 20 do
+      async_push_more_to_cached_feed(profile, 40 - next_ids_len)
+    end
+
+    Profile
+    |> where(hidden?: false)
+    |> where([p], p.user_id in ^to_fetch)
+    |> Repo.all()
+    |> tap(fn _loaded_profiles -> async_remove_loaded_from_cached_feed(user_id, to_fetch) end)
+    |> case do
+      [] = nothing -> continue_batched_feed(nothing, profile, opts)
+      loaded -> %{loaded: loaded, next_ids: next_ids}
+    end
   end
 
-  defp maybe_limit(query, nil), do: query
-  defp maybe_limit(query, limit), do: limit(query, ^limit)
-
-  defp get_feed(profile, date, opts) do
-    feed =
-      Feed
-      |> where(user_id: ^profile.user_id)
-      |> where(date: ^date)
-      |> Repo.one()
-
-    if feed, do: load_users_for_feed(feed, profile, date, opts)
+  @spec get_cached_feed_or_nil(Ecto.UUID.t()) :: [Ecto.UUID.t()] | nil
+  defp get_cached_feed_or_nil(user_id) do
+    Feeded
+    |> where(user_id: ^user_id)
+    |> select([f], f.feeded_id)
+    |> Repo.all()
+    |> case do
+      [] -> nil
+      not_empty -> not_empty
+    end
   end
 
-  # TODO test seen profiles are not loaded
-  defp load_users_for_feed(%Feed{profiles: profiles}, profile, _date, opts)
-       when is_map(profiles) do
-    q = where(Profile, [p], p.user_id in ^Map.keys(profiles))
-
-    q =
-      if opts[:keep_seen?] do
-        q
-      else
-        seen = SeenProfile |> where(by_user_id: ^profile.user_id) |> select([s], s.user_id)
-        where(q, [p], p.user_id not in subquery(seen))
-      end
-
-    profiles =
-      q
-      |> Repo.all()
-      |> Enum.map(fn profile ->
-        %Profile{profile | feed_reason: profiles[profile.user_id]}
-      end)
-
-    # len = length(profiles)
-
-    # if len == 5 do
-    profiles
-    # else
-    #   profiles ++ create_feed(5 - len, profile, date)
-    # end
+  defp async_remove_loaded_from_cached_feed(user_id, to_remove_ids) do
+    Task.start(fn ->
+      Feeded
+      |> where(user_id: ^user_id)
+      |> where([f], f.feeded_id in ^to_remove_ids)
+      |> Repo.delete_all()
+    end)
   end
 
-  defp with_reason(profiles, reason) do
-    Enum.map(profiles, fn profile -> %Profile{profile | feed_reason: reason} end)
+  defp async_push_more_to_cached_feed(profile, count) do
+    Task.start(fn -> push_more_to_cached_feed(profile, count) end)
   end
 
-  # TODO optimise query
-  defp create_feed(profile, date) do
-    seen = SeenProfile |> where(by_user_id: ^profile.user_id) |> select([s], s.user_id)
+  defp seen_user_ids_q(user_id) do
+    SeenProfile |> where(by_user_id: ^user_id) |> select([s], s.user_id)
+  end
 
+  defp reported_user_ids_q(user_id) do
+    UserReport |> where(from_user_id: ^user_id) |> select([r], r.on_user_id)
+  end
+
+  defp interested_in_gender_q(gender) when gender in ["M", "F", "N"] do
+    # TODO is distinct ok for performance?
+    GenderPreference |> where(gender: ^gender) |> distinct(true) |> select([g], g.user_id)
+  end
+
+  @doc false
+  def push_more_to_cached_feed(%Profile{user_id: user_id, gender: gender} = profile, count) do
+    seen_user_ids = seen_user_ids_q(user_id)
+    reported_user_ids = reported_user_ids_q(user_id)
+    interested_in_us = interested_in_gender_q(gender)
+
+    likers_count = floor(count / 2)
+    not_liked_count = ceil(count / 2)
+
+    # TODO take location into account
     common_q =
       Profile
-      # not self
-      |> where([p], p.user_id != ^profile.user_id)
+      # TODO is performance ok?
+      |> join(:inner, [p], i in subquery(interested_in_us), on: i.user_id == p.user_id)
+      |> where([p], p.user_id != ^user_id)
       |> where(hidden?: false)
-      |> where(city: ^profile.city)
-      # TODO is there a better way?
-      |> where([p], p.user_id not in subquery(seen))
+      |> where([p], p.gender in ^preferred_genders(profile))
+      |> where([p], p.user_id not in subquery(seen_user_ids))
+      |> where([p], p.user_id not in subquery(reported_user_ids))
+      |> select([p], p.user_id)
 
-    common_q = where(common_q, [p], p.gender in ^genders(profile))
-
-    # place_1 and place_2
-    most_liked =
+    most_liked_user_ids =
       common_q
       |> order_by([p], desc: p.times_liked)
-      |> limit(2)
+      |> limit(^likers_count)
       |> Repo.all()
-      |> with_reason("most liked")
 
-    filter_out_ids = Enum.map(most_liked, & &1.user_id)
-
-    most_overlap =
+    not_liked_user_ids =
       common_q
-      |> where([p], p.user_id not in ^filter_out_ids)
-      |> limit(1)
+      |> where([p], p.user_id not in ^most_liked_user_ids)
+      |> where(times_liked: 0)
+      # TODO add this clause if it doesn't slow down the query
+      # |> order_by([p], desc: p.user_id)
+      |> limit(^not_liked_count)
       |> Repo.all()
-      |> with_reason("most overlap")
 
-    filter_out_ids = filter_out_ids ++ Enum.map(most_overlap, & &1.user_id)
-
-    likers =
-      common_q
-      |> join(:inner, [p], pl in ProfileLike,
-        on: p.user_id == pl.by_user_id and pl.user_id == ^profile.user_id
-      )
-      |> where([p], p.user_id not in ^filter_out_ids)
-      |> limit(2)
-      |> Repo.all()
-      |> with_reason("has liked with (possible) overlap")
-
-    filter_out_ids = filter_out_ids ++ Enum.map(likers, & &1.user_id)
-
-    non_rated =
-      common_q
-      |> where([p], p.times_liked == 0)
-      |> where([p], p.user_id not in ^filter_out_ids)
-      |> limit(2)
-      |> Repo.all()
-      |> with_reason("non rated with (possible) overlap")
-
-    filter_out_ids = filter_out_ids ++ Enum.map(non_rated, & &1.user_id)
-
-    filler =
-      case non_rated do
-        [_, _] ->
-          non_rated
-
-        [_] ->
-          non_rated ++
-            (common_q
-             |> where([p], p.user_id not in ^filter_out_ids)
-             |> limit(1)
-             |> Repo.all()
-             |> with_reason("random"))
-
-        [] ->
-          common_q
-          |> where([p], p.user_id not in ^filter_out_ids)
-          |> limit(2)
-          |> Repo.all()
-          |> with_reason("random")
-      end
-
-    rest =
-      case likers do
-        [_place_4, _place_5] -> likers
-        [place_4] -> [place_4, List.first(filler)]
-        [] -> filler
-      end
-
-    profiles = most_liked ++ most_overlap ++ rest
-
-    {:ok, _feed} =
-      Repo.insert(%Feed{
-        user_id: profile.user_id,
-        date: date,
-        profiles:
-          Map.new(profiles, fn %Profile{user_id: id, feed_reason: reason} -> {id, reason} end)
-      })
-
-    profiles
+    user_ids = Enum.shuffle(most_liked_user_ids ++ not_liked_user_ids)
+    to_insert = Enum.map(user_ids, &%{feeded_id: &1, user_id: user_id})
+    Repo.insert_all(Feeded, to_insert, on_conflict: :nothing)
+    user_ids
   end
 
-  defp genders(%Profile{filters: %Profile.Filters{genders: genders}}) when is_list(genders),
-    do: genders
+  defp preferred_genders(%Profile{filters: %Profile.Filters{genders: genders}})
+       when is_list(genders),
+       do: genders
 
-  defp genders(%Profile{gender: "F"}), do: ["M"]
-  defp genders(%Profile{gender: "M"}), do: ["F"]
-  defp genders(_other), do: []
+  defp preferred_genders(%Profile{gender: "F"}), do: ["M"]
+  defp preferred_genders(%Profile{gender: "M"}), do: ["F"]
 end

@@ -12,7 +12,13 @@ defmodule TWeb.FeedChannelTest do
 
   describe "join" do
     test "and get feed", %{socket: socket, me: %{profile: me}} do
-      insert_list(20, :profile, gender: "F", city: me.city)
+      profiles = insert_list(20, :profile, gender: "F", city: me.city)
+
+      # TODO speed up
+      Enum.each(profiles, fn p ->
+        insert(:gender_preference, user_id: p.user_id, gender: "M")
+      end)
+
       assert {:ok, %{feed: feed}, _socket} = subscribe_and_join(socket, "feed:" <> me.user_id)
       assert length(feed) == 3
     end

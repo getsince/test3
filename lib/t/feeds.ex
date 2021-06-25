@@ -331,7 +331,7 @@ defmodule T.Feeds do
     seen_user_ids = seen_user_ids_q(user_id)
     reported_user_ids = reported_user_ids_q(user_id)
     # TODO
-    interested_in_us = interested_in_gender_q(gender || "M")
+    interested_in_us = interested_in_gender_q(gender)
     matches_ids = matches_ids_q(user_id)
 
     likers_count = floor(count / 2)
@@ -377,6 +377,4 @@ defmodule T.Feeds do
 
   defp preferred_genders(%Profile{gender: "F"}), do: ["M"]
   defp preferred_genders(%Profile{gender: "M"}), do: ["F"]
-  defp preferred_genders(%Profile{gender: "N"}), do: ["F"]
-  defp preferred_genders(%Profile{}), do: ["F"]
 end

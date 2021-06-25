@@ -13,13 +13,18 @@ defmodule TWeb.FeedChannel do
     %{screen_width: screen_width, current_user: current_user} = socket.assigns
     profiles_to_load = params["count"] || 3
 
-    %Accounts.Profile{} = my_profile = Accounts.get_profile!(current_user)
+    %Accounts.Profile{gender: gender} = my_profile = Accounts.get_profile!(current_user)
+    socket = assign(socket, profile: my_profile)
 
-    %{loaded: feed, next_ids: next_ids} =
-      Feeds.init_batched_feed(my_profile, loaded: profiles_to_load)
+    # TODO remove gender check after ios doesn't connect to feed channel during onboarding?
+    if gender do
+      %{loaded: feed, next_ids: next_ids} =
+        Feeds.init_batched_feed(my_profile, loaded: profiles_to_load)
 
-    socket = assign(socket, profile: my_profile, next_ids: next_ids)
-    {:ok, %{feed: render_profiles(feed, screen_width)}, socket}
+      {:ok, %{feed: render_profiles(feed, screen_width)}, assign(socket, next_ids: next_ids)}
+    else
+      {:ok, %{feed: []}, socket}
+    end
   end
 
   @impl true

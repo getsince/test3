@@ -321,7 +321,8 @@ defmodule T.Feeds do
     Sentry.Context.set_user_context(%{user_id: user_id})
     seen_user_ids = seen_user_ids_q(user_id)
     reported_user_ids = reported_user_ids_q(user_id)
-    interested_in_us = interested_in_gender_q(gender)
+    # TODO
+    interested_in_us = interested_in_gender_q(gender || "M")
     matches_ids = matches_ids_q(user_id)
 
     likers_count = floor(count / 2)

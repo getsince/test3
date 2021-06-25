@@ -270,13 +270,11 @@ defmodule T.Feeds do
         %{loaded: loaded1, next_ids: next_ids}
 
       {[], next_ids} ->
-        # async_remove_loaded_from_cached_feed(user_id, to_fetch)
-        remove_loaded_from_cached_feed(user_id, to_fetch)
+        async_remove_loaded_from_cached_feed(user_id, to_fetch)
         continue_batched_feed(next_ids, profile, opts)
 
       {loaded, next_ids} ->
-        # async_remove_loaded_from_cached_feed(user_id, to_fetch)
-        remove_loaded_from_cached_feed(user_id, to_fetch)
+        async_remove_loaded_from_cached_feed(user_id, to_fetch)
         %{loaded: loaded, next_ids: next_ids}
     end
   end
@@ -293,9 +291,9 @@ defmodule T.Feeds do
     end
   end
 
-  # defp async_remove_loaded_from_cached_feed(user_id, to_remove_ids) do
-  #   Task.start(fn -> remove_loaded_from_cached_feed(user_id, to_remove_ids) end)
-  # end
+  defp async_remove_loaded_from_cached_feed(user_id, to_remove_ids) do
+    Task.start(fn -> remove_loaded_from_cached_feed(user_id, to_remove_ids) end)
+  end
 
   defp remove_loaded_from_cached_feed(user_id, to_remove_ids) do
     Feeded

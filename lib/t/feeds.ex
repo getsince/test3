@@ -243,14 +243,30 @@ defmodule T.Feeds do
       async_push_more_to_cached_feed(profile, 40 - next_ids_len)
     end
 
-    Profile
-    |> where(hidden?: false)
-    |> where([p], p.user_id in ^to_fetch)
-    |> Repo.all()
-    |> tap(fn _loaded_profiles -> async_remove_loaded_from_cached_feed(user_id, to_fetch) end)
-    |> case do
-      [] = nothing -> continue_batched_feed(nothing, profile, opts)
-      loaded -> %{loaded: loaded, next_ids: next_ids}
+    loaded =
+      Profile
+      |> where(hidden?: false)
+      |> where([p], p.user_id in ^to_fetch)
+      |> Repo.all()
+
+    case {loaded, next_ids} do
+      {[], []} ->
+        remove_loaded_from_cached_feed(user_id, to_fetch)
+        continue_batched_feed([], profile, opts)
+
+      # TODO
+      {loaded1, []} ->
+        remove_loaded_from_cached_feed(user_id, to_fetch)
+        %{loaded: loaded2, next_ids: next_ids} = continue_batched_feed([], profile, opts)
+        %{loaded: loaded1 ++ loaded2, next_ids: next_ids}
+
+      {[], next_ids} ->
+        async_remove_loaded_from_cached_feed(user_id, to_fetch)
+        continue_batched_feed(next_ids, profile, opts)
+
+      {loaded, next_ids} ->
+        async_remove_loaded_from_cached_feed(user_id, to_fetch)
+        %{loaded: loaded, next_ids: next_ids}
     end
   end
 
@@ -267,12 +283,14 @@ defmodule T.Feeds do
   end
 
   defp async_remove_loaded_from_cached_feed(user_id, to_remove_ids) do
-    Task.start(fn ->
-      Feeded
-      |> where(user_id: ^user_id)
-      |> where([f], f.feeded_id in ^to_remove_ids)
-      |> Repo.delete_all()
-    end)
+    Task.start(fn -> remove_loaded_from_cached_feed(user_id, to_remove_ids) end)
+  end
+
+  defp remove_loaded_from_cached_feed(user_id, to_remove_ids) do
+    Feeded
+    |> where(user_id: ^user_id)
+    |> where([f], f.feeded_id in ^to_remove_ids)
+    |> Repo.delete_all()
   end
 
   defp async_push_more_to_cached_feed(profile, count) do

@@ -50,7 +50,16 @@ defmodule T.Application do
   # Conditionally disable crontab, queues, or plugins here.
   defp oban_config do
     config = Application.get_env(:t, Oban)
-    config |> Keyword.put(:queues, false) |> Keyword.put(:plugins, false)
+
+    # Prevent running queues or scheduling jobs from an iex console.
+    if Code.ensure_loaded?(IEx) and IEx.started?() do
+      config
+      |> Keyword.put(:crontab, false)
+      |> Keyword.put(:queues, false)
+      |> Keyword.put(:plugins, false)
+    else
+      config
+    end
   end
 
   defp maybe_migrator do

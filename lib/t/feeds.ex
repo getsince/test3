@@ -41,7 +41,7 @@ defmodule T.Feeds do
   @doc false
   def like_profile(by_user_id, user_id) do
     Ecto.Multi.new()
-    # |> mark_seen(by_user_id, user_id)
+    |> mark_profile_seen(by_user_id, user_id)
     |> mark_liked(by_user_id, user_id)
     |> bump_likes_count(user_id)
     |> Matches.match_if_mutual_m(by_user_id, user_id)
@@ -95,10 +95,18 @@ defmodule T.Feeds do
   def mark_profile_seen(user_id, opts) do
     by_user_id = Keyword.fetch!(opts, :by)
 
+    seen_changeset(by_user_id, user_id)
+    |> Repo.insert()
+  end
+
+  defp mark_profile_seen(multi, by_user_id, user_id) do
+    Ecto.Multi.insert(multi, :seen, seen_changeset(by_user_id, user_id))
+  end
+
+  defp seen_changeset(by_user_id, user_id) do
     %SeenProfile{by_user_id: by_user_id, user_id: user_id}
     |> change()
     |> unique_constraint(:seen, name: :seen_profiles_pkey)
-    |> Repo.insert()
   end
 
   defp mark_liked(multi, by_user_id, user_id) do

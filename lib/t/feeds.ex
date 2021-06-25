@@ -205,6 +205,7 @@ defmodule T.Feeds do
     # why feed run out? user has seen everybody, now unsee everybody and build feed (TODO)
 
     cached_feed_f = fn ->
+      Sentry.Context.set_user_context(%{id: user_id})
       get_cached_feed_or_nil(user_id) || push_more_to_cached_feed(profile, 40)
     end
 
@@ -261,11 +262,13 @@ defmodule T.Feeds do
         %{loaded: loaded1 ++ loaded2, next_ids: next_ids}
 
       {[], next_ids} ->
-        async_remove_loaded_from_cached_feed(user_id, to_fetch)
+        # async_remove_loaded_from_cached_feed(user_id, to_fetch)
+        remove_loaded_from_cached_feed(user_id, to_fetch)
         continue_batched_feed(next_ids, profile, opts)
 
       {loaded, next_ids} ->
-        async_remove_loaded_from_cached_feed(user_id, to_fetch)
+        # async_remove_loaded_from_cached_feed(user_id, to_fetch)
+        remove_loaded_from_cached_feed(user_id, to_fetch)
         %{loaded: loaded, next_ids: next_ids}
     end
   end
@@ -282,9 +285,9 @@ defmodule T.Feeds do
     end
   end
 
-  defp async_remove_loaded_from_cached_feed(user_id, to_remove_ids) do
-    Task.start(fn -> remove_loaded_from_cached_feed(user_id, to_remove_ids) end)
-  end
+  # defp async_remove_loaded_from_cached_feed(user_id, to_remove_ids) do
+  #   Task.start(fn -> remove_loaded_from_cached_feed(user_id, to_remove_ids) end)
+  # end
 
   defp remove_loaded_from_cached_feed(user_id, to_remove_ids) do
     Feeded

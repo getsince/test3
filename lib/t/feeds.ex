@@ -214,7 +214,7 @@ defmodule T.Feeds do
 
     cached_feed_f = fn ->
       Sentry.Context.set_user_context(%{id: user_id})
-      get_cached_feed_or_nil(user_id) || push_more_to_cached_feed(profile, 40)
+      get_cached_feed_or_nil(user_id) || push_more_to_cached_feed(profile, 100)
     end
 
     {:ok, user_ids} = Repo.transaction(cached_feed_f)
@@ -248,8 +248,8 @@ defmodule T.Feeds do
 
     next_ids_len = length(next_ids)
 
-    if next_ids_len < 20 do
-      async_push_more_to_cached_feed(profile, 40 - next_ids_len)
+    if next_ids_len < 30 do
+      async_push_more_to_cached_feed(profile, 100 - next_ids_len)
     end
 
     loaded =
@@ -264,10 +264,10 @@ defmodule T.Feeds do
         continue_batched_feed([], profile, opts)
 
       # TODO
-      {loaded1, []} ->
+      {loaded1, [] = next_ids} ->
         remove_loaded_from_cached_feed(user_id, to_fetch)
-        %{loaded: loaded2, next_ids: next_ids} = continue_batched_feed([], profile, opts)
-        %{loaded: loaded1 ++ loaded2, next_ids: next_ids}
+        # %{loaded: loaded2, next_ids: next_ids} = continue_batched_feed([], profile, opts)
+        %{loaded: loaded1, next_ids: next_ids}
 
       {[], next_ids} ->
         # async_remove_loaded_from_cached_feed(user_id, to_fetch)

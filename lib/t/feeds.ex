@@ -100,7 +100,7 @@ defmodule T.Feeds do
   end
 
   defp mark_profile_seen(multi, by_user_id, user_id) do
-    Ecto.Multi.insert(multi, :seen, seen_changeset(by_user_id, user_id))
+    Ecto.Multi.insert(multi, :seen, seen_changeset(by_user_id, user_id), on_conflict: :nothing)
   end
 
   defp seen_changeset(by_user_id, user_id) do

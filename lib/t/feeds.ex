@@ -367,4 +367,6 @@ defmodule T.Feeds do
 
   defp preferred_genders(%Profile{gender: "F"}), do: ["M"]
   defp preferred_genders(%Profile{gender: "M"}), do: ["F"]
+  defp preferred_genders(%Profile{gender: "N"}), do: ["F"]
+  defp preferred_genders(%Profile{}), do: ["F"]
 end

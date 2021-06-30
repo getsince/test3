@@ -18,17 +18,17 @@ defmodule T.Accounts.PasswordlessAuth do
   end
 
   @type verification_failed_reason ::
-          :attempt_blocked | :code_expired | :incorrect_code
+          :attempt_blocked | :code_expired | :incorrect_code | :does_not_exist
 
   @spec verify_code(String.t(), String.t()) :: :ok | {:error, verification_failed_reason}
   def verify_code(phone, code) do
-    with {:fetch, %SMSCode{} = code_info} <- {:fetch, fetch_sms_code(phone, code)},
+    with {:fetch, {:ok, %SMSCode{} = code_info}} <- {:fetch, fetch_sms_code(phone, code)},
          {:attempts, true} <- {:attempts, has_more_attempts?(code_info)},
          {:expired, false} <- {:expired, code_expired?(code_info)} do
       remove_code(code_info)
       :ok
     else
-      {:fetch, nil} -> {:error, :incorrect_code}
+      {:fetch, {:error, _reason} = failure} -> failure
       {:attempts, false} -> {:error, :attempt_blocked}
       {:expired, true} -> {:error, :code_expired}
     end
@@ -60,16 +60,17 @@ defmodule T.Accounts.PasswordlessAuth do
     code_expired?(inserted_at, reference)
   end
 
+  @spec fetch_sms_code(String.t(), String.t()) ::
+          {:ok, %SMSCode{}} | {:error, :does_not_exist | :incorrect_code}
   defp fetch_sms_code(phone_number, code) do
     SMSCode
     |> where(phone_number: ^phone_number)
-    |> where(code: ^code)
-    |> update([c], set: [attempts: c.attempts + 1])
     |> select([c], c)
-    |> Repo.update_all([])
+    |> Repo.update_all(inc: [attempts: 1])
     |> case do
-      {0, _} -> nil
-      {1, [%SMSCode{} = code]} -> code
+      {1, [%SMSCode{code: ^code} = correct]} -> {:ok, correct}
+      {1, [%SMSCode{} = _incorrect]} -> {:error, :incorrect_code}
+      {0, _} -> {:error, :does_not_exist}
     end
   end
 

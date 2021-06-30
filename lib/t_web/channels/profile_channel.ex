@@ -1,7 +1,7 @@
 defmodule TWeb.ProfileChannel do
   use TWeb, :channel
   alias T.Accounts.Profile
-  alias T.{Accounts, Music}
+  alias T.{Accounts, Music, Feeds}
   alias TWeb.{ErrorView, ProfileView}
 
   @impl true
@@ -22,6 +22,10 @@ defmodule TWeb.ProfileChannel do
     Enum.map(profiles, fn profile ->
       render(ProfileView, "show.json", profile: profile, screen_width: screen_width)
     end)
+  end
+
+  defp render_editor_tutorial_story(story, screen_width) do
+    render(ProfileView, "editor_tutorial_story.json", story: story, screen_width: screen_width)
   end
 
   @impl true
@@ -100,8 +104,15 @@ defmodule TWeb.ProfileChannel do
 
   def handle_in("onboarding-feed", _payload, socket) do
     %{screen_width: screen_width} = socket.assigns
-    feed = T.Feeds.onboarding_feed()
+    feed = Feeds.onboarding_feed()
     {:reply, {:ok, %{feed: render_onboarding_feed(feed, screen_width)}}, socket}
+  end
+
+  def handle_in("profile-editor-tutorial", params, socket) do
+    %{screen_width: screen_width} = socket.assigns
+    id = params["id"] || "yabloko"
+    story = Accounts.profile_editor_tutorial(id)
+    {:reply, {:ok, %{story: render_editor_tutorial_story(story, screen_width)}}, socket}
   end
 
   defp with_song(%{"song" => none} = params) when none in [nil, ""] do

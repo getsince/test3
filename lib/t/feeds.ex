@@ -210,8 +210,6 @@ defmodule T.Feeds do
         }
   @doc "init_batched_feed(profile, loaded: 13)"
   def init_batched_feed(%Profile{user_id: user_id} = profile, opts \\ []) do
-    # why feed run out? user has seen everybody, now unsee everybody and build feed (TODO)
-
     cached_feed_f = fn ->
       Sentry.Context.set_user_context(%{id: user_id})
       get_cached_feed_or_nil(user_id) || push_more_to_cached_feed(profile, 100)
@@ -377,4 +375,11 @@ defmodule T.Feeds do
 
   defp preferred_genders(%Profile{gender: "F"}), do: ["M"]
   defp preferred_genders(%Profile{gender: "M"}), do: ["F"]
+
+  def prune_seen_profiles(ttl_days) do
+    # TODO don't delete seen made for likes?
+    SeenProfile
+    |> where([s], s.inserted_at > fragment("now() - ? * interval '1 day'", ^ttl_days))
+    |> Repo.delete_all()
+  end
 end

@@ -18,6 +18,7 @@ defmodule T.Application do
         T.Matches.Yo,
         TWeb.Endpoint,
         T.Repo,
+        T.Feeds.SeenPruner,
         TWeb.Telemetry,
         maybe_migrator(),
         {Oban, oban_config()},

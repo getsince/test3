@@ -19,6 +19,10 @@ defmodule TWeb.ProfileView do
     |> Map.put(:gender_preference, genders(filters))
   end
 
+  def render("editor_tutorial_story.json", %{story: story, screen_width: screen_width}) do
+    postprocess_story(story, screen_width)
+  end
+
   def render("like.json", %{like: like, screen_width: screen_width}) do
     %ProfileLike{
       seen?: seen?,

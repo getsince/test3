@@ -332,6 +332,18 @@ CREATE TABLE public.seen_profiles (
 
 
 --
+-- Name: sms_codes; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.sms_codes (
+    phone_number character varying(255) NOT NULL,
+    code character varying(255) NOT NULL,
+    attempts integer DEFAULT 0 NOT NULL,
+    inserted_at timestamp(0) without time zone NOT NULL
+);
+
+
+--
 -- Name: support_messages; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -514,6 +526,14 @@ ALTER TABLE ONLY public.seen_matches
 
 ALTER TABLE ONLY public.seen_profiles
     ADD CONSTRAINT seen_profiles_pkey PRIMARY KEY (by_user_id, user_id);
+
+
+--
+-- Name: sms_codes sms_codes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sms_codes
+    ADD CONSTRAINT sms_codes_pkey PRIMARY KEY (phone_number);
 
 
 --
@@ -900,3 +920,4 @@ INSERT INTO public."schema_migrations" (version) VALUES (20210617223758);
 INSERT INTO public."schema_migrations" (version) VALUES (20210621092132);
 INSERT INTO public."schema_migrations" (version) VALUES (20210621153637);
 INSERT INTO public."schema_migrations" (version) VALUES (20210624195942);
+INSERT INTO public."schema_migrations" (version) VALUES (20210630134928);

@@ -3,7 +3,9 @@ defmodule T.AccountsTest do
   use Oban.Testing, repo: Repo
 
   alias T.Accounts
-  alias T.Accounts.Profile
+  alias T.Accounts.{Profile, PasswordlessAuth}
+
+  doctest PasswordlessAuth, import: true
 
   describe "save_photo/2" do
     test "pushes photo into existing profile's photos array" do

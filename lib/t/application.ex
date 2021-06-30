@@ -19,6 +19,7 @@ defmodule T.Application do
         TWeb.Endpoint,
         T.Repo,
         T.Feeds.SeenPruner,
+        T.Accounts.SMSCodePruner,
         TWeb.Telemetry,
         maybe_migrator(),
         {Oban, oban_config()},

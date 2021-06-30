@@ -383,9 +383,8 @@ defmodule T.Feeds do
   defp preferred_genders(%Profile{gender: "M"}), do: ["F"]
 
   def prune_seen_profiles(ttl_days) do
-    # TODO don't delete seen made for likes?
     SeenProfile
-    |> where([s], s.inserted_at > fragment("now() - ? * interval '1 day'", ^ttl_days))
+    |> where([s], s.inserted_at < fragment("now() - ? * interval '1 day'", ^ttl_days))
     |> Repo.delete_all()
   end
 end

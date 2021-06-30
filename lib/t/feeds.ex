@@ -323,10 +323,15 @@ defmodule T.Feeds do
     union(q1, ^q2)
   end
 
+  defp liked_user_ids_q(user_id) do
+    ProfileLike |> where(by_user_id: ^user_id) |> select([l], l.user_id)
+  end
+
   @doc false
   def push_more_to_cached_feed(%Profile{user_id: user_id, gender: gender} = profile, count) do
     Sentry.Context.set_user_context(%{user_id: user_id})
     seen_user_ids = seen_user_ids_q(user_id)
+    liked_user_ids = liked_user_ids_q(user_id)
     reported_user_ids = reported_user_ids_q(user_id)
     # TODO
     interested_in_us = interested_in_gender_q(gender)
@@ -346,6 +351,7 @@ defmodule T.Feeds do
       |> where([p], p.user_id not in subquery(seen_user_ids))
       |> where([p], p.user_id not in subquery(reported_user_ids))
       |> where([p], p.user_id not in subquery(matches_ids))
+      |> where([p], p.user_id not in subquery(liked_user_ids))
       |> select([p], p.user_id)
 
     most_liked_user_ids =

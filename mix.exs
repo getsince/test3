@@ -58,8 +58,6 @@ defmodule T.MixProject do
       {:oban, "~> 2.3"},
       {:remote_ip, "~> 1.0.0"},
       {:ex_phone_number, "~> 0.2"},
-      # TODO remove
-      {:passwordless_auth, "~> 0.3.0"},
       {:mox, "~> 1.0", only: :test},
       {:ex_machina, "~> 2.4", only: :test},
       {:assertions, "~> 0.18.1", only: :test},

@@ -1,6 +1,7 @@
 defmodule TWeb.MobileAuthControllerTest do
   use TWeb.ConnCase, async: true
   alias T.Accounts
+  alias T.Accounts.PasswordlessAuth
 
   describe "auth with phone number" do
     test "with valid code it works", %{conn: conn} do

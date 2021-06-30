@@ -1,6 +1,7 @@
 defmodule T.Accounts.RegistrationTest do
   use T.DataCase, async: true
   alias T.Accounts
+  alias T.Accounts.PasswordlessAuth
 
   describe "with phone number" do
     test "with a valid one" do

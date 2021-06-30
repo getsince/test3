@@ -17,7 +17,8 @@ defmodule T.Accounts do
     UserReport,
     APNSDevice,
     PushKitDevice,
-    GenderPreference
+    GenderPreference,
+    PasswordlessAuth
   }
 
   # def subscribe_to_new_users do
@@ -143,7 +144,7 @@ defmodule T.Accounts do
       if demo_phone?(phone_number) do
         {:ok, %{to: phone_number, body: nil}}
       else
-        code = PasswordlessAuth.generate_code(phone_number, 4)
+        code = PasswordlessAuth.generate_code(phone_number)
         UserNotifier.deliver_confirmation_instructions(phone_number, code)
       end
     end

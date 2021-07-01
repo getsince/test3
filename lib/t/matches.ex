@@ -9,7 +9,7 @@ defmodule T.Matches do
   import Ecto.Query
   import T.Gettext
 
-  alias T.{Repo, Media, PushNotifications}
+  alias T.{Repo, Media, Accounts, PushNotifications}
   alias T.Accounts.Profile
   alias T.Matches.{Match, SeenMatch, Message, Yo, Timeslot}
   alias T.Feeds.ProfileLike
@@ -462,6 +462,19 @@ defmodule T.Matches do
       )
 
     Oban.insert!(job)
+  end
+
+  ######################### CALLS #########################
+
+  def pushkit_call_mate(%Profile{user_id: caller_id, name: caller_name}, mate_id) do
+    mate_id
+    |> Accounts.list_pushkit_devices()
+    |> PushNotifications.APNS.pushkit_call(%{"user_id" => caller_id, "name" => caller_name})
+    |> case do
+      [%Pigeon.APNS.Notification{response: :success}] -> true
+      [_, _] -> false
+      [] -> false
+    end
   end
 
   ######################## UNMATCH ########################

@@ -15,7 +15,7 @@ config :t, TWeb.Endpoint,
 
 config :logger, :console,
   format: "$time $metadata[$level] $message\n",
-  metadata: [:request_id]
+  metadata: [:request_id, :user_id, :remote_ip]
 
 config :logger,
   backends: [:console, Sentry.LoggerBackend]

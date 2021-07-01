@@ -1,5 +1,6 @@
 defmodule TWeb.UserSocket do
   use Phoenix.Socket
+  require Logger
   alias T.Accounts
 
   # feed:<user-id>
@@ -19,8 +20,14 @@ defmodule TWeb.UserSocket do
   # channel "user:*", TWeb.UserChannel
 
   @impl true
-  def connect(%{"token" => token} = params, socket, _connect_info) do
+  def connect(%{"token" => token} = params, socket, connect_info) do
+    if remote_ip = extract_ip_address(connect_info) do
+      Logger.metadata(remote_ip: remote_ip)
+    end
+
     if user = Accounts.get_user_by_session_token(token, "mobile") do
+      Logger.metadata(user_id: user.id)
+
       {:ok,
        assign(socket,
          current_user: user,
@@ -36,6 +43,21 @@ defmodule TWeb.UserSocket do
   def connect(_params, _socket, _connect_info) do
     :error
   end
+
+  defp extract_ip_address(connect_info) do
+    _extract_ip_address(:x_headers, connect_info) ||
+      _extract_ip_address(:peer_data, connect_info)
+  end
+
+  defp _extract_ip_address(:x_headers, %{x_headers: x_headers}) do
+    :proplists.get_value("x-forwarded-for", x_headers, nil)
+  end
+
+  defp _extract_ip_address(:peer_data, %{peer_data: %{address: address}}) do
+    :inet.ntoa(address)
+  end
+
+  defp _extract_ip_address(_key, _connect_info), do: nil
 
   defoverridable init: 1
 

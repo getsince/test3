@@ -13,7 +13,7 @@ defmodule TWeb.Endpoint do
 
   # TODO session
   socket "/api/socket", TWeb.UserSocket,
-    websocket: [connect_info: [:peer_data, session: @session_options]],
+    websocket: [connect_info: [:peer_data, :x_headers]],
     longpoll: false
 
   socket "/live", Phoenix.LiveView.Socket, websocket: [connect_info: [session: @session_options]]
@@ -54,6 +54,7 @@ defmodule TWeb.Endpoint do
   plug Plug.Head
   plug Plug.Session, @session_options
   plug RemoteIp
+  plug TWeb.ConfigureLoggerMetadata
 
   plug Sentry.PlugContext
   plug TWeb.Router

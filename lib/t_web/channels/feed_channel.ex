@@ -6,8 +6,24 @@ defmodule TWeb.FeedChannel do
 
   @impl true
   def join("feed:" <> user_id, params, socket) do
-    verify_user_id(socket, user_id)
+    user_id = verify_user_id(socket, user_id)
+    continue_join(user_id, params, socket)
+  end
 
+  # yabloko
+  defp continue_join("00000177-651c-43d4-b8e8-56408d820000", _params, socket) do
+    %{screen_width: screen_width, current_user: current_user} = socket.assigns
+
+    my_profile = Accounts.get_profile!(current_user)
+    socket = assign(socket, profile: my_profile)
+
+    feed = Feeds.yabloko_feed()
+    socket = assign(socket, next_ids: [])
+    {:ok, %{feed: render_profiles(feed, screen_width)}, socket}
+  end
+
+  # everyone else
+  defp continue_join(_user_id, params, socket) do
     %{screen_width: screen_width, current_user: current_user} = socket.assigns
     profiles_to_load = params["count"] || 3
 
@@ -61,14 +77,12 @@ defmodule TWeb.FeedChannel do
   # TODO when user changes profile settings, refresh profile in memory
   # otherwise we might continue fetching wrong feed
   def handle_in("more", params, socket) do
-    %{next_ids: next_ids, profile: my_profile, screen_width: screen_width} = socket.assigns
     profiles_to_load = params["count"] || 3
 
-    %{loaded: feed, next_ids: next_ids} =
-      Feeds.continue_batched_feed(next_ids, my_profile, loaded: profiles_to_load)
-
-    cursor = %{feed: render_profiles(feed, screen_width), has_more: not Enum.empty?(next_ids)}
-    {:reply, {:ok, cursor}, assign(socket, next_ids: next_ids)}
+    case next_ids(socket) do
+      [] -> stop_feed(socket)
+      _not_empty -> continue_feed(socket, profiles_to_load)
+    end
   end
 
   def handle_in("report", %{"report" => report}, socket) do
@@ -82,6 +96,24 @@ defmodule TWeb.FeedChannel do
   end
 
   #### MISC ####
+
+  defp stop_feed(socket) do
+    {:reply, {:ok, _cursor = %{feed: [], has_more: false}}, socket}
+  end
+
+  defp continue_feed(socket, profiles_to_load) do
+    %{profile: my_profile, screen_width: screen_width, next_ids: next_ids} = socket.assigns
+
+    %{loaded: feed, next_ids: next_ids} =
+      Feeds.continue_batched_feed(next_ids, my_profile, loaded: profiles_to_load)
+
+    cursor = %{feed: render_profiles(feed, screen_width), has_more: not Enum.empty?(next_ids)}
+    {:reply, {:ok, cursor}, assign(socket, next_ids: next_ids)}
+  end
+
+  defp next_ids(socket) do
+    socket.assigns.next_ids
+  end
 
   defp render_profile(profile, screen_width) do
     render(ProfileView, "show.json", profile: profile, screen_width: screen_width)

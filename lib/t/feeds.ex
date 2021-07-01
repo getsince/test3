@@ -193,6 +193,36 @@ defmodule T.Feeds do
       "00000177-868a-728a-0242-ac1100030000"
     ]
 
+    ordered_profiles(user_ids)
+  end
+
+  # todo remove
+  @spec yabloko_feed :: [%Profile{}]
+  def yabloko_feed do
+    # My,
+    # 02
+    # 03
+    # 04
+    # Vlad
+    # Mura
+    # Alex
+    # Nikita
+
+    user_ids = [
+      "0000017a-2dda-4b8b-0242-ac1100030000",
+      "00000177-868a-728a-0242-ac1100030000",
+      "0000017a-2ed5-a8b1-0242-ac1100030000",
+      "0000017a-2f3f-45d9-0242-ac1100030000",
+      "0000017a-20b3-852f-0242-ac1100030000",
+      "0000017a-422a-563e-0242-ac1100030000",
+      "0000017a-4df8-6f52-0242-ac1100030000",
+      "0000017a-483e-7c55-0242-ac1100030000"
+    ]
+
+    ordered_profiles(user_ids)
+  end
+
+  defp ordered_profiles(user_ids) do
     profiles =
       Profile
       |> where([p], p.user_id in ^user_ids)

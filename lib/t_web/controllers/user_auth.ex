@@ -1,6 +1,7 @@
 defmodule TWeb.UserAuth do
   import Plug.Conn
   import Phoenix.Controller
+  require Logger
 
   alias T.Accounts
 
@@ -20,6 +21,10 @@ defmodule TWeb.UserAuth do
         token = Accounts.UserToken.raw_token(token)
         Accounts.get_user_by_session_token(token, "mobile")
       end
+
+    if user do
+      Logger.metadata(user_id: user.id)
+    end
 
     assign(conn, :current_user, user)
   end

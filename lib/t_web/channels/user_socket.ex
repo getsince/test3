@@ -14,11 +14,6 @@ defmodule TWeb.UserSocket do
   # support:<user-id>
   channel "support:*", TWeb.SupportChannel
 
-  # notification:<user-id>
-  # channel "notification:*", TWeb.NotificationChannel
-  # # user:<uuid>
-  # channel "user:*", TWeb.UserChannel
-
   @impl true
   def connect(%{"token" => token} = params, socket, connect_info) do
     if remote_ip = extract_ip_address(connect_info) do

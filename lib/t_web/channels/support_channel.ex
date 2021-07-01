@@ -5,7 +5,7 @@ defmodule TWeb.SupportChannel do
 
   @impl true
   def join("support:" <> user_id, params, socket) do
-    ChannelHelpers.verify_user_id(socket, user_id)
+    user_id = ChannelHelpers.verify_user_id(socket, user_id)
 
     # TODO admins can join too?
     messages =

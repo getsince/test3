@@ -1,12 +1,13 @@
 defmodule TWeb.LikeChannel do
   use TWeb, :channel
+  import TWeb.ChannelHelpers
 
   alias T.Feeds
   alias TWeb.ProfileView
 
   @impl true
   def join("likes:" <> user_id, %{"version" => 2 = version}, socket) do
-    user_id = verify_and_normalize_user_id(socket, user_id)
+    user_id = verify_user_id(socket, user_id)
 
     socket = assign(socket, version: version)
     Feeds.subscribe_for_likes(user_id)
@@ -14,12 +15,6 @@ defmodule TWeb.LikeChannel do
 
     likes = Feeds.all_profile_likes_with_liker_profile(user_id)
     {:ok, %{likes: render_likes(likes, screen_width), version: version}, socket}
-  end
-
-  defp verify_and_normalize_user_id(socket, user_id) do
-    user_id = String.downcase(user_id)
-    ChannelHelpers.verify_user_id(socket, user_id)
-    user_id
   end
 
   defp render_likes(likes, screen_width) when is_list(likes) do
@@ -33,7 +28,7 @@ defmodule TWeb.LikeChannel do
   @impl true
   # TODO possibly batch
   def handle_in("seen-like", %{"profile_id" => user_id}, socket) do
-    Feeds.mark_liker_seen(user_id, by: socket.assigns.current_user.id)
+    Feeds.mark_liker_seen(user_id, by: current_user(socket).id)
     {:reply, :ok, socket}
   end
 
@@ -44,8 +39,4 @@ defmodule TWeb.LikeChannel do
     push(socket, "liked", %{like: render_like(like, screen_width)})
     {:noreply, socket}
   end
-
-  # def handle_info({Feeds, [:seen, :liker], liker_id}, socket) do
-  #   push(socket, )
-  # end
 end

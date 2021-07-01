@@ -1,5 +1,6 @@
 defmodule TWeb.MatchChannel do
   use TWeb, :channel
+  import TWeb.ChannelHelpers
   alias TWeb.{ProfileView, Presence}
   alias T.{Accounts, Matches}
 
@@ -7,8 +8,7 @@ defmodule TWeb.MatchChannel do
 
   @impl true
   def join("matches:" <> user_id = topic, params, socket) do
-    user_id = String.downcase(user_id)
-    ChannelHelpers.verify_user_id(socket, user_id)
+    user_id = verify_user_id(socket, user_id)
     Matches.subscribe_for_user(user_id)
 
     screen_width = socket.assigns.screen_width
@@ -35,7 +35,7 @@ defmodule TWeb.MatchChannel do
   end
 
   def handle_in("call" = event, %{"mate" => mate}, socket) do
-    me = T.Repo.preload(socket.assigns.current_user, [:profile])
+    me = T.Repo.preload(current_user(socket), [:profile])
 
     msg = {decode_call_event(event), me(socket)}
     trace(socket, msg)
@@ -102,17 +102,17 @@ defmodule TWeb.MatchChannel do
 
   def handle_in("report", %{"report" => report}, socket) do
     # TODO ensure one of mates?
-    ChannelHelpers.report(socket, report)
+    report(socket, report)
   end
 
   def handle_in("unmatch", %{"match_id" => match_id}, socket) do
-    me = socket.assigns.current_user.id
+    me = current_user(socket).id
     Matches.unmatch(user: me, match: match_id)
     {:reply, :ok, socket}
   end
 
   def handle_in("fetch", _params, socket) do
-    matches = Matches.get_current_matches(socket.assigns.current_user.id)
+    matches = Matches.get_current_matches(current_user(socket).id)
     screen_width = socket.assigns.screen_width
     {:reply, {:ok, %{matches: render_matches(socket.topic, matches, screen_width)}}, socket}
   end
@@ -255,7 +255,7 @@ defmodule TWeb.MatchChannel do
   end
 
   defp me(socket) do
-    socket.assigns.current_user.id
+    current_user(socket).id
   end
 
   defp mates(socket) do
@@ -321,7 +321,7 @@ defmodule TWeb.MatchChannel do
   end
 
   defp trace(socket, message) do
-    user_id = socket.assigns.current_user.id
+    user_id = current_user(socket).id
     Phoenix.PubSub.broadcast!(@pubsub, "trace:#{user_id}", {:trace, message})
   end
 end

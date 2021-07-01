@@ -1,14 +1,12 @@
 defmodule TWeb.FeedChannel do
   use TWeb, :channel
+  import TWeb.ChannelHelpers
   alias TWeb.ProfileView
   alias T.{Feeds, Accounts}
 
   @impl true
   def join("feed:" <> user_id, params, socket) do
-    user_id = String.downcase(user_id)
-    ChannelHelpers.verify_user_id(socket, user_id)
-
-    # ChannelHelpers.ensure_onboarded(socket)
+    verify_user_id(socket, user_id)
 
     %{screen_width: screen_width, current_user: current_user} = socket.assigns
     profiles_to_load = params["count"] || 3
@@ -31,14 +29,14 @@ defmodule TWeb.FeedChannel do
   # TODO possibly batch
   def handle_in("seen", %{"profile_id" => profile_id}, socket) do
     # TODO broadcast
-    Feeds.mark_profile_seen(profile_id, by: socket.assigns.current_user.id)
+    Feeds.mark_profile_seen(profile_id, by: current_user(socket).id)
     {:reply, :ok, socket}
   end
 
   # TODO test with timeout
   def handle_in("like", %{"profile_id" => profile_id} = params, socket) do
     # TODO verify_can_see_profile(socket, profile_id)
-    user = socket.assigns.current_user
+    user = current_user(socket)
 
     if params["timeout?"] do
       Feeds.schedule_like_profile(user.id, profile_id)
@@ -51,13 +49,12 @@ defmodule TWeb.FeedChannel do
 
   # TODO test
   def handle_in("cancel-like", %{"profile_id" => profile_id}, socket) do
-    user = socket.assigns.current_user
-    cancelled? = Feeds.cancel_like_profile(user.id, profile_id)
+    cancelled? = Feeds.cancel_like_profile(current_user(socket).id, profile_id)
     {:reply, {:ok, %{cancelled: cancelled?}}, socket}
   end
 
   def handle_in("dislike", %{"profile_id" => profile_id}, socket) do
-    Feeds.dislike_liker(profile_id, by: socket.assigns.current_user.id)
+    Feeds.dislike_liker(profile_id, by: current_user(socket).id)
     {:reply, :ok, socket}
   end
 

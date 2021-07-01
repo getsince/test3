@@ -41,12 +41,10 @@ defmodule TWeb.MatchChannel do
     trace(socket, msg)
     Phoenix.PubSub.broadcast!(@pubsub, mate_topic(mate), msg)
 
-    # TODO if no pushkit device and user not online, resply that call didn't happen
-    mate
-    |> Accounts.list_pushkit_devices()
-    |> T.PushNotifications.APNS.pushkit_call(%{"user_id" => me.id, "name" => me.profile.name})
+    unless Matches.pushkit_call_mate(me.profile, mate) do
+      push(socket, "hang-up", %{mate: mate})
+    end
 
-    # reply with how the call happened, user online / pushkit?
     {:reply, :ok, assign(socket, current_user: me)}
   end
 

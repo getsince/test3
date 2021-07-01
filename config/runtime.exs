@@ -6,8 +6,6 @@ import Config
 # and secrets from environment variables or elsewhere. Do not define
 # any compile-time configuration in here, as it won't be applied.
 
-# config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase
-
 config :t, TWeb.Endpoint,
   render_errors: [view: TWeb.ErrorView, accepts: ~w(json), layout: false],
   pubsub_server: T.PubSub,
@@ -40,8 +38,6 @@ config :ex_aws,
   region: "eu-central-1"
 
 if config_env() == :prod do
-  config :t, use_demo_feed?: true
-
   config :t, T.Twilio,
     account_sid: System.fetch_env!("TWILIO_ACCOUNT_SID"),
     key_sid: System.fetch_env!("TWILIO_KEY_SID"),
@@ -77,52 +73,18 @@ if config_env() == :prod do
 
   config :t, run_migrations_on_start?: true
 
-  # config :t, T.Mailer,
-  #   adapter: Bamboo.SesAdapter,
-  #   ex_aws: [region: "eu-central-1"]
-
-  decode_cert = fn cert ->
-    [{:Certificate, der, _}] = :public_key.pem_decode(cert)
-    der
-  end
-
-  decode_key = fn cert ->
-    [{:RSAPrivateKey, key, :not_encrypted}] = :public_key.pem_decode(cert)
-    {:RSAPrivateKey, key}
-  end
-
-  database_url = System.fetch_env!("DATABASE_URL")
-  ca_cert = System.get_env("DATABASE_CA_CERT")
-  client_key = System.get_env("DATABASE_CLIENT_KEY")
-  client_cert = System.get_env("DATABASE_CLIENT_CERT")
-
-  ssl_opts =
-    if ca_cert do
-      [
-        cacerts: [decode_cert.(ca_cert)],
-        key: decode_key.(client_key),
-        cert: decode_cert.(client_cert)
-      ]
-    end
-
   config :t, T.Repo,
-    ssl_opts: ssl_opts,
-    url: database_url,
+    url: System.fetch_env!("DATABASE_URL"),
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "20")
-
-  host = System.fetch_env!("HOST")
-
-  # config :t, T.Mailer, our_address: "kindly@#{host}"
 
   config :t, TWeb.Endpoint,
     # For production, don't forget to configure the url host
     # to something meaningful, Phoenix uses this information
     # when generating URLs.
-    url: [host: host, port: 443],
+    url: [host: System.fetch_env!("HOST"), port: 443],
     http: [
-      # Enable IPv6 and bind on all interfaces.
-      # Set it to {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
-      ip: {0, 0, 0, 0, 0, 0, 0, 0},
+      # Enable IPv6 and bind on local interface (local network only access).
+      ip: {0, 0, 0, 0, 0, 0, 0, 1},
       port: String.to_integer(System.get_env("PORT") || "4000")
     ],
     secret_key_base: System.fetch_env!("SECRET_KEY_BASE"),
@@ -184,12 +146,6 @@ if config_env() == :dev do
     team_id: System.fetch_env!("APNS_TEAM_ID"),
     key_id: System.fetch_env!("MUSIC_KEY_ID")
 
-  # config :t, T.Mailer,
-  #   adapter: Bamboo.LocalAdapter,
-  #   #   adapter: Bamboo.SesAdapter,
-  #   #   ex_aws: [region: "eu-central-1"],
-  #   our_address: "kindly@example.com"
-
   # For development, we disable any cache and enable
   # debugging.
   #
@@ -236,9 +192,6 @@ if config_env() == :dev do
     key: System.fetch_env!("IMGPROXY_KEY"),
     salt: System.fetch_env!("IMGPROXY_SALT")
 
-  # Do not include metadata nor timestamps in development logs
-  # config :logger, :console, format: "[$level] $message\n"
-
   config :t, T.Bot, token: System.fetch_env!("TG_BOT_KEY")
 
   config :t, T.Media,
@@ -272,7 +225,6 @@ if config_env() == :test do
   config :logger, level: :warn
 
   config :t, Oban, crontab: false, queues: false, plugins: false
-  # config :t, T.Mailer, adapter: Bamboo.TestAdapter, our_address: "kindly@example.com"
 
   config :t, T.Media,
     user_bucket: "pretend-this-is-real",

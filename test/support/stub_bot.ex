@@ -5,5 +5,5 @@ defmodule StubBot do
   def set_webhook(_url), do: :ok
 
   @impl true
-  def send_message(_chat_id, _text), do: :ok
+  def send_message(_chat_id, _text, _opts), do: :ok
 end

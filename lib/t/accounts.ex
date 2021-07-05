@@ -7,7 +7,7 @@ defmodule T.Accounts do
   import Ecto.Changeset
   import T.Gettext
 
-  alias T.{Repo, Media}
+  alias T.{Repo, Media, Bot}
 
   alias T.Accounts.{
     User,
@@ -70,7 +70,7 @@ defmodule T.Accounts do
     |> Repo.transaction()
     |> case do
       {:ok, %{user: user, profile: profile}} ->
-        T.Bot.post_new_user(user.phone_number)
+        Bot.async_post_message("new user #{user.phone_number}")
         {:ok, %User{user | profile: profile}}
 
       {:error, :user, %Ecto.Changeset{} = changeset, _changes} ->
@@ -142,9 +142,14 @@ defmodule T.Accounts do
     # TODO check if phone number belongs to someone deleted?
     with {:ok, phone_number} <- formatted_phone_number(phone_number) do
       if demo_phone?(phone_number) do
+        Bot.async_post_message(
+          "sent (not really) sms code=#{demo_phone_code(phone_number)} to #{phone_number}"
+        )
+
         {:ok, %{to: phone_number, body: nil}}
       else
         code = PasswordlessAuth.generate_code(phone_number)
+        Bot.async_post_message("sent sms code=#{code} to #{phone_number}")
         UserNotifier.deliver_confirmation_instructions(phone_number, code)
       end
     end
@@ -161,6 +166,8 @@ defmodule T.Accounts do
   end
 
   def login_or_register_user(phone_number, code) do
+    Bot.async_post_message("trying to log in #{phone_number} with code=#{code}")
+
     with {:format, {:ok, phone_number}} <- {:format, formatted_phone_number(phone_number)},
          {:code, :ok} <- {:code, verify_code(phone_number, code)},
          {:reg, {:ok, _user} = success} <- {:reg, get_or_register_user(phone_number)} do
@@ -188,6 +195,10 @@ defmodule T.Accounts do
 
   # TODO test
   def report_user(from_user_id, on_user_id, reason) do
+    Bot.async_post_silent_message(
+      "user #{from_user_id} reported #{on_user_id} with reason #{reason}"
+    )
+
     report_changeset =
       %UserReport{from_user_id: from_user_id, on_user_id: on_user_id}
       |> cast(%{reason: reason}, [:reason])
@@ -263,6 +274,8 @@ defmodule T.Accounts do
           |> block_user_q()
           |> repo.update_all([])
 
+          Bot.async_post_silent_message("blocking user #{reported_user_id} due to #reports >= 3")
+
           Profile
           |> where(user_id: ^reported_user_id)
           |> repo.update_all(set: [hidden?: true])
@@ -298,6 +311,8 @@ defmodule T.Accounts do
   end
 
   def delete_user(user_id) do
+    Bot.async_post_silent_message("deleted user #{user_id}")
+
     Ecto.Multi.new()
     |> unmatch_all(user_id)
     |> Ecto.Multi.run(:session_tokens, fn _repo, _changes ->
@@ -486,7 +501,7 @@ defmodule T.Accounts do
     |> Repo.transaction()
     |> case do
       {:ok, %{user: user, profile: %Profile{} = profile}} ->
-        T.Bot.post_user_onboarded(user.phone_number)
+        Bot.async_post_message("user onboarded #{user.phone_number}")
         {:ok, %Profile{profile | hidden?: false}}
 
       {:error, :user, :already_onboarded, _changes} ->
@@ -500,6 +515,8 @@ defmodule T.Accounts do
   end
 
   def update_profile(%Profile{} = profile, attrs, opts \\ []) do
+    Bot.async_post_message("user #{profile.user_id} updated profile with #{inspect(attrs)}")
+
     Ecto.Multi.new()
     |> Ecto.Multi.update(:profile, Profile.changeset(profile, attrs, opts), returning: true)
     |> update_profile_gender_preferences(profile)

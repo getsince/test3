@@ -9,7 +9,7 @@ defmodule T.Matches do
   import Ecto.Query
   import T.Gettext
 
-  alias T.{Repo, Media, Accounts, PushNotifications}
+  alias T.{Repo, Media, Accounts, PushNotifications, Bot}
   alias T.Accounts.Profile
   alias T.Matches.{Match, SeenMatch, Message, Yo, Timeslot}
   alias T.Feeds.ProfileLike
@@ -178,6 +178,10 @@ defmodule T.Matches do
     %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} = get_match_for_user(match_id, offerer)
     [mate] = [uid1, uid2] -- [offerer]
 
+    Bot.async_post_silent_message(
+      "saving slots offer for match #{match_id} (users #{uid1}, #{uid2}) from #{offerer}: #{inspect(slots)}"
+    )
+
     changeset =
       timeslot_changeset(
         %Timeslot{match_id: match_id, picker_id: mate},
@@ -325,6 +329,10 @@ defmodule T.Matches do
     %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} = get_match_for_user(match_id, picker)
     [mate] = [uid1, uid2] -- [picker]
 
+    Bot.async_post_silent_message(
+      "accepting slot for match #{match_id} (users #{uid1}, #{uid2}) by #{picker}: #{inspect(slot)}"
+    )
+
     {1, [timeslot]} =
       Timeslot
       |> where(match_id: ^match_id)
@@ -372,6 +380,10 @@ defmodule T.Matches do
       get_match_for_user(match_id, by_user_id)
 
     [mate] = [uid1, uid2] -- [by_user_id]
+
+    Bot.async_post_silent_message(
+      "cancelling timeslot for match #{match_id} (users #{uid1}, #{uid2}) by #{by_user_id}"
+    )
 
     {1, [%Timeslot{selected_slot: selected_slot} = timeslot]} =
       Timeslot
@@ -467,6 +479,8 @@ defmodule T.Matches do
   ######################### CALLS #########################
 
   def pushkit_call_mate(%Profile{user_id: caller_id, name: caller_name}, mate_id) do
+    Bot.async_post_silent_message("#{caller_id} (#{caller_name}) calls #{mate_id}")
+
     mate_id
     |> Accounts.list_pushkit_devices()
     |> PushNotifications.APNS.pushkit_call(%{"user_id" => caller_id, "name" => caller_name})
@@ -484,6 +498,8 @@ defmodule T.Matches do
   def unmatch(params) do
     user_id = Keyword.fetch!(params, :user)
     match_id = Keyword.fetch!(params, :match)
+
+    Bot.async_post_silent_message("#{user_id} unmatches match-id=#{match_id}")
 
     Ecto.Multi.new()
     |> Ecto.Multi.run(:unmatch, fn _repo, _changes ->

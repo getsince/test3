@@ -24,7 +24,7 @@ defmodule TWeb.UserSocket do
     if user = Accounts.get_user_by_session_token(token, "mobile") do
       Logger.metadata(user_id: user.id)
 
-      Bot.post_user_online(user.phone_number)
+      Bot.async_post_message("user online #{user.phone_number}")
 
       {:ok,
        assign(socket,
@@ -80,7 +80,7 @@ defmodule TWeb.UserSocket do
       pid,
       _on_disconnect = fn ->
         Accounts.update_last_active(user_id)
-        Bot.post_user_offline(phone_number)
+        Bot.post_message("user offline #{phone_number}")
       end
     )
   end

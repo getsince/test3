@@ -8,8 +8,10 @@ defmodule T.Bot.API do
   end
 
   @impl true
-  def send_message(chat_id, text) do
-    request("sendMessage", %{"chat_id" => chat_id, "text" => text})
+  # https://core.telegram.org/bots/api#sendmessage
+  def send_message(chat_id, text, opts) do
+    payload = Enum.into(opts, %{"chat_id" => chat_id, "text" => text})
+    request("sendMessage", payload)
   end
 
   @default_headers [{"content-type", "application/json"}]

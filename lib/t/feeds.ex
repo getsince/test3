@@ -2,7 +2,7 @@ defmodule T.Feeds do
   @moduledoc "Feeds and liking feeds"
   import Ecto.{Query, Changeset}
 
-  alias T.{Repo, Matches, Accounts}
+  alias T.{Repo, Matches, Accounts, Bot}
   alias T.Accounts.{Profile, UserReport, GenderPreference}
   alias T.PushNotifications.DispatchJob
   alias T.Feeds.{Feeded, SeenProfile, ProfileLike, LikeJob}
@@ -40,6 +40,8 @@ defmodule T.Feeds do
   # TODO auth, check user_id in by_user_id feed
   @doc false
   def like_profile(by_user_id, user_id) do
+    Bot.async_post_silent_message("user #{by_user_id} liked #{user_id}")
+
     Ecto.Multi.new()
     |> mark_profile_seen(by_user_id, user_id)
     |> mark_liked(by_user_id, user_id)
@@ -53,6 +55,7 @@ defmodule T.Feeds do
 
   # TODO test
   def schedule_like_profile(by_user_id, user_id, schedule_in_seconds \\ 10) do
+    Bot.async_post_silent_message("user #{by_user_id} scheduled to like #{user_id}")
     args = %{"by_user_id" => by_user_id, "user_id" => user_id}
     job = LikeJob.new(args, schedule_in: schedule_in_seconds)
     Oban.insert(job)
@@ -72,6 +75,7 @@ defmodule T.Feeds do
 
   # TODO test
   def cancel_like_profile(by_user_id, user_id) do
+    Bot.async_post_silent_message("user #{by_user_id} cancelled liking #{user_id}")
     jobs = list_like_jobs(by_user_id, user_id)
     cancelled_jobs = Enum.map(jobs, fn job -> Oban.cancel_job(job.id) end)
     not Enum.empty?(cancelled_jobs)
@@ -80,6 +84,7 @@ defmodule T.Feeds do
   # TODO broadcast
   def dislike_liker(liker_id, opts) do
     by_user_id = Keyword.fetch!(opts, :by)
+    Bot.async_post_silent_message("user #{by_user_id} disliked liker #{liker_id}")
 
     {count, _other} =
       ProfileLike
@@ -94,6 +99,7 @@ defmodule T.Feeds do
   @doc "mark_profile_seen(user_id, by: <user-id>)"
   def mark_profile_seen(user_id, opts) do
     by_user_id = Keyword.fetch!(opts, :by)
+    Bot.async_post_silent_message("user #{by_user_id} seen #{user_id}")
 
     seen_changeset(by_user_id, user_id)
     |> Repo.insert()
@@ -171,6 +177,7 @@ defmodule T.Feeds do
   @doc "mark_liker_seen(<user-id>, by: <user-id>)"
   def mark_liker_seen(user_id, opts) do
     liked_id = Keyword.fetch!(opts, :by)
+    Bot.async_post_silent_message("user #{liked_id} merked seen liker #{user_id}")
 
     {count, _} =
       ProfileLike

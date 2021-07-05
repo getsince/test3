@@ -15,20 +15,17 @@ defmodule T.Bot do
     @adapter.set_webhook(url)
   end
 
-  def post_new_user(phone_number) do
-    @adapter.send_message(room_id(), "new user #{phone_number}")
+  def post_message(text, opts \\ []) do
+    @adapter.send_message(room_id(), text, opts)
   end
 
-  def post_user_onboarded(phone_number) do
-    @adapter.send_message(room_id(), "user onboarded #{phone_number}")
+  def async_post_message(text, opts \\ []) do
+    # TODO supervise
+    Task.start(fn -> post_message(text, opts) end)
   end
 
-  def post_user_online(phone_number) do
-    @adapter.send_message(room_id(), "user online #{phone_number}")
-  end
-
-  def post_user_offline(phone_number) do
-    @adapter.send_message(room_id(), "user offline #{phone_number}")
+  def async_post_silent_message(text) do
+    async_post_message(text, disable_notification: true)
   end
 
   def handle(_params), do: :ok

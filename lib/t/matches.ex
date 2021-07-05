@@ -470,6 +470,7 @@ defmodule T.Matches do
     mate_id
     |> Accounts.list_pushkit_devices()
     |> PushNotifications.APNS.pushkit_call(%{"user_id" => caller_id, "name" => caller_name})
+    |> List.flatten()
     |> case do
       [%Pigeon.APNS.Notification{response: :success}] -> true
       [_, _] -> false

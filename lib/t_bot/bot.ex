@@ -23,5 +23,13 @@ defmodule T.Bot do
     @adapter.send_message(room_id(), "user onboarded #{phone_number}")
   end
 
+  def post_user_online(phone_number) do
+    @adapter.send_message(room_id(), "user online #{phone_number}")
+  end
+
+  def post_user_offline(phone_number) do
+    @adapter.send_message(room_id(), "user offline #{phone_number}")
+  end
+
   def handle(_params), do: :ok
 end

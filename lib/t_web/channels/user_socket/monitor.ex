@@ -23,9 +23,9 @@ defmodule TWeb.UserSocket.Monitor do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
-  @spec monitor(pid, binary) :: :ok
-  def monitor(pid, user_id) do
-    GenServer.cast(__MODULE__, {:monitor, pid, user_id})
+  @spec monitor(pid, (() -> any)) :: :ok
+  def monitor(pid, on_down) when is_function(on_down, 0) do
+    GenServer.cast(__MODULE__, {:monitor, pid, on_down})
   end
 
   def on_down_tasks do
@@ -34,26 +34,19 @@ defmodule TWeb.UserSocket.Monitor do
 
   @impl true
   def init(_opts) do
-    # %{ref => user_id}
+    # %{ref => on_down}
     {:ok, _monitors = %{}}
   end
 
   @impl true
-  def handle_cast({:monitor, pid, user_id}, monitors) do
-    {:noreply, Map.put(monitors, Process.monitor(pid), user_id)}
+  def handle_cast({:monitor, pid, on_down}, monitors) do
+    {:noreply, Map.put(monitors, Process.monitor(pid), on_down)}
   end
 
   @impl true
   def handle_info({:DOWN, ref, :process, _object, _reason}, monitors) do
-    {user_id, monitors} = Map.pop!(monitors, ref)
-    on_down(user_id)
+    {on_down, monitors} = Map.pop!(monitors, ref)
+    Task.Supervisor.start_child(@task_supervisor, on_down)
     {:noreply, monitors}
-  end
-
-  # TODO update last active on other actions as well, 'like', 'match', etc.
-  defp on_down(user_id) do
-    Task.Supervisor.start_child(@task_supervisor, fn ->
-      T.Accounts.update_last_active(user_id)
-    end)
   end
 end

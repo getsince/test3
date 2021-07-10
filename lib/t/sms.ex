@@ -18,6 +18,6 @@ defmodule T.SMS do
 
     message
     |> SNS.publish(publish_opts)
-    |> ExAws.request()
+    |> ExAws.request(region: "eu-north-1")
   end
 end

@@ -39,4 +39,16 @@ defmodule T.Release do
   def ready? do
     Application.get_env(@app, :ready?)
   end
+
+  {sha, 0} = System.cmd("git", ["rev-parse", "HEAD"])
+
+  def git_sha do
+    unquote(String.trim(sha))
+  end
+
+  {author, 0} = System.cmd("git", ~w[log -1 --pretty=format:'%an'])
+
+  def git_author do
+    unquote(author |> String.trim_leading("'") |> String.trim_trailing("'"))
+  end
 end

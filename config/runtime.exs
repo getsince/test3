@@ -47,7 +47,7 @@ if config_env() == :prod do
     dsn: System.fetch_env!("SENTRY_DSN")
 
   config :t, T.PromEx,
-    disabled: false,
+    disabled: config_env() != :prod,
     manual_metrics_start_delay: :no_delay,
     drop_metrics_groups: [],
     grafana: :disabled,

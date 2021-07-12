@@ -1,0 +1,31 @@
+<div class="min-h-screen w-full">
+  <h2 class="text-lg p-4 flex items-center">User Sessions</h2>
+
+  <div class="pb-4 px-4 space-y-4">
+    <%= for {user, tokens} <- @users_with_tokens do %>
+    <div class="border rounded bg-gray-50">
+      <div class="p-2 italic border-b bg-gray-100">
+        <div>user.id=<%= user.id %></div>
+        <div>user.phone_number=<%= user.phone_number %></div>
+      </div>
+
+      <div class="py-2">
+        <table class="w-full">
+          <thead class="uppercase text-left">
+            <th class="px-2">token</th>
+            <th class="px-2">inserted at</th>
+          </thead>
+          <tbody>
+            <%= for token <- tokens do %>
+            <tr class="hover:bg-blue-100 transition">
+              <td class="px-2"><%= token.token %></td>
+              <td class="px-2"><%= token.inserted_at %></td>
+            </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <% end %>
+  </div>
+</div>

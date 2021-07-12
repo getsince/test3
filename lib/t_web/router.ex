@@ -113,6 +113,7 @@ defmodule TWeb.Router do
     live "/trace/calls/:user_id", TraceLive.Show, :show
 
     live "/stickers", StickerLive.Index, :index
+    live "/tokens", TokenLive.Index, :index
   end
 
   scope "/api/bot", TWeb do

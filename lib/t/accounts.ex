@@ -442,6 +442,22 @@ defmodule T.Accounts do
     :ok
   end
 
+  def list_all_users_with_session_tokens do
+    UserToken
+    |> join(:inner, [t], u in User, on: t.user_id == u.id)
+    |> select([t, u], %{
+      token: %{value: t.token, inserted_at: t.inserted_at},
+      user: %{id: u.id, phone_number: u.phone_number}
+    })
+    |> Repo.all()
+    |> Enum.group_by(
+      fn %{user: user} -> user end,
+      fn %{token: %{value: value, inserted_at: inserted_at}} ->
+        %{token: Base.url_encode64(value), inserted_at: inserted_at}
+      end
+    )
+  end
+
   def save_photo(%User{id: user_id}, s3_key) do
     Profile
     |> where(user_id: ^user_id)

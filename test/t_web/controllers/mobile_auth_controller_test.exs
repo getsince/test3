@@ -30,7 +30,10 @@ defmodule TWeb.MobileAuthControllerTest do
                ],
                "song" => nil,
                "gender" => nil,
-               "name" => nil
+               "name" => nil,
+               "gender_preference" => nil,
+               "latitude" => nil,
+               "longitude" => nil
              }
 
       assert Accounts.get_user!(user_id)
@@ -95,7 +98,10 @@ defmodule TWeb.MobileAuthControllerTest do
                  "song_name" => "Dancing In the Dark"
                },
                "gender" => "M",
-               "name" => "that"
+               "name" => "that",
+               "gender_preference" => nil,
+               "latitude" => 50.0,
+               "longitude" => 50.0
              }
     end
   end

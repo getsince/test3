@@ -3,6 +3,17 @@ defmodule Dev do
   alias Pigeon.APNS.Notification
   import Ecto.Query
 
+  def send_notification(locale \\ "en") do
+    device_id = System.get_env("MY_APNS_ID")
+
+    n =
+      Gettext.with_locale(locale, fn ->
+        APNS.build_notification("timeslot_started", device_id, %{})
+      end)
+
+    APNS.push_all_envs(n)
+  end
+
   def get_me do
     T.Accounts.get_profile!("00000177-8336-5e0e-0242-ac1100030000")
   end

@@ -161,7 +161,9 @@ if config_env() == :dev do
   # watchers to your application. For example, we use it
   # with webpack to recompile .js and .css sources.
   config :t, TWeb.Endpoint,
-    http: [port: 4000],
+    # Binding to loopback ipv4 address prevents access from other machines.
+    # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
+    http: [ip: {127, 0, 0, 1}, port: 4000],
     debug_errors: true,
     check_origin: false,
     secret_key_base: "G3Ln+/DGlLRcc0cFikD44j8AS16t7ab5g0CjqhGBkOz2ol5GjHemYelcDWDEjkw5",
@@ -180,7 +182,8 @@ if config_env() == :dev do
         "node_modules/webpack/bin/webpack.js",
         "--mode",
         "development",
-        "--watch-stdin",
+        "--watch",
+        "--watch-options-stdin",
         cd: Path.expand("../assets", __DIR__)
       ]
     ]

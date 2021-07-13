@@ -15,7 +15,7 @@ import "../css/app.css";
 import "phoenix_html";
 import Alpine from "alpinejs";
 import { Socket } from "phoenix";
-import NProgress from "nprogress";
+import topbar from "topbar";
 import { LiveSocket } from "phoenix_live_view";
 import { WebRTCHook } from "./hooks/webrtc";
 
@@ -84,22 +84,24 @@ let liveSocket = new LiveSocket("/live", Socket, {
   },
   dom: {
     onBeforeElUpdated(from, to) {
-      if (from.__x) {
-        Alpine.clone(from.__x, to);
+      if (from._x_dataStack) {
+        Alpine.clone(from, to);
       }
     },
   },
 });
 
-// TODO
 // Show progress bar on live navigation and form submits
-window.addEventListener("phx:page-loading-start", (info) => NProgress.start());
-window.addEventListener("phx:page-loading-stop", (info) => NProgress.done());
+topbar.config({ barColors: { 0: "#29d" }, shadowColor: "rgba(0, 0, 0, .3)" });
+window.addEventListener("phx:page-loading-start", (info) => topbar.show());
+window.addEventListener("phx:page-loading-stop", (info) => topbar.hide());
 
 // connect if there are any LiveViews on the page
 liveSocket.connect();
+Alpine.start();
 
 // expose liveSocket on window for web console debug logs and latency simulation:
 // >> liveSocket.enableDebug()
 // >> liveSocket.enableLatencySim(1000)
 window.liveSocket = liveSocket;
+window.Alpine = Alpine;

@@ -368,6 +368,13 @@ defmodule T.Accounts do
     :ok
   end
 
+  def list_apns_devices(user_id) do
+    T.Accounts.APNSDevice
+    |> where(user_id: ^user_id)
+    |> select([d], %{device_id: d.device_id, locale: d.locale})
+    |> Repo.all()
+  end
+
   @doc "remove_apns_device(device_id_base_16)"
   def remove_apns_device(device_id) do
     APNSDevice

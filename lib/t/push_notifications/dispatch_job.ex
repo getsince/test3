@@ -4,7 +4,7 @@ defmodule T.PushNotifications.DispatchJob do
 
   use Oban.Worker, queue: :apns
   import Ecto.Query
-  alias T.{Repo, Matches, PushNotifications}
+  alias T.{Repo, Matches, Accounts, PushNotifications}
 
   @impl true
   def perform(%Oban.Job{args: %{"type" => type} = args}) do
@@ -18,8 +18,8 @@ defmodule T.PushNotifications.DispatchJob do
       %Matches.Match{user_id_1: uid1, user_id_2: uid2} = match
 
       data = %{"match_id" => match_id}
-      uid1 |> Matches.device_ids() |> schedule_apns("match", data)
-      uid2 |> Matches.device_ids() |> schedule_apns("match", data)
+      uid1 |> Accounts.list_apns_devices() |> schedule_apns("match", data)
+      uid2 |> Accounts.list_apns_devices() |> schedule_apns("match", data)
 
       :ok
     else
@@ -31,7 +31,7 @@ defmodule T.PushNotifications.DispatchJob do
     %{"by_user_id" => by_user_id, "user_id" => user_id} = args
 
     data = %{"by_user_id" => by_user_id}
-    user_id |> Matches.device_ids() |> schedule_apns("like", data)
+    user_id |> Accounts.list_apns_devices() |> schedule_apns("like", data)
 
     :ok
   end
@@ -45,7 +45,7 @@ defmodule T.PushNotifications.DispatchJob do
       [receiver_id] = [uid1, uid2] -- [author_id]
 
       receiver_id
-      |> Matches.device_ids()
+      |> Accounts.list_apns_devices()
       |> schedule_apns("message", %{"match_id" => match_id, "author_id" => author_id})
 
       :ok
@@ -56,7 +56,7 @@ defmodule T.PushNotifications.DispatchJob do
 
   defp handle_type("support", args) do
     %{"user_id" => user_id} = args
-    user_id |> Matches.device_ids() |> schedule_apns("support")
+    user_id |> Accounts.list_apns_devices() |> schedule_apns("support")
     :ok
   end
 
@@ -64,7 +64,10 @@ defmodule T.PushNotifications.DispatchJob do
     %{"match_id" => match_id, "receiver_id" => receiver_id} = args
 
     if alive_match(match_id) do
-      receiver_id |> Matches.device_ids() |> schedule_apns(type, %{"match_id" => match_id})
+      receiver_id
+      |> Accounts.list_apns_devices()
+      |> schedule_apns(type, %{"match_id" => match_id})
+
       :ok
     else
       :discard
@@ -87,8 +90,8 @@ defmodule T.PushNotifications.DispatchJob do
         end
 
         data = %{"match_id" => match_id}
-        uid1 |> Matches.device_ids() |> schedule_apns(type, data)
-        uid2 |> Matches.device_ids() |> schedule_apns(type, data)
+        uid1 |> Accounts.list_apns_devices() |> schedule_apns(type, data)
+        uid2 |> Accounts.list_apns_devices() |> schedule_apns(type, data)
 
         :ok
       end
@@ -109,8 +112,8 @@ defmodule T.PushNotifications.DispatchJob do
         %Matches.Match{user_id_1: uid1, user_id_2: uid2} = match
 
         data = %{"match_id" => match_id}
-        uid1 |> Matches.device_ids() |> schedule_apns(type, data)
-        uid2 |> Matches.device_ids() |> schedule_apns(type, data)
+        uid1 |> Accounts.list_apns_devices() |> schedule_apns(type, data)
+        uid2 |> Accounts.list_apns_devices() |> schedule_apns(type, data)
 
         :ok
       end
@@ -136,12 +139,13 @@ defmodule T.PushNotifications.DispatchJob do
     |> Repo.one()
   end
 
-  defp schedule_apns(device_ids, template, data \\ %{}) do
-    device_ids
-    |> Enum.map(fn device_id ->
+  defp schedule_apns(apns_devices, template, data \\ %{}) do
+    apns_devices
+    |> Enum.map(fn %{device_id: device_id, locale: locale} ->
       PushNotifications.APNSJob.new(%{
         "template" => template,
         "device_id" => Base.encode16(device_id),
+        "locale" => locale,
         "data" => data
       })
     end)

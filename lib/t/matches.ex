@@ -620,7 +620,7 @@ defmodule T.Matches do
       %Match{user_id_1: uid1, user_id_2: uid2} = match
       [mate_id] = [uid1, uid2] -- [from]
       {sender_name, sender_gender} = profile_info(from)
-      raw_device_ids = device_ids(mate_id)
+      apns_devices = Accounts.list_apns_devices(mate_id)
 
       sender = sender_name || dgettext("yo", "Кто-то там")
       title = dgettext("yo", "%{sender} зовёт тебя пообщаться!", sender: sender)
@@ -633,10 +633,13 @@ defmodule T.Matches do
         fn ->
           Phoenix.PubSub.subscribe(T.PubSub, "yo_ack:#{ack_id}")
 
-          raw_device_ids
-          |> Enum.map(fn device_id ->
+          apns_devices
+          |> Enum.map(fn %{device_id: device_id, locale: locale} ->
             device_id = Base.encode16(device_id)
-            build_yo_notification(device_id, message, ack_id)
+
+            Gettext.with_locale(locale, fn ->
+              build_yo_notification(device_id, message, ack_id)
+            end)
           end)
           |> Enum.map(&APNS.push_all_envs/1)
           |> List.flatten()
@@ -653,14 +656,14 @@ defmodule T.Matches do
           end)
           |> case do
             [] = _no_success ->
-              send_yo_sms(mate_id, yo_sms_message(sender_name, sender_gender))
+              send_yo_sms(mate_id, sender_name, sender_gender)
 
             [_ | _] = _at_least_one ->
               receive do
                 :ack -> :ok
               after
                 :timer.seconds(5) ->
-                  send_yo_sms(mate_id, yo_sms_message(sender_name, sender_gender))
+                  send_yo_sms(mate_id, sender_name, sender_gender)
               end
           end
         end,
@@ -676,8 +679,15 @@ defmodule T.Matches do
     Phoenix.PubSub.broadcast!(T.PubSub, "yo_ack:#{ack_id}", :ack)
   end
 
-  def send_yo_sms(user_id, message) do
-    phone_number = T.Accounts.get_phone_number!(user_id)
+  def send_yo_sms(user_id, sender_name, sender_gender) do
+    phone_number = Accounts.get_phone_number!(user_id)
+    locale = if String.starts_with?(phone_number, "+7"), do: "ru", else: "en"
+
+    message =
+      Gettext.with_locale(locale, fn ->
+        yo_sms_message(sender_name, sender_gender)
+      end)
+
     T.SMS.deliver(phone_number, message)
   end
 
@@ -714,13 +724,6 @@ defmodule T.Matches do
     |> where(user_id: ^user_id)
     |> select([p], {p.name, p.gender})
     |> Repo.one!()
-  end
-
-  def device_ids(user_id) do
-    T.Accounts.APNSDevice
-    |> where(user_id: ^user_id)
-    |> select([d], d.device_id)
-    |> Repo.all()
   end
 
   ###################### MESSAGES ######################

@@ -8,7 +8,11 @@ defmodule T.PushNotifications.APNSJob do
   @impl true
   def perform(%Oban.Job{args: args}) do
     %{"template" => template, "device_id" => device_id, "data" => data} = args
-    n = APNS.build_notification(template, device_id, data)
+
+    n =
+      Gettext.with_locale(args["locale"] || "en", fn ->
+        APNS.build_notification(template, device_id, data)
+      end)
 
     APNS.push_all_envs(n)
     |> Enum.reduce([], fn %Notification{response: r, device_token: device_id}, acc ->

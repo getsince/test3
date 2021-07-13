@@ -346,7 +346,7 @@ defmodule T.Accounts do
     end)
   end
 
-  def save_apns_device_id(user_id, token, device_id) do
+  def save_apns_device_id(user_id, token, device_id, locale \\ nil) do
     %UserToken{id: token_id} = token |> UserToken.token_and_context_query("mobile") |> Repo.one!()
 
     prev_device_q =
@@ -356,7 +356,13 @@ defmodule T.Accounts do
 
     Repo.transaction(fn ->
       Repo.delete_all(prev_device_q)
-      Repo.insert!(%APNSDevice{user_id: user_id, token_id: token_id, device_id: device_id})
+
+      Repo.insert!(%APNSDevice{
+        user_id: user_id,
+        token_id: token_id,
+        device_id: device_id,
+        locale: locale
+      })
     end)
 
     :ok

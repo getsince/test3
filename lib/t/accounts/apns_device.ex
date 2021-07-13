@@ -8,6 +8,7 @@ defmodule T.Accounts.APNSDevice do
     belongs_to :user, User, primary_key: true
     belongs_to :token, UserToken, primary_key: true
     field :device_id, :binary
+    field :locale, :string
     timestamps()
   end
 end

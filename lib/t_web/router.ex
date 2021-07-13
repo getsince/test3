@@ -98,6 +98,8 @@ defmodule TWeb.Router do
   scope "/admin", TWeb do
     pipe_through [:browser, :dashboard_auth]
 
+    live "/", AdminLive.Index, :index
+
     live "/support", SupportLive.Index, :index
     live "/support/:user_id", SupportLive.Index, :show
 

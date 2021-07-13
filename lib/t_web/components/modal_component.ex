@@ -11,7 +11,7 @@ defmodule TWeb.ModalComponent do
       phx-target="#<%= @id %>"
       phx-page-loading>
 
-      <div class="max-w-2xl mx-auto bg-white">
+      <div class="max-w-2xl mx-auto bg-white dark:bg-gray-800">
         <div class="flex items-center justify-between p-4">
           <span class="text-2xl font-bold"><%= @title %></span>
           <%= live_patch "✕", to: @return_to %>

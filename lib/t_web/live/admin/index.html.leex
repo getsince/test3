@@ -1,0 +1,8 @@
+<div class="p-8">
+	<p class="text-xl font-medium"">Available routes:</p>
+	<ul class="mt-4 ml-2">
+		<%= for route <- @routes do %>
+		<li><%= live_redirect route, to: route, class: "text-blue-200 hover:text-blue-300 transition" %></li>
+		<% end %>
+	</ul>
+</div>

@@ -76,9 +76,9 @@ defmodule TWeb.TraceLive.Show do
     "↑"
   end
 
-  defp message_class(%Message{direction: :in}), do: "bg-blue-100"
-  defp message_class(%Message{direction: :out}), do: "bg-green-100"
-  defp message_class(_other), do: "bg-gray-100"
+  defp message_class(%Message{direction: :in}), do: "bg-blue-100 dark:bg-blue-900"
+  defp message_class(%Message{direction: :out}), do: "bg-green-100 dark:bg-green-900"
+  defp message_class(_other), do: "bg-gray-100 dark:bg-gray-800"
 
   defp all_user_options do
     import Ecto.Query

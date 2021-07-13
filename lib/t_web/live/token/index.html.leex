@@ -3,8 +3,8 @@
 
   <div class="pb-4 px-4 space-y-4">
     <%= for {user, tokens} <- @users_with_tokens do %>
-    <div class="border rounded bg-gray-50">
-      <div class="p-2 italic border-b bg-gray-100">
+    <div class="border dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-800">
+      <div class="p-2 italic border-b dark:border-gray-600 bg-gray-100 dark:bg-gray-700">
         <div>user.id=<%= user.id %></div>
         <div>user.phone_number=<%= user.phone_number %></div>
       </div>
@@ -17,7 +17,7 @@
           </thead>
           <tbody>
             <%= for token <- tokens do %>
-            <tr class="hover:bg-blue-100 transition">
+            <tr class="hover:bg-blue-100 dark:hover:bg-gray-700 transition">
               <td class="px-2"><%= token.token %></td>
               <td class="px-2"><%= token.inserted_at %></td>
             </tr>

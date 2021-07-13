@@ -1,8 +1,8 @@
 <div class="flex flex-col h-screen overflow-hidden ">
-  <div class="flex items-center flex-shrink-0 px-4 py-2 space-x-2 border-b">
+  <div class="flex items-center flex-shrink-0 px-4 py-2 space-x-2 border-b dark:border-gray-600">
     <h2 class="text-xl font-semibold">Pick a user to trace:</h2>
     <form action="#" phx-change="submit" phx-submit="submit">
-      <select name="user" class="block">
+      <select name="user" class="block dark:bg-gray-800">
         <option value="">Pick one</option>
         <%= options_for_select @user_options, @user.id %>
       </select>

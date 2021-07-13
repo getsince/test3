@@ -3,10 +3,10 @@
     Stickers
     <form class="ml-2 h-full flex items-center" action="#" method="post" phx-change="validate-upload-form" phx-submit="submit-upload-form">
       <label class="flex items-center">
-        <div class="bg-gray-200 rounded p-1 hover:bg-gray-300 transition cursor-pointer">
+        <div class="bg-gray-200 dark:bg-gray-700 rounded p-1 hover:bg-gray-300 dark:hover:bg-gray-600 transition cursor-pointer">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
         </div>
-        <span class="ml-2 text-sm text-gray-600">(or drag-and-drop anywhere)</span>
+        <span class="ml-2 text-sm text-gray-600 dark:text-gray-500">(or drag-and-drop anywhere)</span>
         <%= live_file_input @uploads.sticker, class: "hidden" %>
       </label>
     </form>
@@ -14,34 +14,34 @@
 
   <div class="flex flex-wrap">
   <%= for entry <- @uploads.sticker.entries do %>
-    <div class="flex items-center w-full md:w-1/2 lg:w-1/3 p-3 bg-yellow-100 transition">
-      <%= live_img_preview entry, class: "w-36 h-36 object-contain hover:bg-gray-200 transition" %>
+    <div class="flex items-center w-full md:w-1/2 lg:w-1/3 p-3 bg-yellow-100 dark:bg-blue-900 transition">
+      <%= live_img_preview entry, class: "w-36 h-36 object-contain hover:bg-gray-200 dark:hover:bg-blue-800 transition" %>
 
       <div class="ml-4">
         <p class="font-semibold mb-2"><%= entry.client_name %></p>
-        <p class="text-sm text-gray-700">progress: <%= entry.progress %>%</p>
+        <p class="text-sm text-gray-700 dark:text-gray-300">progress: <%= entry.progress %>%</p>
 
         <%= for err <- upload_errors(@uploads.sticker, entry) do %>
-          <p class="text-sm text-red-300"><%= error_to_string(err) %></p>
+          <p class="text-sm text-red-300 dark:text-gray-300"><%= error_to_string(err) %></p>
         <% end %>
 
-        <button phx-click="cancel-upload" phx-value-ref="<%= entry.ref %>" class="mt-2 leading-6 px-2 rounded bg-red-200 text-red-700 hover:bg-red-300 transition">cancel</button>
+        <button phx-click="cancel-upload" phx-value-ref="<%= entry.ref %>" class="mt-2 leading-6 px-2 rounded bg-red-200 dark:bg-red-800 text-red-700 dark:text-red-300 hover:bg-red-300 dark:hover:bg-red-500 transition">cancel</button>
       </div>
     </div>
   <% end %>
 
   <%= for sticker <- @stickers do %>
-    <div class="flex items-center w-full md:w-1/2 lg:w-1/3 p-3 hover:bg-gray-100 transition">
+    <div class="flex items-center w-full md:w-1/2 lg:w-1/3 p-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition">
       <img src="<%= Media.sticker_cache_busting_cdn_url(sticker) %>" class="w-36 h-36 object-contain hover:bg-gray-200 transition"/>
       <div class="ml-4">
         <p class="font-semibold mb-2"><%= sticker.key %></p>
         <%= if size = sticker.meta[:size] do %>
-          <p class="text-sm text-gray-700">size: <%= format_bytes(size) %></p>
+          <p class="text-sm text-gray-700 dark:text-gray-300">size: <%= format_bytes(size) %></p>
         <% end %>
         <%= if last_modified = sticker.meta[:last_modified] do %>
-          <p class="text-sm text-gray-700">last modified: <%= last_modified %></p>
+          <p class="text-sm text-gray-700 dark:text-gray-300">last modified: <%= last_modified %></p>
         <% end %>
-        <button phx-click="delete-sticker" phx-value-key="<%= sticker.key %>" class="mt-2 leading-6 px-2 rounded bg-red-200 text-red-700 hover:bg-red-300 transition">delete</button>
+        <button phx-click="delete-sticker" phx-value-key="<%= sticker.key %>" class="mt-2 leading-6 px-2 rounded bg-red-200 dark:bg-red-800 text-red-700 dark:text-red-300 hover:bg-red-300 dark:hover:bg-red-500 transition">delete</button>
       </div>
     </div>
   <% end %>

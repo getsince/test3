@@ -2,7 +2,7 @@
   <div class="flex space-x-3">
   <h2 class="text-3xl font-semibold">Pick a user to trace:</h2>
   <form action="#" phx-change="submit" phx-submit="submit">
-    <select name="user" class="block">
+    <select name="user" class="block dark:bg-gray-800">
       <option value="" >Pick one</option>
       <%= options_for_select @user_options, nil %>
     </select>

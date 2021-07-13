@@ -11,36 +11,36 @@ msgid ""
 msgstr ""
 
 #, elixir-format
-#: lib/t/matches.ex:596
+#: lib/t/matches.ex:626
 msgid "%{sender} зовёт тебя пообщаться!"
 msgstr ""
 
 #, elixir-format
-#: lib/t/matches.ex:658
+#: lib/t/matches.ex:688
 msgid "Since: %{sender_name} зовёт тебя пообщаться!\nНе упусти момент, пока %{sender_gender} онлайн 😼\nЗаходи в Since\n"
 msgstr ""
 
 #, elixir-format
-#: lib/t/matches.ex:595 lib/t/matches.ex:655
+#: lib/t/matches.ex:625 lib/t/matches.ex:685
 msgid "Кто-то там"
 msgstr ""
 
 #, elixir-format
-#: lib/t/matches.ex:597
+#: lib/t/matches.ex:627
 msgid "Не упусти момент 😼"
 msgstr ""
 
 #, elixir-format
-#: lib/t/matches.ex:671
+#: lib/t/matches.ex:701
 msgid "он"
 msgstr ""
 
 #, elixir-format
-#: lib/t/matches.ex:670
+#: lib/t/matches.ex:700
 msgid "она"
 msgstr ""
 
 #, elixir-format
-#: lib/t/matches.ex:672
+#: lib/t/matches.ex:702
 msgid "оно"
 msgstr ""

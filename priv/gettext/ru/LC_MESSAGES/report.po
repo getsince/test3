@@ -12,6 +12,6 @@ msgstr ""
 "Plural-Forms: nplurals=3\n"
 
 #, elixir-format
-#: lib/t/accounts.ex:229
+#: lib/t/accounts.ex:242
 msgid "Расскажи, что произошло и мы постараемся помочь. Будем стараться, чтобы подобный опыт не повторился в будущем!"
 msgstr ""

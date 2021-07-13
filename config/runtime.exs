@@ -35,7 +35,7 @@ config :t, Oban,
 
 config :ex_aws,
   json_codec: Jason,
-  region: "eu-central-1"
+  region: "eu-north-1"
 
 if config_env() == :prod do
   config :t, T.Twilio,

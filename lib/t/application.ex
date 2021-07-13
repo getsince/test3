@@ -9,6 +9,7 @@ defmodule T.Application do
   def start(_type, _args) do
     children =
       [
+        {Task.Supervisor, name: T.TaskSupervisor},
         T.PromEx,
         {Finch, name: T.Finch},
         T.Twilio,

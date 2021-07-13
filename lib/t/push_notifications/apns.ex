@@ -15,6 +15,7 @@ defmodule T.PushNotifications.APNS do
       [_, _] = fails -> fails
     end
     |> List.wrap()
+    |> List.flatten()
   end
 
   defp topic do
@@ -43,8 +44,6 @@ defmodule T.PushNotifications.APNS do
       expiration: 0,
       payload: payload
     })
-    # TODO
-    |> List.flatten()
   end
 
   def pushkit_call(device_ids, payload) when is_list(device_ids) do

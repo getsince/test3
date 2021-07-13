@@ -6,7 +6,7 @@ defmodule T.Media.S3Client do
     %{status_code: 200, body: %{is_truncated: "false", contents: contents}} =
       bucket
       |> ExAws.S3.list_objects()
-      |> ExAws.request!(region: "eu-north-1")
+      |> ExAws.request!()
 
     contents
   end

@@ -7,7 +7,7 @@ defmodule T.Sentry.FinchHTTPClient do
 
   @impl true
   def child_spec do
-    {Finch, name: @finch_name}
+    Supervisor.child_spec({Finch, name: @finch_name}, [])
   end
 
   @impl true

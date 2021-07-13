@@ -58,37 +58,47 @@ defmodule T.Media.Static do
     @table = :ets.new(@table, [:named_table])
     Phoenix.PubSub.subscribe(@pubsub, @topic)
     :timer.send_interval(:timer.minutes(1), :refresh)
-    {:ok, nil, {:continue, :refresh}}
+    {:ok, _refresh_task_ref = nil, {:continue, :refresh}}
   end
 
   @impl true
-  def handle_continue(:refresh, state) do
-    _ = refresh()
-    {:noreply, state}
+  def handle_continue(:refresh, _refresh_task_ref) do
+    {:noreply, async_refresh()}
   end
 
   @impl true
-  def handle_info(:refresh, state) do
-    _ = refresh()
-    {:noreply, state}
+  def handle_info(:refresh, _refresh_task_ref) do
+    {:noreply, async_refresh()}
   end
 
-  def handle_info({__MODULE__, :updated}, state) do
+  def handle_info({__MODULE__, :updated}, _refresh_task_ref) do
     # just in case aws didn't propagate the change yet, schedule another refresh in 10 sec
     Process.send_after(self(), :refresh, :timer.seconds(10))
-    _ = refresh()
-    {:noreply, state}
+    {:noreply, async_refresh()}
   end
 
-  defp refresh do
+  def handle_info({ref, [{_key, _e_tag, _last_modified, _size} | _rest] = ets_rows}, ref) do
+    Process.demonitor(ref, [:flush])
     true = :ets.delete_all_objects(@table)
+    Enum.map(ets_rows, fn ets_row -> true = :ets.insert(@table, ets_row) end)
+    {:noreply, nil}
+  end
 
-    Enum.map(Media.list_static_files(), fn object ->
-      %{e_tag: e_tag, key: key, last_modified: last_modified, size: size} = object
-      e_tag = String.replace(e_tag, "\"", "")
-      ets_row = {key, e_tag, last_modified, size}
-      true = :ets.insert(@table, ets_row)
-      Object.new(ets_row)
-    end)
+  def handle_info({:DOWN, ref, :process, _pid, _error}, ref) do
+    Process.send_after(self(), :refresh, :timer.seconds(3))
+    {:noreply, nil}
+  end
+
+  defp async_refresh do
+    task =
+      Task.Supervisor.async_nolink(T.TaskSupervisor, fn ->
+        Enum.map(Media.list_static_files(), fn object ->
+          %{e_tag: e_tag, key: key, last_modified: last_modified, size: size} = object
+          e_tag = String.replace(e_tag, "\"", "")
+          _ets_row = {key, e_tag, last_modified, size}
+        end)
+      end)
+
+    task.ref
   end
 end

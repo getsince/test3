@@ -10,8 +10,8 @@ defmodule TWeb.FeedChannel do
     continue_join(user_id, params, socket)
   end
 
-  # yabloko
-  defp continue_join("00000177-651c-43d4-b8e8-56408d820000", _params, socket) do
+  # apple
+  defp continue_join("0000017a-a0f0-c00e-0242-ac1100040000", _params, socket) do
     %{screen_width: screen_width, current_user: current_user} = socket.assigns
 
     my_profile = Accounts.get_profile!(current_user)

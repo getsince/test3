@@ -200,12 +200,15 @@ defmodule T.Feeds do
       "00000177-868a-728a-0242-ac1100030000"
     ]
 
-    ordered_profiles(user_ids)
+    Profile
+    |> where([p], p.user_id in ^user_ids)
+    |> Repo.all()
+    |> order_profiles(user_ids)
   end
 
   # todo remove
-  @spec yabloko_feed :: [%Profile{}]
-  def yabloko_feed do
+  @spec yabloko_feed(Ecto.UUID.t()) :: [%Profile{}]
+  def yabloko_feed(user_id) do
     # My,
     # 02
     # 03
@@ -226,17 +229,20 @@ defmodule T.Feeds do
       "0000017a-483e-7c55-0242-ac1100030000"
     ]
 
-    ordered_profiles(user_ids)
+    reported_user_ids = reported_user_ids_q(user_id)
+
+    Profile
+    |> where([p], p.user_id in ^user_ids)
+    |> where([p], p.user_id not in subquery(reported_user_ids))
+    |> Repo.all()
+    |> order_profiles(user_ids)
   end
 
-  defp ordered_profiles(user_ids) do
-    profiles =
-      Profile
-      |> where([p], p.user_id in ^user_ids)
-      |> Repo.all()
-      |> Map.new(fn profile -> {profile.user_id, profile} end)
+  @spec order_profiles([%Profile{}], [Ecto.UUID.t()]) :: [%Profile{}]
+  defp order_profiles(profiles, order) do
+    profiles = Map.new(profiles, fn profile -> {profile.user_id, profile} end)
 
-    user_ids
+    order
     |> Enum.map(fn user_id -> profiles[user_id] end)
     |> Enum.reject(&is_nil/1)
   end

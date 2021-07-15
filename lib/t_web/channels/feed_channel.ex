@@ -11,16 +11,16 @@ defmodule TWeb.FeedChannel do
   end
 
   # apple
-  defp continue_join("0000017a-a0f0-c00e-0242-ac1100040000" = user_id, _params, socket) do
-    %{screen_width: screen_width, current_user: current_user} = socket.assigns
+  # defp continue_join("0000017a-a0f0-c00e-0242-ac1100040000" = user_id, _params, socket) do
+  #   %{screen_width: screen_width, current_user: current_user} = socket.assigns
 
-    my_profile = Accounts.get_profile!(current_user)
-    socket = assign(socket, profile: my_profile)
+  #   my_profile = Accounts.get_profile!(current_user)
+  #   socket = assign(socket, profile: my_profile)
 
-    feed = Feeds.yabloko_feed(user_id)
-    socket = assign(socket, next_ids: [])
-    {:ok, %{feed: render_profiles(feed, screen_width)}, socket}
-  end
+  #   feed = Feeds.yabloko_feed(user_id)
+  #   socket = assign(socket, next_ids: [])
+  #   {:ok, %{feed: render_profiles(feed, screen_width)}, socket}
+  # end
 
   # everyone else
   defp continue_join(_user_id, params, socket) do

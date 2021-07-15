@@ -190,6 +190,7 @@ defmodule T.Feeds do
 
   ######################### FEED #########################
 
+  # TODO remove
   @spec onboarding_feed :: [%Profile{}]
   def onboarding_feed do
     user_ids = [
@@ -206,7 +207,7 @@ defmodule T.Feeds do
     |> order_profiles(user_ids)
   end
 
-  # todo remove
+  # TODO remove
   @spec yabloko_feed(Ecto.UUID.t()) :: [%Profile{}]
   def yabloko_feed(user_id) do
     # My,

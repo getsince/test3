@@ -485,11 +485,13 @@ defmodule T.Matches do
     |> Accounts.list_pushkit_devices()
     |> PushNotifications.APNS.pushkit_call(%{"user_id" => caller_id, "name" => caller_name})
     |> List.flatten()
-    |> case do
-      [%Pigeon.APNS.Notification{response: :success}] -> true
-      [_, _] -> false
-      [] -> false
-    end
+
+    # |> case do
+    #   [%Pigeon.APNS.Notification{response: :success}] -> true
+    #   [_, _] -> false
+    #   [] -> false
+    # end
+    true
   end
 
   ######################## UNMATCH ########################

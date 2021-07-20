@@ -29,4 +29,11 @@ defmodule TWeb.ChannelHelpers do
         {:reply, {:error, %{report: rendered}}, socket}
     end
   end
+
+  def extract_timestamp(raw) do
+    if raw do
+      {:ok, dt, 0} = DateTime.from_iso8601(raw)
+      dt
+    end
+  end
 end

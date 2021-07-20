@@ -6,6 +6,8 @@ defmodule TWeb.UserSocket do
 
   # feed:<user-id>
   channel "feed:*", TWeb.FeedChannel
+  # feed2:<user-id>
+  channel "feed2:*", TWeb.Feed2Channel
   # likes:<user-id>
   channel "likes:*", TWeb.LikeChannel
   # matches:<user-id>
@@ -76,6 +78,7 @@ defmodule TWeb.UserSocket do
   defp on_connect(pid, current_user) do
     %Accounts.User{id: user_id, phone_number: phone_number} = current_user
 
+    # TODO not needed anymore (now that we have active sessions)
     Monitor.monitor(
       pid,
       _on_disconnect = fn ->

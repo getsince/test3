@@ -39,8 +39,8 @@ defmodule TWeb.Feed2Channel do
   end
 
   @impl true
-  def handle_info({Feeds2, :invited, user_id}, socket) do
-    if feed_item = Feeds2.get_feed_item(user_id) do
+  def handle_info({Feeds2, :invited, by_user_id}, socket) do
+    if feed_item = Feeds2.get_feed_item(by_user_id) do
       push(socket, "invite", %{
         "feed_item" => render_feed_item(feed_item, socket.assigns.screen_width)
       })

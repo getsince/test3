@@ -133,6 +133,26 @@ defmodule T.PushNotifications.DispatchJob do
     :ok
   end
 
+  defp handle_type("invite" = type, args) do
+    %{"by_user_id" => by_user_id, "user_id" => user_id} = args
+
+    data = %{
+      "user_id" => by_user_id,
+      "name" => profile_name(by_user_id)
+    }
+
+    user_id |> Accounts.list_apns_devices() |> schedule_apns(type, data)
+
+    :ok
+  end
+
+  defp profile_name(user_id) do
+    Accounts.Profile
+    |> where(user_id: ^user_id)
+    |> select([p], p.name)
+    |> Repo.one()
+  end
+
   defp alive_match(match_id) do
     Matches.Match
     |> where(id: ^match_id)

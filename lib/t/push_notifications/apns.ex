@@ -3,6 +3,8 @@ defmodule T.PushNotifications.APNS do
   alias Pigeon.APNS.Notification
   alias Pigeon.APNS
 
+  alias T.PushNotifications.Helpers
+
   import T.Gettext
 
   def push_all_envs(%Notification{} = n) do
@@ -74,6 +76,19 @@ defmodule T.PushNotifications.APNS do
     |> Notification.put_alert(%{"title" => title, "body" => body})
     |> Notification.put_badge(1)
     |> put_tab("likes")
+  end
+
+  def build_notification("invite", device_id, data) do
+    %{"user_id" => user_id, "name" => name} = data
+
+    # TODO if current locale is ru, don't translitirate
+    name_en = Helpers.translitirate_to_en(name)
+    title = dgettext("apns", "%{name} invited you for a call", name: name_en)
+
+    base_notification(device_id, "invite", %{"user_id" => user_id})
+    |> Notification.put_alert(%{"title" => title})
+    |> Notification.put_badge(1)
+    |> put_tab("invite")
   end
 
   def build_notification("yo", device_id, data) do

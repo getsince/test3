@@ -3,15 +3,20 @@ defmodule T.Feeds2 do
 
   import Ecto.Query
 
-  alias T.Repo
+  alias T.{Repo, Bot}
   alias T.Accounts.UserReport
   alias T.Invites.CallInvite
   alias T.Feeds.{ActiveSession, FeedProfile}
+  alias T.PushNotifications.DispatchJob
 
   ### Active Sessions
 
   @spec activate_session(Ecto.UUID.t(), integer, DateTime.t()) :: %ActiveSession{}
   def activate_session(user_id, duration_in_minutes, reference \\ DateTime.utc_now()) do
+    Bot.async_post_silent_message(
+      "user #{user_id} activated session for #{duration_in_minutes} minutes since #{reference}"
+    )
+
     expires_at = DateTime.add(reference, 60 * duration_in_minutes)
     session = %ActiveSession{user_id: user_id, expires_at: expires_at}
     Repo.insert!(session, on_conflict: :replace_all)
@@ -38,12 +43,53 @@ defmodule T.Feeds2 do
 
   ### Invites
 
-  def invite_active_user(_by_user_id, _user_id) do
-    # invite and broadcast invite
+  @spec invite_active_user(Ecto.UUID.t(), Ecto.UUID.t()) :: boolean
+  def invite_active_user(by_user_id, user_id) do
+    Bot.async_post_silent_message("user #{by_user_id} invited #{user_id}")
+
+    invited? =
+      Repo.transact(fn ->
+        invited? = mark_invited(by_user_id, user_id)
+
+        if invited? do
+          schedule_invite_push_notification(by_user_id, user_id)
+        end
+
+        invited?
+      end)
+
+    if invited? do
+      notify_invited(by_user_id, user_id)
+    end
+
+    invited?
+  end
+
+  defp mark_invited(by_user_id, user_id, inserted_at \\ NaiveDateTime.utc_now()) do
+    invite = %{by_user_id: by_user_id, user_id: user_id, inserted_at: inserted_at}
+
+    CallInvite
+    |> Repo.insert_all([invite], on_conflict: :nothing)
+    |> case do
+      {0, _} -> false
+      {1, _} -> true
+    end
+  end
+
+  defp schedule_invite_push_notification(by_user_id, user_id) do
+    job = DispatchJob.new(%{"type" => "invite", "by_user_id" => by_user_id, "user_id" => user_id})
+    Oban.insert(job)
+  end
+
+  @pubsub T.PubSub
+
+  defp notify_invited(by_user_id, user_id) do
+    topic = invites_topic(user_id)
+    Phoenix.PubSub.broadcast(@pubsub, topic, {__MODULE__, :invited, by_user_id})
   end
 
   def subscribe_for_invites(user_id) do
-    Phoenix.PubSub.subscribe(T.PubSub, invites_topic(user_id))
+    Phoenix.PubSub.subscribe(@pubsub, invites_topic(user_id))
   end
 
   defp invites_topic(user_id) do

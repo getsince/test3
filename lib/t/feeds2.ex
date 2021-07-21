@@ -2,6 +2,7 @@ defmodule T.Feeds2 do
   @moduledoc "Feeds for alternative app. Invites & Calls."
 
   import Ecto.Query
+  import Ecto.Changeset
 
   alias T.{Repo, Bot}
   alias T.Accounts.UserReport
@@ -9,6 +10,7 @@ defmodule T.Feeds2 do
   alias T.Feeds.{ActiveSession, FeedProfile}
   alias T.PushNotifications.DispatchJob
 
+  # TODO broadcast new active sessions to connected phones
   ### Active Sessions
 
   @spec activate_session(Ecto.UUID.t(), integer, DateTime.t()) :: %ActiveSession{}
@@ -17,14 +19,27 @@ defmodule T.Feeds2 do
       "user #{user_id} activated session for #{duration_in_minutes} minutes since #{reference}"
     )
 
-    expires_at = DateTime.add(reference, 60 * duration_in_minutes)
+    expires_at = reference |> DateTime.add(60 * duration_in_minutes) |> DateTime.truncate(:second)
     session = %ActiveSession{user_id: user_id, expires_at: expires_at}
-    Repo.insert!(session, on_conflict: :replace_all)
+    Repo.insert!(session, on_conflict: :replace_all, conflict_target: :user_id)
+  end
+
+  @spec deactivate_session(Ecto.UUID.t()) :: boolean
+  def deactivate_session(user_id) do
+    ActiveSession
+    |> where(user_id: ^user_id)
+    |> Repo.delete_all()
+    |> case do
+      {1, nil} -> true
+      {0, nil} -> false
+    end
   end
 
   @spec get_current_session(Ecto.UUID.t()) :: %ActiveSession{} | nil
   def get_current_session(user_id) do
-    Repo.get(ActiveSession, user_id)
+    ActiveSession
+    |> where(user_id: ^user_id)
+    |> Repo.one()
   end
 
   @spec expired_sessions_q(DateTime.t()) :: Ecto.Query.t()
@@ -47,46 +62,57 @@ defmodule T.Feeds2 do
   def invite_active_user(by_user_id, user_id) do
     Bot.async_post_silent_message("user #{by_user_id} invited #{user_id}")
 
-    invited? =
-      Repo.transact(fn ->
-        invited? = mark_invited(by_user_id, user_id)
-
-        if invited? do
-          schedule_invite_push_notification(by_user_id, user_id)
-        end
-
-        invited?
-      end)
-
-    if invited? do
-      notify_invited(by_user_id, user_id)
-    end
-
-    invited?
-  end
-
-  defp mark_invited(by_user_id, user_id, inserted_at \\ NaiveDateTime.utc_now()) do
-    invite = %{by_user_id: by_user_id, user_id: user_id, inserted_at: inserted_at}
-
-    CallInvite
-    |> Repo.insert_all([invite], on_conflict: :nothing)
+    Ecto.Multi.new()
+    |> mark_invited(by_user_id, user_id)
+    |> schedule_invite_push_notification(by_user_id, user_id)
+    |> Repo.transaction()
+    |> notify_subscribers(:invited)
     |> case do
-      {0, _} -> false
-      {1, _} -> true
+      {:ok, _changes} -> true
+      {:error, :invite, _changeset, _changes} -> false
     end
   end
 
-  defp schedule_invite_push_notification(by_user_id, user_id) do
+  @spec list_received_invites(Ecto.UUID.t()) :: [%CallInvite{}]
+  def list_received_invites(user_id) do
+    CallInvite
+    |> where(user_id: ^user_id)
+    |> Repo.all()
+  end
+
+  defp mark_invited(multi, by_user_id, user_id, inserted_at \\ NaiveDateTime.utc_now()) do
+    invite = %CallInvite{
+      by_user_id: by_user_id,
+      user_id: user_id,
+      inserted_at: NaiveDateTime.truncate(inserted_at, :second)
+    }
+
+    changeset =
+      invite
+      |> change()
+      |> unique_constraint(:duplicate, name: "call_invites_pkey")
+      |> foreign_key_constraint(:by_user_id)
+      |> foreign_key_constraint(:user_id)
+
+    Ecto.Multi.insert(multi, :invite, changeset)
+  end
+
+  defp schedule_invite_push_notification(multi, by_user_id, user_id) do
     job = DispatchJob.new(%{"type" => "invite", "by_user_id" => by_user_id, "user_id" => user_id})
-    Oban.insert(job)
+    Oban.insert(multi, :invite_push_notification, job)
   end
 
   @pubsub T.PubSub
 
-  defp notify_invited(by_user_id, user_id) do
+  defp notify_subscribers({:ok, %{invite: invite}} = success, :invited = event) do
+    %CallInvite{by_user_id: by_user_id, user_id: user_id} = invite
     topic = invites_topic(user_id)
-    Phoenix.PubSub.broadcast(@pubsub, topic, {__MODULE__, :invited, by_user_id})
+    Phoenix.PubSub.broadcast(@pubsub, topic, {__MODULE__, event, by_user_id})
+    success
   end
+
+  defp notify_subscribers({:error, _multi, _reason, _changes} = fail, _event), do: fail
+  defp notify_subscribers({:error, _reason} = fail, _event), do: fail
 
   def subscribe_for_invites(user_id) do
     Phoenix.PubSub.subscribe(@pubsub, invites_topic(user_id))
@@ -98,7 +124,7 @@ defmodule T.Feeds2 do
 
   ### Feed
 
-  @type feed_cursor :: DateTime.t()
+  @type feed_cursor :: String.t()
   @type feed_item :: {%FeedProfile{}, expires_at :: DateTime.t()}
 
   @spec fetch_feed(Ecto.UUID.t(), pos_integer, feed_cursor | nil) :: {[feed_item], feed_cursor}
@@ -107,13 +133,15 @@ defmodule T.Feeds2 do
       active_sessions_q(user_id, feed_cursor)
       |> join(:inner, [s], p in subquery(profiles_q(user_id)), on: s.user_id == p.user_id)
       |> limit(^count)
-      |> select([s, p], {{p, s.expires_at}, s.inserted_at})
+      |> select([s, p], {{p, s.expires_at}, s.flake})
       |> Repo.all()
 
     feed_cursor =
       if last = List.last(feed_items_with_cursors) do
-        {_feed_item, last_session_timestamp} = last
-        last_session_timestamp
+        {_feed_item, last_flake} = last
+        last_flake
+      else
+        feed_cursor
       end
 
     feed_items = Enum.map(feed_items_with_cursors, fn {feed_item, _} -> feed_item end)
@@ -121,14 +149,15 @@ defmodule T.Feeds2 do
     {feed_items, feed_cursor}
   end
 
-  @spec get_feed_item(Ecto.UUID.t()) :: feed_item | nil
-  def get_feed_item(user_id) do
+  @spec get_feed_item(Ecto.UUID.t(), Ecto.UUID.t()) :: feed_item | nil
+  def get_feed_item(by_user_id, user_id) do
+    reported_user_ids = reported_user_ids_q(by_user_id)
+
     p =
       FeedProfile
       |> where(hidden?: false)
       |> where(user_id: ^user_id)
-
-    # TODO filter out reported by current user
+      |> where([p], p.user_id not in subquery(reported_user_ids))
 
     ActiveSession
     |> where(user_id: ^user_id)
@@ -137,17 +166,17 @@ defmodule T.Feeds2 do
     |> Repo.one()
   end
 
-  @spec active_sessions_q(Ecto.UUID.t(), DateTime.t() | nil) :: Ecto.Query.t()
+  @spec active_sessions_q(Ecto.UUID.t(), String.t() | nil) :: Ecto.Query.t()
   defp active_sessions_q(user_id, nil) do
     ActiveSession
-    |> order_by([s], asc: s.inserted_at)
+    |> order_by([s], asc: s.flake)
     |> where([s], s.user_id != ^user_id)
   end
 
-  defp active_sessions_q(user_id, %DateTime{} = last_session_timestamp) do
+  defp active_sessions_q(user_id, last_flake) do
     user_id
     |> active_sessions_q(nil)
-    |> where([s], s.inserted_at > ^last_session_timestamp)
+    |> where([s], s.flake > ^last_flake)
   end
 
   defp reported_user_ids_q(user_id) do
@@ -167,8 +196,8 @@ defmodule T.Feeds2 do
     FeedProfile
     |> where(hidden?: false)
     # TODO is inner join faster?
-    |> where([p], p.user_in not in subquery(reported_user_ids))
+    |> where([p], p.user_id not in subquery(reported_user_ids))
     # TODO might not need this
-    |> where([p], p.user_in not in subquery(invited_user_ids))
+    |> where([p], p.user_id not in subquery(invited_user_ids))
   end
 end

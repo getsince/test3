@@ -5,7 +5,6 @@ defmodule T.Accounts do
 
   import Ecto.Query, warn: false
   import Ecto.Changeset
-  import T.Gettext
 
   alias T.{Repo, Media, Bot}
 
@@ -232,29 +231,29 @@ defmodule T.Accounts do
         {:ok, nil}
       end
     end)
-    |> Ecto.Multi.run(:support, fn _repo, _changes ->
-      {:ok, message} =
-        result =
-        T.Support.add_message(from_user_id, T.Support.admin_id(), %{
-          "kind" => "text",
-          "data" => %{
-            "text" =>
-              dgettext(
-                "report",
-                "Расскажи, что произошло и мы постараемся помочь. Будем стараться, чтобы подобный опыт не повторился в будущем!"
-              )
-          }
-        })
+    # |> Ecto.Multi.run(:support, fn _repo, _changes ->
+    #   {:ok, message} =
+    #     result =
+    #     T.Support.add_message(from_user_id, T.Support.admin_id(), %{
+    #       "kind" => "text",
+    #       "data" => %{
+    #         "text" =>
+    #           dgettext(
+    #             "report",
+    #             "Расскажи, что произошло и мы постараемся помочь. Будем стараться, чтобы подобный опыт не повторился в будущем!"
+    #           )
+    #       }
+    #     })
 
-      # TODO no web here
-      TWeb.Endpoint.broadcast!(
-        "support:#{from_user_id}",
-        "message:new",
-        %{message: TWeb.MessageView.render("show.json", %{message: message})}
-      )
+    #   # TODO no web here
+    #   TWeb.Endpoint.broadcast!(
+    #     "support:#{from_user_id}",
+    #     "message:new",
+    #     %{message: TWeb.MessageView.render("show.json", %{message: message})}
+    #   )
 
-      result
-    end)
+    #   result
+    # end)
     |> Repo.transaction()
     |> case do
       {:ok, _changes} -> :ok

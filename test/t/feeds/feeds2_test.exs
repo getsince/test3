@@ -112,6 +112,8 @@ defmodule T.Feeds2Test do
       refute_receive _anything_else
     end
 
+    # TODO delete invite when either user is reported by the other
+    # TODO delete active session when user gets hidden
     @tag skip: true
     test "when inviter is reported by invitee"
   end
@@ -166,7 +168,7 @@ defmodule T.Feeds2Test do
 
     test "with active users fewer than count", %{me: me} do
       others = insert_list(3, :profile)
-      activate_sessions(others)
+      activate_sessions(others, @reference)
 
       assert {[
                 {%FeedProfile{}, _expires_at = ~U[2021-07-21 12:55:18Z]},
@@ -179,7 +181,7 @@ defmodule T.Feeds2Test do
 
     test "with active users more than count", %{me: me} do
       others = insert_list(3, :profile)
-      activate_sessions(others)
+      activate_sessions(others, @reference)
 
       assert {[
                 {%FeedProfile{}, _expires_at = ~U[2021-07-21 12:55:18Z]},
@@ -199,7 +201,7 @@ defmodule T.Feeds2Test do
     setup do
       me = insert(:user)
       other = insert(:profile)
-      activate_session(other)
+      activate_session(other, @reference)
       {:ok, me: me, other: other}
     end
 
@@ -212,16 +214,5 @@ defmodule T.Feeds2Test do
       assert :ok = Accounts.report_user(me.id, other.user_id, "ugly")
       refute Feeds2.get_feed_item(me.id, other.user_id)
     end
-  end
-
-  defp activate_sessions(users) do
-    Enum.each(users, &activate_session/1)
-  end
-
-  defp activate_session(%User{id: user_id}), do: activate_session(user_id)
-  defp activate_session(%Profile{user_id: user_id}), do: activate_session(user_id)
-
-  defp activate_session(user_id) when is_binary(user_id) do
-    Feeds2.activate_session(user_id, _duration = 60, @reference)
   end
 end

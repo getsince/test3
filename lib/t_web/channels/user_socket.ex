@@ -8,6 +8,8 @@ defmodule TWeb.UserSocket do
   channel "feed:*", TWeb.FeedChannel
   # feed2:<user-id>
   channel "feed2:*", TWeb.Feed2Channel
+  # call:<call-id>
+  channel "call:*", TWeb.CallChannel
   # likes:<user-id>
   channel "likes:*", TWeb.LikeChannel
   # matches:<user-id>

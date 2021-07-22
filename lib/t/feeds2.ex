@@ -11,6 +11,7 @@ defmodule T.Feeds2 do
   alias T.PushNotifications.DispatchJob
 
   # TODO broadcast new active sessions to connected phones
+
   ### Active Sessions
 
   @spec activate_session(Ecto.UUID.t(), integer, DateTime.t()) :: %ActiveSession{}

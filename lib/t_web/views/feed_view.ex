@@ -1,7 +1,7 @@
 defmodule TWeb.FeedView do
   use TWeb, :view
   alias TWeb.ViewHelpers
-  alias T.Feeds.FeedProfile
+  alias T.Feeds.{FeedProfile, ActiveSession}
 
   def render("feed_item.json", %{
         profile: %FeedProfile{} = profile,
@@ -12,6 +12,10 @@ defmodule TWeb.FeedView do
       profile: render_profile(profile, [:user_id, :song, :name, :story], screen_width),
       expires_at: expires_at
     }
+  end
+
+  def render("session.json", %{session: %ActiveSession{expires_at: expires_at}}) do
+    %{expires_at: expires_at}
   end
 
   defp render_profile(profile, fields, screen_width) do

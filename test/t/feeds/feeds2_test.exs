@@ -2,10 +2,8 @@ defmodule T.Feeds2Test do
   use T.DataCase, async: true
   use Oban.Testing, repo: T.Repo
 
-  alias T.Accounts.{User, Profile}
   alias T.Feeds.{ActiveSession, FeedProfile}
   alias T.{Feeds2, Accounts}
-  alias T.Invites.CallInvite
   alias T.PushNotifications.DispatchJob
 
   describe "activate_session/2" do
@@ -120,34 +118,42 @@ defmodule T.Feeds2Test do
 
   describe "deactivate_session/1" do
     setup do
-      [u1, u2] = users = insert_list(2, :user)
+      [p1, p2] = profiles = insert_list(2, :profile)
 
-      :ok = Feeds2.subscribe_for_invites(u1.id)
-      :ok = Feeds2.subscribe_for_invites(u2.id)
+      :ok = Feeds2.subscribe_for_invites(p1.user_id)
+      :ok = Feeds2.subscribe_for_invites(p2.user_id)
 
-      {:ok, users: users}
+      {:ok, profiles: profiles}
     end
 
-    test "invites are cleared when session is deactivated for inviter", %{users: [u1, u2]} do
-      Feeds2.activate_session(u1.id, 60)
-      Feeds2.activate_session(u2.id, 60)
-      assert true == Feeds2.invite_active_user(u1.id, u2.id)
-      assert [%CallInvite{}] = Feeds2.list_received_invites(u2.id)
+    test "invites are cleared when session is deactivated for inviter", %{profiles: [p1, p2]} do
+      Feeds2.activate_session(p1.user_id, 60, @reference)
+      Feeds2.activate_session(p2.user_id, 60, @reference)
 
-      assert true == Feeds2.deactivate_session(u1.id)
+      assert true == Feeds2.invite_active_user(p1.user_id, p2.user_id)
 
-      assert [] == Feeds2.list_received_invites(u2.id)
+      assert [{%FeedProfile{} = feed_profile, _expires_at = ~U[2021-07-21 12:55:18Z]}] =
+               Feeds2.list_received_invites(p2.user_id)
+
+      assert feed_profile.user_id == p1.user_id
+
+      assert true == Feeds2.deactivate_session(p1.user_id)
+      assert [] == Feeds2.list_received_invites(p2.user_id)
     end
 
-    test "invites are cleared when session is deactivated for invitee", %{users: [u1, u2]} do
-      Feeds2.activate_session(u1.id, 60)
-      Feeds2.activate_session(u2.id, 60)
-      assert true == Feeds2.invite_active_user(u1.id, u2.id)
-      assert [%CallInvite{}] = Feeds2.list_received_invites(u2.id)
+    test "invites are cleared when session is deactivated for invitee", %{profiles: [p1, p2]} do
+      Feeds2.activate_session(p1.user_id, 60, @reference)
+      Feeds2.activate_session(p2.user_id, 60, @reference)
 
-      assert true == Feeds2.deactivate_session(u2.id)
+      assert true == Feeds2.invite_active_user(p1.user_id, p2.user_id)
 
-      assert [] == Feeds2.list_received_invites(u2.id)
+      assert [{%FeedProfile{} = feed_profile, _expires_at = ~U[2021-07-21 12:55:18Z]}] =
+               Feeds2.list_received_invites(p2.user_id)
+
+      assert feed_profile.user_id == p1.user_id
+
+      assert true == Feeds2.deactivate_session(p2.user_id)
+      assert [] == Feeds2.list_received_invites(p2.user_id)
     end
   end
 

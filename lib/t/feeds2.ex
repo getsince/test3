@@ -76,10 +76,16 @@ defmodule T.Feeds2 do
     end
   end
 
-  @spec list_received_invites(Ecto.UUID.t()) :: [%CallInvite{}]
+  # TODO accept cursor
+  @spec list_received_invites(Ecto.UUID.t()) :: [feed_item]
   def list_received_invites(user_id) do
+    profiles_q = not_reported_profiles_q(user_id)
+
     CallInvite
     |> where(user_id: ^user_id)
+    |> join(:inner, [i], s in ActiveSession, on: i.by_user_id == s.user_id)
+    |> join(:inner, [..., s], p in subquery(profiles_q), on: p.user_id == s.user_id)
+    |> select([i, s, p], {p, s.expires_at})
     |> Repo.all()
   end
 
@@ -132,9 +138,11 @@ defmodule T.Feeds2 do
 
   @spec fetch_feed(Ecto.UUID.t(), pos_integer, feed_cursor | nil) :: {[feed_item], feed_cursor}
   def fetch_feed(user_id, count, feed_cursor) do
+    profiles_q = not_invited_profiles_q(user_id)
+
     feed_items_with_cursors =
       active_sessions_q(user_id, feed_cursor)
-      |> join(:inner, [s], p in subquery(profiles_q(user_id)), on: s.user_id == p.user_id)
+      |> join(:inner, [s], p in subquery(profiles_q), on: s.user_id == p.user_id)
       |> limit(^count)
       |> select([s, p], {{p, s.expires_at}, s.flake})
       |> Repo.all()
@@ -154,13 +162,10 @@ defmodule T.Feeds2 do
 
   @spec get_feed_item(Ecto.UUID.t(), Ecto.UUID.t()) :: feed_item | nil
   def get_feed_item(by_user_id, user_id) do
-    reported_user_ids = reported_user_ids_q(by_user_id)
-
     p =
-      FeedProfile
-      |> where(hidden?: false)
+      by_user_id
+      |> not_reported_profiles_q()
       |> where(user_id: ^user_id)
-      |> where([p], p.user_id not in subquery(reported_user_ids))
 
     ActiveSession
     |> where(user_id: ^user_id)
@@ -192,14 +197,21 @@ defmodule T.Feeds2 do
     union(q1, ^q2)
   end
 
-  defp profiles_q(user_id) do
-    reported_user_ids = reported_user_ids_q(user_id)
+  defp not_hidden_profiles_q do
+    where(FeedProfile, hidden?: false)
+  end
+
+  defp not_reported_profiles_q(user_id) do
+    not_hidden_profiles_q()
+    # TODO is inner join faster?
+    |> where([p], p.user_id not in subquery(reported_user_ids_q(user_id)))
+  end
+
+  defp not_invited_profiles_q(user_id) do
     invited_user_ids = invited_user_ids(user_id)
 
-    FeedProfile
-    |> where(hidden?: false)
-    # TODO is inner join faster?
-    |> where([p], p.user_id not in subquery(reported_user_ids))
+    user_id
+    |> not_reported_profiles_q()
     # TODO might not need this
     |> where([p], p.user_id not in subquery(invited_user_ids))
   end

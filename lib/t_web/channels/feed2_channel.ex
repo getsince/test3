@@ -29,6 +29,13 @@ defmodule TWeb.Feed2Channel do
     {:reply, {:ok, %{"feed" => render_feed(feed, screen_width), "cursor" => cursor}}, socket}
   end
 
+  # TODO accept cursor?
+  def handle_in("invites", _params, socket) do
+    %{current_user: user, screen_width: screen_width} = socket.assigns
+    invites = Feeds2.list_received_invites(user.id)
+    {:reply, {:ok, %{"invites" => render_feed(invites, screen_width)}}, socket}
+  end
+
   def handle_in("invite", %{"user_id" => user_id}, socket) do
     invited? = Feeds2.invite_active_user(socket.assigns.current_user.id, user_id)
     {:reply, {:ok, %{"invited" => invited?}}, socket}

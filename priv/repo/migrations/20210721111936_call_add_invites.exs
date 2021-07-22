@@ -1,6 +1,9 @@
 defmodule T.Repo.Migrations.AddCallInvites do
   use Ecto.Migration
 
+  # TODO add flake
+  # TODO unqie index flake asc
+
   def change do
     create table(:call_invites, primary_key: false) do
       add :by_user_id,

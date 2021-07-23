@@ -10,15 +10,15 @@ defmodule TWeb.CallChannel do
     socket = assign(socket, call_id: call_id)
 
     case Calls.get_call_role_and_peer(call_id, current_user.id) do
-      {:ok, :caller = role, peer} ->
+      {:ok, :caller = role, _peer} ->
         send(self(), :after_join)
         reply = %{ice_servers: Calls.ice_servers()}
-        {:ok, reply, assign(socket, role: role, peer: peer.user_id)}
+        {:ok, reply, assign(socket, role: role)}
 
       {:ok, :called = role, peer} ->
         send(self(), :after_join)
         reply = %{caller: render_peer(peer, screen_width), ice_servers: Calls.ice_servers()}
-        {:ok, reply, assign(socket, role: role, peer: peer.user_id)}
+        {:ok, reply, assign(socket, role: role)}
 
       {:error, :not_found} ->
         {:error, %{"reason" => "not_found"}}

@@ -3,6 +3,7 @@ defmodule T.Factory do
   alias T.Accounts.{User, Profile, GenderPreference}
   alias T.Feeds.{ProfileLike, SeenProfile, Feeded}
   alias T.Matches.{Match, Message, Timeslot}
+  alias T.Calls.Call
 
   def user_factory do
     %User{phone_number: phone_number()}
@@ -43,6 +44,13 @@ defmodule T.Factory do
 
   def timeslot_factory do
     %Timeslot{}
+  end
+
+  def call_factory do
+    %Call{
+      caller: build(:user),
+      called: build(:user)
+    }
   end
 
   def phone_number do

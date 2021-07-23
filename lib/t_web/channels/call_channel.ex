@@ -1,4 +1,5 @@
 defmodule TWeb.CallChannel do
+  @moduledoc "Calls for alternative app."
   use TWeb, :channel
 
   alias TWeb.Presence
@@ -33,20 +34,25 @@ defmodule TWeb.CallChannel do
     me = socket.assigns.current_user.id
     # TODO check that the peer is online?
     broadcast_from!(socket, "peer-message", %{"from" => me, "body" => body})
-    {:noreply, socket}
+    {:reply, :ok, socket}
   end
 
   def handle_in("pick-up", _params, socket) do
-    :called = socket.assigns.role
-    broadcast_from!(socket, "pick-up", %{})
-    {:noreply, socket}
+    case socket.assigns.role do
+      :called ->
+        broadcast_from!(socket, "pick-up", %{})
+        {:reply, :ok, socket}
+
+      :caller ->
+        {:reply, {:error, %{"reason" => "not_called"}}, socket}
+    end
   end
 
   def handle_in("hang-up", _params, socket) do
     # also when last user disconnects, call ends as well?
     broadcast_from!(socket, "hang-up", %{})
     :ok = Calls.end_call(socket.assigns.call_id)
-    {:noreply, socket}
+    {:reply, :ok, socket}
   end
 
   @impl true

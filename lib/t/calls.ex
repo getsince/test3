@@ -1,6 +1,5 @@
 defmodule T.Calls do
-  @moduledoc "Handles call signalling"
-
+  @moduledoc false
   import Ecto.Query
 
   alias T.{Repo, Twilio, Accounts}
@@ -59,9 +58,9 @@ defmodule T.Calls do
     |> or_where(called_id: ^user_id)
     |> Repo.one()
     |> case do
+      %Call{ended_at: %DateTime{}} -> {:error, :ended}
       %Call{caller_id: ^user_id, called_id: peer_id} -> {:ok, :caller, fetch_profile(peer_id)}
       %Call{called_id: ^user_id, caller_id: peer_id} -> {:ok, :called, fetch_profile(peer_id)}
-      %Call{ended_at: %DateTime{}} -> {:error, :ended}
       nil -> {:error, :not_found}
     end
   end

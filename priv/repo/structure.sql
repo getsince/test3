@@ -293,7 +293,7 @@ CREATE TABLE public.profiles (
     tastes jsonb DEFAULT '{}'::jsonb NOT NULL,
     times_liked integer DEFAULT 0 NOT NULL,
     "hidden?" boolean DEFAULT true NOT NULL,
-    last_active timestamp(0) without time zone DEFAULT '2021-07-22 09:14:40.031316'::timestamp without time zone NOT NULL,
+    last_active timestamp(0) without time zone DEFAULT '2021-07-23 15:25:39.303254'::timestamp without time zone NOT NULL,
     song jsonb,
     story jsonb,
     location public.geography(Point,4326),
@@ -616,6 +616,13 @@ ALTER TABLE ONLY public.users
 
 ALTER TABLE ONLY public.users_tokens
     ADD CONSTRAINT users_tokens_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: active_sessions_flake_asc_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX active_sessions_flake_asc_index ON public.active_sessions USING btree (flake);
 
 
 --

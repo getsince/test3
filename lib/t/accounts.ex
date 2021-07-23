@@ -6,7 +6,7 @@ defmodule T.Accounts do
   import Ecto.Query, warn: false
   import Ecto.Changeset
 
-  alias T.{Repo, Media, Bot}
+  alias T.{Repo, Media, Bot, Feeds2}
 
   alias T.Accounts.{
     User,
@@ -231,6 +231,10 @@ defmodule T.Accounts do
         {:ok, nil}
       end
     end)
+    |> Ecto.Multi.run(:uninvite, fn _repo, _changes ->
+      {deleted_count, _} = Feeds2.delete_invites_for_reported(from_user_id, on_user_id)
+      {:ok, deleted_count}
+    end)
     # |> Ecto.Multi.run(:support, fn _repo, _changes ->
     #   {:ok, message} =
     #     result =
@@ -301,6 +305,14 @@ defmodule T.Accounts do
       |> repo.update_all(set: [hidden?: true])
 
       {:ok, nil}
+    end)
+    |> Ecto.Multi.run(:uninvite, fn _repo, _changes ->
+      {deleted_count, _} = Feeds2.delete_invites_for_blocked(user_id)
+      {:ok, deleted_count}
+    end)
+    |> Ecto.Multi.run(:deactivate_session, fn _repo, _changes ->
+      deactivated? = Feeds2.deactivate_session(user_id)
+      {:ok, deactivated?}
     end)
     |> unmatch_all(user_id)
     |> Repo.transaction()

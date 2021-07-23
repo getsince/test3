@@ -110,8 +110,6 @@ defmodule T.Feeds2Test do
       refute_receive _anything_else
     end
 
-    # TODO delete invite when either user is reported by the other
-    # TODO delete active session when user gets hidden
     @tag skip: true
     test "when inviter is reported by invitee"
   end

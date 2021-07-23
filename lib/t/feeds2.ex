@@ -186,6 +186,20 @@ defmodule T.Feeds2 do
     Oban.insert(multi, :invite_push_notification, job)
   end
 
+  def delete_invites_for_blocked(blocked_user_id) do
+    CallInvite
+    |> where(by_user_id: ^blocked_user_id)
+    |> or_where(user_id: ^blocked_user_id)
+    |> Repo.delete_all()
+  end
+
+  def delete_invites_for_reported(reporter_id, reported_id) do
+    CallInvite
+    |> where([i], i.by_user_id == ^reporter_id and i.user_id == ^reported_id)
+    |> or_where([i], i.user_id == ^reporter_id and i.by_user_id == ^reported_id)
+    |> Repo.delete_all()
+  end
+
   ### Feed
 
   @type feed_cursor :: String.t()

@@ -149,6 +149,102 @@ defmodule TWeb.Feed2ChannelTest do
         assert reply == %{"invited" => true}
       end)
 
+      assert_push "activated", push
+
+      assert push == %{
+               "feed_item" => %{
+                 expires_at: ~U[2021-07-21 12:55:18Z],
+                 profile: %{
+                   name: "that",
+                   song: %{
+                     "album_cover" =>
+                       "https://is1-ssl.mzstatic.com/image/thumb/Music128/v4/1d/b0/2d/1db02d23-6e40-ae43-29c9-ff31a854e8aa/074643865326.jpg/1000x1000bb.jpeg",
+                     "artist_name" => "Bruce Springsteen",
+                     "id" => "203709340",
+                     "preview_url" =>
+                       "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview71/v4/ab/b3/48/abb34824-1510-708e-57d7-870206be5ba2/mzaf_8515316732595919510.plus.aac.p.m4a",
+                     "song_name" => "Dancing In the Dark"
+                   },
+                   story: [
+                     %{
+                       "background" => %{
+                         "proxy" =>
+                           "https://d1234.cloudfront.net/e9a8Yq80qbgr7QH43crdCBPWdt6OACyhD5xWN8ysFok/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Bob3RvLmpwZw",
+                         "s3_key" => "photo.jpg"
+                       },
+                       "labels" => [
+                         %{
+                           "dimensions" => [400, 800],
+                           "position" => 'dd',
+                           "rotation" => 21,
+                           "type" => "text",
+                           "value" => "just some text",
+                           "zoom" => 1.2
+                         },
+                         %{
+                           "answer" => "msu",
+                           "dimensions" => [400, 800],
+                           "position" => [150, 150],
+                           "question" => "university",
+                           "type" => "answer",
+                           "value" => "🥊\nменя воспитала улица"
+                         }
+                       ]
+                     }
+                   ],
+                   user_id: me.id
+                 }
+               }
+             }
+
+      assert_push "activated", push
+
+      assert push == %{
+               "feed_item" => %{
+                 expires_at: ~U[2021-07-21 12:55:18Z],
+                 profile: %{
+                   name: "that",
+                   song: %{
+                     "album_cover" =>
+                       "https://is1-ssl.mzstatic.com/image/thumb/Music128/v4/1d/b0/2d/1db02d23-6e40-ae43-29c9-ff31a854e8aa/074643865326.jpg/1000x1000bb.jpeg",
+                     "artist_name" => "Bruce Springsteen",
+                     "id" => "203709340",
+                     "preview_url" =>
+                       "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview71/v4/ab/b3/48/abb34824-1510-708e-57d7-870206be5ba2/mzaf_8515316732595919510.plus.aac.p.m4a",
+                     "song_name" => "Dancing In the Dark"
+                   },
+                   story: [
+                     %{
+                       "background" => %{
+                         "proxy" =>
+                           "https://d1234.cloudfront.net/e9a8Yq80qbgr7QH43crdCBPWdt6OACyhD5xWN8ysFok/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Bob3RvLmpwZw",
+                         "s3_key" => "photo.jpg"
+                       },
+                       "labels" => [
+                         %{
+                           "dimensions" => [400, 800],
+                           "position" => 'dd',
+                           "rotation" => 21,
+                           "type" => "text",
+                           "value" => "just some text",
+                           "zoom" => 1.2
+                         },
+                         %{
+                           "answer" => "msu",
+                           "dimensions" => [400, 800],
+                           "position" => [150, 150],
+                           "question" => "university",
+                           "type" => "answer",
+                           "value" => "🥊\nменя воспитала улица"
+                         }
+                       ]
+                     }
+                   ],
+                   user_id: other.id
+                 }
+               }
+             }
+
       assert_push "invite", push
 
       assert push == %{

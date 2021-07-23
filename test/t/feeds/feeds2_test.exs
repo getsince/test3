@@ -43,8 +43,8 @@ defmodule T.Feeds2Test do
              ] = Feeds2.expired_sessions(@reference)
     end
 
-    test "delete_expired_sessions/0 deletes expired sessions" do
-      assert {2, nil} == Feeds2.delete_expired_sessions(@reference)
+    test "delete_expired_sessions/0 deletes expired sessions", %{users: [u1, u2, _u3]} do
+      assert {2, [u1.id, u2.id]} == Feeds2.delete_expired_sessions(@reference)
       assert [] == Feeds2.expired_sessions(@reference)
     end
   end

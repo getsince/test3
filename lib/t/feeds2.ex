@@ -10,11 +10,71 @@ defmodule T.Feeds2 do
   alias T.Feeds.{ActiveSession, FeedProfile}
   alias T.PushNotifications.DispatchJob
 
-  # TODO broadcast new active sessions to connected phones
-  # TODO broadcast deleted user ids when sessions for them are deleted
+  ### PubSub
+
+  # TODO optimise pubsub:
+  # instead of single topic, use `up-to-filter` with each subscriber providing a value up to which
+  # they are subscribed, and if the event is below that value -> send it, if not -> don't send it
+
+  @pubsub T.PubSub
+
+  defp notify_subscribers({:ok, %{invite: invite}} = success, :invited = event) do
+    %CallInvite{by_user_id: by_user_id, user_id: user_id} = invite
+    topic = invites_topic(user_id)
+    broadcast(topic, {__MODULE__, event, by_user_id})
+    success
+  end
+
+  defp notify_subscribers(%ActiveSession{user_id: user_id} = session, :activated = event) do
+    broadcast(activated_topic(), {__MODULE__, event, user_id})
+    session
+  end
+
+  defp notify_subscribers({:error, _multi, _reason, _changes} = fail, _event), do: fail
+  defp notify_subscribers({:error, _reason} = fail, _event), do: fail
+
+  defp notify_deactivated(user_id) when is_binary(user_id) do
+    broadcast(deactivated_topic(), {__MODULE__, :deactivated, user_id})
+  end
+
+  defp notify_deactivated(user_ids) when is_list(user_ids) do
+    topic = deactivated_topic()
+
+    for user_id <- user_ids do
+      broadcast(topic, {__MODULE__, :deactivated, user_id})
+    end
+  end
+
+  def subscribe_for_invites(user_id) do
+    subscribe(invites_topic(user_id))
+  end
+
+  def subscribe_for_activated_sessions do
+    subscribe(activated_topic())
+  end
+
+  def subscribe_for_deactivated_sessions do
+    subscribe(deactivated_topic())
+  end
+
+  defp broadcast(topic, message) do
+    Phoenix.PubSub.broadcast(@pubsub, topic, message)
+  end
+
+  defp subscribe(topic) do
+    Phoenix.PubSub.subscribe(@pubsub, topic)
+  end
+
+  defp invites_topic(user_id) do
+    "__invites:" <> String.downcase(user_id)
+  end
+
+  defp deactivated_topic, do: "__deact:"
+  defp activated_topic, do: "__act:"
 
   ### Active Sessions
 
+  # TODO test pubsub
   @spec activate_session(Ecto.UUID.t(), integer, DateTime.t()) :: %ActiveSession{}
   def activate_session(user_id, duration_in_minutes, reference \\ DateTime.utc_now()) do
     Bot.async_post_silent_message(
@@ -22,18 +82,25 @@ defmodule T.Feeds2 do
     )
 
     expires_at = reference |> DateTime.add(60 * duration_in_minutes) |> DateTime.truncate(:second)
-    session = %ActiveSession{user_id: user_id, expires_at: expires_at}
-    Repo.insert!(session, on_conflict: :replace_all, conflict_target: :user_id)
+
+    %ActiveSession{user_id: user_id, expires_at: expires_at}
+    |> Repo.insert!(on_conflict: :replace_all, conflict_target: :user_id)
+    |> notify_subscribers(:activated)
   end
 
+  # TODO test pubsub
   @spec deactivate_session(Ecto.UUID.t()) :: boolean
   def deactivate_session(user_id) do
     ActiveSession
     |> where(user_id: ^user_id)
     |> Repo.delete_all()
     |> case do
-      {1, nil} -> true
-      {0, nil} -> false
+      {1, nil} ->
+        notify_deactivated(user_id)
+        true
+
+      {0, nil} ->
+        false
     end
   end
 
@@ -54,8 +121,17 @@ defmodule T.Feeds2 do
     reference |> expired_sessions_q() |> Repo.all()
   end
 
+  # TODO test pubsub
   def delete_expired_sessions(reference \\ DateTime.utc_now()) do
-    reference |> expired_sessions_q() |> Repo.delete_all()
+    {_count, user_ids} =
+      result =
+      reference
+      |> expired_sessions_q()
+      |> select([s], s.user_id)
+      |> Repo.delete_all()
+
+    notify_deactivated(user_ids)
+    result
   end
 
   ### Invites
@@ -108,26 +184,6 @@ defmodule T.Feeds2 do
   defp schedule_invite_push_notification(multi, by_user_id, user_id) do
     job = DispatchJob.new(%{"type" => "invite", "by_user_id" => by_user_id, "user_id" => user_id})
     Oban.insert(multi, :invite_push_notification, job)
-  end
-
-  @pubsub T.PubSub
-
-  defp notify_subscribers({:ok, %{invite: invite}} = success, :invited = event) do
-    %CallInvite{by_user_id: by_user_id, user_id: user_id} = invite
-    topic = invites_topic(user_id)
-    Phoenix.PubSub.broadcast(@pubsub, topic, {__MODULE__, event, by_user_id})
-    success
-  end
-
-  defp notify_subscribers({:error, _multi, _reason, _changes} = fail, _event), do: fail
-  defp notify_subscribers({:error, _reason} = fail, _event), do: fail
-
-  def subscribe_for_invites(user_id) do
-    Phoenix.PubSub.subscribe(@pubsub, invites_topic(user_id))
-  end
-
-  defp invites_topic(user_id) do
-    "__invites:" <> String.downcase(user_id)
   end
 
   ### Feed

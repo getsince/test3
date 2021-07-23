@@ -6,13 +6,14 @@ defmodule TWeb.Feed2Channel do
   alias T.{Feeds2, Calls}
 
   # TODO presence per active user
-  # TODO notify current user when other users become inactive
-  # TODO notify current user when their session becomes inactive
 
   @impl true
   def join("feed2:" <> user_id, _params, socket) do
     user_id = ChannelHelpers.verify_user_id(socket, user_id)
+
     :ok = Feeds2.subscribe_for_invites(user_id)
+    :ok = Feeds2.subscribe_for_activated_sessions()
+    :ok = Feeds2.subscribe_for_deactivated_sessions()
 
     current_session =
       if session = Feeds2.get_current_session(user_id) do
@@ -55,9 +56,15 @@ defmodule TWeb.Feed2Channel do
 
   def handle_in("activate-session", %{"duration" => duration}, socket) do
     %{current_user: user} = socket.assigns
-    # TODO subscribe for session timeout
     Feeds2.activate_session(user.id, duration)
     {:reply, :ok, socket}
+  end
+
+  # TODO test
+  def handle_in("deactivate-session", _params, socket) do
+    %{current_user: user} = socket.assigns
+    deactivated? = Feeds2.deactivate_session(user.id)
+    {:reply, {:ok, %{"deactivated" => deactivated?}}, socket}
   end
 
   def handle_in("report", %{"report" => report}, socket) do
@@ -74,6 +81,27 @@ defmodule TWeb.Feed2Channel do
       })
     end
 
+    {:noreply, socket}
+  end
+
+  # TODO test
+  # TODO optimise pubsub, and use fastlane (one encode per screen width) or move screen width logic to the client
+  def handle_info({Feeds2, :activated, user_id}, socket) do
+    %{current_user: user, screen_width: screen_width} = socket.assigns
+
+    if feed_item = Feeds2.get_feed_item(user.id, user_id) do
+      push(socket, "activated", %{
+        "feed_item" => render_feed_item(feed_item, screen_width)
+      })
+    end
+
+    {:noreply, socket}
+  end
+
+  # TODO test
+  # TODO optimise pubsub, and use fastlane
+  def handle_info({Feeds2, :deactivated, user_id}, socket) do
+    push(socket, "deactivated", %{"user_id" => user_id})
     {:noreply, socket}
   end
 

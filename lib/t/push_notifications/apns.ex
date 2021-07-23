@@ -17,7 +17,6 @@ defmodule T.PushNotifications.APNS do
       [_, _] = fails -> fails
     end
     |> List.wrap()
-    |> List.flatten()
   end
 
   defp topic do

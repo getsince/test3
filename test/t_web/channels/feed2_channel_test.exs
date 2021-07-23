@@ -64,6 +64,7 @@ defmodule TWeb.Feed2ChannelTest do
                %{
                  expires_at: ~U[2021-07-21 12:55:18Z],
                  profile: %{
+                   name: nil,
                    song: nil,
                    story: [
                      %{
@@ -81,6 +82,7 @@ defmodule TWeb.Feed2ChannelTest do
                %{
                  expires_at: ~U[2021-07-21 12:55:18Z],
                  profile: %{
+                   name: nil,
                    song: nil,
                    story: [
                      %{
@@ -108,6 +110,7 @@ defmodule TWeb.Feed2ChannelTest do
                %{
                  expires_at: ~U[2021-07-21 12:55:18Z],
                  profile: %{
+                   name: nil,
                    song: nil,
                    story: [
                      %{
@@ -152,6 +155,7 @@ defmodule TWeb.Feed2ChannelTest do
                "feed_item" => %{
                  expires_at: ~U[2021-07-21 12:55:18Z],
                  profile: %{
+                   name: "that",
                    song: %{
                      "album_cover" =>
                        "https://is1-ssl.mzstatic.com/image/thumb/Music128/v4/1d/b0/2d/1db02d23-6e40-ae43-29c9-ff31a854e8aa/074643865326.jpg/1000x1000bb.jpeg",
@@ -203,6 +207,7 @@ defmodule TWeb.Feed2ChannelTest do
                  %{
                    expires_at: ~U[2021-07-21 12:55:18Z],
                    profile: %{
+                     name: "that",
                      song: %{
                        "album_cover" =>
                          "https://is1-ssl.mzstatic.com/image/thumb/Music128/v4/1d/b0/2d/1db02d23-6e40-ae43-29c9-ff31a854e8aa/074643865326.jpg/1000x1000bb.jpeg",

@@ -3,10 +3,10 @@ defmodule TWeb.Feed2Channel do
 
   alias TWeb.ChannelHelpers
   alias T.Feeds.FeedProfile
-  alias T.Feeds2
+  alias T.{Feeds2, Calls}
 
   # TODO presence per active user
-  # TODO notify current user than other users become inactive
+  # TODO notify current user when other users become inactive
   # TODO notify current user when their session becomes inactive
 
   @impl true
@@ -41,11 +41,16 @@ defmodule TWeb.Feed2Channel do
     {:reply, {:ok, %{"invited" => invited?}}, socket}
   end
 
-  def handle_in("call", %{"user_id" => user_id}, socket) do
-    # TODO check there is invite
-    # send push, return call uuid
-    call_id = Ecto.Bigflake.UUID.generate()
-    {:reply, {:ok, %{"call_id" => call_id}}, socket}
+  def handle_in("call", %{"user_id" => called}, socket) do
+    caller = socket.assgins.current_user.id
+
+    reply =
+      case Calls.call(caller, called) do
+        {:ok, call_id} -> {:ok, %{"call_id" => call_id}}
+        {:error, reason} -> {:error, %{"reason" => reason}}
+      end
+
+    {:reply, reply, socket}
   end
 
   def handle_in("activate-session", %{"duration" => duration}, socket) do

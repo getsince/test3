@@ -11,7 +11,6 @@ defmodule T.Feeds2 do
   alias T.PushNotifications.DispatchJob
 
   # TODO broadcast new active sessions to connected phones
-  # TODO delete expired sessions
   # TODO broadcast deleted user ids when sessions for them are deleted
 
   ### Active Sessions

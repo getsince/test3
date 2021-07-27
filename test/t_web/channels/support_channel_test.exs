@@ -4,7 +4,7 @@ defmodule TWeb.SupportChannelTest do
   alias T.Accounts.User
 
   setup do
-    {:ok, %User{} = user} = Accounts.register_user(%{phone_number: phone_number()})
+    {:ok, %User{} = user} = Accounts.register_user_with_phone(%{phone_number: phone_number()})
     {:ok, user: Repo.preload(user, :profile), socket: connected_socket(user)}
   end
 

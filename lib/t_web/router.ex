@@ -75,6 +75,7 @@ defmodule TWeb.Router do
     pipe_through [:api, :fetch_current_user_from_bearer_token, :require_not_authenticated_user]
     post "/request-sms", MobileAuthController, :request_sms
     post "/verify-phone", MobileAuthController, :verify_phone_number
+    post "/verify-apple", MobileAuthController, :verify_apple_id
   end
 
   scope "/api", TWeb do

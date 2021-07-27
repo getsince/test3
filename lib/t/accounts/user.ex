@@ -10,6 +10,7 @@ defmodule T.Accounts.User do
   @foreign_key_type Ecto.Bigflake.UUID
   schema "users" do
     field :phone_number, :string
+    field :apple_id, :string
 
     field :onboarded_at, :utc_datetime
     field :blocked_at, :utc_datetime
@@ -18,13 +19,18 @@ defmodule T.Accounts.User do
     timestamps()
   end
 
-  @doc """
-  A user changeset for registration.
-  """
-  def registration_changeset(user, attrs) do
+  def phone_registration_changeset(user, attrs) do
     user
     |> cast(attrs, [:phone_number])
     |> validate_phone_number()
+  end
+
+  def apple_id_registration_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:apple_id])
+    |> validate_required([:apple_id])
+    |> unsafe_validate_unique(:apple_id, T.Repo)
+    |> unique_constraint(:apple_id)
   end
 
   defp validate_phone_number(changeset) do

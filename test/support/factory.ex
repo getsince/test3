@@ -166,7 +166,7 @@ defmodule T.Factory do
   alias T.Accounts
 
   def registered_user(phone_number \\ phone_number()) do
-    {:ok, user} = Accounts.register_user(%{"phone_number" => phone_number})
+    {:ok, user} = Accounts.register_user_with_phone(%{"phone_number" => phone_number})
     user
   end
 

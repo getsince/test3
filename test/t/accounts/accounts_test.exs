@@ -75,7 +75,7 @@ defmodule T.AccountsTest do
   describe "update_last_active/1" do
     test "it works" do
       {:ok, %{profile: %Profile{user_id: user_id, last_active: last_active}}} =
-        Accounts.register_user(%{phone_number: phone_number()})
+        Accounts.register_user_with_phone(%{phone_number: phone_number()})
 
       assert last_active
 

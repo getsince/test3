@@ -17,7 +17,8 @@ defmodule T.Accounts do
     APNSDevice,
     PushKitDevice,
     GenderPreference,
-    PasswordlessAuth
+    PasswordlessAuth,
+    AppleSignIn
   }
 
   # def subscribe_to_new_users do
@@ -53,9 +54,20 @@ defmodule T.Accounts do
   ## User registration
 
   @doc false
-  def register_user(attrs) do
+  def register_user_with_phone(attrs) do
     Ecto.Multi.new()
-    |> Ecto.Multi.insert(:user, User.registration_changeset(%User{}, attrs))
+    |> Ecto.Multi.insert(:user, User.phone_registration_changeset(%User{}, attrs))
+    |> post_register_multi()
+  end
+
+  def register_user_with_apple_id(attrs) do
+    Ecto.Multi.new()
+    |> Ecto.Multi.insert(:user, User.apple_id_registration_changeset(%User{}, attrs))
+    |> post_register_multi()
+  end
+
+  defp post_register_multi(multi) do
+    multi
     |> Ecto.Multi.insert(
       :profile,
       fn %{user: user} ->
@@ -69,7 +81,7 @@ defmodule T.Accounts do
     |> Repo.transaction()
     |> case do
       {:ok, %{user: user, profile: profile}} ->
-        Bot.async_post_message("new user #{user.phone_number}")
+        Bot.async_post_message("new user #{user.phone_number || user.apple_id}")
         {:ok, %User{user | profile: profile}}
 
       {:error, :user, %Ecto.Changeset{} = changeset, _changes} ->
@@ -105,13 +117,12 @@ defmodule T.Accounts do
     Map.fetch!(demo_phones(), phone_number)
   end
 
-  # TODO test when deleted
   # TODO in one transaction
-  defp get_or_register_user(phone_number) do
+  defp get_or_register_user_with_phone(phone_number) do
     if u = get_user_by_phone_number(phone_number) do
       {:ok, ensure_has_profile(u)}
     else
-      register_user(%{phone_number: phone_number})
+      register_user_with_phone(%{phone_number: phone_number})
     end
   end
 
@@ -164,18 +175,41 @@ defmodule T.Accounts do
     end
   end
 
-  def login_or_register_user(phone_number, code) do
+  def login_or_register_user_with_phone(phone_number, code) do
     Bot.async_post_message("trying to log in #{phone_number} with code=#{code}")
 
     with {:format, {:ok, phone_number}} <- {:format, formatted_phone_number(phone_number)},
          {:code, :ok} <- {:code, verify_code(phone_number, code)},
-         {:reg, {:ok, _user} = success} <- {:reg, get_or_register_user(phone_number)} do
+         {:reg, {:ok, _user} = success} <- {:reg, get_or_register_user_with_phone(phone_number)} do
       success
     else
       {:format, error} -> error
       {:code, error} -> error
       {:reg, error} -> error
     end
+  end
+
+  def login_or_register_user_with_apple_id(id_token) do
+    case AppleSignIn.fields_from_token(id_token) do
+      {:ok, %{id: apple_id}} -> get_or_register_user_with_apple_id(apple_id)
+      {:error, _reason} = failure -> failure
+    end
+  end
+
+  # TODO in one transaction
+  defp get_or_register_user_with_apple_id(apple_id) do
+    if u = get_user_by_apple_id(apple_id) do
+      {:ok, ensure_has_profile(u)}
+    else
+      register_user_with_apple_id(%{apple_id: apple_id})
+    end
+  end
+
+  defp get_user_by_apple_id(apple_id) do
+    User
+    |> where(apple_id: ^apple_id)
+    |> Repo.one()
+    |> Repo.preload(:profile)
   end
 
   @spec verify_code(String.t(), String.t()) ::

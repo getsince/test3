@@ -402,11 +402,12 @@ CREATE TABLE public.user_reports (
 
 CREATE TABLE public.users (
     id uuid NOT NULL,
-    phone_number character varying(255) NOT NULL,
+    phone_number character varying(255),
     inserted_at timestamp(0) without time zone NOT NULL,
     updated_at timestamp(0) without time zone NOT NULL,
     blocked_at timestamp(0) without time zone,
-    onboarded_at timestamp(0) without time zone
+    onboarded_at timestamp(0) without time zone,
+    apple_id character varying(255)
 );
 
 
@@ -696,10 +697,17 @@ CREATE UNIQUE INDEX pushkit_devices_device_id_index ON public.pushkit_devices US
 
 
 --
+-- Name: users_apple_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX users_apple_id_index ON public.users USING btree (apple_id) WHERE (apple_id IS NOT NULL);
+
+
+--
 -- Name: users_phone_number_index; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX users_phone_number_index ON public.users USING btree (phone_number);
+CREATE UNIQUE INDEX users_phone_number_index ON public.users USING btree (phone_number) WHERE (phone_number IS NOT NULL);
 
 
 --
@@ -1018,3 +1026,4 @@ INSERT INTO public."schema_migrations" (version) VALUES (20210713134509);
 INSERT INTO public."schema_migrations" (version) VALUES (20210721105547);
 INSERT INTO public."schema_migrations" (version) VALUES (20210721111936);
 INSERT INTO public."schema_migrations" (version) VALUES (20210723120936);
+INSERT INTO public."schema_migrations" (version) VALUES (20210728221728);

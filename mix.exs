@@ -52,7 +52,7 @@ defmodule T.MixProject do
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
       {:ex_aws, "~> 2.2.3"},
-      {:ex_aws_s3, "~> 2.2.0"},
+      {:ex_aws_s3, "~> 2.3.0"},
       {:ex_aws_sns, "~> 2.1"},
       {:sweet_xml, "~> 0.6"},
       {:oban, "~> 2.3"},

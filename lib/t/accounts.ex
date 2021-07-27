@@ -477,7 +477,7 @@ defmodule T.Accounts do
     |> Enum.group_by(
       fn %{user: user} -> user end,
       fn %{token: %{value: value, inserted_at: inserted_at}} ->
-        %{token: Base.url_encode64(value), inserted_at: inserted_at}
+        %{token: UserToken.encoded_token(value), inserted_at: inserted_at}
       end
     )
   end

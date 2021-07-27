@@ -16,9 +16,9 @@ defmodule TWeb.Feed2ChannelTest do
     @reference ~U[2021-07-21 11:55:18.941048Z]
 
     test "returns current session if there is one", %{socket: socket, me: me} do
-      Feeds2.activate_session(me.id, _duration = 60, @reference)
+      %{flake: id} = Feeds2.activate_session(me.id, _duration = 60, @reference)
       assert {:ok, reply, _socket} = join(socket, "feed2:" <> me.id)
-      assert reply == %{"current_session" => %{expires_at: ~U[2021-07-21 12:55:18Z]}}
+      assert reply == %{"current_session" => %{id: id, expires_at: ~U[2021-07-21 12:55:18Z]}}
     end
   end
 
@@ -54,7 +54,7 @@ defmodule TWeb.Feed2ChannelTest do
         others =
         insert_list(3, :profile, story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}])
 
-      activate_sessions(others, @reference)
+      [%{flake: s1}, %{flake: s2}, %{flake: s3}] = activate_sessions(others, @reference)
 
       ref = push(socket, "more", %{"count" => 2})
       assert_reply ref, :ok, %{"cursor" => cursor, "feed" => feed}
@@ -62,7 +62,10 @@ defmodule TWeb.Feed2ChannelTest do
 
       assert feed == [
                %{
-                 expires_at: ~U[2021-07-21 12:55:18Z],
+                 session: %{
+                   id: s1,
+                   expires_at: ~U[2021-07-21 12:55:18Z]
+                 },
                  profile: %{
                    name: nil,
                    song: nil,
@@ -80,7 +83,10 @@ defmodule TWeb.Feed2ChannelTest do
                  }
                },
                %{
-                 expires_at: ~U[2021-07-21 12:55:18Z],
+                 session: %{
+                   id: s2,
+                   expires_at: ~U[2021-07-21 12:55:18Z]
+                 },
                  profile: %{
                    name: nil,
                    song: nil,
@@ -108,7 +114,10 @@ defmodule TWeb.Feed2ChannelTest do
 
       assert feed == [
                %{
-                 expires_at: ~U[2021-07-21 12:55:18Z],
+                 session: %{
+                   id: s3,
+                   expires_at: ~U[2021-07-21 12:55:18Z]
+                 },
                  profile: %{
                    name: nil,
                    song: nil,
@@ -136,10 +145,10 @@ defmodule TWeb.Feed2ChannelTest do
     setup :joined
 
     test "invited by active user", %{me: me, socket: socket} do
-      activate_session(me, @reference)
+      %{flake: s1} = activate_session(me, @reference)
 
       other = onboarded_user()
-      activate_session(other, @reference)
+      %{flake: s2} = activate_session(other, @reference)
 
       spawn(fn ->
         socket = connected_socket(other)
@@ -153,7 +162,10 @@ defmodule TWeb.Feed2ChannelTest do
 
       assert push == %{
                "feed_item" => %{
-                 expires_at: ~U[2021-07-21 12:55:18Z],
+                 session: %{
+                   id: s1,
+                   expires_at: ~U[2021-07-21 12:55:18Z]
+                 },
                  profile: %{
                    name: "that",
                    song: %{
@@ -201,7 +213,10 @@ defmodule TWeb.Feed2ChannelTest do
 
       assert push == %{
                "feed_item" => %{
-                 expires_at: ~U[2021-07-21 12:55:18Z],
+                 session: %{
+                   id: s2,
+                   expires_at: ~U[2021-07-21 12:55:18Z]
+                 },
                  profile: %{
                    name: "that",
                    song: %{
@@ -249,7 +264,10 @@ defmodule TWeb.Feed2ChannelTest do
 
       assert push == %{
                "feed_item" => %{
-                 expires_at: ~U[2021-07-21 12:55:18Z],
+                 session: %{
+                   id: s2,
+                   expires_at: ~U[2021-07-21 12:55:18Z]
+                 },
                  profile: %{
                    name: "that",
                    song: %{
@@ -301,7 +319,10 @@ defmodule TWeb.Feed2ChannelTest do
       assert reply == %{
                "invites" => [
                  %{
-                   expires_at: ~U[2021-07-21 12:55:18Z],
+                   session: %{
+                     id: s2,
+                     expires_at: ~U[2021-07-21 12:55:18Z]
+                   },
                    profile: %{
                      name: "that",
                      song: %{

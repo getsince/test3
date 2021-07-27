@@ -3,26 +3,26 @@ defmodule TWeb.FeedView do
   alias TWeb.ViewHelpers
   alias T.Feeds.{FeedProfile, ActiveSession}
 
-  def render("feed_profile.json", %{profile: %FeedProfile{} = profile, screen_width: screen_width}) do
+  def render("feed_profile.json", %{profile: profile, screen_width: screen_width}) do
     render_profile(profile, [:user_id, :song, :name, :story], screen_width)
   end
 
-  def render("feed_item.json", %{
-        profile: %FeedProfile{} = profile,
-        expires_at: expires_at,
-        screen_width: screen_width
-      }) do
+  def render("feed_item.json", %{profile: profile, session: session, screen_width: screen_width}) do
     %{
       profile: render_profile(profile, [:user_id, :song, :name, :story], screen_width),
-      expires_at: expires_at
+      session: render_session(session)
     }
   end
 
-  def render("session.json", %{session: %ActiveSession{expires_at: expires_at}}) do
-    %{expires_at: expires_at}
+  def render("session.json", %{session: session}) do
+    render_session(session)
   end
 
-  defp render_profile(profile, fields, screen_width) do
+  defp render_session(%ActiveSession{flake: flake, expires_at: expires_at}) do
+    %{id: flake, expires_at: expires_at}
+  end
+
+  defp render_profile(%FeedProfile{} = profile, fields, screen_width) do
     profile
     |> Map.take(fields)
     |> Map.update!(:song, fn song ->

@@ -2,7 +2,7 @@ defmodule TWeb.Feed2Channel do
   use TWeb, :channel
 
   alias TWeb.ChannelHelpers
-  alias T.Feeds.FeedProfile
+  alias T.Feeds.{FeedProfile, ActiveSession}
   alias T.{Feeds2, Calls}
 
   # TODO presence per active user
@@ -106,11 +106,11 @@ defmodule TWeb.Feed2Channel do
   end
 
   defp render_feed_item(feed_item, screen_width) do
-    {%FeedProfile{} = profile, expires_at} = feed_item
+    {%FeedProfile{} = profile, %ActiveSession{} = session} = feed_item
 
     render(TWeb.FeedView, "feed_item.json",
       profile: profile,
-      expires_at: expires_at,
+      session: session,
       screen_width: screen_width
     )
   end

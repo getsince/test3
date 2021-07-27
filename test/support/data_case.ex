@@ -127,7 +127,7 @@ defmodule T.DataCase do
   end
 
   def activate_sessions(users, reference) do
-    Enum.each(users, &activate_session(&1, reference))
+    Enum.map(users, &activate_session(&1, reference))
   end
 
   def activate_session(%User{id: user_id}, reference) do

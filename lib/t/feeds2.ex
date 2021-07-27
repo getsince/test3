@@ -160,7 +160,7 @@ defmodule T.Feeds2 do
     |> where(user_id: ^user_id)
     |> join(:inner, [i], s in ActiveSession, on: i.by_user_id == s.user_id)
     |> join(:inner, [..., s], p in subquery(profiles_q), on: p.user_id == s.user_id)
-    |> select([i, s, p], {p, s.expires_at})
+    |> select([i, s, p], {p, s})
     |> Repo.all()
   end
 
@@ -203,28 +203,26 @@ defmodule T.Feeds2 do
   ### Feed
 
   @type feed_cursor :: String.t()
-  @type feed_item :: {%FeedProfile{}, expires_at :: DateTime.t()}
+  @type feed_item :: {%FeedProfile{}, %ActiveSession{}}
 
   @spec fetch_feed(Ecto.UUID.t(), pos_integer, feed_cursor | nil) :: {[feed_item], feed_cursor}
   def fetch_feed(user_id, count, feed_cursor) do
     profiles_q = not_invited_profiles_q(user_id)
 
-    feed_items_with_cursors =
+    feed_items =
       active_sessions_q(user_id, feed_cursor)
       |> join(:inner, [s], p in subquery(profiles_q), on: s.user_id == p.user_id)
       |> limit(^count)
-      |> select([s, p], {{p, s.expires_at}, s.flake})
+      |> select([s, p], {p, s})
       |> Repo.all()
 
     feed_cursor =
-      if last = List.last(feed_items_with_cursors) do
-        {_feed_item, last_flake} = last
+      if last = List.last(feed_items) do
+        {_feed_profile, %ActiveSession{flake: last_flake}} = last
         last_flake
       else
         feed_cursor
       end
-
-    feed_items = Enum.map(feed_items_with_cursors, fn {feed_item, _} -> feed_item end)
 
     {feed_items, feed_cursor}
   end
@@ -239,7 +237,7 @@ defmodule T.Feeds2 do
     ActiveSession
     |> where(user_id: ^user_id)
     |> join(:inner, [s], p in subquery(p), on: true)
-    |> select([s, p], {p, s.expires_at})
+    |> select([s, p], {p, s})
     |> Repo.one()
   end
 

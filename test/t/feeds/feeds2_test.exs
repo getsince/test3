@@ -130,8 +130,10 @@ defmodule T.Feeds2Test do
 
       assert true == Feeds2.invite_active_user(p1.user_id, p2.user_id)
 
-      assert [{%FeedProfile{} = feed_profile, _expires_at = ~U[2021-07-21 12:55:18Z]}] =
-               Feeds2.list_received_invites(p2.user_id)
+      assert [
+               {%FeedProfile{} = feed_profile,
+                %ActiveSession{expires_at: ~U[2021-07-21 12:55:18Z]}}
+             ] = Feeds2.list_received_invites(p2.user_id)
 
       assert feed_profile.user_id == p1.user_id
 
@@ -145,8 +147,10 @@ defmodule T.Feeds2Test do
 
       assert true == Feeds2.invite_active_user(p1.user_id, p2.user_id)
 
-      assert [{%FeedProfile{} = feed_profile, _expires_at = ~U[2021-07-21 12:55:18Z]}] =
-               Feeds2.list_received_invites(p2.user_id)
+      assert [
+               {%FeedProfile{} = feed_profile,
+                %ActiveSession{expires_at: ~U[2021-07-21 12:55:18Z]}}
+             ] = Feeds2.list_received_invites(p2.user_id)
 
       assert feed_profile.user_id == p1.user_id
 
@@ -175,9 +179,10 @@ defmodule T.Feeds2Test do
       activate_sessions(others, @reference)
 
       assert {[
-                {%FeedProfile{}, _expires_at = ~U[2021-07-21 12:55:18Z]},
-                {%FeedProfile{}, ~U[2021-07-21 12:55:18Z]},
-                {%FeedProfile{}, ~U[2021-07-21 12:55:18Z]}
+                {%FeedProfile{}, %ActiveSession{expires_at: ~U[2021-07-21 12:55:18Z]}},
+                {%FeedProfile{}, %ActiveSession{expires_at: ~U[2021-07-21 12:55:18Z]}},
+                {%FeedProfile{},
+                 %ActiveSession{flake: cursor, expires_at: ~U[2021-07-21 12:55:18Z]}}
               ], cursor} = Feeds2.fetch_feed(me.user_id, _count = 10, _cursor = nil)
 
       assert {[], ^cursor} = Feeds2.fetch_feed(me.user_id, _count = 10, cursor)
@@ -188,12 +193,15 @@ defmodule T.Feeds2Test do
       activate_sessions(others, @reference)
 
       assert {[
-                {%FeedProfile{}, _expires_at = ~U[2021-07-21 12:55:18Z]},
-                {%FeedProfile{}, ~U[2021-07-21 12:55:18Z]}
+                {%FeedProfile{}, %ActiveSession{expires_at: ~U[2021-07-21 12:55:18Z]}},
+                {%FeedProfile{},
+                 %ActiveSession{flake: cursor1, expires_at: ~U[2021-07-21 12:55:18Z]}}
               ], cursor1} = Feeds2.fetch_feed(me.user_id, _count = 2, _cursor = nil)
 
-      assert {[{%FeedProfile{}, ~U[2021-07-21 12:55:18Z]}], cursor2} =
-               Feeds2.fetch_feed(me.user_id, _count = 10, cursor1)
+      assert {[
+                {%FeedProfile{},
+                 %ActiveSession{flake: cursor2, expires_at: ~U[2021-07-21 12:55:18Z]}}
+              ], cursor2} = Feeds2.fetch_feed(me.user_id, _count = 10, cursor1)
 
       assert cursor2 != cursor1
 
@@ -210,7 +218,7 @@ defmodule T.Feeds2Test do
     end
 
     test "returns non reported user", %{me: me, other: other} do
-      assert {%FeedProfile{}, _expires_at = ~U[2021-07-21 12:55:18Z]} =
+      assert {%FeedProfile{}, %ActiveSession{expires_at: ~U[2021-07-21 12:55:18Z]}} =
                Feeds2.get_feed_item(me.id, other.user_id)
     end
 

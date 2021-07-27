@@ -211,6 +211,8 @@ if config_env() == :dev do
     user_bucket: System.fetch_env!("AWS_S3_BUCKET"),
     static_bucket: System.fetch_env!("AWS_S3_BUCKET_STATIC"),
     static_cdn: System.fetch_env!("STATIC_CDN")
+
+  config :t, T.Media.Static, disabled?: true
 end
 
 if config_env() == :test do
@@ -256,4 +258,8 @@ if config_env() == :test do
   config :t, T.Bot,
     token: "asdfasdfasdf",
     room_id: String.to_integer("-1234")
+
+  config :t, T.Feeds.SeenPruner, disabled?: true
+  config :t, T.Feeds.ActiveSessionPruner, disabled?: true
+  config :t, T.Accounts.SMSCodePruner, disabled?: true
 end

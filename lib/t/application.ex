@@ -14,14 +14,15 @@ defmodule T.Application do
         {Finch, name: T.Finch},
         T.Twilio,
         {Phoenix.PubSub, name: T.PubSub},
-        T.Media.Static,
+        unless_disabled(T.Media.Static),
         TWeb.Presence,
         TWeb.UserSocket.Monitor,
         T.Matches.Yo,
         TWeb.Endpoint,
         T.Repo,
-        T.Feeds.SeenPruner,
-        T.Accounts.SMSCodePruner,
+        unless_disabled(T.Feeds.SeenPruner),
+        unless_disabled(T.Feeds.ActiveSessionPruner),
+        unless_disabled(T.Accounts.SMSCodePruner),
         TWeb.Telemetry,
         maybe_migrator(),
         {Oban, oban_config()},
@@ -77,5 +78,13 @@ defmodule T.Application do
     if key = Application.get_env(:t, :maxmind_license_key) do
       T.Location.setup(key)
     end
+  end
+
+  defp disabled?(mod) when is_atom(mod) do
+    get_in(Application.get_env(:t, mod), [:disabled?])
+  end
+
+  defp unless_disabled(mod) do
+    unless disabled?(mod), do: mod
   end
 end

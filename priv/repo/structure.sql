@@ -73,6 +73,17 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
+-- Name: active_sessions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.active_sessions (
+    flake uuid NOT NULL,
+    user_id uuid NOT NULL,
+    expires_at timestamp with time zone NOT NULL
+);
+
+
+--
 -- Name: apns_devices; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -81,16 +92,31 @@ CREATE TABLE public.apns_devices (
     token_id uuid NOT NULL,
     device_id bytea NOT NULL,
     inserted_at timestamp(0) without time zone NOT NULL,
-    updated_at timestamp(0) without time zone NOT NULL
+    updated_at timestamp(0) without time zone NOT NULL,
+    locale character varying(255)
 );
 
 
 --
--- Name: call_traces; Type: TABLE; Schema: public; Owner: -
+-- Name: call_invites; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.call_traces (
-    event jsonb NOT NULL,
+CREATE TABLE public.call_invites (
+    by_user_id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    inserted_at timestamp(0) without time zone NOT NULL
+);
+
+
+--
+-- Name: calls; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.calls (
+    id uuid NOT NULL,
+    caller_id uuid NOT NULL,
+    called_id uuid NOT NULL,
+    ended_at timestamp with time zone,
     inserted_at timestamp(0) without time zone NOT NULL
 );
 
@@ -267,7 +293,7 @@ CREATE TABLE public.profiles (
     tastes jsonb DEFAULT '{}'::jsonb NOT NULL,
     times_liked integer DEFAULT 0 NOT NULL,
     "hidden?" boolean DEFAULT true NOT NULL,
-    last_active timestamp(0) without time zone DEFAULT '2021-04-22 12:45:30.216066'::timestamp without time zone NOT NULL,
+    last_active timestamp(0) without time zone DEFAULT '2021-07-23 15:25:39.303254'::timestamp without time zone NOT NULL,
     song jsonb,
     story jsonb,
     location public.geography(Point,4326),
@@ -417,11 +443,35 @@ ALTER TABLE ONLY public.oban_jobs ALTER COLUMN id SET DEFAULT nextval('public.ob
 
 
 --
+-- Name: active_sessions active_sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.active_sessions
+    ADD CONSTRAINT active_sessions_pkey PRIMARY KEY (user_id);
+
+
+--
 -- Name: apns_devices apns_devices_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.apns_devices
     ADD CONSTRAINT apns_devices_pkey PRIMARY KEY (user_id, token_id);
+
+
+--
+-- Name: call_invites call_invites_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.call_invites
+    ADD CONSTRAINT call_invites_pkey PRIMARY KEY (by_user_id, user_id);
+
+
+--
+-- Name: calls calls_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.calls
+    ADD CONSTRAINT calls_pkey PRIMARY KEY (id);
 
 
 --
@@ -569,6 +619,13 @@ ALTER TABLE ONLY public.users_tokens
 
 
 --
+-- Name: active_sessions_flake_asc_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX active_sessions_flake_asc_index ON public.active_sessions USING btree (flake);
+
+
+--
 -- Name: apns_devices_device_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -667,6 +724,14 @@ CREATE TRIGGER oban_notify AFTER INSERT ON public.oban_jobs FOR EACH ROW EXECUTE
 
 
 --
+-- Name: active_sessions active_sessions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.active_sessions
+    ADD CONSTRAINT active_sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: apns_devices apns_devices_token_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -680,6 +745,38 @@ ALTER TABLE ONLY public.apns_devices
 
 ALTER TABLE ONLY public.apns_devices
     ADD CONSTRAINT apns_devices_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: call_invites call_invites_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.call_invites
+    ADD CONSTRAINT call_invites_by_user_id_fkey FOREIGN KEY (by_user_id) REFERENCES public.active_sessions(user_id) ON DELETE CASCADE;
+
+
+--
+-- Name: call_invites call_invites_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.call_invites
+    ADD CONSTRAINT call_invites_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.active_sessions(user_id) ON DELETE CASCADE;
+
+
+--
+-- Name: calls calls_called_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.calls
+    ADD CONSTRAINT calls_called_id_fkey FOREIGN KEY (called_id) REFERENCES public.profiles(user_id) ON DELETE CASCADE;
+
+
+--
+-- Name: calls calls_caller_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.calls
+    ADD CONSTRAINT calls_caller_id_fkey FOREIGN KEY (caller_id) REFERENCES public.profiles(user_id) ON DELETE CASCADE;
 
 
 --
@@ -895,7 +992,6 @@ INSERT INTO public."schema_migrations" (version) VALUES (20210130101400);
 INSERT INTO public."schema_migrations" (version) VALUES (20210130101533);
 INSERT INTO public."schema_migrations" (version) VALUES (20210130101812);
 INSERT INTO public."schema_migrations" (version) VALUES (20210131190658);
-INSERT INTO public."schema_migrations" (version) VALUES (20210203185329);
 INSERT INTO public."schema_migrations" (version) VALUES (20210214144221);
 INSERT INTO public."schema_migrations" (version) VALUES (20210220194329);
 INSERT INTO public."schema_migrations" (version) VALUES (20210224130138);
@@ -912,12 +1008,13 @@ INSERT INTO public."schema_migrations" (version) VALUES (20210520105939);
 INSERT INTO public."schema_migrations" (version) VALUES (20210520110036);
 INSERT INTO public."schema_migrations" (version) VALUES (20210520113351);
 INSERT INTO public."schema_migrations" (version) VALUES (20210603235924);
-INSERT INTO public."schema_migrations" (version) VALUES (20210605084428);
 INSERT INTO public."schema_migrations" (version) VALUES (20210612185455);
-INSERT INTO public."schema_migrations" (version) VALUES (20210617192511);
-INSERT INTO public."schema_migrations" (version) VALUES (20210617192521);
 INSERT INTO public."schema_migrations" (version) VALUES (20210617223758);
 INSERT INTO public."schema_migrations" (version) VALUES (20210621092132);
 INSERT INTO public."schema_migrations" (version) VALUES (20210621153637);
 INSERT INTO public."schema_migrations" (version) VALUES (20210624195942);
 INSERT INTO public."schema_migrations" (version) VALUES (20210630134928);
+INSERT INTO public."schema_migrations" (version) VALUES (20210713134509);
+INSERT INTO public."schema_migrations" (version) VALUES (20210721105547);
+INSERT INTO public."schema_migrations" (version) VALUES (20210721111936);
+INSERT INTO public."schema_migrations" (version) VALUES (20210723120936);

@@ -5,9 +5,8 @@ defmodule T.Accounts do
 
   import Ecto.Query, warn: false
   import Ecto.Changeset
-  import T.Gettext
 
-  alias T.{Repo, Media, Bot}
+  alias T.{Repo, Media, Bot, Feeds2}
 
   alias T.Accounts.{
     User,
@@ -232,29 +231,33 @@ defmodule T.Accounts do
         {:ok, nil}
       end
     end)
-    |> Ecto.Multi.run(:support, fn _repo, _changes ->
-      {:ok, message} =
-        result =
-        T.Support.add_message(from_user_id, T.Support.admin_id(), %{
-          "kind" => "text",
-          "data" => %{
-            "text" =>
-              dgettext(
-                "report",
-                "Расскажи, что произошло и мы постараемся помочь. Будем стараться, чтобы подобный опыт не повторился в будущем!"
-              )
-          }
-        })
-
-      # TODO no web here
-      TWeb.Endpoint.broadcast!(
-        "support:#{from_user_id}",
-        "message:new",
-        %{message: TWeb.MessageView.render("show.json", %{message: message})}
-      )
-
-      result
+    |> Ecto.Multi.run(:uninvite, fn _repo, _changes ->
+      {deleted_count, _} = Feeds2.delete_invites_for_reported(from_user_id, on_user_id)
+      {:ok, deleted_count}
     end)
+    # |> Ecto.Multi.run(:support, fn _repo, _changes ->
+    #   {:ok, message} =
+    #     result =
+    #     T.Support.add_message(from_user_id, T.Support.admin_id(), %{
+    #       "kind" => "text",
+    #       "data" => %{
+    #         "text" =>
+    #           dgettext(
+    #             "report",
+    #             "Расскажи, что произошло и мы постараемся помочь. Будем стараться, чтобы подобный опыт не повторился в будущем!"
+    #           )
+    #       }
+    #     })
+
+    #   # TODO no web here
+    #   TWeb.Endpoint.broadcast!(
+    #     "support:#{from_user_id}",
+    #     "message:new",
+    #     %{message: TWeb.MessageView.render("show.json", %{message: message})}
+    #   )
+
+    #   result
+    # end)
     |> Repo.transaction()
     |> case do
       {:ok, _changes} -> :ok
@@ -302,6 +305,14 @@ defmodule T.Accounts do
       |> repo.update_all(set: [hidden?: true])
 
       {:ok, nil}
+    end)
+    |> Ecto.Multi.run(:uninvite, fn _repo, _changes ->
+      {deleted_count, _} = Feeds2.delete_invites_for_blocked(user_id)
+      {:ok, deleted_count}
+    end)
+    |> Ecto.Multi.run(:deactivate_session, fn _repo, _changes ->
+      deactivated? = Feeds2.deactivate_session(user_id)
+      {:ok, deactivated?}
     end)
     |> unmatch_all(user_id)
     |> Repo.transaction()

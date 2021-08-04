@@ -38,7 +38,7 @@ defmodule T.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:phoenix, "~> 1.5.3"},
+      {:phoenix, github: "phoenixframework/phoenix", branch: "v1.5", override: true},
       {:phoenix_ecto, "~> 4.1"},
       {:phoenix_html, "~> 2.11"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
@@ -71,7 +71,8 @@ defmodule T.MixProject do
       {:geo_postgis, "~> 3.4"},
       {:finch, "~> 0.8", override: true},
       {:locus, "~> 1.16"},
-      {:prom_ex, "~> 1.3"}
+      {:prom_ex, "~> 1.3"},
+      {:esbuild, "~> 0.2", runtime: Mix.env() == :dev}
     ]
   end
 
@@ -83,11 +84,16 @@ defmodule T.MixProject do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases do
     [
-      setup: ["deps.get", "ecto.setup"],
+      setup: ["deps.get", "ecto.setup", "cmd --cd assets npm install"],
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
-      sentry_recompile: ["compile", "deps.compile sentry --force"]
+      sentry_recompile: ["compile", "deps.compile sentry --force"],
+      "assets.deploy": [
+        "cmd --cd assets npm run deploy",
+        "esbuild default --minify",
+        "phx.digest"
+      ]
     ]
   end
 

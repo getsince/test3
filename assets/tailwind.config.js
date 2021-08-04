@@ -1,17 +1,7 @@
 module.exports = {
+  mode: "jit",
   purge: {
-    content: [
-      "./js/**/*.js",
-      "../lib/t_web/templates/**/*.*eex",
-      "../lib/t_web/live/**/*ex",
-      "../lib/t_web/helpers/**/*ex",
-      "../lib/t_web/components/**/*ex",
-    ],
-    options: {
-      safelist: {
-        deep: [/nprogress/],
-      },
-    },
+    content: ["./js/**/*.js", "../lib/*_web/**/*.*ex"],
   },
   darkMode: "media",
   theme: {

@@ -3,36 +3,20 @@
   "description": " ",
   "license": "MIT",
   "scripts": {
-    "deploy": "NODE_ENV=production webpack --mode production",
-    "deploy.analyze": "yarn deploy --env.ANALYZE=1",
-    "build": "webpack --mode development",
-    "watch": "yarn build --watch-stdin"
+    "deploy": "NODE_ENV=production tailwindcss --postcss --minify -i css/app.css -o ../priv/static/assets/app.css"
   },
   "dependencies": {
     "phoenix": "file:../deps/phoenix",
     "phoenix_html": "file:../deps/phoenix_html",
-    "phoenix_live_view": "file:../deps/phoenix_live_view"
+    "phoenix_live_view": "file:../deps/phoenix_live_view",
+    "alpinejs": "^3.2.2",
+    "topbar": "^1.0.1"
   },
   "devDependencies": {
-    "@fullhuman/postcss-purgecss": "^4.0.3",
     "@tailwindcss/forms": "^0.3.3",
-    "alpinejs": "^3.2.2",
     "autoprefixer": "^10.0.4",
-    "compression-webpack-plugin": "^8.0.1",
-    "copy-webpack-plugin": "^9.0.0",
-    "css-loader": "^5.2.6",
-    "css-minimizer-webpack-plugin": "^3.0.0",
-    "expose-loader": "3.0.0",
-    "mini-css-extract-plugin": "^1.6.0",
     "postcss": "^8.2.4",
     "postcss-import": "^14.0.2",
-    "postcss-loader": "^6.1.1",
-    "postcss-nested": "^5.0.5",
-    "tailwindcss": "^2.0.2",
-    "topbar": "^1.0.1",
-    "webpack": "5.37.1",
-    "webpack-bundle-analyzer": "^4.4.2",
-    "webpack-cli": "^4.7.0",
-    "webrtc-adapter": "^8.0.0"
+    "tailwindcss": "^2.0.2"
   }
 }

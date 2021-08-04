@@ -29,6 +29,7 @@ COPY config/runtime.exs config/
 # build assets
 COPY assets assets
 RUN cd assets && yarn install && yarn deploy
+RUN esbuild default --minify
 RUN mix phx.digest
 
 # build release

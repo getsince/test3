@@ -39,6 +39,13 @@ config :ex_aws,
   json_codec: Jason,
   region: "eu-north-1"
 
+config :esbuild,
+  default: [
+    args: ~w(js/app.js --bundle --target=es2016 --outdir=../priv/static/assets),
+    cd: Path.expand("../assets", __DIR__),
+    env: %{"NODE_PATH" => Path.expand("../deps", __DIR__)}
+  ]
+
 if config_env() == :prod do
   config :t, T.Twilio,
     account_sid: System.fetch_env!("TWILIO_ACCOUNT_SID"),
@@ -160,7 +167,7 @@ if config_env() == :dev do
   #
   # The watchers configuration can be used to run external
   # watchers to your application. For example, we use it
-  # with webpack to recompile .js and .css sources.
+  # with esbuild to bundle .js and .css sources.
   config :t, TWeb.Endpoint,
     # Binding to loopback ipv4 address prevents access from other machines.
     # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
@@ -179,12 +186,14 @@ if config_env() == :dev do
       ]
     ],
     watchers: [
-      node: [
-        "node_modules/webpack/bin/webpack.js",
-        "--mode",
-        "development",
+      # Start the esbuild watcher by calling Esbuild.install_and_run(:default, args)
+      esbuild: {Esbuild, :install_and_run, [:default, ~w(--sourcemap=inline --watch)]},
+      npx: [
+        "tailwindcss",
+        "--input=css/app.css",
+        "--output=../priv/static/assets/app.css",
+        "--postcss",
         "--watch",
-        "--watch-options-stdin",
         cd: Path.expand("../assets", __DIR__)
       ]
     ]

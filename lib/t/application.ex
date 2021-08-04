@@ -32,17 +32,13 @@ defmodule T.Application do
 
     maybe_setup_locus()
 
-    :telemetry.attach_many(
-      "oban-errors",
-      [[:oban, :job, :exception], [:oban, :circuit, :trip]],
-      &T.ObanErrorReporter.handle_event/4,
-      %{}
-    )
+    # Only attach the telemetry logger when we aren't in an IEx shell
+    unless Code.ensure_loaded?(IEx) && IEx.started?() do
+      Oban.Telemetry.attach_default_logger(:info)
+      T.ObanReporter.attach()
+    end
 
-    # See https://hexdocs.pm/elixir/Supervisor.html
-    # for other strategies and supported options
-    opts = [strategy: :one_for_one, name: T.Supervisor]
-    Supervisor.start_link(children, opts)
+    Supervisor.start_link(children, strategy: :one_for_one, name: T.Supervisor)
   end
 
   # Tell Phoenix to update the endpoint configuration
@@ -59,7 +55,6 @@ defmodule T.Application do
     # Prevent running queues or scheduling jobs from an iex console.
     if Code.ensure_loaded?(IEx) and IEx.started?() do
       config
-      |> Keyword.put(:crontab, false)
       |> Keyword.put(:queues, false)
       |> Keyword.put(:plugins, false)
     else

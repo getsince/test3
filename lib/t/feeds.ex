@@ -54,10 +54,10 @@ defmodule T.Feeds do
   end
 
   # TODO test
-  def schedule_like_profile(by_user_id, user_id, schedule_in_seconds \\ 10) do
+  def schedule_like_profile(by_user_id, user_id, schedule_in \\ {10, :seconds}) do
     Bot.async_post_silent_message("user #{by_user_id} scheduled to like #{user_id}")
     args = %{"by_user_id" => by_user_id, "user_id" => user_id}
-    job = LikeJob.new(args, schedule_in: schedule_in_seconds)
+    job = LikeJob.new(args, schedule_in: schedule_in)
     Oban.insert(job)
   end
 

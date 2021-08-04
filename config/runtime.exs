@@ -28,9 +28,11 @@ config :logger, Sentry.LoggerBackend,
   # [:cowboy] by default
   excluded_domains: []
 
+config :t, T.PromEx, disabled: config_env() != :prod
+
 config :t, Oban,
   repo: T.Repo,
-  plugins: [Oban.Plugins.Pruner],
+  plugins: [Oban.Plugins.Pruner, Oban.Plugins.Stager],
   queues: [default: 10, emails: 20, sms: 20, apns: 100, likes: 100]
 
 config :ex_aws,
@@ -47,7 +49,6 @@ if config_env() == :prod do
     dsn: System.fetch_env!("SENTRY_DSN")
 
   config :t, T.PromEx,
-    disabled: config_env() != :prod,
     manual_metrics_start_delay: :no_delay,
     drop_metrics_groups: [],
     grafana: :disabled,
@@ -239,7 +240,7 @@ if config_env() == :test do
   # Print only warnings and errors during test
   config :logger, level: :warn
 
-  config :t, Oban, crontab: false, queues: false, plugins: false
+  config :t, Oban, queues: false, plugins: false
 
   config :t, T.Media,
     user_bucket: "pretend-this-is-real",

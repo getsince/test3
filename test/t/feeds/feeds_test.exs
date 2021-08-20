@@ -1,91 +1,230 @@
 defmodule T.FeedsTest do
-  use T.DataCase
+  use T.DataCase, async: true
   use Oban.Testing, repo: T.Repo
-  alias T.{Feeds, Matches}
-  alias T.Accounts.Profile
-  alias T.Matches.Match
 
-  describe "like_profile/2" do
-    setup do
-      [p1, p2] = insert_list(2, :profile)
+  alias T.{Feeds, Accounts}
+  alias T.PushNotifications.DispatchJob
+  alias Feeds.{ActiveSession, FeedProfile}
 
-      Matches.subscribe_for_user(p1.user_id)
-      Matches.subscribe_for_user(p2.user_id)
+  describe "activate_session/2" do
+    test "doesn't raise on conflict, latest session takes precedence" do
+      user = insert(:user)
+      reference = ~U[2021-07-21 10:55:18.941048Z]
 
-      {:ok, profiles: [p1, p2]}
-    end
+      assert %ActiveSession{expires_at: ~U[2021-07-21 11:55:18Z]} =
+               Feeds.activate_session(user.id, _hour = 60, reference)
 
-    test "creates match if user is already liked and the liker is not hidden", %{
-      profiles: profiles
-    } do
-      [%{user_id: uid1}, %{user_id: uid2}] = profiles
-      assert {:ok, %{match: nil}} = Feeds.like_profile(uid2, uid1)
-      assert {:ok, %{match: %Match{id: match_id} = match}} = Feeds.like_profile(uid1, uid2)
+      # TODO what happens with invites? right now they are probably all deleted
+      assert %ActiveSession{expires_at: ~U[2021-07-21 11:15:18Z]} =
+               Feeds.activate_session(user.id, _20_mins = 20, reference)
 
-      assert times_liked(uid2) == 1
-      assert_liked(by_user_id: uid1, user_id: uid2)
-
-      user_ids = [uid1, uid2]
-      refute_hidden(user_ids)
-
-      assert_lists_equal(user_ids, [match.user_id_1, match.user_id_2])
-      assert_receive {Matches, [:matched, ^match_id], ^user_ids}
-      assert_receive {Matches, [:matched, ^match_id], ^user_ids}
-
-      assert [
-               %Oban.Job{args: %{"type" => "match", "match_id" => ^match_id}},
-               %Oban.Job{
-                 args: %{"type" => "like", "by_user_id" => ^uid2, "user_id" => ^uid1}
-               }
-             ] = all_enqueued(worker: T.PushNotifications.DispatchJob)
-    end
-
-    test "doesn't create match if not yet liked", %{profiles: profiles} do
-      [%{user_id: liker_id}, %{user_id: liked_id}] = profiles
-
-      assert times_liked(liked_id) == 0
-      assert {:ok, %{match: nil}} = Feeds.like_profile(liker_id, liked_id)
-      assert times_liked(liked_id) == 1
-
-      assert_liked(by_user_id: liker_id, user_id: liked_id)
-      refute_hidden([liker_id, liked_id])
-
-      refute_receive _anything
-
-      assert [
-               %Oban.Job{
-                 args: %{"type" => "like", "by_user_id" => ^liker_id, "user_id" => ^liked_id}
-               }
-             ] = all_enqueued(worker: T.PushNotifications.DispatchJob)
-    end
-
-    test "double like doesn't raise", %{profiles: [p1, p2]} do
-      assert {:ok, %{match: nil}} = Feeds.like_profile(p1.user_id, p2.user_id)
-      assert {:error, :like, changeset, _changes} = Feeds.like_profile(p1.user_id, p2.user_id)
-      assert errors_on(changeset) == %{like: ["has already been taken"]}
+      assert %ActiveSession{expires_at: ~U[2021-07-21 11:15:18Z]} =
+               Feeds.get_current_session(user.id)
     end
   end
 
-  describe "init_batched_feed/2" do
-    test "with invalid profile id and no other users" do
-      assert Feeds.init_batched_feed(%Profile{user_id: Ecto.UUID.generate(), gender: "M"}) == %{
-               loaded: [],
-               next_ids: []
-             }
+  describe "expired sessions" do
+    @reference ~U[2021-07-21 11:55:18.941048Z]
+
+    setup do
+      [u1, u2, u3] = users = insert_list(3, :user)
+
+      Feeds.activate_session(u1.id, 60, _reference = ~U[2021-07-21 10:50:18Z])
+      Feeds.activate_session(u2.id, 60, _reference = ~U[2021-07-21 10:53:18Z])
+      Feeds.activate_session(u3.id, 60, _reference = ~U[2021-07-21 10:56:18Z])
+
+      {:ok, users: users}
     end
 
-    test "with no other users" do
-      profile = insert(:profile, gender: "F", filters: %Profile.Filters{genders: ["F"]})
-      assert Feeds.init_batched_feed(profile) == %{loaded: [], next_ids: []}
+    test "expired_sessions/0 returns expired sessions" do
+      assert [
+               %ActiveSession{expires_at: ~U[2021-07-21 11:50:18Z]},
+               %ActiveSession{expires_at: ~U[2021-07-21 11:53:18Z]}
+             ] = Feeds.expired_sessions(@reference)
     end
 
-    test "with invalid profile and other users" do
-      p = insert(:profile, gender: "F", filters: %Profile.Filters{genders: ["F"]})
-      insert(:gender_preference, user_id: p.user_id, gender: "M")
+    test "delete_expired_sessions/0 deletes expired sessions", %{users: [u1, u2, _u3]} do
+      assert {2, [u1.id, u2.id]} == Feeds.delete_expired_sessions(@reference)
+      assert [] == Feeds.expired_sessions(@reference)
+    end
+  end
 
-      assert_raise Postgrex.Error, ~r/profile_feeds_user_id_fkey/, fn ->
-        Feeds.init_batched_feed(%Profile{user_id: Ecto.UUID.generate(), gender: "M"})
-      end
+  describe "invite_active_user/2" do
+    setup do
+      [u1, u2] = users = insert_list(2, :user)
+
+      :ok = Feeds.subscribe_for_invites(u1.id)
+      :ok = Feeds.subscribe_for_invites(u2.id)
+
+      {:ok, users: users}
+    end
+
+    test "when both users not active", %{users: [u1, u2]} do
+      assert false == Feeds.invite_active_user(u1.id, u2.id)
+
+      assert [] = all_enqueued(worder: DispatchJob)
+      refute_receive _anything
+    end
+
+    test "when inviter is not active", %{users: [u1, u2]} do
+      Feeds.activate_session(u2.id, 60)
+
+      assert false == Feeds.invite_active_user(u1.id, u2.id)
+
+      assert [] = all_enqueued(worder: DispatchJob)
+      refute_receive _anything
+    end
+
+    test "when invitee is not active", %{users: [u1, u2]} do
+      Feeds.activate_session(u1.id, 60)
+
+      assert false == Feeds.invite_active_user(u1.id, u2.id)
+
+      assert [] = all_enqueued(worder: DispatchJob)
+      refute_receive _anything
+    end
+
+    test "when both users are active", %{users: [%{id: u1_id}, %{id: u2_id}]} do
+      Feeds.activate_session(u1_id, 60)
+      Feeds.activate_session(u2_id, 60)
+
+      assert true == Feeds.invite_active_user(u1_id, u2_id)
+
+      assert [%Oban.Job{args: %{"type" => "invite", "by_user_id" => ^u1_id, "user_id" => ^u2_id}}] =
+               all_enqueued(worder: DispatchJob)
+
+      assert_receive {Feeds, :invited, ^u1_id}
+      refute_receive _anything_else
+    end
+
+    test "no duplicate notifications on duplicate invite", %{users: [u1, u2]} do
+      Feeds.activate_session(u1.id, 60)
+      Feeds.activate_session(u2.id, 60)
+
+      assert true == Feeds.invite_active_user(u1.id, u2.id)
+      assert false == Feeds.invite_active_user(u1.id, u2.id)
+
+      assert [%Oban.Job{}] = all_enqueued(worder: DispatchJob)
+
+      assert_receive {Feeds, :invited, _by_user_id}
+      refute_receive _anything_else
+    end
+
+    @tag skip: true
+    test "when inviter is reported by invitee"
+  end
+
+  describe "deactivate_session/1" do
+    setup do
+      [p1, p2] = profiles = insert_list(2, :profile)
+
+      :ok = Feeds.subscribe_for_invites(p1.user_id)
+      :ok = Feeds.subscribe_for_invites(p2.user_id)
+
+      {:ok, profiles: profiles}
+    end
+
+    test "invites are cleared when session is deactivated for inviter", %{profiles: [p1, p2]} do
+      Feeds.activate_session(p1.user_id, 60, @reference)
+      Feeds.activate_session(p2.user_id, 60, @reference)
+
+      assert true == Feeds.invite_active_user(p1.user_id, p2.user_id)
+
+      assert [
+               {%FeedProfile{} = feed_profile,
+                %ActiveSession{expires_at: ~U[2021-07-21 12:55:18Z]}}
+             ] = Feeds.list_received_invites(p2.user_id)
+
+      assert feed_profile.user_id == p1.user_id
+
+      assert true == Feeds.deactivate_session(p1.user_id)
+      assert [] == Feeds.list_received_invites(p2.user_id)
+    end
+
+    test "invites are cleared when session is deactivated for invitee", %{profiles: [p1, p2]} do
+      Feeds.activate_session(p1.user_id, 60, @reference)
+      Feeds.activate_session(p2.user_id, 60, @reference)
+
+      assert true == Feeds.invite_active_user(p1.user_id, p2.user_id)
+
+      assert [
+               {%FeedProfile{} = feed_profile,
+                %ActiveSession{expires_at: ~U[2021-07-21 12:55:18Z]}}
+             ] = Feeds.list_received_invites(p2.user_id)
+
+      assert feed_profile.user_id == p1.user_id
+
+      assert true == Feeds.deactivate_session(p2.user_id)
+      assert [] == Feeds.list_received_invites(p2.user_id)
+    end
+  end
+
+  describe "fetch_feed/3" do
+    setup do
+      me = insert(:profile)
+      {:ok, me: me}
+    end
+
+    test "with no data in db", %{me: me} do
+      assert {[], nil} == Feeds.fetch_feed(me.user_id, _count = 10, _cursor = nil)
+    end
+
+    test "with no active users", %{me: me} do
+      insert_list(3, :profile)
+      assert {[], nil} == Feeds.fetch_feed(me.user_id, _count = 10, _cursor = nil)
+    end
+
+    test "with active users fewer than count", %{me: me} do
+      others = insert_list(3, :profile)
+      activate_sessions(others, @reference)
+
+      assert {[
+                {%FeedProfile{}, %ActiveSession{expires_at: ~U[2021-07-21 12:55:18Z]}},
+                {%FeedProfile{}, %ActiveSession{expires_at: ~U[2021-07-21 12:55:18Z]}},
+                {%FeedProfile{},
+                 %ActiveSession{flake: cursor, expires_at: ~U[2021-07-21 12:55:18Z]}}
+              ], cursor} = Feeds.fetch_feed(me.user_id, _count = 10, _cursor = nil)
+
+      assert {[], ^cursor} = Feeds.fetch_feed(me.user_id, _count = 10, cursor)
+    end
+
+    test "with active users more than count", %{me: me} do
+      others = insert_list(3, :profile)
+      activate_sessions(others, @reference)
+
+      assert {[
+                {%FeedProfile{}, %ActiveSession{expires_at: ~U[2021-07-21 12:55:18Z]}},
+                {%FeedProfile{},
+                 %ActiveSession{flake: cursor1, expires_at: ~U[2021-07-21 12:55:18Z]}}
+              ], cursor1} = Feeds.fetch_feed(me.user_id, _count = 2, _cursor = nil)
+
+      assert {[
+                {%FeedProfile{},
+                 %ActiveSession{flake: cursor2, expires_at: ~U[2021-07-21 12:55:18Z]}}
+              ], cursor2} = Feeds.fetch_feed(me.user_id, _count = 10, cursor1)
+
+      assert cursor2 != cursor1
+
+      assert {[], ^cursor2} = Feeds.fetch_feed(me.user_id, _count = 10, cursor2)
+    end
+  end
+
+  describe "get_feed_item/1" do
+    setup do
+      me = insert(:user)
+      other = insert(:profile)
+      activate_session(other, @reference)
+      {:ok, me: me, other: other}
+    end
+
+    test "returns non reported user", %{me: me, other: other} do
+      assert {%FeedProfile{}, %ActiveSession{expires_at: ~U[2021-07-21 12:55:18Z]}} =
+               Feeds.get_feed_item(me.id, other.user_id)
+    end
+
+    test "doesn't return reported user", %{me: me, other: other} do
+      assert :ok = Accounts.report_user(me.id, other.user_id, "ugly")
+      refute Feeds.get_feed_item(me.id, other.user_id)
     end
   end
 end

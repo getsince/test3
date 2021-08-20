@@ -22,23 +22,8 @@ defmodule T.Accounts.RegistrationTest do
                 profile: %Accounts.Profile{
                   hidden?: true,
                   last_active: last_active,
-                  # the rest are nil or empty
-                  birthdate: nil,
-                  city: nil,
-                  first_date_idea: nil,
-                  free_form: nil,
                   gender: nil,
-                  height: nil,
-                  interests: nil,
-                  job: nil,
-                  major: nil,
-                  most_important_in_life: nil,
-                  name: nil,
-                  occupation: nil,
-                  photos: nil,
-                  tastes: nil,
-                  times_liked: nil,
-                  university: nil
+                  name: nil
                 }
               }} = Accounts.login_or_register_user_with_phone(phone_number, code)
 

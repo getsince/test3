@@ -6,7 +6,7 @@ defmodule T.Accounts do
   import Ecto.Query, warn: false
   import Ecto.Changeset
 
-  alias T.{Repo, Media, Bot, Feeds2}
+  alias T.{Repo, Media, Bot, Feeds}
 
   alias T.Accounts.{
     User,
@@ -241,57 +241,10 @@ defmodule T.Accounts do
     Ecto.Multi.new()
     |> Ecto.Multi.insert(:report, report_changeset)
     |> maybe_block_user_multi(on_user_id)
-    |> Ecto.Multi.insert(
-      :seen,
-      %T.Feeds.SeenProfile{
-        by_user_id: from_user_id,
-        user_id: on_user_id
-      },
-      on_conflict: :nothing
-    )
-    |> Ecto.Multi.run(:unmatch, fn repo, _changes ->
-      [u1, u2] = Enum.sort([from_user_id, on_user_id])
-
-      match_id =
-        T.Matches.Match
-        |> where(user_id_1: ^u1)
-        |> where(user_id_2: ^u2)
-        |> select([m], m.id)
-        |> repo.one()
-
-      if match_id do
-        T.Matches.unmatch(user: from_user_id, match: match_id)
-      else
-        {:ok, nil}
-      end
-    end)
     |> Ecto.Multi.run(:uninvite, fn _repo, _changes ->
-      {deleted_count, _} = Feeds2.delete_invites_for_reported(from_user_id, on_user_id)
+      {deleted_count, _} = Feeds.delete_invites_for_reported(from_user_id, on_user_id)
       {:ok, deleted_count}
     end)
-    # |> Ecto.Multi.run(:support, fn _repo, _changes ->
-    #   {:ok, message} =
-    #     result =
-    #     T.Support.add_message(from_user_id, T.Support.admin_id(), %{
-    #       "kind" => "text",
-    #       "data" => %{
-    #         "text" =>
-    #           dgettext(
-    #             "report",
-    #             "Расскажи, что произошло и мы постараемся помочь. Будем стараться, чтобы подобный опыт не повторился в будущем!"
-    #           )
-    #       }
-    #     })
-
-    #   # TODO no web here
-    #   TWeb.Endpoint.broadcast!(
-    #     "support:#{from_user_id}",
-    #     "message:new",
-    #     %{message: TWeb.MessageView.render("show.json", %{message: message})}
-    #   )
-
-    #   result
-    # end)
     |> Repo.transaction()
     |> case do
       {:ok, _changes} -> :ok
@@ -341,14 +294,13 @@ defmodule T.Accounts do
       {:ok, nil}
     end)
     |> Ecto.Multi.run(:uninvite, fn _repo, _changes ->
-      {deleted_count, _} = Feeds2.delete_invites_for_blocked(user_id)
+      {deleted_count, _} = Feeds.delete_invites_for_blocked(user_id)
       {:ok, deleted_count}
     end)
     |> Ecto.Multi.run(:deactivate_session, fn _repo, _changes ->
-      deactivated? = Feeds2.deactivate_session(user_id)
+      deactivated? = Feeds.deactivate_session(user_id)
       {:ok, deactivated?}
     end)
-    |> unmatch_all(user_id)
     |> Repo.transaction()
     |> case do
       {:ok, _changes} -> :ok
@@ -359,7 +311,6 @@ defmodule T.Accounts do
     Bot.async_post_silent_message("deleted user #{user_id}")
 
     Ecto.Multi.new()
-    |> unmatch_all(user_id)
     |> Ecto.Multi.run(:session_tokens, fn _repo, _changes ->
       tokens = UserToken |> where(user_id: ^user_id) |> select([ut], ut.token) |> Repo.all()
       {:ok, tokens}
@@ -373,22 +324,6 @@ defmodule T.Accounts do
       {:ok, true}
     end)
     |> Repo.transaction()
-  end
-
-  # TODO test
-  defp unmatch_all(multi, user_id) do
-    Ecto.Multi.run(multi, :unmatch, fn repo, _changes ->
-      unmatches =
-        T.Matches.Match
-        |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
-        |> select([m], m.id)
-        |> repo.all()
-        |> Enum.map(fn match_id ->
-          T.Matches.unmatch(user: user_id, match: match_id)
-        end)
-
-      {:ok, unmatches}
-    end)
   end
 
   def save_apns_device_id(user_id, token, device_id, locale \\ nil) do

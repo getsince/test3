@@ -54,7 +54,6 @@ defmodule T.Accounts.ProfileTest do
   describe "changeset/3" do
     test "with valid info" do
       attrs = %{
-        song: apple_music_song(),
         gender: "M",
         name: "Some Name",
         latitude: 50,
@@ -66,18 +65,6 @@ defmodule T.Accounts.ProfileTest do
                changeset = Profile.changeset(%Profile{}, attrs, validate_required?: true)
 
       assert errors_on(changeset) == %{}
-    end
-  end
-
-  describe "song_changeset/2" do
-    test "can nillify song" do
-      %{profile: profile} = onboarded_user()
-      assert profile.song
-
-      assert %Ecto.Changeset{valid?: true} =
-               changeset = Profile.changeset(profile, %{"song" => nil})
-
-      refute apply_changes(changeset).song
     end
   end
 end

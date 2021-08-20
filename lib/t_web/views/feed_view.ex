@@ -4,12 +4,12 @@ defmodule TWeb.FeedView do
   alias T.Feeds.{FeedProfile, ActiveSession}
 
   def render("feed_profile.json", %{profile: profile, screen_width: screen_width}) do
-    render_profile(profile, [:user_id, :song, :name, :story], screen_width)
+    render_profile(profile, [:user_id, :name, :story], screen_width)
   end
 
   def render("feed_item.json", %{profile: profile, session: session, screen_width: screen_width}) do
     %{
-      profile: render_profile(profile, [:user_id, :song, :name, :story], screen_width),
+      profile: render_profile(profile, [:user_id, :name, :story], screen_width),
       session: render_session(session)
     }
   end
@@ -25,9 +25,6 @@ defmodule TWeb.FeedView do
   defp render_profile(%FeedProfile{} = profile, fields, screen_width) do
     profile
     |> Map.take(fields)
-    |> Map.update!(:song, fn song ->
-      if song, do: ViewHelpers.extract_song_info(song)
-    end)
     |> Map.update!(:story, fn story ->
       ViewHelpers.postprocess_story(story, screen_width)
     end)

@@ -22,13 +22,7 @@ defmodule TWeb.MobileAuthControllerTest do
 
       assert profile == %{
                "user_id" => user_id,
-               "story" => [
-                 %{"background" => %{"color" => "#E5E7EB"}, "size" => [400, 800], "labels" => []},
-                 %{"background" => %{"color" => "#E5E7EB"}, "size" => [400, 800], "labels" => []},
-                 %{"background" => %{"color" => "#E5E7EB"}, "size" => [400, 800], "labels" => []},
-                 %{"background" => %{"color" => "#E5E7EB"}, "size" => [400, 800], "labels" => []}
-               ],
-               "song" => nil,
+               "story" => [],
                "gender" => nil,
                "name" => nil,
                "gender_preference" => nil,
@@ -47,7 +41,6 @@ defmodule TWeb.MobileAuthControllerTest do
 
       assert {:ok, _profile} =
                Accounts.onboard_profile(user.profile, %{
-                 song: apple_music_song(),
                  gender: "M",
                  name: "that",
                  latitude: 50,
@@ -73,30 +66,7 @@ defmodule TWeb.MobileAuthControllerTest do
 
       assert profile == %{
                "user_id" => user_id,
-               "story" => [
-                 %{
-                   "background" => %{"color" => "#E5E7EB"},
-                   "labels" => [
-                     %{
-                       "answer" => "that",
-                       "center" => [100, 100],
-                       "question" => "name",
-                       "size" => [100, 100],
-                       "value" => "that"
-                     }
-                   ],
-                   "size" => [400, 800]
-                 }
-               ],
-               "song" => %{
-                 "id" => "203709340",
-                 "album_cover" =>
-                   "https://is1-ssl.mzstatic.com/image/thumb/Music128/v4/1d/b0/2d/1db02d23-6e40-ae43-29c9-ff31a854e8aa/074643865326.jpg/1000x1000bb.jpeg",
-                 "artist_name" => "Bruce Springsteen",
-                 "preview_url" =>
-                   "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview71/v4/ab/b3/48/abb34824-1510-708e-57d7-870206be5ba2/mzaf_8515316732595919510.plus.aac.p.m4a",
-                 "song_name" => "Dancing In the Dark"
-               },
+               "story" => [],
                "gender" => "M",
                "name" => "that",
                "gender_preference" => nil,

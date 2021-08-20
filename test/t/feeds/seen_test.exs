@@ -2,52 +2,8 @@ defmodule T.Feeds.SeenTest do
   use T.DataCase, async: true
   alias T.{Feeds, Matches}
 
-  describe "feed" do
-    @tag skip: true
-    test "seen profile is not returned in feed" do
-      my_profile = insert(:profile)
-      assert %{loaded: [], next_ids: []} == Feeds.init_batched_feed(my_profile)
-
-      insert_list(10, :profile, gender: "F")
-
-      # I get the feed, nobody is "seen"
-      assert %{loaded: not_seen, next_ids: []} = Feeds.init_batched_feed(my_profile)
-      assert length(not_seen) == 10
-
-      # then I "see" some profiles (test broadcast)
-      to_be_seen = Enum.take(not_seen, 3)
-
-      Enum.each(to_be_seen, fn p ->
-        # TODO verify broadcast
-        assert {:ok, %Feeds.SeenProfile{}} =
-                 Feeds.mark_profile_seen(p.user_id, by: my_profile.user_id)
-      end)
-
-      # then I get feed again, and those profiles I've seen are marked as "seen"
-      assert %{loaded: loaded, next_ids: []} = Feeds.init_batched_feed(my_profile)
-
-      {seen, not_seen} = Enum.split(loaded, 3)
-      Enum.each(seen, fn p -> assert p.seen? == true end)
-      Enum.each(not_seen, fn p -> assert p.seen? == false end)
-
-      # TODO
-      # also the profiles I've seen are put in the end of the list?
-    end
-
-    test "double mark_profile_seen doesn't raise but returns invalid changeset" do
-      me = insert(:user)
-      not_me = insert(:user)
-
-      assert {:ok, %Feeds.SeenProfile{}} = Feeds.mark_profile_seen(not_me.id, by: me.id)
-
-      assert {:error, %Ecto.Changeset{valid?: false} = changeset} =
-               Feeds.mark_profile_seen(not_me.id, by: me.id)
-
-      assert errors_on(changeset) == %{seen: ["has already been taken"]}
-    end
-  end
-
   describe "likers" do
+    @tag skip: true
     test "seen likes are marked seen in all_profile_likes_with_liker_profile" do
       my_profile = insert(:profile)
       assert [] == Feeds.all_profile_likes_with_liker_profile(my_profile.user_id)
@@ -89,6 +45,7 @@ defmodule T.Feeds.SeenTest do
       # also the profiles I've seen are put in the end of the list?
     end
 
+    @tag skip: true
     test "double mark_liker_seen doesn't raise" do
       me = insert(:profile)
       not_me = insert(:profile)
@@ -108,6 +65,7 @@ defmodule T.Feeds.SeenTest do
 
     @reference ~U[2021-03-23 14:00:00Z]
 
+    @tag skip: true
     test "seeing slot makes it seen" do
       [picker, offerer] = insert_list(2, :profile)
       match = insert(:match, user_id_1: picker.user_id, user_id_2: offerer.user_id)
@@ -194,6 +152,7 @@ defmodule T.Feeds.SeenTest do
                Matches.get_current_matches(offerer.user_id)
     end
 
+    @tag skip: true
     # TODO broadcast deletion
     test "seeing expired timeslot.slots deletes it" do
       [picker, offerer] = insert_list(2, :profile)
@@ -230,6 +189,7 @@ defmodule T.Feeds.SeenTest do
       assert [%Matches.Match{timeslot: nil}] = Matches.get_current_matches(offerer.user_id)
     end
 
+    @tag skip: true
     test "seeing expired timeslot.selected_slot deletes it" do
       [picker, offerer] = insert_list(2, :profile)
       match = insert(:match, user_id_1: picker.user_id, user_id_2: offerer.user_id)
@@ -272,6 +232,7 @@ defmodule T.Feeds.SeenTest do
       assert [%Matches.Match{timeslot: nil}] = Matches.get_current_matches(offerer.user_id)
     end
 
+    @tag skip: true
     test "mark_timeslot_seen_or_delete_expired when match/timeslot doesn't exist" do
       [picker, offerer] = insert_list(2, :profile)
 
@@ -290,6 +251,7 @@ defmodule T.Feeds.SeenTest do
   end
 
   describe "matches" do
+    @tag skip: true
     test "it works" do
       my_profile = insert(:profile)
 
@@ -325,6 +287,7 @@ defmodule T.Feeds.SeenTest do
       # also the matches I've seen are put in the end of the list?
     end
 
+    @tag skip: true
     test "double mark_match_seen doesn't raise but returns invalid changeset" do
       me = insert(:user)
       not_me = insert(:user)

@@ -9,7 +9,6 @@ defmodule T.Accounts.BlockingTest do
   # TODO move to reporting test
   describe "report_user/3" do
     setup do
-      _admin = T.Repo.insert!(%Accounts.User{id: T.Support.admin_id(), phone_number: "ADMIN"})
       reporter = onboarded_user()
       reported = onboarded_user()
       {:ok, reporter: reporter, reported: reported}
@@ -23,6 +22,7 @@ defmodule T.Accounts.BlockingTest do
       assert report.on_user_id == reported.id
     end
 
+    @tag skip: true
     test "unmatches if there is a match", %{reporter: reporter, reported: reported} do
       assert {:ok, %{match: nil}} = Feeds.like_profile(reporter.id, reported.id)
       assert {:ok, %{match: %Match{id: match_id}}} = Feeds.like_profile(reported.id, reporter.id)
@@ -38,11 +38,6 @@ defmodule T.Accounts.BlockingTest do
       for user_id <- user_ids do
         assert [] == Matches.get_current_matches(user_id)
       end
-    end
-
-    test "marks reported user as seen", %{reporter: reporter, reported: reported} do
-      assert :ok == Accounts.report_user(reporter.id, reported.id, "he ugly")
-      assert_seen(by_user_id: reporter.id, user_id: reported.id)
     end
 
     test "3 reports block the user", %{reporter: reporter1, reported: reported} do
@@ -74,6 +69,7 @@ defmodule T.Accounts.BlockingTest do
       assert Repo.get!(Accounts.User, user.id).blocked_at
     end
 
+    @tag skip: true
     test "unmatches if there is a match", %{user: user} do
       other = onboarded_user()
 

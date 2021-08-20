@@ -84,11 +84,6 @@ if config_env() == :prod and not in_build? do
       mode: :dev
     }
 
-  config :t, T.Music,
-    key: System.fetch_env!("MUSIC_KEY"),
-    team_id: System.fetch_env!("APNS_TEAM_ID"),
-    key_id: System.fetch_env!("MUSIC_KEY_ID")
-
   config :t, run_migrations_on_start?: true
 
   config :t, T.Repo,
@@ -159,11 +154,6 @@ if config_env() == :dev do
     account_sid: System.fetch_env!("TWILIO_ACCOUNT_SID"),
     key_sid: System.fetch_env!("TWILIO_KEY_SID"),
     auth_token: System.fetch_env!("TWILIO_AUTH_TOKEN")
-
-  config :t, T.Music,
-    key: System.fetch_env!("MUSIC_KEY"),
-    team_id: System.fetch_env!("APNS_TEAM_ID"),
-    key_id: System.fetch_env!("MUSIC_KEY_ID")
 
   # For development, we disable any cache and enable
   # debugging.

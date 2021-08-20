@@ -1,125 +1,125 @@
 defmodule TWeb.FeedChannel do
   use TWeb, :channel
-  import TWeb.ChannelHelpers
-  alias TWeb.ProfileView
-  alias T.{Feeds, Accounts}
+
+  alias TWeb.ChannelHelpers
+  alias T.Feeds.{FeedProfile, ActiveSession}
+  alias T.{Feeds, Calls}
+
+  # TODO presence per active user
 
   @impl true
-  def join("feed:" <> user_id, params, socket) do
-    user_id = verify_user_id(socket, user_id)
-    continue_join(user_id, params, socket)
-  end
+  def join("feed:" <> user_id, _params, socket) do
+    user_id = ChannelHelpers.verify_user_id(socket, user_id)
 
-  # apple
-  # defp continue_join("0000017a-a0f0-c00e-0242-ac1100040000" = user_id, _params, socket) do
-  #   %{screen_width: screen_width, current_user: current_user} = socket.assigns
+    :ok = Feeds.subscribe_for_invites(user_id)
+    :ok = Feeds.subscribe_for_activated_sessions()
+    :ok = Feeds.subscribe_for_deactivated_sessions()
 
-  #   my_profile = Accounts.get_profile!(current_user)
-  #   socket = assign(socket, profile: my_profile)
+    current_session =
+      if session = Feeds.get_current_session(user_id) do
+        render_session(session)
+      end
 
-  #   feed = Feeds.yabloko_feed(user_id)
-  #   socket = assign(socket, next_ids: [])
-  #   {:ok, %{feed: render_profiles(feed, screen_width)}, socket}
-  # end
-
-  # everyone else
-  defp continue_join(_user_id, params, socket) do
-    %{screen_width: screen_width, current_user: current_user} = socket.assigns
-    profiles_to_load = params["count"] || 3
-
-    %Accounts.Profile{gender: gender} = my_profile = Accounts.get_profile!(current_user)
-    socket = assign(socket, profile: my_profile)
-
-    if gender do
-      %{loaded: feed, next_ids: next_ids} =
-        Feeds.init_batched_feed(my_profile, loaded: profiles_to_load)
-
-      socket = assign(socket, next_ids: next_ids)
-      {:ok, %{feed: render_profiles(feed, screen_width)}, socket}
-    else
-      {:ok, %{feed: []}, socket}
-    end
+    {:ok, %{"current_session" => current_session}, socket}
   end
 
   @impl true
-  # TODO possibly batch
-  def handle_in("seen", %{"profile_id" => profile_id}, socket) do
-    # TODO broadcast
-    Feeds.mark_profile_seen(profile_id, by: current_user(socket).id)
-    {:reply, :ok, socket}
+  def handle_in("more", params, socket) do
+    %{current_user: user, screen_width: screen_width} = socket.assigns
+    {feed, cursor} = Feeds.fetch_feed(user.id, params["count"] || 10, params["cursor"])
+    {:reply, {:ok, %{"feed" => render_feed(feed, screen_width), "cursor" => cursor}}, socket}
   end
 
-  # TODO test with timeout
-  def handle_in("like", %{"profile_id" => profile_id} = params, socket) do
-    # TODO verify_can_see_profile(socket, profile_id)
-    user = current_user(socket)
+  # TODO accept cursor?
+  def handle_in("invites", _params, socket) do
+    %{current_user: user, screen_width: screen_width} = socket.assigns
+    invites = Feeds.list_received_invites(user.id)
+    {:reply, {:ok, %{"invites" => render_feed(invites, screen_width)}}, socket}
+  end
 
-    if params["timeout?"] do
-      Feeds.schedule_like_profile(user.id, profile_id)
-    else
-      Feeds.like_profile(user.id, profile_id)
-    end
+  def handle_in("invite", %{"user_id" => user_id}, socket) do
+    invited? = Feeds.invite_active_user(socket.assigns.current_user.id, user_id)
+    {:reply, {:ok, %{"invited" => invited?}}, socket}
+  end
 
+  def handle_in("call", %{"user_id" => called}, socket) do
+    caller = socket.assgins.current_user.id
+
+    reply =
+      case Calls.call(caller, called) do
+        {:ok, call_id} -> {:ok, %{"call_id" => call_id}}
+        {:error, reason} -> {:error, %{"reason" => reason}}
+      end
+
+    {:reply, reply, socket}
+  end
+
+  def handle_in("activate-session", %{"duration" => duration}, socket) do
+    %{current_user: user} = socket.assigns
+    Feeds.activate_session(user.id, duration)
     {:reply, :ok, socket}
   end
 
   # TODO test
-  def handle_in("cancel-like", %{"profile_id" => profile_id}, socket) do
-    cancelled? = Feeds.cancel_like_profile(current_user(socket).id, profile_id)
-    {:reply, {:ok, %{cancelled: cancelled?}}, socket}
-  end
-
-  def handle_in("dislike", %{"profile_id" => profile_id}, socket) do
-    Feeds.dislike_liker(profile_id, by: current_user(socket).id)
-    {:reply, :ok, socket}
-  end
-
-  # TODO when user changes profile settings, refresh profile in memory
-  # otherwise we might continue fetching wrong feed
-  def handle_in("more", params, socket) do
-    profiles_to_load = params["count"] || 3
-
-    case next_ids(socket) do
-      [] -> stop_feed(socket)
-      _not_empty -> continue_feed(socket, profiles_to_load)
-    end
+  def handle_in("deactivate-session", _params, socket) do
+    %{current_user: user} = socket.assigns
+    deactivated? = Feeds.deactivate_session(user.id)
+    {:reply, {:ok, %{"deactivated" => deactivated?}}, socket}
   end
 
   def handle_in("report", %{"report" => report}, socket) do
     ChannelHelpers.report(socket, report)
   end
 
-  def handle_in("onboarding-feed", _params, socket) do
-    %{screen_width: screen_width} = socket.assigns
-    feed = T.Feeds.onboarding_feed()
-    {:reply, {:ok, %{feed: render_profiles(feed, screen_width)}}, socket}
+  @impl true
+  def handle_info({Feeds, :invited, by_user_id}, socket) do
+    %{current_user: user, screen_width: screen_width} = socket.assigns
+
+    if feed_item = Feeds.get_feed_item(user.id, by_user_id) do
+      push(socket, "invite", %{
+        "feed_item" => render_feed_item(feed_item, screen_width)
+      })
+    end
+
+    {:noreply, socket}
   end
 
-  #### MISC ####
+  # TODO test
+  # TODO optimise pubsub, and use fastlane (one encode per screen width) or move screen width logic to the client
+  def handle_info({Feeds, :activated, user_id}, socket) do
+    %{current_user: user, screen_width: screen_width} = socket.assigns
 
-  defp stop_feed(socket) do
-    {:reply, {:ok, _cursor = %{feed: [], has_more: false}}, socket}
+    if feed_item = Feeds.get_feed_item(user.id, user_id) do
+      push(socket, "activated", %{
+        "feed_item" => render_feed_item(feed_item, screen_width)
+      })
+    end
+
+    {:noreply, socket}
   end
 
-  defp continue_feed(socket, profiles_to_load) do
-    %{profile: my_profile, screen_width: screen_width, next_ids: next_ids} = socket.assigns
-
-    %{loaded: feed, next_ids: next_ids} =
-      Feeds.continue_batched_feed(next_ids, my_profile, loaded: profiles_to_load)
-
-    cursor = %{feed: render_profiles(feed, screen_width), has_more: not Enum.empty?(next_ids)}
-    {:reply, {:ok, cursor}, assign(socket, next_ids: next_ids)}
+  # TODO test
+  # TODO optimise pubsub, and use fastlane
+  def handle_info({Feeds, :deactivated, user_id}, socket) do
+    push(socket, "deactivated", %{"user_id" => user_id})
+    {:noreply, socket}
   end
 
-  defp next_ids(socket) do
-    socket.assigns.next_ids
+  defp render_feed_item(feed_item, screen_width) do
+    {%FeedProfile{} = profile, %ActiveSession{} = session} = feed_item
+
+    render(TWeb.FeedView, "feed_item.json",
+      profile: profile,
+      session: session,
+      screen_width: screen_width
+    )
   end
 
-  defp render_profile(profile, screen_width) do
-    render(ProfileView, "show.json", profile: profile, screen_width: screen_width)
+  defp render_feed(feed, screen_width) do
+    Enum.map(feed, fn feed_item -> render_feed_item(feed_item, screen_width) end)
   end
 
-  defp render_profiles(profiles, screen_width) do
-    Enum.map(profiles, &render_profile(&1, screen_width))
+  defp render_session(session) do
+    render(TWeb.FeedView, "session.json", session: session)
   end
 end

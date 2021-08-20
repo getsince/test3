@@ -55,16 +55,11 @@ defmodule T.DataCase do
     end)
   end
 
-  alias T.{Repo, Feeds2}
-  alias T.Feeds.{SeenProfile, ProfileLike, ProfileDislike}
+  alias T.{Repo, Feeds}
+  alias T.Feeds.{ProfileLike, ProfileDislike}
   alias T.Accounts.{User, Profile}
 
   import Ecto.Query
-  import Assertions
-
-  def assert_seen(opts) do
-    assert SeenProfile |> where(^opts) |> Repo.one!()
-  end
 
   def assert_liked(opts) do
     assert ProfileLike |> where(^opts) |> Repo.one!()
@@ -104,28 +99,6 @@ defmodule T.DataCase do
     assert profile.user_id in feed_ids
   end
 
-  def most_liked(profiles, likes) do
-    profiles
-    |> Enum.shuffle()
-    |> Enum.zip(likes)
-    |> Enum.map(fn {profile, likes} ->
-      {1, nil} =
-        Profile
-        |> where(user_id: ^profile.user_id)
-        |> Repo.update_all(set: [times_liked: likes])
-
-      %Profile{profile | times_liked: likes}
-    end)
-  end
-
-  def assert_reasons(feed, reasons) do
-    assert_lists_equal(Enum.map(feed, & &1.feed_reason), reasons)
-  end
-
-  def assert_unique_profiles(feed) do
-    assert length(feed) == feed |> Enum.uniq_by(& &1.user_id) |> length()
-  end
-
   def activate_sessions(users, reference) do
     Enum.map(users, &activate_session(&1, reference))
   end
@@ -139,6 +112,6 @@ defmodule T.DataCase do
   end
 
   def activate_session(user_id, reference) when is_binary(user_id) do
-    Feeds2.activate_session(user_id, _duration = 60, reference)
+    Feeds.activate_session(user_id, _duration = 60, reference)
   end
 end

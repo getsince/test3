@@ -9,7 +9,6 @@ defmodule T.Matches.Match do
     field :user_id_2, Ecto.Bigflake.UUID
     # TODO
     field :profile, :map, virtual: true
-    field :seen?, :boolean, virtual: true
     field :timeslot, :map, virtual: true
 
     # embeds_one :slot_offer, Timeslot do

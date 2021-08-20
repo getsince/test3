@@ -1,6 +1,7 @@
 defmodule TWeb.Router do
   use TWeb, :router
 
+  import Phoenix.LiveDashboard.Router
   import TWeb.UserAuth
 
   pipeline :browser do
@@ -16,39 +17,6 @@ defmodule TWeb.Router do
     plug :accepts, ["json"]
   end
 
-  # TODO add app routes
-  # TODO /onboarding
-  # /login
-  # /profile/<uuid>
-  # /profile
-  # /match
-  # /feed
-  # TODO add channel api explorer
-  # TODO add admin interface with impersonation and bird view
-  # TODO add reports endpoint
-
-  # TODO https://hexdocs.pm/sentry/Sentry.Context.html#content
-  scope "/api", TWeb do
-    pipe_through :api
-
-    # post "/share-email", ShareController, :email
-    post "/share-phone", ShareController, :phone
-    post "/visited", VisitController, :create
-    get "/is-code-available/:code", ShareController, :check_if_available
-    post "/save-code", ShareController, :save_code
-  end
-
-  # if Mix.env() == :dev do
-  #   forward "/sent-emails", Bamboo.SentEmailViewerPlug
-
-  #   # scope "/api/dev", TWeb do
-  #   #   pipe_through :api
-  #   #   post "/phone-code", DevController, :get_phone_code
-  #   # end
-  # end
-
-  import Phoenix.LiveDashboard.Router
-
   scope "/" do
     pipe_through [
       :fetch_session,
@@ -61,15 +29,6 @@ defmodule TWeb.Router do
       metrics: TWeb.Telemetry,
       ecto_repos: [T.Repo]
   end
-
-  ## Authentication routes
-
-  # scope "/api/auth", TWeb do
-  #   pipe_through [:api, :with_current_user, :require_not_authenticated_user]
-
-  #   post "/request-sms", AuthController, :request_sms
-  #   post "/verify-phone-number", AuthController, :verify_phone_number
-  # end
 
   scope "/api/mobile/auth", TWeb do
     pipe_through [:api, :fetch_current_user_from_bearer_token, :require_not_authenticated_user]
@@ -87,13 +46,6 @@ defmodule TWeb.Router do
     delete "/mobile/account", MobileAccountController, :delete
     delete "/mobile/auth", MobileAuthController, :delete
     resources "/profile", ProfileController, singleton: true, only: [:update]
-  end
-
-  scope "/api", TWeb do
-    pipe_through :api
-
-    get "/ios/yo-ack/:ack_id", YoController, :ack_ios_yo
-    post "/ios/yo-ack", YoController, :ack_ios_yo
   end
 
   scope "/admin", TWeb do
@@ -123,13 +75,5 @@ defmodule TWeb.Router do
     pipe_through [:api]
 
     post "/:token", BotController, :webhook
-  end
-
-  if Mix.env() == :dev do
-    scope "/api", TWeb do
-      pipe_through :api
-
-      post "/log", LogController, :log
-    end
   end
 end

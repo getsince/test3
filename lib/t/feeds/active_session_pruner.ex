@@ -23,7 +23,7 @@ defmodule T.Feeds.ActiveSessionPruner do
 
   @doc false
   def prune() do
-    T.Feeds2.delete_expired_sessions()
+    T.Feeds.delete_expired_sessions()
   end
 
   @impl true

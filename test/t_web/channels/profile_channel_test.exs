@@ -19,29 +19,7 @@ defmodule TWeb.ProfileChannelTest do
                  latitude: nil,
                  longitude: nil,
                  gender_preference: nil,
-                 story: [
-                   %{
-                     "background" => %{"color" => "#E5E7EB"},
-                     "size" => [400, 800],
-                     "labels" => []
-                   },
-                   %{
-                     "background" => %{"color" => "#E5E7EB"},
-                     "size" => [400, 800],
-                     "labels" => []
-                   },
-                   %{
-                     "background" => %{"color" => "#E5E7EB"},
-                     "size" => [400, 800],
-                     "labels" => []
-                   },
-                   %{
-                     "background" => %{"color" => "#E5E7EB"},
-                     "size" => [400, 800],
-                     "labels" => []
-                   }
-                 ],
-                 song: nil,
+                 story: [],
                  gender: nil,
                  name: nil
                }
@@ -55,7 +33,6 @@ defmodule TWeb.ProfileChannelTest do
     end
 
     test "with partially filled profile", %{socket: socket, user: user} do
-      # TODO remove photos
       {:ok, _profile} =
         Accounts.update_profile(user.profile, %{
           "name" => "Jojaresum",
@@ -84,39 +61,45 @@ defmodule TWeb.ProfileChannelTest do
           ]
         })
 
-      assert {:ok,
-              %{
-                profile: %{
-                  name: "Jojaresum",
-                  story: [
-                    %{
-                      "background" => %{
-                        "proxy" =>
-                          "https://d1234.cloudfront.net/e9a8Yq80qbgr7QH43crdCBPWdt6OACyhD5xWN8ysFok/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Bob3RvLmpwZw",
-                        "s3_key" => "photo.jpg"
-                      },
-                      "labels" => [
-                        %{
-                          "type" => "text",
-                          "value" => "just some text",
-                          "dimensions" => [400, 800],
-                          "position" => [100, 100],
-                          "rotation" => 21,
-                          "zoom" => 1.2
-                        },
-                        %{
-                          "type" => "answer",
-                          "answer" => "msu",
-                          "question" => "university",
-                          "value" => "🥊\nменя воспитала улица",
-                          "dimensions" => [400, 800],
-                          "position" => [150, 150]
-                        }
-                      ]
-                    }
-                  ]
-                }
-              }, _socket} = subscribe_and_join(socket, "profile:" <> user.id, %{})
+      assert {:ok, reply, _socket} = subscribe_and_join(socket, "profile:" <> user.id, %{})
+
+      assert reply == %{
+               profile: %{
+                 name: "Jojaresum",
+                 story: [
+                   %{
+                     "background" => %{
+                       "proxy" =>
+                         "https://d1234.cloudfront.net/e9a8Yq80qbgr7QH43crdCBPWdt6OACyhD5xWN8ysFok/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Bob3RvLmpwZw",
+                       "s3_key" => "photo.jpg"
+                     },
+                     "labels" => [
+                       %{
+                         "type" => "text",
+                         "value" => "just some text",
+                         "dimensions" => [400, 800],
+                         "position" => [100, 100],
+                         "rotation" => 21,
+                         "zoom" => 1.2
+                       },
+                       %{
+                         "type" => "answer",
+                         "answer" => "msu",
+                         "question" => "university",
+                         "value" => "🥊\nменя воспитала улица",
+                         "dimensions" => [400, 800],
+                         "position" => [150, 150]
+                       }
+                     ]
+                   }
+                 ],
+                 gender: nil,
+                 gender_preference: nil,
+                 latitude: nil,
+                 longitude: nil,
+                 user_id: user.id
+               }
+             }
     end
   end
 
@@ -145,16 +128,10 @@ defmodule TWeb.ProfileChannelTest do
                }
              }
 
-      MockMusic
-      |> expect(:get_song, fn "203709340" ->
-        apple_music_song()
-      end)
-
       ref =
         push(socket, "submit", %{
           "profile" => %{
             "name" => "hey that's me CLARISA",
-            "song" => "203709340",
             "gender" => "F",
             "latitude" => 50,
             "longitude" => 50,
@@ -199,15 +176,6 @@ defmodule TWeb.ProfileChannelTest do
                      ]
                    }
                  ],
-                 song: %{
-                   "id" => "203709340",
-                   "album_cover" =>
-                     "https://is1-ssl.mzstatic.com/image/thumb/Music128/v4/1d/b0/2d/1db02d23-6e40-ae43-29c9-ff31a854e8aa/074643865326.jpg/1000x1000bb.jpeg",
-                   "artist_name" => "Bruce Springsteen",
-                   "preview_url" =>
-                     "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview71/v4/ab/b3/48/abb34824-1510-708e-57d7-870206be5ba2/mzaf_8515316732595919510.plus.aac.p.m4a",
-                   "song_name" => "Dancing In the Dark"
-                 },
                  gender: "F",
                  name: "hey that's me CLARISA"
                }
@@ -322,23 +290,6 @@ defmodule TWeb.ProfileChannelTest do
                  "x-amz-signature" => _signature
                }
              } = reply
-    end
-  end
-
-  describe "updates after onboarded" do
-    setup %{user: user} do
-      {:ok, user: onboarded_user(user)}
-    end
-
-    setup :subscribe_and_join
-
-    test "can reset song", %{user: user, socket: socket} do
-      assert user.profile.song
-
-      ref = push(socket, "submit", %{"profile" => %{"song" => ""}})
-      assert_reply ref, :ok, %{profile: %{song: nil}}
-
-      refute Repo.get!(Accounts.Profile, user.id).song
     end
   end
 end

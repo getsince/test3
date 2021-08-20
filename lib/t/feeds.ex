@@ -1,434 +1,285 @@
 defmodule T.Feeds do
-  @moduledoc "Feeds and liking feeds"
-  import Ecto.{Query, Changeset}
+  @moduledoc "Feeds for alternative app. Invites & Calls."
 
-  alias T.{Repo, Matches, Accounts, Bot}
-  alias T.Accounts.{Profile, UserReport, GenderPreference}
+  import Ecto.Query
+  import Ecto.Changeset
+
+  alias T.{Repo, Bot}
+  alias T.Accounts.UserReport
+  alias T.Invites.CallInvite
+  alias T.Feeds.{ActiveSession, FeedProfile}
   alias T.PushNotifications.DispatchJob
-  alias T.Feeds.{Feeded, SeenProfile, ProfileLike, LikeJob}
+
+  ### PubSub
+
+  # TODO optimise pubsub:
+  # instead of single topic, use `up-to-filter` with each subscriber providing a value up to which
+  # they are subscribed, and if the event is below that value -> send it, if not -> don't send it
 
   @pubsub T.PubSub
-  @topic to_string(__MODULE__)
 
-  defp pubsub_likes_topic(user_id) when is_binary(user_id) do
-    @topic <> ":l:" <> String.downcase(user_id)
-  end
-
-  def subscribe_for_likes(user_id) do
-    Phoenix.PubSub.subscribe(@pubsub, pubsub_likes_topic(user_id))
-  end
-
-  defp notify_subscribers(
-         {:ok, %{like: %ProfileLike{user_id: to} = like}} = success,
-         :liked = event
-       ) do
-    msg = {__MODULE__, event, like}
-    Phoenix.PubSub.broadcast(@pubsub, pubsub_likes_topic(to), msg)
+  defp notify_subscribers({:ok, %{invite: invite}} = success, :invited = event) do
+    %CallInvite{by_user_id: by_user_id, user_id: user_id} = invite
+    topic = invites_topic(user_id)
+    broadcast(topic, {__MODULE__, event, by_user_id})
     success
   end
 
-  defp notify_subscribers({:error, _field, _reason, _changes} = error, _event) do
-    error
+  defp notify_subscribers(%ActiveSession{user_id: user_id} = session, :activated = event) do
+    broadcast(activated_topic(), {__MODULE__, event, user_id})
+    session
   end
 
-  defp notify_subscribers({:error, _reason} = error, _event) do
-    error
+  defp notify_subscribers({:error, _multi, _reason, _changes} = fail, _event), do: fail
+  defp notify_subscribers({:error, _reason} = fail, _event), do: fail
+
+  defp notify_deactivated(user_id) when is_binary(user_id) do
+    broadcast(deactivated_topic(), {__MODULE__, :deactivated, user_id})
   end
 
-  ######################### LIKE #########################
+  defp notify_deactivated(user_ids) when is_list(user_ids) do
+    topic = deactivated_topic()
 
-  # TODO auth, check user_id in by_user_id feed
-  @doc false
-  def like_profile(by_user_id, user_id) do
-    Bot.async_post_silent_message("user #{by_user_id} liked #{user_id}")
-
-    Ecto.Multi.new()
-    |> mark_profile_seen(by_user_id, user_id)
-    |> mark_liked(by_user_id, user_id)
-    |> bump_likes_count(user_id)
-    |> Matches.match_if_mutual_m(by_user_id, user_id)
-    |> maybe_schedule_like_push_notification()
-    |> Repo.transaction()
-    |> Matches.maybe_notify_of_match()
-    |> notify_subscribers(:liked)
+    for user_id <- user_ids do
+      broadcast(topic, {__MODULE__, :deactivated, user_id})
+    end
   end
 
-  # TODO test
-  def schedule_like_profile(by_user_id, user_id, schedule_in \\ {10, :seconds}) do
-    Bot.async_post_silent_message("user #{by_user_id} scheduled to like #{user_id}")
-    args = %{"by_user_id" => by_user_id, "user_id" => user_id}
-    job = LikeJob.new(args, schedule_in: schedule_in)
-    Oban.insert(job)
+  def subscribe_for_invites(user_id) do
+    subscribe(invites_topic(user_id))
   end
 
-  defp list_like_jobs(by_user_id, user_id) do
-    Oban.Job
-    |> where(worker: ^dump_worker_to_string(LikeJob))
-    |> where([j], j.state not in ["completed", "discarded", "cancelled"])
-    |> where([j], j.args["by_user_id"] == ^by_user_id and j.args["user_id"] == ^user_id)
-    |> Repo.all()
+  def subscribe_for_activated_sessions do
+    subscribe(activated_topic())
   end
 
-  defp dump_worker_to_string(worker) do
-    worker |> to_string() |> String.replace_leading("Elixir.", "")
+  def subscribe_for_deactivated_sessions do
+    subscribe(deactivated_topic())
   end
 
-  # TODO test
-  def cancel_like_profile(by_user_id, user_id) do
-    Bot.async_post_silent_message("user #{by_user_id} cancelled liking #{user_id}")
-    jobs = list_like_jobs(by_user_id, user_id)
-    cancelled_jobs = Enum.map(jobs, fn job -> Oban.cancel_job(job.id) end)
-    not Enum.empty?(cancelled_jobs)
+  defp broadcast(topic, message) do
+    Phoenix.PubSub.broadcast(@pubsub, topic, message)
   end
 
-  # TODO broadcast
-  def dislike_liker(liker_id, opts) do
-    by_user_id = Keyword.fetch!(opts, :by)
-    Bot.async_post_silent_message("user #{by_user_id} disliked liker #{liker_id}")
+  defp subscribe(topic) do
+    Phoenix.PubSub.subscribe(@pubsub, topic)
+  end
 
-    {count, _other} =
-      ProfileLike
-      |> where(by_user_id: ^liker_id)
-      |> where(user_id: ^by_user_id)
+  defp invites_topic(user_id) do
+    "__invites:" <> String.downcase(user_id)
+  end
+
+  defp deactivated_topic, do: "__deact:"
+  defp activated_topic, do: "__act:"
+
+  ### Active Sessions
+
+  # TODO test pubsub
+  @spec activate_session(Ecto.UUID.t(), integer, DateTime.t()) :: %ActiveSession{}
+  def activate_session(user_id, duration_in_minutes, reference \\ DateTime.utc_now()) do
+    Bot.async_post_silent_message(
+      "user #{user_id} activated session for #{duration_in_minutes} minutes since #{reference}"
+    )
+
+    expires_at = reference |> DateTime.add(60 * duration_in_minutes) |> DateTime.truncate(:second)
+
+    %ActiveSession{user_id: user_id, expires_at: expires_at}
+    |> Repo.insert!(on_conflict: :replace_all, conflict_target: :user_id)
+    |> notify_subscribers(:activated)
+  end
+
+  # TODO test pubsub
+  @spec deactivate_session(Ecto.UUID.t()) :: boolean
+  def deactivate_session(user_id) do
+    ActiveSession
+    |> where(user_id: ^user_id)
+    |> Repo.delete_all()
+    |> case do
+      {1, nil} ->
+        notify_deactivated(user_id)
+        true
+
+      {0, nil} ->
+        false
+    end
+  end
+
+  @spec get_current_session(Ecto.UUID.t()) :: %ActiveSession{} | nil
+  def get_current_session(user_id) do
+    ActiveSession
+    |> where(user_id: ^user_id)
+    |> Repo.one()
+  end
+
+  @spec expired_sessions_q(DateTime.t()) :: Ecto.Query.t()
+  defp expired_sessions_q(reference) do
+    where(ActiveSession, [s], s.expires_at < ^reference)
+  end
+
+  @spec expired_sessions(DateTime.t()) :: [%ActiveSession{}]
+  def expired_sessions(reference \\ DateTime.utc_now()) do
+    reference |> expired_sessions_q() |> Repo.all()
+  end
+
+  # TODO test pubsub
+  def delete_expired_sessions(reference \\ DateTime.utc_now()) do
+    {_count, user_ids} =
+      result =
+      reference
+      |> expired_sessions_q()
+      |> select([s], s.user_id)
       |> Repo.delete_all()
 
-    count == 1
+    notify_deactivated(user_ids)
+    result
   end
 
-  # TODO broadcast
-  @doc "mark_profile_seen(user_id, by: <user-id>)"
-  def mark_profile_seen(user_id, opts) do
-    by_user_id = Keyword.fetch!(opts, :by)
-    Bot.async_post_silent_message("user #{by_user_id} seen #{user_id}")
+  ### Invites
 
-    seen_changeset(by_user_id, user_id)
-    |> Repo.insert()
-  end
+  @spec invite_active_user(Ecto.UUID.t(), Ecto.UUID.t()) :: boolean
+  def invite_active_user(by_user_id, user_id) do
+    Bot.async_post_silent_message("user #{by_user_id} invited #{user_id}")
 
-  defp mark_profile_seen(multi, by_user_id, user_id) do
-    Ecto.Multi.insert(multi, :seen, seen_changeset(by_user_id, user_id), on_conflict: :nothing)
-  end
-
-  defp seen_changeset(by_user_id, user_id) do
-    %SeenProfile{by_user_id: by_user_id, user_id: user_id}
-    |> change()
-    |> unique_constraint(:seen, name: :seen_profiles_pkey)
-  end
-
-  defp mark_liked(multi, by_user_id, user_id) do
-    changeset =
-      %ProfileLike{by_user_id: by_user_id, user_id: user_id}
-      |> change()
-      |> unique_constraint(:like, name: :liked_profiles_pkey)
-
-    Ecto.Multi.insert(multi, :like, changeset)
-  end
-
-  defp maybe_schedule_like_push_notification(multi) do
-    Ecto.Multi.run(multi, :push_notification, fn _repo, %{like: like, match: match} ->
-      if match do
-        {:ok, nil}
-      else
-        %ProfileLike{by_user_id: by_user_id, user_id: user_id} = like
-
-        job =
-          DispatchJob.new(%{"type" => "like", "by_user_id" => by_user_id, "user_id" => user_id})
-
-        Oban.insert(job)
-      end
-    end)
-  end
-
-  defp bump_likes_count(multi, user_id) do
-    Ecto.Multi.run(multi, :bump_likes, fn _repo, _changes ->
-      {1, [count]} =
-        Profile
-        |> where(user_id: ^user_id)
-        |> select([p], p.times_liked)
-        |> Repo.update_all(inc: [times_liked: 1])
-
-      {:ok, count}
-    end)
-  end
-
-  def all_profile_likes_with_liker_profile(user_id) do
-    matches =
-      Matches.Match
-      |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
-
-    ProfileLike
-    |> where(user_id: ^user_id)
-    |> join(:inner, [l], p in Profile, on: p.user_id == l.by_user_id)
-    |> join(:left, [l, p], m in subquery(matches),
-      on: p.user_id == m.user_id_1 or p.user_id == m.user_id_2
-    )
-    |> where([l, p, m], is_nil(m.id))
-    |> select([l, p], %ProfileLike{l | liker_profile: p, seen?: coalesce(l.seen?, false)})
-    |> order_by([l, p], desc: l.inserted_at)
-    |> Repo.all()
-  end
-
-  def preload_liker_profile(%ProfileLike{liker_profile: %Profile{}} = like), do: like
-
-  def preload_liker_profile(%ProfileLike{by_user_id: by_user_id, liker_profile: nil} = like) do
-    %ProfileLike{like | liker_profile: Accounts.get_profile!(by_user_id)}
-  end
-
-  @doc "mark_liker_seen(<user-id>, by: <user-id>)"
-  def mark_liker_seen(user_id, opts) do
-    liked_id = Keyword.fetch!(opts, :by)
-    Bot.async_post_silent_message("user #{liked_id} merked seen liker #{user_id}")
-
-    {count, _} =
-      ProfileLike
-      |> where(user_id: ^liked_id)
-      |> where(by_user_id: ^user_id)
-      |> Repo.update_all(set: [seen?: true])
-
-    count == 1
-  end
-
-  ######################### FEED #########################
-
-  # TODO remove
-  @spec onboarding_feed :: [%Profile{}]
-  def onboarding_feed do
-    user_ids = [
-      "0000017a-2ed5-a8b1-0242-ac1100030000",
-      "0000017a-2f3f-45d9-0242-ac1100030000",
-      "0000017a-2e20-ef74-0242-ac1100030000",
-      "0000017a-2dda-4b8b-0242-ac1100030000",
-      "00000177-868a-728a-0242-ac1100030000"
-    ]
-
-    Profile
-    |> where([p], p.user_id in ^user_ids)
-    |> Repo.all()
-    |> order_profiles(user_ids)
-  end
-
-  # TODO remove
-  @spec yabloko_feed(Ecto.UUID.t()) :: [%Profile{}]
-  def yabloko_feed(user_id) do
-    # My,
-    # 02
-    # 03
-    # 04
-    # Vlad
-    # Mura
-    # Alex
-    # Nikita
-
-    user_ids = [
-      "0000017a-2dda-4b8b-0242-ac1100030000",
-      "00000177-868a-728a-0242-ac1100030000",
-      "0000017a-2ed5-a8b1-0242-ac1100030000",
-      "0000017a-2f3f-45d9-0242-ac1100030000",
-      "0000017a-20b3-852f-0242-ac1100030000",
-      "0000017a-422a-563e-0242-ac1100030000",
-      "0000017a-4df8-6f52-0242-ac1100030000",
-      "0000017a-483e-7c55-0242-ac1100030000"
-    ]
-
-    reported_user_ids = reported_user_ids_q(user_id)
-
-    Profile
-    |> where([p], p.user_id in ^user_ids)
-    |> where([p], p.user_id not in subquery(reported_user_ids))
-    |> Repo.all()
-    |> order_profiles(user_ids)
-  end
-
-  @spec order_profiles([%Profile{}], [Ecto.UUID.t()]) :: [%Profile{}]
-  defp order_profiles(profiles, order) do
-    profiles = Map.new(profiles, fn profile -> {profile.user_id, profile} end)
-
-    order
-    |> Enum.map(fn user_id -> profiles[user_id] end)
-    |> Enum.reject(&is_nil/1)
-  end
-
-  @spec init_batched_feed(%Profile{}, Keyword.t()) :: %{
-          loaded: [%Profile{}],
-          next_ids: [Ecto.UUID.t()]
-        }
-  @doc "init_batched_feed(profile, loaded: 13)"
-  def init_batched_feed(%Profile{user_id: user_id} = profile, opts \\ []) do
-    cached_feed_f = fn ->
-      Sentry.Context.set_user_context(%{id: user_id})
-      get_cached_feed_or_nil(user_id) || push_more_to_cached_feed(profile, 100)
-    end
-
-    {:ok, user_ids} = Repo.transaction(cached_feed_f)
-
-    case user_ids do
-      [] -> %{loaded: [], next_ids: []}
-      _not_empty -> continue_batched_feed(user_ids, profile, opts)
-    end
-  end
-
-  @doc """
-  Continues fetching from next_ids returned from `init_batched_feed/2`.
-
-  After each fetch, it asynchronously pushes more profiles to cached feed.
-  After each fetch, it asynchronously removes loaded ids from cached feed.
-  """
-  @spec continue_batched_feed([Ecto.UUID.t()], %Profile{}, Keyword.t()) :: %{
-          loaded: [%Profile{}],
-          next_ids: [Ecto.UUID.t()]
-        }
-  def continue_batched_feed(next_ids, profile, opts \\ [])
-
-  def continue_batched_feed([], profile, opts) do
-    init_batched_feed(profile, opts)
-  end
-
-  def continue_batched_feed(next_ids, %Profile{user_id: user_id} = profile, opts)
-      when is_list(next_ids) do
-    loaded_count = opts[:loaded] || 10
-    {to_fetch, next_ids} = Enum.split(next_ids, loaded_count)
-
-    next_ids_len = length(next_ids)
-
-    if next_ids_len < 30 do
-      async_push_more_to_cached_feed(profile, 100 - next_ids_len)
-    end
-
-    loaded =
-      Profile
-      |> where(hidden?: false)
-      |> where([p], p.user_id in ^to_fetch)
-      |> Repo.all()
-
-    case {loaded, next_ids} do
-      {[], []} ->
-        remove_loaded_from_cached_feed(user_id, to_fetch)
-        continue_batched_feed([], profile, opts)
-
-      # TODO
-      {loaded1, [] = next_ids} ->
-        remove_loaded_from_cached_feed(user_id, to_fetch)
-        # %{loaded: loaded2, next_ids: next_ids} = continue_batched_feed([], profile, opts)
-        %{loaded: loaded1, next_ids: next_ids}
-
-      {[], next_ids} ->
-        async_remove_loaded_from_cached_feed(user_id, to_fetch)
-        continue_batched_feed(next_ids, profile, opts)
-
-      {loaded, next_ids} ->
-        async_remove_loaded_from_cached_feed(user_id, to_fetch)
-        %{loaded: loaded, next_ids: next_ids}
-    end
-  end
-
-  @spec get_cached_feed_or_nil(Ecto.UUID.t()) :: [Ecto.UUID.t()] | nil
-  defp get_cached_feed_or_nil(user_id) do
-    Feeded
-    |> where(user_id: ^user_id)
-    |> select([f], f.feeded_id)
-    |> Repo.all()
+    Ecto.Multi.new()
+    |> mark_invited(by_user_id, user_id)
+    |> schedule_invite_push_notification(by_user_id, user_id)
+    |> Repo.transaction()
+    |> notify_subscribers(:invited)
     |> case do
-      [] -> nil
-      not_empty -> not_empty
+      {:ok, _changes} -> true
+      {:error, :invite, _changeset, _changes} -> false
     end
   end
 
-  defp async_remove_loaded_from_cached_feed(user_id, to_remove_ids) do
-    Task.start(fn -> remove_loaded_from_cached_feed(user_id, to_remove_ids) end)
+  # TODO accept cursor
+  @spec list_received_invites(Ecto.UUID.t()) :: [feed_item]
+  def list_received_invites(user_id) do
+    profiles_q = not_reported_profiles_q(user_id)
+
+    CallInvite
+    |> where(user_id: ^user_id)
+    |> join(:inner, [i], s in ActiveSession, on: i.by_user_id == s.user_id)
+    |> join(:inner, [..., s], p in subquery(profiles_q), on: p.user_id == s.user_id)
+    |> select([i, s, p], {p, s})
+    |> Repo.all()
   end
 
-  defp remove_loaded_from_cached_feed(user_id, to_remove_ids) do
-    Feeded
-    |> where(user_id: ^user_id)
-    |> where([f], f.feeded_id in ^to_remove_ids)
+  defp mark_invited(multi, by_user_id, user_id, inserted_at \\ NaiveDateTime.utc_now()) do
+    invite = %CallInvite{
+      by_user_id: by_user_id,
+      user_id: user_id,
+      inserted_at: NaiveDateTime.truncate(inserted_at, :second)
+    }
+
+    changeset =
+      invite
+      |> change()
+      |> unique_constraint(:duplicate, name: "call_invites_pkey")
+      |> foreign_key_constraint(:by_user_id)
+      |> foreign_key_constraint(:user_id)
+
+    Ecto.Multi.insert(multi, :invite, changeset)
+  end
+
+  defp schedule_invite_push_notification(multi, by_user_id, user_id) do
+    job = DispatchJob.new(%{"type" => "invite", "by_user_id" => by_user_id, "user_id" => user_id})
+    Oban.insert(multi, :invite_push_notification, job)
+  end
+
+  def delete_invites_for_blocked(blocked_user_id) do
+    CallInvite
+    |> where(by_user_id: ^blocked_user_id)
+    |> or_where(user_id: ^blocked_user_id)
     |> Repo.delete_all()
   end
 
-  defp async_push_more_to_cached_feed(profile, count) do
-    Task.start(fn -> push_more_to_cached_feed(profile, count) end)
+  def delete_invites_for_reported(reporter_id, reported_id) do
+    CallInvite
+    |> where([i], i.by_user_id == ^reporter_id and i.user_id == ^reported_id)
+    |> or_where([i], i.user_id == ^reporter_id and i.by_user_id == ^reported_id)
+    |> Repo.delete_all()
   end
 
-  defp seen_user_ids_q(user_id) do
-    SeenProfile |> where(by_user_id: ^user_id) |> select([s], s.user_id)
+  ### Feed
+
+  @type feed_cursor :: String.t()
+  @type feed_item :: {%FeedProfile{}, %ActiveSession{}}
+
+  @spec fetch_feed(Ecto.UUID.t(), pos_integer, feed_cursor | nil) :: {[feed_item], feed_cursor}
+  def fetch_feed(user_id, count, feed_cursor) do
+    profiles_q = not_invited_profiles_q(user_id)
+
+    feed_items =
+      active_sessions_q(user_id, feed_cursor)
+      |> join(:inner, [s], p in subquery(profiles_q), on: s.user_id == p.user_id)
+      |> limit(^count)
+      |> select([s, p], {p, s})
+      |> Repo.all()
+
+    feed_cursor =
+      if last = List.last(feed_items) do
+        {_feed_profile, %ActiveSession{flake: last_flake}} = last
+        last_flake
+      else
+        feed_cursor
+      end
+
+    {feed_items, feed_cursor}
+  end
+
+  @spec get_feed_item(Ecto.UUID.t(), Ecto.UUID.t()) :: feed_item | nil
+  def get_feed_item(by_user_id, user_id) do
+    p =
+      by_user_id
+      |> not_reported_profiles_q()
+      |> where(user_id: ^user_id)
+
+    ActiveSession
+    |> where(user_id: ^user_id)
+    |> join(:inner, [s], p in subquery(p), on: true)
+    |> select([s, p], {p, s})
+    |> Repo.one()
+  end
+
+  @spec active_sessions_q(Ecto.UUID.t(), String.t() | nil) :: Ecto.Query.t()
+  defp active_sessions_q(user_id, nil) do
+    ActiveSession
+    |> order_by([s], asc: s.flake)
+    |> where([s], s.user_id != ^user_id)
+  end
+
+  defp active_sessions_q(user_id, last_flake) do
+    user_id
+    |> active_sessions_q(nil)
+    |> where([s], s.flake > ^last_flake)
   end
 
   defp reported_user_ids_q(user_id) do
     UserReport |> where(from_user_id: ^user_id) |> select([r], r.on_user_id)
   end
 
-  defp interested_in_gender_q(gender) when gender in ["M", "F", "N"] do
-    # TODO is distinct ok for performance?
-    GenderPreference |> where(gender: ^gender) |> distinct(true) |> select([g], g.user_id)
-  end
-
-  defp matches_ids_q(user_id) do
-    q1 = Matches.Match |> where([m], m.user_id_1 == ^user_id) |> select([m], m.user_id_2)
-    q2 = Matches.Match |> where([m], m.user_id_2 == ^user_id) |> select([m], m.user_id_1)
+  defp invited_user_ids(user_id) do
+    q1 = CallInvite |> where([i], i.user_id == ^user_id) |> select([i], i.by_user_id)
+    q2 = CallInvite |> where([i], i.by_user_id == ^user_id) |> select([i], i.user_id)
     union(q1, ^q2)
   end
 
-  defp liked_user_ids_q(user_id) do
-    ProfileLike |> where(by_user_id: ^user_id) |> select([l], l.user_id)
+  defp not_hidden_profiles_q do
+    where(FeedProfile, hidden?: false)
   end
 
-  @doc false
-  def push_more_to_cached_feed(%Profile{user_id: user_id, gender: gender} = profile, count) do
-    Sentry.Context.set_user_context(%{user_id: user_id})
-    seen_user_ids = seen_user_ids_q(user_id)
-    liked_user_ids = liked_user_ids_q(user_id)
-    reported_user_ids = reported_user_ids_q(user_id)
-    # TODO
-    interested_in_us = interested_in_gender_q(gender)
-    matches_ids = matches_ids_q(user_id)
-
-    likers_count = floor(count / 2)
-    not_liked_count = ceil(count / 2)
-
-    # TODO take location into account
-    common_q =
-      Profile
-      # TODO is performance ok?
-      |> join(:inner, [p], i in subquery(interested_in_us), on: i.user_id == p.user_id)
-      |> where([p], p.user_id != ^user_id)
-      |> where(hidden?: false)
-      |> where([p], p.gender in ^preferred_genders(profile))
-      |> where([p], p.user_id not in subquery(seen_user_ids))
-      |> where([p], p.user_id not in subquery(reported_user_ids))
-      |> where([p], p.user_id not in subquery(matches_ids))
-      |> where([p], p.user_id not in subquery(liked_user_ids))
-      |> select([p], p.user_id)
-
-    most_liked_user_ids =
-      common_q
-      |> order_by([p], desc: p.times_liked)
-      |> limit(^likers_count)
-      |> Repo.all()
-
-    not_liked_user_ids =
-      common_q
-      |> where([p], p.user_id not in ^most_liked_user_ids)
-      |> where(times_liked: 0)
-      # TODO add this clause if it doesn't slow down the query
-      # |> order_by([p], desc: p.user_id)
-      |> limit(^not_liked_count)
-      |> Repo.all()
-
-    user_ids = Enum.shuffle(most_liked_user_ids ++ not_liked_user_ids)
-    to_insert = Enum.map(user_ids, &%{feeded_id: &1, user_id: user_id})
-    Repo.insert_all(Feeded, to_insert, on_conflict: :nothing)
-    user_ids
+  defp not_reported_profiles_q(user_id) do
+    not_hidden_profiles_q()
+    # TODO is inner join faster?
+    |> where([p], p.user_id not in subquery(reported_user_ids_q(user_id)))
   end
 
-  defp preferred_genders(%Profile{filters: %Profile.Filters{genders: genders}})
-       when is_list(genders),
-       do: genders
+  defp not_invited_profiles_q(user_id) do
+    invited_user_ids = invited_user_ids(user_id)
 
-  defp preferred_genders(%Profile{gender: "F"}), do: ["M"]
-  defp preferred_genders(%Profile{gender: "M"}), do: ["F"]
-
-  def prune_seen_profiles(ttl_days) do
-    SeenProfile
-    |> where([s], s.inserted_at < fragment("now() - ? * interval '1 day'", ^ttl_days))
-    |> Repo.delete_all()
+    user_id
+    |> not_reported_profiles_q()
+    # TODO might not need this
+    |> where([p], p.user_id not in subquery(invited_user_ids))
   end
 end

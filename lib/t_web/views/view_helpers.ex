@@ -2,30 +2,6 @@ defmodule TWeb.ViewHelpers do
   @moduledoc false
   alias T.Media
 
-  def extract_song_info(%{
-        "data" => [
-          %{
-            "id" => id,
-            "attributes" => %{
-              "artistName" => artist_name,
-              "artwork" => %{"url" => album_cover},
-              "name" => song_name,
-              "previews" => [%{"url" => preview_url}]
-            }
-          }
-        ]
-      }) do
-    album_cover = String.replace(album_cover, ["{w}", "{h}"], "1000")
-
-    %{
-      "id" => id,
-      "artist_name" => artist_name,
-      "album_cover" => album_cover,
-      "song_name" => song_name,
-      "preview_url" => preview_url
-    }
-  end
-
   def postprocess_story(story, screen_width) when is_list(story) do
     story
     |> Enum.map(fn

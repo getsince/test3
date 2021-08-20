@@ -1,8 +1,0 @@
-- benchmark
-- plug attack (rate limit)
-- maybe limit # of times a profile is shown in feeds to limit superstars
-- test https://github.com/ruslandoga/test3/pull/10/files
-- multiple nomad nodes, distributed within the same vpc
-- loki
-- tracing
-- read https://developer.apple.com/library/archive/documentation/NetworkingInternet/Conceptual/RemoteNotificationsPG/APNSOverview.html#//apple_ref/doc/uid/TP40008194-CH8-SW1

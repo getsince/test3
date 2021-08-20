@@ -6,18 +6,10 @@ defmodule TWeb.UserSocket do
 
   # feed:<user-id>
   channel "feed:*", TWeb.FeedChannel
-  # feed2:<user-id>
-  channel "feed2:*", TWeb.Feed2Channel
   # call:<call-id>
   channel "call:*", TWeb.CallChannel
-  # likes:<user-id>
-  channel "likes:*", TWeb.LikeChannel
-  # matches:<user-id>
-  channel "matches:*", TWeb.MatchChannel
   # profile:<user-id>
   channel "profile:*", TWeb.ProfileChannel
-  # support:<user-id>
-  channel "support:*", TWeb.SupportChannel
 
   @impl true
   def connect(%{"token" => token} = params, socket, connect_info) do

@@ -1,7 +1,7 @@
 defmodule TWeb.ProfileChannel do
   use TWeb, :channel
   alias T.Accounts.Profile
-  alias T.{Accounts, Music, Feeds}
+  alias T.Accounts
   alias TWeb.{ErrorView, ProfileView}
 
   @impl true
@@ -16,12 +16,6 @@ defmodule TWeb.ProfileChannel do
 
   defp render_profile(profile, screen_width) do
     render(ProfileView, "show_with_location.json", profile: profile, screen_width: screen_width)
-  end
-
-  defp render_onboarding_feed(profiles, screen_width) do
-    Enum.map(profiles, fn profile ->
-      render(ProfileView, "show.json", profile: profile, screen_width: screen_width)
-    end)
   end
 
   defp render_editor_tutorial_story(story, screen_width) do
@@ -55,20 +49,13 @@ defmodule TWeb.ProfileChannel do
      assign(socket, profile: profile)}
   end
 
-  # TODO refresh after two hours
-  def handle_in("get-music-token", _params, socket) do
-    token = socket.assigns[:music_token] || Music.token()
-    socket = assign(socket, music_token: token)
-    {:reply, {:ok, %{token: token}}, socket}
-  end
-
   def handle_in("known-stickers", _params, socket) do
     {:reply, {:ok, %{stickers: T.Media.known_stickers()}}, socket}
   end
 
   def handle_in("submit", %{"profile" => params}, socket) do
     %{profile: profile, current_user: user, screen_width: screen_width} = socket.assigns
-    params = params |> with_song() |> replace_story_photo_urls_with_s3keys()
+    params = params |> replace_story_photo_urls_with_s3keys()
 
     # TODO check photos exist in s3
     f =
@@ -102,28 +89,12 @@ defmodule TWeb.ProfileChannel do
     {:reply, :ok, socket}
   end
 
-  def handle_in("onboarding-feed", _payload, socket) do
-    %{screen_width: screen_width} = socket.assigns
-    feed = Feeds.onboarding_feed()
-    {:reply, {:ok, %{feed: render_onboarding_feed(feed, screen_width)}}, socket}
-  end
-
   def handle_in("profile-editor-tutorial", params, socket) do
     %{screen_width: screen_width} = socket.assigns
     id = params["id"] || "yabloko"
     story = Accounts.profile_editor_tutorial(id)
     {:reply, {:ok, %{story: render_editor_tutorial_story(story, screen_width)}}, socket}
   end
-
-  defp with_song(%{"song" => none} = params) when none in [nil, ""] do
-    Map.put(params, "song", nil)
-  end
-
-  defp with_song(%{"song" => song_id} = params) do
-    Map.put(params, "song", Music.get_song(song_id))
-  end
-
-  defp with_song(params), do: params
 
   defp replace_story_photo_urls_with_s3keys(%{"story" => story} = params) do
     story =

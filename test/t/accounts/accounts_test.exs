@@ -7,16 +7,6 @@ defmodule T.AccountsTest do
 
   doctest PasswordlessAuth, import: true
 
-  describe "save_photo/2" do
-    test "pushes photo into existing profile's photos array" do
-      %{user: user} = insert(:profile)
-      assert {1, [["folder/file.jpg"]]} = Accounts.save_photo(user, "folder/file.jpg")
-
-      assert {1, [["folder/file.jpg", "folder/file2.jpg"]]} =
-               Accounts.save_photo(user, "folder/file2.jpg")
-    end
-  end
-
   # TODO empty arrays pass changesets
   describe "onboard_profile/2" do
     test "in one step" do
@@ -35,11 +25,8 @@ defmodule T.AccountsTest do
                location: ["can't be blank"]
              }
 
-      apple_music_song = apple_music_song()
-
       assert {:ok, profile} =
                Accounts.onboard_profile(profile, %{
-                 song: apple_music_song,
                  gender: "M",
                  name: "that",
                  latitude: 50,
@@ -53,10 +40,8 @@ defmodule T.AccountsTest do
       assert profile.user.onboarded_at
 
       assert %Profile{
-               song: ^apple_music_song,
                gender: "M",
                name: "that",
-               times_liked: 0,
                story: nil
              } = profile
 

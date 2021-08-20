@@ -1,136 +1,337 @@
 defmodule TWeb.FeedChannelTest do
   use TWeb.ChannelCase
-  use Oban.Testing, repo: T.Repo
-  alias T.{Feeds, Matches}
+  alias T.Feeds
 
   setup do
     me = onboarded_user()
     {:ok, me: me, socket: connected_socket(me)}
   end
 
-  # TODO reporting
-
   describe "join" do
-    test "and get feed", %{socket: socket, me: %{profile: me}} do
-      profiles = insert_list(20, :profile, gender: "F", city: me.city)
+    test "returns nil current session if there none", %{socket: socket, me: me} do
+      assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id)
+      assert reply == %{"current_session" => nil}
+    end
 
-      # TODO speed up
-      Enum.each(profiles, fn p ->
-        insert(:gender_preference, user_id: p.user_id, gender: "M")
-      end)
+    @reference ~U[2021-07-21 11:55:18.941048Z]
 
-      assert {:ok, %{feed: feed}, _socket} = subscribe_and_join(socket, "feed:" <> me.user_id)
-      assert length(feed) == 3
+    test "returns current session if there is one", %{socket: socket, me: me} do
+      %{flake: id} = Feeds.activate_session(me.id, _duration = 60, @reference)
+      assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id)
+      assert reply == %{"current_session" => %{id: id, expires_at: ~U[2021-07-21 12:55:18Z]}}
     end
   end
 
-  # TODO do auth check
-  describe "like profile" do
-    setup [:with_other_profile, :subscribe_and_join]
+  describe "activate-session" do
+    setup :joined
 
-    setup %{socket: socket, me: me} do
-      {:ok, _reply, _socket} = subscribe_and_join(socket, "matches:#{me.id}")
-      :ok
+    test "creates new session", %{socket: socket, me: me} do
+      ref = push(socket, "activate-session", %{"duration" => 60})
+      assert_reply ref, :ok
+      assert Feeds.get_current_session(me.id)
+    end
+  end
+
+  describe "more" do
+    setup :joined
+
+    test "with no data in db", %{socket: socket} do
+      ref = push(socket, "more")
+      assert_reply ref, :ok, reply
+      assert reply == %{"cursor" => nil, "feed" => []}
     end
 
-    test "no prev like -> no match", %{socket: socket, me: me, profile: p} do
-      ref = push(socket, "like", %{"profile_id" => p.user_id})
+    test "with no active users", %{socket: socket} do
+      insert_list(3, :profile)
 
-      assert_reply ref, :ok, reply, 1000
-      assert reply == %{}
-
-      assert [] == Matches.get_current_matches(me.id)
-      refute_push "matched", _payload
+      ref = push(socket, "more")
+      assert_reply ref, :ok, reply
+      assert reply == %{"cursor" => nil, "feed" => []}
     end
 
-    test "has prev like -> match", %{socket: socket, me: me, profile: p} do
-      assert {:ok, _prev_like = %{match: nil}} = Feeds.like_profile(p.user_id, me.id)
-      ref = push(socket, "like", %{"profile_id" => p.user_id})
+    test "with active users more than count", %{socket: socket} do
+      [p1, p2, p3] =
+        others =
+        insert_list(3, :profile, story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}])
 
-      assert_reply ref, :ok, reply, 1000
-      assert reply == %{}
+      [%{flake: s1}, %{flake: s2}, %{flake: s3}] = activate_sessions(others, @reference)
 
-      assert_push "matched",
-                  %{match: %{last_active: last_active, profile: %{story: story}}} = payload
+      ref = push(socket, "more", %{"count" => 2})
+      assert_reply ref, :ok, %{"cursor" => cursor, "feed" => feed}
+      assert is_binary(cursor)
 
-      assert [%{id: match_id}] = Matches.get_current_matches(me.id)
-      assert %DateTime{} = last_active
-
-      assert [
+      assert feed == [
                %{
-                 "background" => %{"color" => "#" <> _},
-                 "labels" => []
-               },
-               %{
-                 "background" => %{"color" => "#" <> _},
-                 "labels" => []
-               },
-               %{
-                 "background" => %{"color" => "#" <> _},
-                 "labels" => []
-               },
-               %{
-                 "background" => %{"color" => "#" <> _},
-                 "labels" => []
-               }
-             ] = story
-
-      assert payload == %{
-               match: %{
-                 id: match_id,
-                 online: false,
-                 seen?: false,
-                 last_active: last_active,
-                 timeslot: nil,
+                 session: %{
+                   id: s1,
+                   expires_at: ~U[2021-07-21 12:55:18Z]
+                 },
                  profile: %{
-                   song: nil,
-                   story: story,
-                   gender: "F",
                    name: nil,
-                   user_id: p.user_id
+                   story: [
+                     %{
+                       "background" => %{
+                         "proxy" =>
+                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
+                         "s3_key" => "test"
+                       },
+                       "labels" => []
+                     }
+                   ],
+                   user_id: p1.user_id
+                 }
+               },
+               %{
+                 session: %{
+                   id: s2,
+                   expires_at: ~U[2021-07-21 12:55:18Z]
+                 },
+                 profile: %{
+                   name: nil,
+                   story: [
+                     %{
+                       "background" => %{
+                         "proxy" =>
+                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
+                         "s3_key" => "test"
+                       },
+                       "labels" => []
+                     }
+                   ],
+                   user_id: p2.user_id
+                 }
+               }
+             ]
+
+      ref = push(socket, "more", %{"cursor" => cursor})
+
+      assert_reply ref, :ok, %{
+        "cursor" => cursor,
+        "feed" => feed
+      }
+
+      assert feed == [
+               %{
+                 session: %{
+                   id: s3,
+                   expires_at: ~U[2021-07-21 12:55:18Z]
+                 },
+                 profile: %{
+                   name: nil,
+                   story: [
+                     %{
+                       "background" => %{
+                         "proxy" =>
+                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
+                         "s3_key" => "test"
+                       },
+                       "labels" => []
+                     }
+                   ],
+                   user_id: p3.user_id
+                 }
+               }
+             ]
+
+      ref = push(socket, "more", %{"cursor" => cursor})
+      assert_reply ref, :ok, %{"cursor" => ^cursor, "feed" => []}
+    end
+  end
+
+  describe "invite" do
+    setup :joined
+
+    test "invited by active user", %{me: me, socket: socket} do
+      %{flake: s1} = activate_session(me, @reference)
+
+      other = onboarded_user()
+      %{flake: s2} = activate_session(other, @reference)
+
+      spawn(fn ->
+        socket = connected_socket(other)
+        {:ok, _reply, socket} = subscribe_and_join(socket, "feed:" <> other.id)
+        ref = push(socket, "invite", %{"user_id" => me.id})
+        assert_reply ref, :ok, reply
+        assert reply == %{"invited" => true}
+      end)
+
+      assert_push "activated", push
+
+      assert push == %{
+               "feed_item" => %{
+                 session: %{
+                   id: s1,
+                   expires_at: ~U[2021-07-21 12:55:18Z]
+                 },
+                 profile: %{
+                   name: "that",
+                   story: [
+                     %{
+                       "background" => %{
+                         "proxy" =>
+                           "https://d1234.cloudfront.net/e9a8Yq80qbgr7QH43crdCBPWdt6OACyhD5xWN8ysFok/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Bob3RvLmpwZw",
+                         "s3_key" => "photo.jpg"
+                       },
+                       "labels" => [
+                         %{
+                           "dimensions" => [400, 800],
+                           "position" => 'dd',
+                           "rotation" => 21,
+                           "type" => "text",
+                           "value" => "just some text",
+                           "zoom" => 1.2
+                         },
+                         %{
+                           "answer" => "msu",
+                           "dimensions" => [400, 800],
+                           "position" => [150, 150],
+                           "question" => "university",
+                           "type" => "answer",
+                           "value" => "🥊\nменя воспитала улица"
+                         }
+                       ]
+                     }
+                   ],
+                   user_id: me.id
                  }
                }
              }
-    end
 
-    test "with timeout and cancel", %{socket: socket, me: me, profile: p} do
-      ref = push(socket, "like", %{"profile_id" => p.user_id, "timeout?" => true})
+      assert_push "activated", push
 
-      assert_reply ref, :ok, reply, 1000
-      assert reply == %{}
-
-      by_user_id = me.id
-      user_id = p.user_id
-
-      assert [
-               %Oban.Job{
-                 args: %{"by_user_id" => ^by_user_id, "user_id" => ^user_id},
-                 inserted_at: inserted_at,
-                 queue: "likes",
-                 replace: nil,
-                 scheduled_at: scheduled_at
+      assert push == %{
+               "feed_item" => %{
+                 session: %{
+                   id: s2,
+                   expires_at: ~U[2021-07-21 12:55:18Z]
+                 },
+                 profile: %{
+                   name: "that",
+                   story: [
+                     %{
+                       "background" => %{
+                         "proxy" =>
+                           "https://d1234.cloudfront.net/e9a8Yq80qbgr7QH43crdCBPWdt6OACyhD5xWN8ysFok/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Bob3RvLmpwZw",
+                         "s3_key" => "photo.jpg"
+                       },
+                       "labels" => [
+                         %{
+                           "dimensions" => [400, 800],
+                           "position" => 'dd',
+                           "rotation" => 21,
+                           "type" => "text",
+                           "value" => "just some text",
+                           "zoom" => 1.2
+                         },
+                         %{
+                           "answer" => "msu",
+                           "dimensions" => [400, 800],
+                           "position" => [150, 150],
+                           "question" => "university",
+                           "type" => "answer",
+                           "value" => "🥊\nменя воспитала улица"
+                         }
+                       ]
+                     }
+                   ],
+                   user_id: other.id
+                 }
                }
-             ] = all_enqueued(worker: T.Feeds.LikeJob)
+             }
 
-      assert_in_delta DateTime.diff(scheduled_at, inserted_at, :second), 10, 1
+      assert_push "invite", push
 
-      ref = push(socket, "cancel-like", %{"profile_id" => p.user_id})
+      assert push == %{
+               "feed_item" => %{
+                 session: %{
+                   id: s2,
+                   expires_at: ~U[2021-07-21 12:55:18Z]
+                 },
+                 profile: %{
+                   name: "that",
+                   story: [
+                     %{
+                       "background" => %{
+                         "proxy" =>
+                           "https://d1234.cloudfront.net/e9a8Yq80qbgr7QH43crdCBPWdt6OACyhD5xWN8ysFok/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Bob3RvLmpwZw",
+                         "s3_key" => "photo.jpg"
+                       },
+                       "labels" => [
+                         %{
+                           "dimensions" => [400, 800],
+                           "position" => 'dd',
+                           "rotation" => 21,
+                           "type" => "text",
+                           "value" => "just some text",
+                           "zoom" => 1.2
+                         },
+                         %{
+                           "answer" => "msu",
+                           "dimensions" => [400, 800],
+                           "position" => [150, 150],
+                           "question" => "university",
+                           "type" => "answer",
+                           "value" => "🥊\nменя воспитала улица"
+                         }
+                       ]
+                     }
+                   ],
+                   user_id: other.id
+                 }
+               }
+             }
 
-      assert_reply ref, :ok, reply, 1000
-      assert reply == %{cancelled: true}
+      refute_receive _anything_else
 
-      assert [] == all_enqueued(worker: T.Feeds.LikeJob)
+      ref = push(socket, "invites")
+      assert_reply ref, :ok, reply
+
+      assert reply == %{
+               "invites" => [
+                 %{
+                   session: %{
+                     id: s2,
+                     expires_at: ~U[2021-07-21 12:55:18Z]
+                   },
+                   profile: %{
+                     name: "that",
+                     story: [
+                       %{
+                         "background" => %{
+                           "proxy" =>
+                             "https://d1234.cloudfront.net/e9a8Yq80qbgr7QH43crdCBPWdt6OACyhD5xWN8ysFok/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Bob3RvLmpwZw",
+                           "s3_key" => "photo.jpg"
+                         },
+                         "labels" => [
+                           %{
+                             "dimensions" => [400, 800],
+                             "position" => 'dd',
+                             "rotation" => 21,
+                             "type" => "text",
+                             "value" => "just some text",
+                             "zoom" => 1.2
+                           },
+                           %{
+                             "answer" => "msu",
+                             "dimensions" => [400, 800],
+                             "position" => [150, 150],
+                             "question" => "university",
+                             "type" => "answer",
+                             "value" => "🥊\nменя воспитала улица"
+                           }
+                         ]
+                       }
+                     ],
+                     user_id: other.id
+                   }
+                 }
+               ]
+             }
     end
   end
 
-  defp with_other_profile(_context) do
-    {:ok, profile: insert(:profile, gender: "F")}
-  end
-
-  defp subscribe_and_join(%{me: me, socket: socket}) do
-    assert {:ok, _reply, socket} =
-             subscribe_and_join(socket, "feed:" <> me.id, %{"timezone" => "Europe/Moscow"})
-
+  defp joined(%{socket: socket, me: me}) do
+    assert {:ok, _reply, socket} = subscribe_and_join(socket, "feed:" <> me.id)
     {:ok, socket: socket}
   end
 end

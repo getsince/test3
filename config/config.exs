@@ -12,7 +12,6 @@ config :ex_aws,
 config :sentry,
   client: T.Sentry.FinchHTTPClient
 
-config :t, T.Music, adapter: T.Music.API
 config :t, T.Media.Client, adapter: T.Media.S3Client
 config :t, T.Bot, adapter: T.Bot.API
 

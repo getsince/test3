@@ -9,6 +9,7 @@ defmodule T.Calls.Call do
     belongs_to :called, User
 
     field :ended_at, :utc_datetime
+    field :accepted_at, :utc_datetime
 
     timestamps(updated_at: false)
   end

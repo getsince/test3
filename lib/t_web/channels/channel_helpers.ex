@@ -29,4 +29,8 @@ defmodule TWeb.ChannelHelpers do
         {:reply, {:error, %{report: rendered}}, socket}
     end
   end
+
+  def maybe_put(map, _key, nil), do: map
+  def maybe_put(map, _key, []), do: map
+  def maybe_put(map, key, value), do: Map.put(map, key, value)
 end

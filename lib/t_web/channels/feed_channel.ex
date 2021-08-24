@@ -1,7 +1,7 @@
 defmodule TWeb.FeedChannel do
   use TWeb, :channel
 
-  alias TWeb.ChannelHelpers
+  import TWeb.ChannelHelpers
   alias T.Feeds.{FeedProfile, ActiveSession}
   alias T.{Feeds, Calls}
 
@@ -20,7 +20,14 @@ defmodule TWeb.FeedChannel do
         render_session(session)
       end
 
-    {:ok, %{"current_session" => current_session}, socket}
+    # missed_calls = user_id |> Calls.list_missed_calls()
+
+    reply =
+      %{}
+      |> maybe_put("current_session", current_session)
+      |> maybe_put("missed_calls", _missed_calls = [])
+
+    {:ok, reply, socket}
   end
 
   @impl true

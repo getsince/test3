@@ -8,9 +8,9 @@ defmodule TWeb.FeedChannelTest do
   end
 
   describe "join" do
-    test "returns nil current session if there none", %{socket: socket, me: me} do
+    test "returns no current session if there's none", %{socket: socket, me: me} do
       assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id)
-      assert reply == %{"current_session" => nil}
+      assert reply == %{}
     end
 
     @reference ~U[2021-07-21 11:55:18.941048Z]

@@ -5,7 +5,6 @@ defmodule T.Matches.TimeslotsTest do
   alias T.Matches
   alias T.Matches.Timeslot
 
-  @tah skip: true
   describe "save_slots_offer/2 for invalid match" do
     setup [:with_profiles]
 

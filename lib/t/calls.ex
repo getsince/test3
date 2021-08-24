@@ -4,6 +4,7 @@ defmodule T.Calls do
 
   alias T.{Repo, Twilio, Accounts}
   alias T.Calls.Call
+  alias T.Invites.CallInvite
   alias T.Feeds.FeedProfile
   alias T.PushNotifications.APNS
 
@@ -15,18 +16,39 @@ defmodule T.Calls do
   @spec call(Ecto.UUID.t(), Ecto.UUID.t()) ::
           {:ok, call_id :: Ecto.UUID.t()} | {:error, reason :: String.t()}
   def call(caller_id, called_id) do
-    with {:devices, [_ | _] = devices} <- {:devices, Accounts.list_pushkit_devices(called_id)},
+    with {:allowed?, true} <- {:allowed?, call_allowed?(caller_id, called_id)},
+         {:devices, [_ | _] = devices} <- {:devices, Accounts.list_pushkit_devices(called_id)},
          {:push, _any_push_sent? = true} <- {:push, push_call(caller_id, devices)} do
       %Call{id: call_id} = Repo.insert!(%Call{caller_id: caller_id, called_id: called_id})
       {:ok, call_id}
     else
+      {:allowed?, false} -> {:error, "call not allowed"}
       {:devices, []} -> {:error, "no pushkit devices available"}
       {:push, false} -> {:error, "all pushes failed"}
     end
   end
 
+  def call_allowed?(caller_id, called_id) do
+    invited?(called_id, caller_id) or missed?(called_id, caller_id)
+  end
+
+  defp invited?(inviter_id, invited_id) do
+    CallInvite
+    |> where(by_user_id: ^inviter_id)
+    |> where(user_id: ^invited_id)
+    |> Repo.exists?()
+  end
+
+  defp missed?(caller_id, called_id) do
+    Call
+    |> where(caller_id: ^caller_id)
+    |> where(called_id: ^called_id)
+    |> where([c], is_nil(c.accepted_at) and not is_nil(c.ended_at))
+    |> Repo.exists?()
+  end
+
   @spec push_call(Ecto.UUID.t(), [base16 :: String.t()]) :: boolean
-  defp push_call(caller_id, devices) do
+  def push_call(caller_id, devices) do
     alias Pigeon.APNS.Notification
 
     caller_name = fetch_name(caller_id)
@@ -82,5 +104,13 @@ defmodule T.Calls do
     FeedProfile
     |> where(user_id: ^user_id)
     |> Repo.one!()
+  end
+
+  @spec list_missed_calls(Ecto.UUID.t()) :: [%Call{}]
+  def list_missed_calls(user_id) do
+    Call
+    |> where(called_id: ^user_id)
+    |> where([c], is_nil(c.accepted_at))
+    |> Repo.all()
   end
 end

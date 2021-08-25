@@ -1,4 +1,4 @@
-defmodule T.Feeds.ProfileLike do
+defmodule T.Matches.Like do
   @moduledoc false
   use Ecto.Schema
   alias T.Accounts.User
@@ -10,7 +10,6 @@ defmodule T.Feeds.ProfileLike do
     belongs_to :user, User, primary_key: true
 
     field :liker_profile, :map, virtual: true
-    field :seen?, :boolean
 
     timestamps(updated_at: false)
   end

@@ -8,6 +8,9 @@ defmodule T.Accounts.PushKitDevice do
     belongs_to :user, User, primary_key: true
     belongs_to :token, UserToken, primary_key: true
     field :device_id, :binary
+    field :topic, :string
+    # prod | sandbox
+    field :env, :string
     timestamps()
   end
 end

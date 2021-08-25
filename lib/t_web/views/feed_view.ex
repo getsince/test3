@@ -1,6 +1,6 @@
 defmodule TWeb.FeedView do
   use TWeb, :view
-  alias TWeb.ViewHelpers
+  alias TWeb.{ViewHelpers, CallView}
   alias T.Feeds.{FeedProfile, ActiveSession}
 
   def render("feed_profile.json", %{profile: profile, screen_width: screen_width}) do
@@ -11,6 +11,26 @@ defmodule TWeb.FeedView do
     %{
       profile: render_profile(profile, [:user_id, :name, :story], screen_width),
       session: render_session(session)
+    }
+  end
+
+  def render("missed_call.json", %{
+        profile: profile,
+        session: %ActiveSession{} = session,
+        call: call,
+        screen_width: screen_width
+      }) do
+    %{
+      "profile" => render_profile(profile, [:user_id, :name, :story], screen_width),
+      "session" => render_session(session),
+      "call" => CallView.render("call.json", call: call)
+    }
+  end
+
+  def render("missed_call.json", %{profile: profile, call: call, screen_width: screen_width}) do
+    %{
+      "profile" => render_profile(profile, [:user_id, :name, :story], screen_width),
+      "call" => CallView.render("call.json", call: call)
     }
   end
 

@@ -33,7 +33,7 @@ config :t, T.PromEx, disabled: config_env() != :prod
 config :t, Oban,
   repo: T.Repo,
   plugins: [Oban.Plugins.Pruner, Oban.Plugins.Stager],
-  queues: [default: 10, emails: 20, sms: 20, apns: 100, likes: 100]
+  queues: [default: 10, apns: 100]
 
 config :ex_aws,
   json_codec: Jason,
@@ -68,21 +68,17 @@ if config_env() == :prod and not in_build? do
     token: System.fetch_env!("TG_BOT_KEY"),
     room_id: System.fetch_env!("TG_ROOM_ID") |> String.to_integer()
 
+  common_apns_config = %{
+    key: System.fetch_env!("APNS_KEY"),
+    key_identifier: System.fetch_env!("APNS_KEY_ID"),
+    team_id: System.fetch_env!("APNS_TEAM_ID")
+  }
+
   config :pigeon, :apns,
-    apns_default: %{
-      key: System.fetch_env!("APNS_KEY"),
-      key_identifier: System.fetch_env!("APNS_KEY_ID"),
-      team_id: System.fetch_env!("APNS_TEAM_ID"),
-      topic: System.fetch_env!("APNS_TOPIC"),
-      mode: :prod
-    },
-    dev: %{
-      key: System.fetch_env!("APNS_KEY"),
-      key_identifier: System.fetch_env!("APNS_KEY_ID"),
-      team_id: System.fetch_env!("APNS_TEAM_ID"),
-      topic: System.fetch_env!("APNS_TOPIC"),
-      mode: :dev
-    }
+    dev: Map.put(common_apns_config, :mode, :dev),
+    prod: Map.put(common_apns_config, :mode, :prod)
+
+  config :t, T.PushNotifications.APNS, topic: System.fetch_env!("APNS_TOPIC")
 
   config :t, run_migrations_on_start?: true
 
@@ -94,7 +90,7 @@ if config_env() == :prod and not in_build? do
     # For production, don't forget to configure the url host
     # to something meaningful, Phoenix uses this information
     # when generating URLs.
-    url: [host: System.fetch_env!("HOST"), port: 443],
+    url: [scheme: "https", host: System.fetch_env!("HOST"), port: 443],
     http: [
       # Enable IPv6 and bind on all interfaces.
       # Set it to {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
@@ -134,21 +130,19 @@ if config_env() == :prod and not in_build? do
 end
 
 if config_env() == :dev do
+  config :logger, level: :warn
+
+  common_apns_config = %{
+    key: System.fetch_env!("APNS_KEY"),
+    key_identifier: System.fetch_env!("APNS_KEY_ID"),
+    team_id: System.fetch_env!("APNS_TEAM_ID")
+  }
+
   config :pigeon, :apns,
-    apns_default: %{
-      key: System.fetch_env!("APNS_KEY"),
-      key_identifier: System.fetch_env!("APNS_KEY_ID"),
-      team_id: System.fetch_env!("APNS_TEAM_ID"),
-      topic: System.fetch_env!("APNS_TOPIC"),
-      mode: :dev
-    },
-    prod: %{
-      key: System.fetch_env!("APNS_KEY"),
-      key_identifier: System.fetch_env!("APNS_KEY_ID"),
-      team_id: System.fetch_env!("APNS_TEAM_ID"),
-      topic: System.fetch_env!("APNS_TOPIC"),
-      mode: :prod
-    }
+    dev: Map.put(common_apns_config, :mode, :dev),
+    prod: Map.put(common_apns_config, :mode, :prod)
+
+  config :t, T.PushNotifications.APNS, topic: System.fetch_env!("APNS_TOPIC")
 
   config :t, T.Twilio,
     account_sid: System.fetch_env!("TWILIO_ACCOUNT_SID"),
@@ -262,7 +256,25 @@ if config_env() == :test do
     token: "asdfasdfasdf",
     room_id: String.to_integer("-1234")
 
-  config :t, T.Feeds.SeenPruner, disabled?: true
   config :t, T.Feeds.ActiveSessionPruner, disabled?: true
   config :t, T.Accounts.SMSCodePruner, disabled?: true
+
+  config :t, T.PushNotifications.APNS, topic: "app.topic"
+
+  config :pigeon, :apns,
+    prod: %{mode: :prod},
+    dev: %{mode: :dev}
+end
+
+if config_env() == :bench do
+  config :logger, level: :info
+
+  config :t, T.Media.Static, disabled?: true
+  config :t, T.Feeds.ActiveSessionPruner, disabled?: true
+  config :t, T.Accounts.SMSCodePruner, disabled?: true
+  config :t, Oban, queues: false, plugins: false
+
+  config :t, T.Repo,
+    url: System.get_env("DATABASE_URL") || "ecto://postgres:postgres@localhost:5432/t_dev",
+    pool_size: 10
 end

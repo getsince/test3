@@ -10,16 +10,8 @@ defmodule TWeb.ProfileChannel do
     %{screen_width: screen_width, current_user: current_user} = socket.assigns
     %Profile{} = profile = Accounts.get_profile!(current_user)
 
-    {:ok, %{profile: render_profile(profile, screen_width)},
+    {:ok, %{profile: render_profile(profile, screen_width), stickers: T.Media.known_stickers()},
      assign(socket, uploads: %{}, profile: profile)}
-  end
-
-  defp render_profile(profile, screen_width) do
-    render(ProfileView, "show_with_location.json", profile: profile, screen_width: screen_width)
-  end
-
-  defp render_editor_tutorial_story(story, screen_width) do
-    render(ProfileView, "editor_tutorial_story.json", story: story, screen_width: screen_width)
   end
 
   @impl true
@@ -76,19 +68,6 @@ defmodule TWeb.ProfileChannel do
     end
   end
 
-  # TODO test
-  def handle_in("delete-account", _payload, socket) do
-    %{current_user: user} = socket.assigns
-    {:ok, %{session_tokens: tokens}} = Accounts.delete_user(user.id)
-
-    for token <- tokens do
-      encoded = Accounts.UserToken.encoded_token(token)
-      TWeb.Endpoint.broadcast("user_socket:#{encoded}", "disconnect", %{})
-    end
-
-    {:reply, :ok, socket}
-  end
-
   def handle_in("profile-editor-tutorial", params, socket) do
     %{screen_width: screen_width} = socket.assigns
     id = params["id"] || "yabloko"
@@ -119,5 +98,13 @@ defmodule TWeb.ProfileChannel do
       path |> String.split("/") |> List.last() |> Base.decode64!(padding: false)
 
     s3_key
+  end
+
+  defp render_profile(profile, screen_width) do
+    render(ProfileView, "show_with_location.json", profile: profile, screen_width: screen_width)
+  end
+
+  defp render_editor_tutorial_story(story, screen_width) do
+    render(ProfileView, "editor_tutorial_story.json", story: story, screen_width: screen_width)
   end
 end

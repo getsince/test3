@@ -3,7 +3,7 @@
 --
 
 -- Dumped from database version 13.1 (Debian 13.1-1.pgdg100+1)
--- Dumped by pg_dump version 13.3
+-- Dumped by pg_dump version 13.4
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -117,7 +117,8 @@ CREATE TABLE public.calls (
     caller_id uuid NOT NULL,
     called_id uuid NOT NULL,
     ended_at timestamp with time zone,
-    inserted_at timestamp(0) without time zone NOT NULL
+    inserted_at timestamp(0) without time zone NOT NULL,
+    accepted_at timestamp with time zone
 );
 
 
@@ -1027,3 +1028,4 @@ INSERT INTO public."schema_migrations" (version) VALUES (20210721105547);
 INSERT INTO public."schema_migrations" (version) VALUES (20210721111936);
 INSERT INTO public."schema_migrations" (version) VALUES (20210723120936);
 INSERT INTO public."schema_migrations" (version) VALUES (20210728221728);
+INSERT INTO public."schema_migrations" (version) VALUES (20210824160204);

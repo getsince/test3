@@ -61,7 +61,7 @@ defmodule TWeb.ChannelCase do
 
   @endpoint TWeb.Endpoint
 
-  def connected_socket(user) do
+  def connected_socket(%Accounts.User{} = user) do
     token =
       user
       |> Accounts.generate_user_session_token("mobile")

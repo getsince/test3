@@ -6,14 +6,8 @@ config :t, T.Repo, types: T.PostgresTypes
 config :phoenix, :json_library, Jason
 config :pigeon, json_library: Jason
 
-config :ex_aws,
-  http_client: T.ExAws.FinchHttpClient
-
-config :sentry,
-  client: T.Sentry.FinchHTTPClient
-
-config :t, T.Media.Client, adapter: T.Media.S3Client
-config :t, T.Bot, adapter: T.Bot.API
+config :ex_aws, http_client: T.ExAws.FinchHttpClient
+config :sentry, client: T.Sentry.FinchHTTPClient
 
 config :sentry,
   enable_source_code_context: true,

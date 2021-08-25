@@ -16,39 +16,34 @@ defmodule T.Matches.TimeslotsTest do
 
     @reference ~U[2021-03-23 14:00:00Z]
 
-    @tag skip: true
     test "with non-existent match", %{profiles: [p1, _]} do
       match = Ecto.UUID.generate()
 
       assert_raise Ecto.NoResultsError, fn ->
-        Matches.save_slots_offer(@slots, match: match, from: p1.user_id, reference: @reference)
+        Matches.save_slots_offer_for_match(p1.user_id, match, @slots, @reference)
       end
     end
 
-    @tag skip: true
     test "with match we are not part of", %{profiles: [p1, p2]} do
       p3 = insert(:profile, hidden?: false)
       match = insert(:match, user_id_1: p1.user_id, user_id_2: p2.user_id)
 
       assert_raise Ecto.NoResultsError, fn ->
-        Matches.save_slots_offer(@slots, match: match.id, from: p3.user_id, reference: @reference)
+        Matches.save_slots_offer_for_match(p3.user_id, match.id, @slots, @reference)
       end
     end
   end
 
-  @tag skip: true
   describe "save_slots_offer/2" do
     setup [:with_profiles, :with_match]
 
-    @tag skip: true
     test "with empty slots", %{profiles: [p1, _], match: match} do
-      assert {:error, :timeslot, %Ecto.Changeset{valid?: false} = changeset, %{}} =
-               Matches.save_slots_offer([], match: match.id, from: p1.user_id)
+      assert {:error, %Ecto.Changeset{valid?: false} = changeset} =
+               Matches.save_slots_offer_for_match(p1.user_id, match.id, _slots = [])
 
       assert errors_on(changeset) == %{slots: ["should have at least 1 item(s)"]}
     end
 
-    @tag skip: true
     test "with all slots in the past", %{profiles: [p1, _], match: match} do
       slots = [
         "2021-03-23 13:15:00Z",
@@ -56,17 +51,17 @@ defmodule T.Matches.TimeslotsTest do
         "2021-03-23 13:45:00Z"
       ]
 
-      assert {:error, :timeslot, %Ecto.Changeset{valid?: false} = changeset, %{}} =
-               Matches.save_slots_offer(slots,
-                 match: match.id,
-                 from: p1.user_id,
-                 reference: ~U[2021-03-23 14:00:00Z]
+      assert {:error, %Ecto.Changeset{valid?: false} = changeset} =
+               Matches.save_slots_offer_for_match(
+                 p1.user_id,
+                 match.id,
+                 slots,
+                 _reference = ~U[2021-03-23 14:00:00Z]
                )
 
       assert errors_on(changeset) == %{slots: ["should have at least 1 item(s)"]}
     end
 
-    @tag skip: true
     test "slots in the past are filtered", %{profiles: [p1, p2], match: match} do
       slots = [
         "2021-03-23 13:15:00Z",
@@ -77,11 +72,12 @@ defmodule T.Matches.TimeslotsTest do
         "2021-03-23 14:30:00Z"
       ]
 
-      assert {:ok, %{timeslot: %Timeslot{} = timeslot}} =
-               Matches.save_slots_offer(slots,
-                 match: match.id,
-                 from: p1.user_id,
-                 reference: ~U[2021-03-23 14:04:00Z]
+      assert {:ok, %Timeslot{} = timeslot} =
+               Matches.save_slots_offer_for_match(
+                 p1.user_id,
+                 match.id,
+                 slots,
+                 _reference = ~U[2021-03-23 14:04:00Z]
                )
 
       assert timeslot.slots == [
@@ -104,7 +100,6 @@ defmodule T.Matches.TimeslotsTest do
 
     setup [:with_match, :with_offer]
 
-    @tag skip: true
     test "push notification is scheduled for mate", %{
       profiles: [_p1, %{user_id: receiver_id}],
       match: %{id: match_id}
@@ -120,7 +115,6 @@ defmodule T.Matches.TimeslotsTest do
              ] = all_enqueued(worker: T.PushNotifications.DispatchJob)
     end
 
-    @tag skip: true
     test "offer is broadcast via pubsub to mate", %{profiles: [_p1, %{user_id: receiver_id}]} do
       assert_receive {Matches, [:timeslot, :offered], %Timeslot{} = timeslot}
 
@@ -141,29 +135,33 @@ defmodule T.Matches.TimeslotsTest do
     @slot "2021-03-23 14:45:00Z"
     @reference ~U[2021-03-23 14:00:00Z]
 
-    @tag skip: true
-    test "with slot in the past" do
+    test "with slot in the past", %{profiles: [p1, p2]} do
+      match = insert(:match, user_id_1: p1.user_id, user_id_2: p2.user_id)
+
       assert_raise MatchError, fn ->
-        Matches.accept_slot("2021-03-23 13:45:00Z", reference: @reference)
+        Matches.accept_slot_for_match(
+          p2.user_id,
+          match.id,
+          _slot = "2021-03-23 13:45:00Z",
+          @reference
+        )
       end
     end
 
-    @tag skip: true
     test "with non-existent match", %{profiles: [_p1, p2]} do
       match = Ecto.UUID.generate()
 
       assert_raise Ecto.NoResultsError, fn ->
-        Matches.accept_slot(@slot, match: match, picker: p2.user_id, reference: @reference)
+        Matches.accept_slot_for_match(p2.user_id, match, @slot, @reference)
       end
     end
 
-    @tag skip: true
     test "with match we are not part of", %{profiles: [p1, p2]} do
       p3 = insert(:profile, hidden?: false)
       match = insert(:match, user_id_1: p1.user_id, user_id_2: p2.user_id)
 
       assert_raise Ecto.NoResultsError, fn ->
-        Matches.accept_slot(@slot, match: match.id, picker: p3.user_id, reference: @reference)
+        Matches.accept_slot_for_match(p3.user_id, match.id, @slot, @reference)
       end
     end
 
@@ -177,25 +175,27 @@ defmodule T.Matches.TimeslotsTest do
   describe "accept_slot/2" do
     setup [:with_profiles, :with_match, :with_offer]
 
-    @tag skip: true
     test "accepts current slot", %{profiles: [_p1, p2], match: match} do
-      assert {:ok, %Timeslot{} = timeslot} =
-               Matches.accept_slot("2021-03-23 14:00:00Z",
-                 match: match.id,
-                 picker: p2.user_id,
-                 reference: ~U[2021-03-23 14:05:12Z]
+      assert %Timeslot{} =
+               timeslot =
+               Matches.accept_slot_for_match(
+                 p2.user_id,
+                 match.id,
+                 _slot = "2021-03-23 14:00:00Z",
+                 _reference = ~U[2021-03-23 14:05:12Z]
                )
 
       assert timeslot.selected_slot == ~U[2021-03-23 14:00:00Z]
     end
 
-    @tag skip: true
     test "accepts future slot", %{profiles: [_p1, p2], match: match} do
-      assert {:ok, %Timeslot{} = timeslot} =
-               Matches.accept_slot("2021-03-23 14:15:00Z",
-                 match: match.id,
-                 picker: p2.user_id,
-                 reference: ~U[2021-03-23 14:05:00Z]
+      assert %Timeslot{} =
+               timeslot =
+               Matches.accept_slot_for_match(
+                 p2.user_id,
+                 match.id,
+                 _slot = "2021-03-23 14:15:00Z",
+                 _reference = ~U[2021-03-23 14:05:00Z]
                )
 
       assert timeslot.selected_slot == ~U[2021-03-23 14:15:00Z]
@@ -208,17 +208,17 @@ defmodule T.Matches.TimeslotsTest do
     setup %{profiles: [p1, p2], match: match} do
       :ok = Matches.subscribe_for_user(p1.user_id)
 
-      {:ok, %Timeslot{}} =
-        Matches.accept_slot("2021-03-23 14:15:00Z",
-          match: match.id,
-          picker: p2.user_id,
-          reference: ~U[2021-03-23 14:00:00Z]
+      %Timeslot{} =
+        Matches.accept_slot_for_match(
+          p2.user_id,
+          match.id,
+          _slot = "2021-03-23 14:15:00Z",
+          _reference = ~U[2021-03-23 14:00:00Z]
         )
 
       :ok
     end
 
-    @tag skip: true
     test "accept broadcasted via pubsub to mate" do
       assert_receive {Matches, [:timeslot, :accepted], %Timeslot{} = timeslot}
 
@@ -232,7 +232,6 @@ defmodule T.Matches.TimeslotsTest do
       assert timeslot.selected_slot == ~U[2021-03-23 14:15:00Z]
     end
 
-    @tag skip: true
     test "push notification are scheduled", %{
       match: %{id: match_id},
       profiles: [%{user_id: u1}, %{user_id: u2}]
@@ -297,7 +296,6 @@ defmodule T.Matches.TimeslotsTest do
   describe "counter-offer" do
     setup [:with_profiles, :with_match]
 
-    @tag skip: true
     test "on counter-offer, slots are overwritten", %{profiles: [_p1, p2], match: match} do
       assert %Timeslot{selected_slot: nil} =
                insert(:timeslot,
@@ -306,16 +304,15 @@ defmodule T.Matches.TimeslotsTest do
                  picker: p2.user
                )
 
-      assert {:ok,
-              %{timeslot: %Timeslot{slots: [~U[2021-03-23 14:30:00Z], ~U[2021-03-23 14:45:00Z]]}}} =
-               Matches.save_slots_offer(["2021-03-23 14:30:00Z", "2021-03-23 14:45:00Z"],
-                 match: match.id,
-                 from: p2.user_id,
-                 reference: ~U[2021-03-23 14:04:00Z]
+      assert {:ok, %Timeslot{slots: [~U[2021-03-23 14:30:00Z], ~U[2021-03-23 14:45:00Z]]}} =
+               Matches.save_slots_offer_for_match(
+                 p2.user_id,
+                 match.id,
+                 ["2021-03-23 14:30:00Z", "2021-03-23 14:45:00Z"],
+                 _reference = ~U[2021-03-23 14:04:00Z]
                )
     end
 
-    @tag skip: true
     test "on counter-offer, selected_slot is nullified", %{
       profiles: [%{user_id: new_picker}, p2],
       match: match
@@ -329,17 +326,16 @@ defmodule T.Matches.TimeslotsTest do
                )
 
       assert {:ok,
-              %{
-                timeslot: %Timeslot{
-                  slots: [~U[2021-03-23 14:30:00Z], ~U[2021-03-23 14:45:00Z]],
-                  picker_id: ^new_picker,
-                  selected_slot: nil
-                }
+              %Timeslot{
+                slots: [~U[2021-03-23 14:30:00Z], ~U[2021-03-23 14:45:00Z]],
+                picker_id: ^new_picker,
+                selected_slot: nil
               }} =
-               Matches.save_slots_offer(["2021-03-23 14:30:00Z", "2021-03-23 14:45:00Z"],
-                 match: match.id,
-                 from: p2.user_id,
-                 reference: ~U[2021-03-23 14:04:00Z]
+               Matches.save_slots_offer_for_match(
+                 p2.user_id,
+                 match.id,
+                 ["2021-03-23 14:30:00Z", "2021-03-23 14:45:00Z"],
+                 ~U[2021-03-23 14:04:00Z]
                )
     end
   end
@@ -361,11 +357,12 @@ defmodule T.Matches.TimeslotsTest do
       "2021-03-23 14:30:00Z"
     ]
 
-    assert {:ok, %{timeslot: %Timeslot{} = timeslot}} =
-             Matches.save_slots_offer(slots,
-               match: match.id,
-               from: p1.user_id,
-               reference: ~U[2021-03-23 14:12:00Z]
+    assert {:ok, %Timeslot{} = timeslot} =
+             Matches.save_slots_offer_for_match(
+               p1.user_id,
+               match.id,
+               slots,
+               _reference = ~U[2021-03-23 14:12:00Z]
              )
 
     {:ok, timeslot: timeslot}

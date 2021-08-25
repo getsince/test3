@@ -27,39 +27,6 @@ defmodule T.PushNotifications.DispatchJob do
     end
   end
 
-  defp handle_type("like", args) do
-    %{"by_user_id" => by_user_id, "user_id" => user_id} = args
-
-    data = %{"by_user_id" => by_user_id}
-    user_id |> Accounts.list_apns_devices() |> schedule_apns("like", data)
-
-    :ok
-  end
-
-  defp handle_type("message", args) do
-    %{"match_id" => match_id, "author_id" => author_id} = args
-
-    if match = alive_match(match_id) do
-      %Matches.Match{user_id_1: uid1, user_id_2: uid2} = match
-
-      [receiver_id] = [uid1, uid2] -- [author_id]
-
-      receiver_id
-      |> Accounts.list_apns_devices()
-      |> schedule_apns("message", %{"match_id" => match_id, "author_id" => author_id})
-
-      :ok
-    else
-      :discard
-    end
-  end
-
-  defp handle_type("support", args) do
-    %{"user_id" => user_id} = args
-    user_id |> Accounts.list_apns_devices() |> schedule_apns("support")
-    :ok
-  end
-
   defp handle_type(type, args) when type in ["timeslot_offer", "timeslot_accepted"] do
     %{"match_id" => match_id, "receiver_id" => receiver_id} = args
 
@@ -74,30 +41,29 @@ defmodule T.PushNotifications.DispatchJob do
     end
   end
 
-  # TODO
-  # defp handle_type(type, args) when type in ["timeslot_reminder", "timeslot_started"] do
-  #   %{"match_id" => match_id, "slot" => slot} = args
+  defp handle_type(type, args) when type in ["timeslot_reminder", "timeslot_started"] do
+    %{"match_id" => match_id, "slot" => slot} = args
 
-  #   if match = alive_match(match_id) do
-  #     timeslot =
-  #       Matches.Timeslot |> where(match_id: ^match_id, selected_slot: ^slot) |> Repo.one()
+    if match = alive_match(match_id) do
+      timeslot =
+        Matches.Timeslot |> where(match_id: ^match_id, selected_slot: ^slot) |> Repo.one()
 
-  #     if timeslot do
-  #       %Matches.Match{user_id_1: uid1, user_id_2: uid2} = match
+      if timeslot do
+        %Matches.Match{user_id_1: uid1, user_id_2: uid2} = match
 
-  #       if type == "timeslot_started" do
-  #         Matches.notify_timeslot_started(match)
-  #         Matches.schedule_timeslot_ended(match, timeslot)
-  #       end
+        if type == "timeslot_started" do
+          Matches.notify_timeslot_started(match)
+          Matches.schedule_timeslot_ended(match, timeslot)
+        end
 
-  #       data = %{"match_id" => match_id}
-  #       uid1 |> Accounts.list_apns_devices() |> schedule_apns(type, data)
-  #       uid2 |> Accounts.list_apns_devices() |> schedule_apns(type, data)
+        data = %{"match_id" => match_id}
+        uid1 |> Accounts.list_apns_devices() |> schedule_apns(type, data)
+        uid2 |> Accounts.list_apns_devices() |> schedule_apns(type, data)
 
-  #       :ok
-  #     end
-  #   end || :discard
-  # end
+        :ok
+      end
+    end || :discard
+  end
 
   defp handle_type("timeslot_cancelled" = type, args) do
     %{"match_id" => match_id} = args
@@ -121,19 +87,18 @@ defmodule T.PushNotifications.DispatchJob do
     end
   end
 
-  # TODO
-  # defp handle_type("timeslot_ended", args) do
-  #   %{"match_id" => match_id} = args
+  defp handle_type("timeslot_ended", args) do
+    %{"match_id" => match_id} = args
 
-  #   match =
-  #     Matches.Match
-  #     |> where(id: ^match_id)
-  #     |> Repo.one()
+    match =
+      Matches.Match
+      |> where(id: ^match_id)
+      |> Repo.one()
 
-  #   Matches.notify_timeslot_ended(match)
+    Matches.notify_timeslot_ended(match)
 
-  #   :ok
-  # end
+    :ok
+  end
 
   defp handle_type("invite" = type, args) do
     %{"by_user_id" => by_user_id, "user_id" => user_id} = args
@@ -161,14 +126,19 @@ defmodule T.PushNotifications.DispatchJob do
     |> Repo.one()
   end
 
-  defp schedule_apns(apns_devices, template, data \\ %{}) do
+  @spec schedule_apns([%Accounts.APNSDevice{}], String.t(), map) :: [Oban.Job.t()]
+  defp schedule_apns(apns_devices, template, data) do
     apns_devices
-    |> Enum.map(fn %{device_id: device_id, locale: locale} ->
+    |> Enum.map(fn device ->
+      %Accounts.APNSDevice{device_id: device_id, locale: locale, env: env, topic: topic} = device
+
       PushNotifications.APNSJob.new(%{
         "template" => template,
-        "device_id" => Base.encode16(device_id),
+        "device_id" => device_id,
         "locale" => locale,
-        "data" => data
+        "data" => data,
+        "env" => env,
+        "topic" => topic
       })
     end)
     |> Oban.insert_all()

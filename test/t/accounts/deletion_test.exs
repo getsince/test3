@@ -2,7 +2,7 @@ defmodule T.Accounts.DeletionTest do
   use T.DataCase, async: true
   use Oban.Testing, repo: Repo
 
-  alias T.{Accounts, Feeds, Matches}
+  alias T.{Accounts, Matches}
   alias Matches.Match
 
   describe "delete_user/1" do
@@ -25,28 +25,22 @@ defmodule T.Accounts.DeletionTest do
       assert [] == Repo.all(Accounts.UserToken)
     end
 
-    @tag skip: true
     test "current match is unmatched", %{user: user} do
       p2 = insert(:profile)
 
       Matches.subscribe_for_user(user.id)
       Matches.subscribe_for_user(p2.user_id)
 
-      assert {:ok, %{match: nil}} = Feeds.like_profile(p2.user_id, user.id)
-      assert {:ok, %{match: %Match{id: match_id}}} = Feeds.like_profile(user.id, p2.user_id)
+      assert {:ok, %{match: nil}} = Matches.like_user(p2.user_id, user.id)
+      assert {:ok, %{match: %Match{id: match_id}}} = Matches.like_user(user.id, p2.user_id)
 
-      assert_receive {Matches, [:matched, ^match_id], [_, _] = user_ids}
-      assert_receive {Matches, [:matched, ^match_id], ^user_ids}
+      assert_receive {Matches, :matched, match}
+      assert match == %{id: match_id, mate: user.id}
+      refute_receive _anything_else
 
-      Matches.subscribe_for_match(match_id)
-
-      assert {:ok,
-              %{
-                delete_user: true,
-                unmatch: [ok: ^user_ids]
-              }} = Accounts.delete_user(user.id)
-
-      assert_receive {Matches, [:unmatched, ^match_id], ^user_ids}
+      assert {:ok, %{delete_user: true, unmatch: [true]}} = Accounts.delete_user(user.id)
+      assert_receive {Matches, :unmatched, ^match_id}
+      assert [] == Matches.list_matches(p2.user_id)
     end
   end
 end

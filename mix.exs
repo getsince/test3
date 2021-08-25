@@ -25,13 +25,13 @@ defmodule T.MixProject do
     ]
   end
 
-  defp extra_applications(env) when env in [:dev, :test], do: [:logger, :runtime_tools]
-  defp extra_applications(_env), do: [:logger, :runtime_tools, :os_mon]
+  defp extra_applications(:prod), do: [:logger, :runtime_tools, :os_mon]
+  defp extra_applications(_env), do: [:logger, :runtime_tools]
 
   # Specifies which paths to compile per environment.
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(:dev), do: ["lib", "dev"]
-  defp elixirc_paths(_), do: ["lib"]
+  defp elixirc_paths(_env), do: ["lib"]
 
   # Specifies your project dependencies.
   #
@@ -62,7 +62,10 @@ defmodule T.MixProject do
       {:ex_machina, "~> 2.4", only: :test},
       {:assertions, "~> 0.18.1", only: :test},
       {:floki, ">= 0.0.0", only: :test},
-      {:pigeon, github: "ruslandoga/pigeon", branch: "drop-httpoison-and-make-poison-optional"},
+      {:pigeon,
+       github: "ruslandoga/pigeon",
+       branch: "drop-httpoison-and-make-poison-optional",
+       runtime: Mix.env() in [:dev, :prod]},
       {:kadabra, "~> 0.4.4"},
       {:sentry, "~> 8.0"},
       {:bigflake, "0.5.0"},
@@ -72,7 +75,10 @@ defmodule T.MixProject do
       {:finch, "~> 0.8", override: true},
       {:locus, "~> 1.16"},
       {:prom_ex, "~> 1.3"},
-      {:esbuild, "~> 0.2", runtime: Mix.env() == :dev}
+      {:esbuild, "~> 0.2", runtime: Mix.env() == :dev},
+      {:retry, "~> 0.14.1"},
+      {:cloud_watch, "~> 0.4.0"},
+      {:benchee, "~> 1.0", only: :bench}
     ]
   end
 

@@ -55,16 +55,16 @@ defmodule T.Accounts.APNSTest do
 
   describe "save_pushkit_device_id/3" do
     test "with valid user and token", %{user: user, token: token} do
-      assert :ok == Accounts.save_pushkit_device_id(user.id, token, "ABABABABA")
+      assert :ok == Accounts.save_pushkit_device_id(user.id, token, "ABABABABA", env: "prod")
       assert [%PushKitDevice{device_id: "ABABABABA"}] = Repo.all(PushKitDevice)
       # duplicate is overriden
-      assert :ok == Accounts.save_pushkit_device_id(user.id, token, "BCBCBCBC")
+      assert :ok == Accounts.save_pushkit_device_id(user.id, token, "BCBCBCBC", env: "sandbox")
       assert [%PushKitDevice{device_id: "BCBCBCBC"}] = Repo.all(PushKitDevice)
     end
 
     test "user can switch account", %{user: user, token: token} do
       # save device id for current user and session
-      assert :ok == Accounts.save_pushkit_device_id(user.id, token, "ABABABABA")
+      assert :ok == Accounts.save_pushkit_device_id(user.id, token, "ABABABABA", env: "prod")
       assert [%PushKitDevice{device_id: "ABABABABA"}] = Repo.all(PushKitDevice)
       # on log out the apns token is deleted
       assert :ok == Accounts.delete_session_token(token, "mobile")
@@ -72,10 +72,10 @@ defmodule T.Accounts.APNSTest do
     end
 
     test "existing device_id is overwritten", %{user: user, token: token} do
-      assert :ok == Accounts.save_pushkit_device_id(user.id, token, "ABABABABA")
+      assert :ok == Accounts.save_pushkit_device_id(user.id, token, "ABABABABA", env: "prod")
       assert [%PushKitDevice{device_id: "ABABABABA"}] = Repo.all(PushKitDevice)
 
-      assert :ok == Accounts.save_pushkit_device_id(user.id, token, "ABABABABA")
+      assert :ok == Accounts.save_pushkit_device_id(user.id, token, "ABABABABA", env: "sandbox")
       assert [%PushKitDevice{device_id: "ABABABABA"}] = Repo.all(PushKitDevice)
 
       # new session token
@@ -87,7 +87,7 @@ defmodule T.Accounts.APNSTest do
       %Accounts.UserToken{id: new_token_id} =
         new_token |> UserToken.token_and_context_query("mobile") |> Repo.one!()
 
-      assert :ok == Accounts.save_pushkit_device_id(user.id, new_token, "ABABABABA")
+      assert :ok == Accounts.save_pushkit_device_id(user.id, new_token, "ABABABABA", env: "prod")
 
       assert [%PushKitDevice{device_id: "ABABABABA", token_id: ^new_token_id}] =
                Repo.all(PushKitDevice)

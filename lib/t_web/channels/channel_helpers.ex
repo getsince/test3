@@ -16,8 +16,11 @@ defmodule TWeb.ChannelHelpers do
     %User{} = assigns.current_user
   end
 
-  def report(socket, report) do
-    %{"reason" => reason, "profile_id" => reported_user_id} = report
+  def me(%Socket{assigns: %{current_user: %User{} = me}}), do: me
+  def me_id(%Socket{assigns: %{current_user: %User{id: id}}}), do: id
+
+  def report(socket, params) do
+    %{"reason" => reason, "user_id" => reported_user_id} = params
     %{current_user: reporter} = socket.assigns
 
     case T.Accounts.report_user(reporter.id, reported_user_id, reason) do

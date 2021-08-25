@@ -45,7 +45,6 @@ defmodule TWeb.Router do
     post "/ios/push-token", DeviceController, :create_push_token
     delete "/mobile/account", MobileAccountController, :delete
     delete "/mobile/auth", MobileAuthController, :delete
-    resources "/profile", ProfileController, singleton: true, only: [:update]
   end
 
   scope "/admin", TWeb do

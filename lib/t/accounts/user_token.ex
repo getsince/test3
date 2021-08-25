@@ -1,6 +1,7 @@
 defmodule T.Accounts.UserToken do
   use Ecto.Schema
   import Ecto.Query
+  alias T.Accounts
 
   @rand_size 32
   @session_validity_in_days 60
@@ -11,7 +12,7 @@ defmodule T.Accounts.UserToken do
     field :token, :binary
     field :context, :string
     field :sent_to, :string
-    belongs_to :user, T.Accounts.User
+    belongs_to :user, Accounts.User
 
     timestamps(updated_at: false)
   end
@@ -35,9 +36,13 @@ defmodule T.Accounts.UserToken do
   such as session or cookie or keychain. As they are signed, those
   tokens do not need to be hashed.
   """
-  def build_token(user, context) when context in ["session", "mobile"] do
+  def build_token(%Accounts.User{id: user_id}, context), do: build_token(user_id, context)
+  def build_token(%Accounts.Profile{user_id: user_id}, context), do: build_token(user_id, context)
+
+  def build_token(user_id, context)
+      when context in ["session", "mobile"] and is_binary(user_id) do
     token = :crypto.strong_rand_bytes(@rand_size)
-    {token, %T.Accounts.UserToken{token: token, context: context, user_id: user.id}}
+    {token, %Accounts.UserToken{token: token, context: context, user_id: user_id}}
   end
 
   @doc """
@@ -69,17 +74,17 @@ defmodule T.Accounts.UserToken do
   Returns the given token with the given context.
   """
   def token_and_context_query(token, context) do
-    from T.Accounts.UserToken, where: [token: ^raw_token(token), context: ^context]
+    from Accounts.UserToken, where: [token: ^raw_token(token), context: ^context]
   end
 
   @doc """
   Gets all tokens for the given user for the given contexts.
   """
   def user_and_contexts_query(user_id, :all) do
-    from t in T.Accounts.UserToken, where: t.user_id == ^user_id
+    from t in Accounts.UserToken, where: t.user_id == ^user_id
   end
 
   def user_and_contexts_query(user_id, [_ | _] = contexts) do
-    from t in T.Accounts.UserToken, where: t.user_id == ^user_id and t.context in ^contexts
+    from t in Accounts.UserToken, where: t.user_id == ^user_id and t.context in ^contexts
   end
 end

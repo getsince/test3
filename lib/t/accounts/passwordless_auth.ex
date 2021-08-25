@@ -53,7 +53,7 @@ defmodule T.Accounts.PasswordlessAuth do
   def code_expired?(dt_or_sms_info, reference \\ NaiveDateTime.utc_now())
 
   def code_expired?(%NaiveDateTime{} = inserted_at, reference) do
-    NaiveDateTime.diff(reference, inserted_at) >= 300
+    NaiveDateTime.diff(reference, inserted_at, :second) >= 300
   end
 
   def code_expired?(%SMSCode{inserted_at: inserted_at}, reference) do

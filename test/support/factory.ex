@@ -1,8 +1,7 @@
 defmodule T.Factory do
   use ExMachina.Ecto, repo: T.Repo
-  alias T.Accounts.{User, Profile, GenderPreference}
-  alias T.Feeds.ProfileLike
-  alias T.Matches.{Match, Timeslot}
+  alias T.Accounts.{User, Profile, GenderPreference, APNSDevice, PushKitDevice}
+  alias T.Matches.{Match, Timeslot, Like}
   alias T.Calls.Call
 
   def user_factory do
@@ -23,7 +22,7 @@ defmodule T.Factory do
   end
 
   def like_factory do
-    %ProfileLike{}
+    %Like{}
   end
 
   def match_factory do
@@ -32,6 +31,14 @@ defmodule T.Factory do
 
   def timeslot_factory do
     %Timeslot{}
+  end
+
+  def apns_device_factory do
+    %APNSDevice{}
+  end
+
+  def pushkit_device_factory do
+    %PushKitDevice{}
   end
 
   def call_factory do

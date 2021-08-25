@@ -1,7 +1,6 @@
 defmodule T.Location do
   require Logger
 
-  @moscow [55.7483, 37.6171]
   @db :city
 
   def setup(key) do
@@ -19,7 +18,7 @@ defmodule T.Location do
           "failed to fetch location for #{inspect(ip_address)}, reason: #{inspect(reason)}"
         )
 
-        @moscow
+        nil
     end
   end
 end

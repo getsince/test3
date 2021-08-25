@@ -11,18 +11,17 @@ defmodule TWeb.ProfileChannelTest do
 
   describe "join" do
     test "with empty profile", %{socket: socket, user: user} do
-      {:ok, reply, _socket} = subscribe_and_join(socket, "profile:" <> user.id, %{})
+      {:ok, %{profile: profile, stickers: %{}}, _socket} =
+        subscribe_and_join(socket, "profile:" <> user.id, %{})
 
-      assert reply == %{
-               profile: %{
-                 user_id: user.id,
-                 latitude: nil,
-                 longitude: nil,
-                 gender_preference: nil,
-                 story: [],
-                 gender: nil,
-                 name: nil
-               }
+      assert profile == %{
+               user_id: user.id,
+               latitude: nil,
+               longitude: nil,
+               gender_preference: nil,
+               story: [],
+               gender: nil,
+               name: nil
              }
     end
 
@@ -61,44 +60,43 @@ defmodule TWeb.ProfileChannelTest do
           ]
         })
 
-      assert {:ok, reply, _socket} = subscribe_and_join(socket, "profile:" <> user.id, %{})
+      assert {:ok, %{profile: profile}, _socket} =
+               subscribe_and_join(socket, "profile:" <> user.id, %{})
 
-      assert reply == %{
-               profile: %{
-                 name: "Jojaresum",
-                 story: [
-                   %{
-                     "background" => %{
-                       "proxy" =>
-                         "https://d1234.cloudfront.net/e9a8Yq80qbgr7QH43crdCBPWdt6OACyhD5xWN8ysFok/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Bob3RvLmpwZw",
-                       "s3_key" => "photo.jpg"
+      assert profile == %{
+               name: "Jojaresum",
+               story: [
+                 %{
+                   "background" => %{
+                     "proxy" =>
+                       "https://d1234.cloudfront.net/e9a8Yq80qbgr7QH43crdCBPWdt6OACyhD5xWN8ysFok/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Bob3RvLmpwZw",
+                     "s3_key" => "photo.jpg"
+                   },
+                   "labels" => [
+                     %{
+                       "type" => "text",
+                       "value" => "just some text",
+                       "dimensions" => [400, 800],
+                       "position" => [100, 100],
+                       "rotation" => 21,
+                       "zoom" => 1.2
                      },
-                     "labels" => [
-                       %{
-                         "type" => "text",
-                         "value" => "just some text",
-                         "dimensions" => [400, 800],
-                         "position" => [100, 100],
-                         "rotation" => 21,
-                         "zoom" => 1.2
-                       },
-                       %{
-                         "type" => "answer",
-                         "answer" => "msu",
-                         "question" => "university",
-                         "value" => "🥊\nменя воспитала улица",
-                         "dimensions" => [400, 800],
-                         "position" => [150, 150]
-                       }
-                     ]
-                   }
-                 ],
-                 gender: nil,
-                 gender_preference: nil,
-                 latitude: nil,
-                 longitude: nil,
-                 user_id: user.id
-               }
+                     %{
+                       "type" => "answer",
+                       "answer" => "msu",
+                       "question" => "university",
+                       "value" => "🥊\nменя воспитала улица",
+                       "dimensions" => [400, 800],
+                       "position" => [150, 150]
+                     }
+                   ]
+                 }
+               ],
+               gender: nil,
+               gender_preference: nil,
+               latitude: nil,
+               longitude: nil,
+               user_id: user.id
              }
     end
   end

@@ -5,8 +5,9 @@ defmodule T.Accounts do
 
   import Ecto.Query, warn: false
   import Ecto.Changeset
+  alias Ecto.Multi
 
-  alias T.{Repo, Media, Bot, Feeds}
+  alias T.{Repo, Media, Bot, Feeds, Matches}
 
   alias T.Accounts.{
     User,
@@ -55,20 +56,20 @@ defmodule T.Accounts do
 
   @doc false
   def register_user_with_phone(attrs) do
-    Ecto.Multi.new()
-    |> Ecto.Multi.insert(:user, User.phone_registration_changeset(%User{}, attrs))
-    |> post_register_multi()
+    Multi.new()
+    |> Multi.insert(:user, User.phone_registration_changeset(%User{}, attrs))
+    |> add_profile_and_transact()
   end
 
   def register_user_with_apple_id(attrs) do
-    Ecto.Multi.new()
-    |> Ecto.Multi.insert(:user, User.apple_id_registration_changeset(%User{}, attrs))
-    |> post_register_multi()
+    Multi.new()
+    |> Multi.insert(:user, User.apple_id_registration_changeset(%User{}, attrs))
+    |> add_profile_and_transact()
   end
 
-  defp post_register_multi(multi) do
+  defp add_profile_and_transact(multi) do
     multi
-    |> Ecto.Multi.insert(
+    |> Multi.insert(
       :profile,
       fn %{user: user} ->
         %Profile{
@@ -191,7 +192,7 @@ defmodule T.Accounts do
 
   def login_or_register_user_with_apple_id(id_token) do
     case AppleSignIn.fields_from_token(id_token) do
-      {:ok, %{id: apple_id}} -> get_or_register_user_with_apple_id(apple_id)
+      {:ok, apple_id} -> get_or_register_user_with_apple_id(apple_id)
       {:error, _reason} = failure -> failure
     end
   end
@@ -238,23 +239,33 @@ defmodule T.Accounts do
       |> validate_required([:reason])
       |> validate_length(:reason, max: 500)
 
-    Ecto.Multi.new()
-    |> Ecto.Multi.insert(:report, report_changeset)
-    |> maybe_block_user_multi(on_user_id)
-    |> Ecto.Multi.run(:uninvite, fn _repo, _changes ->
-      {deleted_count, _} = Feeds.delete_invites_for_reported(from_user_id, on_user_id)
-      {:ok, deleted_count}
-    end)
+    Multi.new()
+    |> Multi.insert(:report, report_changeset)
+    |> maybe_block(on_user_id)
+    |> uninvite(from_user_id, on_user_id)
+    |> Matches.unmatch_multi(from_user_id, on_user_id)
     |> Repo.transaction()
     |> case do
-      {:ok, _changes} -> :ok
-      {:error, :report, %Ecto.Changeset{} = changeset, _changes} -> {:error, changeset}
+      {:ok, changes} ->
+        Matches.notify_unmatch_changes(changes)
+        :ok
+
+      {:error, :report, %Ecto.Changeset{} = changeset, _changes} ->
+        {:error, changeset}
     end
   end
 
+  # TODO check logic is correct
+  defp uninvite(multi, from_user_id, on_user_id) do
+    Multi.run(multi, :uninvite, fn _repo, _changes ->
+      {deleted_count, _} = Feeds.delete_invites_for_reported(from_user_id, on_user_id)
+      {:ok, deleted_count}
+    end)
+  end
+
   # TODO test, unmatch
-  defp maybe_block_user_multi(multi, reported_user_id) do
-    Ecto.Multi.run(multi, :block, fn repo, _changes ->
+  defp maybe_block(multi, reported_user_id) do
+    Multi.run(multi, :block, fn repo, _changes ->
       reports_count =
         UserReport |> where(on_user_id: ^reported_user_id) |> select([r], count()) |> Repo.one!()
 
@@ -283,8 +294,8 @@ defmodule T.Accounts do
 
   # TODO test unmatch doesn't unhide blocked
   def block_user(user_id) do
-    Ecto.Multi.new()
-    |> Ecto.Multi.run(:block, fn repo, _changes ->
+    Multi.new()
+    |> Multi.run(:block, fn repo, _changes ->
       user_id |> block_user_q() |> repo.update_all([])
 
       Profile
@@ -293,29 +304,47 @@ defmodule T.Accounts do
 
       {:ok, nil}
     end)
-    |> Ecto.Multi.run(:uninvite, fn _repo, _changes ->
+    |> Multi.run(:uninvite, fn _repo, _changes ->
       {deleted_count, _} = Feeds.delete_invites_for_blocked(user_id)
       {:ok, deleted_count}
     end)
-    |> Ecto.Multi.run(:deactivate_session, fn _repo, _changes ->
+    |> Multi.run(:deactivate_session, fn _repo, _changes ->
       deactivated? = Feeds.deactivate_session(user_id)
       {:ok, deactivated?}
     end)
+    |> unmatch_all(user_id)
     |> Repo.transaction()
     |> case do
       {:ok, _changes} -> :ok
     end
   end
 
+  defp unmatch_all(multi, user_id) do
+    Multi.run(multi, :unmatch, fn repo, _changes ->
+      unmatches =
+        T.Matches.Match
+        |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
+        |> select([m], m.id)
+        |> repo.all()
+        |> Enum.map(fn match_id ->
+          T.Matches.unmatch_match(user_id, match_id)
+        end)
+
+      {:ok, unmatches}
+    end)
+  end
+
+  # TODO deactivate session
   def delete_user(user_id) do
     Bot.async_post_silent_message("deleted user #{user_id}")
 
-    Ecto.Multi.new()
-    |> Ecto.Multi.run(:session_tokens, fn _repo, _changes ->
+    Multi.new()
+    |> unmatch_all(user_id)
+    |> Multi.run(:session_tokens, fn _repo, _changes ->
       tokens = UserToken |> where(user_id: ^user_id) |> select([ut], ut.token) |> Repo.all()
       {:ok, tokens}
     end)
-    |> Ecto.Multi.run(:delete_user, fn _repo, _changes ->
+    |> Multi.run(:delete_user, fn _repo, _changes ->
       {1, _} =
         User
         |> where(id: ^user_id)
@@ -326,7 +355,25 @@ defmodule T.Accounts do
     |> Repo.transaction()
   end
 
-  def save_apns_device_id(user_id, token, device_id, locale \\ nil) do
+  # apns
+
+  defp default_apns_topic do
+    T.PushNotifications.APNS.topic()
+  end
+
+  defp with_base16_encoded_apns_device_id(devices) when is_list(devices) do
+    Enum.map(devices, &with_base16_encoded_apns_device_id/1)
+  end
+
+  defp with_base16_encoded_apns_device_id(%PushKitDevice{device_id: device_id} = device) do
+    %PushKitDevice{device | device_id: Base.encode16(device_id)}
+  end
+
+  defp with_base16_encoded_apns_device_id(%APNSDevice{device_id: device_id} = device) do
+    %APNSDevice{device | device_id: Base.encode16(device_id)}
+  end
+
+  def save_apns_device_id(user_id, token, device_id, extra \\ []) do
     %UserToken{id: token_id} = token |> UserToken.token_and_context_query("mobile") |> Repo.one!()
 
     prev_device_q =
@@ -341,18 +388,21 @@ defmodule T.Accounts do
         user_id: user_id,
         token_id: token_id,
         device_id: device_id,
-        locale: locale
+        locale: extra[:locale],
+        env: extra[:env],
+        topic: extra[:topic] || default_apns_topic()
       })
     end)
 
     :ok
   end
 
+  @spec list_apns_devices(Ecto.UUID.t()) :: [%APNSDevice{}]
   def list_apns_devices(user_id) do
-    T.Accounts.APNSDevice
+    APNSDevice
     |> where(user_id: ^user_id)
-    |> select([d], %{device_id: d.device_id, locale: d.locale})
     |> Repo.all()
+    |> with_base16_encoded_apns_device_id()
   end
 
   @doc "remove_apns_device(device_id_base_16)"
@@ -362,7 +412,7 @@ defmodule T.Accounts do
     |> Repo.delete_all()
   end
 
-  def save_pushkit_device_id(user_id, token, device_id) do
+  def save_pushkit_device_id(user_id, token, device_id, extra) do
     %UserToken{id: token_id} = token |> UserToken.token_and_context_query("mobile") |> Repo.one!()
 
     prev_device_q =
@@ -372,7 +422,14 @@ defmodule T.Accounts do
 
     Repo.transaction(fn ->
       Repo.delete_all(prev_device_q)
-      Repo.insert!(%PushKitDevice{user_id: user_id, token_id: token_id, device_id: device_id})
+
+      Repo.insert!(%PushKitDevice{
+        user_id: user_id,
+        token_id: token_id,
+        device_id: device_id,
+        env: extra[:env],
+        topic: extra[:topic] || default_apns_topic()
+      })
     end)
 
     :ok
@@ -385,12 +442,12 @@ defmodule T.Accounts do
     |> Repo.delete_all()
   end
 
+  @spec list_pushkit_devices(Ecto.UUID.t()) :: [%PushKitDevice{}]
   def list_pushkit_devices(user_id) when is_binary(user_id) do
     PushKitDevice
     |> where(user_id: ^user_id)
-    |> select([d], d.device_id)
     |> Repo.all()
-    |> Enum.map(&Base.encode16/1)
+    |> with_base16_encoded_apns_device_id()
   end
 
   ## Session
@@ -480,8 +537,8 @@ defmodule T.Accounts do
   end
 
   def onboard_profile(%Profile{user_id: user_id} = profile, attrs) do
-    Ecto.Multi.new()
-    |> Ecto.Multi.run(:user, fn repo, _changes ->
+    Multi.new()
+    |> Multi.run(:user, fn repo, _changes ->
       user = repo.get!(User, user_id)
 
       if user.onboarded_at do
@@ -490,11 +547,11 @@ defmodule T.Accounts do
         {:ok, repo.preload(user, :profile)}
       end
     end)
-    |> Ecto.Multi.update(:profile, fn %{user: %{profile: profile}} ->
+    |> Multi.update(:profile, fn %{user: %{profile: profile}} ->
       Profile.changeset(profile, attrs, validate_required?: true)
     end)
     |> update_profile_gender_preferences(profile)
-    |> Ecto.Multi.run(:mark_onboarded, fn repo, %{user: user} ->
+    |> Multi.run(:mark_onboarded, fn repo, %{user: user} ->
       {1, nil} =
         User
         |> where(id: ^user.id)
@@ -503,7 +560,7 @@ defmodule T.Accounts do
 
       {:ok, nil}
     end)
-    |> Ecto.Multi.run(:show_profile, fn _repo, %{user: user} ->
+    |> Multi.run(:show_profile, fn _repo, %{user: user} ->
       {count, nil} = maybe_unhide_profile_with_story(user.id)
       {:ok, count >= 1}
     end)
@@ -526,10 +583,10 @@ defmodule T.Accounts do
   def update_profile(%Profile{} = profile, attrs, opts \\ []) do
     Bot.async_post_message("user #{profile.user_id} updated profile with #{inspect(attrs)}")
 
-    Ecto.Multi.new()
-    |> Ecto.Multi.update(:profile, Profile.changeset(profile, attrs, opts), returning: true)
+    Multi.new()
+    |> Multi.update(:profile, Profile.changeset(profile, attrs, opts), returning: true)
     |> update_profile_gender_preferences(profile)
-    |> Ecto.Multi.run(:maybe_unhide, fn _repo, %{profile: profile} ->
+    |> Multi.run(:maybe_unhide, fn _repo, %{profile: profile} ->
       has_story? = !!profile.story
       hidden? = profile.hidden?
       result = if hidden? and has_story?, do: maybe_unhide_profile_with_story(profile.user_id)
@@ -547,7 +604,7 @@ defmodule T.Accounts do
          multi,
          %Profile{user_id: user_id, filters: %Profile.Filters{genders: [_ | _] = old_genders}}
        ) do
-    Ecto.Multi.run(multi, :update_profile_gender_preferences, fn _repo, %{profile: new_profile} ->
+    Multi.run(multi, :update_profile_gender_preferences, fn _repo, %{profile: new_profile} ->
       %Profile{filters: %Profile.Filters{genders: new_genders}} = new_profile
 
       # TODO
@@ -568,7 +625,7 @@ defmodule T.Accounts do
   end
 
   defp update_profile_gender_preferences(multi, %Profile{user_id: user_id}) do
-    Ecto.Multi.run(multi, :update_profile_gender_preferences, fn _repo, %{profile: new_profile} ->
+    Multi.run(multi, :update_profile_gender_preferences, fn _repo, %{profile: new_profile} ->
       %Profile{filters: %Profile.Filters{genders: new_genders}} = new_profile
       insert_all_gender_preferences(new_genders || [], user_id)
       {:ok, [to_add: new_genders, to_remove: []]}

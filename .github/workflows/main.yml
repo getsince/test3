@@ -97,50 +97,50 @@ jobs:
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
-  build_multi:
-    name: build multiplatform
-    runs-on: ubuntu-latest
+  # build_multi:
+  #   name: build multiplatform
+  #   runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v2
+  #   steps:
+  #     - uses: actions/checkout@v2
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+  #     - name: Set up QEMU
+  #       uses: docker/setup-qemu-action@v1
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+  #     - name: Set up Docker Buildx
+  #       uses: docker/setup-buildx-action@v1
 
-      - name: Cache Docker layers
-        uses: actions/cache@v2
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-multi-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-multi-
-            ${{ runner.os }}-buildx-
+  #     - name: Cache Docker layers
+  #       uses: actions/cache@v2
+  #       with:
+  #         path: /tmp/.buildx-cache
+  #         key: ${{ runner.os }}-buildx-multi-${{ github.sha }}
+  #         restore-keys: |
+  #           ${{ runner.os }}-buildx-multi-
+  #           ${{ runner.os }}-buildx-
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v1
-        with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+  #     - name: Login to Docker Hub
+  #       uses: docker/login-action@v1
+  #       with:
+  #         username: ${{ secrets.DOCKER_HUB_USERNAME }}
+  #         password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
-      - name: Build and push
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          # TODO https://github.com/docker/buildx/pull/535#issuecomment-829973415
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new
-          tags: |
-            ruslandoga/test3:latest
-            ruslandoga/test3:${{ github.sha }}
+  #     - name: Build and push
+  #       uses: docker/build-push-action@v2
+  #       with:
+  #         context: .
+  #         platforms: linux/amd64,linux/arm64
+  #         push: true
+  #         # TODO https://github.com/docker/buildx/pull/535#issuecomment-829973415
+  #         cache-from: type=local,src=/tmp/.buildx-cache
+  #         cache-to: type=local,dest=/tmp/.buildx-cache-new
+  #         tags: |
+  #           ruslandoga/test3:latest
+  #           ruslandoga/test3:${{ github.sha }}
 
-      # https://github.com/docker/build-push-action/issues/252#issuecomment-744400434
-      # https://github.com/moby/buildkit/issues/1896
-      - name: Move cache
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+  #     # https://github.com/docker/build-push-action/issues/252#issuecomment-744400434
+  #     # https://github.com/moby/buildkit/issues/1896
+  #     - name: Move cache
+  #       run: |
+  #         rm -rf /tmp/.buildx-cache
+  #         mv /tmp/.buildx-cache-new /tmp/.buildx-cache

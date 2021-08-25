@@ -26,7 +26,7 @@ defmodule T.Feeds do
   end
 
   defp notify_subscribers(%ActiveSession{user_id: user_id} = session, :activated = event) do
-    broadcast(activated_topic(), {__MODULE__, event, user_id})
+    broadcast_from(activated_topic(), {__MODULE__, event, user_id})
     session
   end
 
@@ -34,7 +34,7 @@ defmodule T.Feeds do
   defp notify_subscribers({:error, _reason} = fail, _event), do: fail
 
   defp notify_deactivated(user_id) when is_binary(user_id) do
-    broadcast(deactivated_topic(), {__MODULE__, :deactivated, user_id})
+    broadcast_from(deactivated_topic(), {__MODULE__, :deactivated, user_id})
   end
 
   defp notify_deactivated(user_ids) when is_list(user_ids) do
@@ -61,6 +61,10 @@ defmodule T.Feeds do
     Phoenix.PubSub.broadcast(@pubsub, topic, message)
   end
 
+  defp broadcast_from(topic, message) do
+    Phoenix.PubSub.broadcast_from(@pubsub, self(), topic, message)
+  end
+
   defp subscribe(topic) do
     Phoenix.PubSub.subscribe(@pubsub, topic)
   end
@@ -84,7 +88,7 @@ defmodule T.Feeds do
     expires_at = reference |> DateTime.add(60 * duration_in_minutes) |> DateTime.truncate(:second)
 
     %ActiveSession{user_id: user_id, expires_at: expires_at}
-    |> Repo.insert!(on_conflict: :replace_all, conflict_target: :user_id)
+    |> Repo.insert!(on_conflict: {:replace, [:expires_at]}, conflict_target: :user_id)
     |> notify_subscribers(:activated)
   end
 
@@ -238,6 +242,13 @@ defmodule T.Feeds do
     |> where(user_id: ^user_id)
     |> join(:inner, [s], p in subquery(p), on: true)
     |> select([s, p], {p, s})
+    |> Repo.one()
+  end
+
+  @spec get_mate_feed_profile(Ecto.UUID.t()) :: %FeedProfile{} | nil
+  def get_mate_feed_profile(user_id) do
+    FeedProfile
+    |> where(user_id: ^user_id)
     |> Repo.one()
   end
 

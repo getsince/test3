@@ -1,53 +1,58 @@
 defmodule T.MatchesTest do
-  use T.DataCase, async: true
+  use T.DataCase
   use Oban.Testing, repo: T.Repo
-  alias T.{Matches, Feeds, Accounts.Profile}
-  alias Matches.Match
+  alias T.{Matches, Feeds.FeedProfile, Accounts.Profile, PushNotifications.DispatchJob}
+  alias Matches.{Match, Like}
 
   describe "unmatch" do
-    @tag skip: true
     test "match no longer, likes no longer, unmatched broadcasted" do
-      [%{user_id: p1_id} = p1, %{user_id: p2_id} = p2] = insert_list(2, :profile, hidden?: false)
+      [%{user_id: p1_id}, %{user_id: p2_id}] = insert_list(2, :profile, hidden?: false)
 
-      assert {:ok, %{match: nil}} = Feeds.like_profile(p1_id, p2_id)
+      Matches.subscribe_for_user(p1_id)
+      Matches.subscribe_for_user(p2_id)
 
-      assert [] == Feeds.all_profile_likes_with_liker_profile(p1_id)
+      assert {:ok, %{match: nil}} = Matches.like_user(p1_id, p2_id)
 
-      assert [%Feeds.ProfileLike{by_user_id: ^p1_id, user_id: ^p2_id}] =
-               Feeds.all_profile_likes_with_liker_profile(p2_id)
+      assert [%Like{by_user_id: ^p1_id, user_id: ^p2_id}] = list_likes_for(p2_id)
 
-      assert {:ok, %{match: %Match{id: match_id}}} = Feeds.like_profile(p2_id, p1_id)
+      assert {:ok, %{match: %Match{id: match_id}}} = Matches.like_user(p2_id, p1_id)
 
-      assert [%Match{id: ^match_id, profile: %Profile{user_id: ^p2_id}}] =
-               Matches.get_current_matches(p1.user_id)
+      # for p1
+      assert_receive {Matches, :matched, %{id: ^match_id, mate: ^p2_id}}
 
-      assert [%Match{id: ^match_id, profile: %Profile{user_id: ^p1_id}}] =
-               Matches.get_current_matches(p2.user_id)
+      assert [%Match{id: ^match_id, profile: %FeedProfile{user_id: ^p2_id}}] =
+               Matches.list_matches(p1_id)
 
-      Matches.subscribe_for_match(match_id)
+      assert [%Match{id: ^match_id, profile: %FeedProfile{user_id: ^p1_id}}] =
+               Matches.list_matches(p2_id)
 
-      assert [] == Feeds.all_profile_likes_with_liker_profile(p1_id)
-      assert [] == Feeds.all_profile_likes_with_liker_profile(p2_id)
+      spawn(fn ->
+        assert true == Matches.unmatch_match(p1_id, match_id)
+      end)
 
-      assert {:ok, _user_ids} = Matches.unmatch(user: p1.user_id, match: match_id)
+      # for p1
+      assert_receive {Matches, :unmatched, ^match_id}
+      # for p2
+      assert_receive {Matches, :unmatched, ^match_id}
+      refute_receive _anything_else
 
-      assert_receive {Matches, [:unmatched, ^match_id], [_, _] = user_ids}
-      assert p1.user_id in user_ids
-      assert p2.user_id in user_ids
+      refute Repo.get(Profile, p1_id).hidden?
+      refute Repo.get(Profile, p2_id).hidden?
 
-      refute Repo.get(Profile, p1.user_id).hidden?
-      refute Repo.get(Profile, p2.user_id).hidden?
+      assert [] == Matches.list_matches(p1_id)
+      assert [] == Matches.list_matches(p2_id)
 
-      assert [] == Matches.get_current_matches(p1.user_id)
-      assert [] == Matches.get_current_matches(p2.user_id)
+      assert [] == list_likes_for(p1_id)
+      assert [] == list_likes_for(p2_id)
 
-      assert [] == Feeds.all_profile_likes_with_liker_profile(p1_id)
-      assert [] == Feeds.all_profile_likes_with_liker_profile(p2_id)
-
-      assert [
-               %Oban.Job{args: %{"match_id" => ^match_id, "type" => "match"}},
-               %Oban.Job{args: %{"by_user_id" => ^p1_id, "type" => "like", "user_id" => ^p2_id}}
-             ] = all_enqueued(worker: T.PushNotifications.DispatchJob)
+      assert [%Oban.Job{args: %{"match_id" => ^match_id, "type" => "match"}}] =
+               all_enqueued(worker: DispatchJob)
     end
+  end
+
+  defp list_likes_for(user_id) do
+    Like
+    |> where(user_id: ^user_id)
+    |> Repo.all()
   end
 end

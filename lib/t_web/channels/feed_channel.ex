@@ -159,8 +159,7 @@ defmodule TWeb.FeedChannel do
     %{current_user: user, screen_width: screen_width} = socket.assigns
 
     if feed_item = Feeds.get_feed_item(user.id, by_user_id) do
-      rendered = render_feed_item(feed_item, screen_width)
-      push(socket, "invite", %{"feed_item" => rendered})
+      push(socket, "invite", render_feed_item(feed_item, screen_width))
     end
 
     {:noreply, socket}
@@ -173,8 +172,7 @@ defmodule TWeb.FeedChannel do
     %{current_user: user, screen_width: screen_width} = socket.assigns
 
     if feed_item = Feeds.get_feed_item(user.id, user_id) do
-      rendered = render_feed_item(feed_item, screen_width)
-      push(socket, "activated", %{"feed_item" => rendered})
+      push(socket, "activated", render_feed_item(feed_item, screen_width))
     end
 
     {:noreply, socket}

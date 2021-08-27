@@ -111,12 +111,6 @@ defmodule T.Calls do
     |> Repo.one!()
   end
 
-  @spec list_missed_calls(Ecto.UUID.t(), Keyword.t()) :: [%Call{}]
-  def list_missed_calls(user_id, opts \\ []) do
-    missed_calls_q(user_id, opts)
-    |> Repo.all()
-  end
-
   @spec list_missed_calls_with_profile_and_session(Ecto.UUID.t(), Keyword.t()) :: [
           {%Call{}, %FeedProfile{}, %ActiveSession{} | nil}
         ]
@@ -135,12 +129,8 @@ defmodule T.Calls do
     |> where(called_id: ^user_id)
     |> where([c], is_nil(c.accepted_at))
     |> order_by(asc: :id)
-    |> maybe_limit_missed_calls(opts[:limit])
     |> maybe_after_missed_calls(opts[:after])
   end
-
-  defp maybe_limit_missed_calls(query, nil), do: query
-  defp maybe_limit_missed_calls(query, limit), do: limit(query, ^limit)
 
   defp maybe_after_missed_calls(query, nil), do: query
   defp maybe_after_missed_calls(query, after_id), do: where(query, [c], c.id > ^after_id)

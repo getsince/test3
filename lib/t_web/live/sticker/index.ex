@@ -59,7 +59,7 @@ defmodule TWeb.StickerLive.Index do
     uploads = socket.assigns.uploads
     key = entry.client_name |> Media.fix_macos_unicode() |> trim_extension()
 
-    config = Media.eu_north_presign_config()
+    config = Media.presign_config()
     bucket = Media.static_bucket()
 
     {:ok, fields} =

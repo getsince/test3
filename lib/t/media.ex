@@ -26,18 +26,18 @@ defmodule T.Media do
 
   # TODO presigned urls are not used right now
   # probably we should start using them at some point
-  def user_presigned_url(method \\ :get, key) do
-    presigned_url(method, user_bucket(), key)
-  end
+  # def user_presigned_url(method \\ :get, key) do
+  #   presigned_url(method, user_bucket(), key)
+  # end
 
-  def static_presigned_url(method \\ :get, key) do
-    presigned_url(method, static_bucket(), key)
-  end
+  # def static_presigned_url(method \\ :get, key) do
+  #   presigned_url(method, static_bucket(), key)
+  # end
 
-  defp presigned_url(method, bucket, key) do
-    {:ok, url} = ExAws.S3.presigned_url(ExAws.Config.new(:s3), method, bucket, key)
-    url
-  end
+  # defp presigned_url(method, bucket, key) do
+  #   {:ok, url} = ExAws.S3.presigned_url(ExAws.Config.new(:s3), method, bucket, key)
+  #   url
+  # end
 
   @doc """
   Builds a URL to an image on S3 that gets resized by imgproxy and cached by a CDN.
@@ -90,16 +90,6 @@ defmodule T.Media do
 
     %{
       region: Application.fetch_env!(:ex_aws, :region),
-      access_key_id: env[:access_key_id] || System.fetch_env!("AWS_ACCESS_KEY_ID"),
-      secret_access_key: env[:secret_access_key] || System.fetch_env!("AWS_SECRET_ACCESS_KEY")
-    }
-  end
-
-  def eu_north_presign_config do
-    env = Application.get_all_env(:ex_aws)
-
-    %{
-      region: "eu-north-1",
       access_key_id: env[:access_key_id] || System.fetch_env!("AWS_ACCESS_KEY_ID"),
       secret_access_key: env[:secret_access_key] || System.fetch_env!("AWS_SECRET_ACCESS_KEY")
     }
@@ -229,14 +219,6 @@ defmodule T.Media do
   end
 
   defp sha256(secret, msg), do: :crypto.mac(:hmac, :sha256, secret, msg)
-
-  def pic3d_job(s3_key) do
-    %Oban.Job{
-      args: %{s3_key: s3_key},
-      queue: "pic3d",
-      worker: "S.Pic3dJob"
-    }
-  end
 
   def sticker_cache_busting_cdn_url(key, e_tag) do
     static_cdn_url(key) <> "?d=" <> e_tag

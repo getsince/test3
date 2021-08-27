@@ -55,49 +55,8 @@ defmodule T.DataCase do
     end)
   end
 
-  alias T.{Repo, Feeds}
-  alias T.Feeds.{ProfileLike, ProfileDislike}
+  alias T.Feeds
   alias T.Accounts.{User, Profile}
-
-  import Ecto.Query
-
-  def assert_liked(opts) do
-    assert ProfileLike |> where(^opts) |> Repo.one!()
-  end
-
-  def assert_disliked(opts) do
-    assert ProfileDislike |> where(^opts) |> Repo.one!()
-  end
-
-  def assert_hidden(user_ids) do
-    Profile
-    |> where([p], p.user_id in ^user_ids)
-    |> Repo.all()
-    |> Enum.each(fn profile ->
-      assert profile.hidden?
-    end)
-  end
-
-  def refute_hidden(user_ids) do
-    Profile
-    |> where([p], p.user_id in ^user_ids)
-    |> Repo.all()
-    |> Enum.each(fn profile ->
-      refute profile.hidden?
-    end)
-  end
-
-  def times_liked(user_id) do
-    Profile
-    |> where(user_id: ^user_id)
-    |> select([p], p.times_liked)
-    |> Repo.one()
-  end
-
-  def assert_feed_has_profile(feed, profile) do
-    feed_ids = Enum.map(feed, & &1.user_id)
-    assert profile.user_id in feed_ids
-  end
 
   def activate_sessions(users, reference) do
     Enum.map(users, &activate_session(&1, reference))

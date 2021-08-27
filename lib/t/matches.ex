@@ -52,17 +52,6 @@ defmodule T.Matches do
     end
   end
 
-  @spec dislike_called_user(Ecto.UUID.t(), Ecto.UUID.t()) :: disliked? :: boolean
-  def dislike_called_user(by_user_id, user_id) do
-    {count, _other} =
-      Like
-      |> where([l], l.by_user_id == ^by_user_id and l.user_id == ^user_id)
-      |> or_where([l], l.by_user_id == ^user_id and l.user_id == ^by_user_id)
-      |> Repo.delete_all()
-
-    count >= 1
-  end
-
   defp maybe_notify_match(%Match{id: match_id}, by_user_id, user_id) do
     broadcast_from_for_user(by_user_id, {__MODULE__, :matched, %{id: match_id, mate: user_id}})
     broadcast_for_user(user_id, {__MODULE__, :matched, %{id: match_id, mate: by_user_id}})

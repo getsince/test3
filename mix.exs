@@ -66,7 +66,7 @@ defmodule T.MixProject do
        github: "ruslandoga/pigeon",
        branch: "drop-httpoison-and-make-poison-optional",
        runtime: Mix.env() in [:dev, :prod]},
-      {:kadabra, "~> 0.4.4"},
+      {:kadabra, "~> 0.6.0"},
       {:sentry, "~> 8.0"},
       {:bigflake, "0.5.0"},
       {:imgproxy, github: "ruslandoga/imgproxy"},

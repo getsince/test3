@@ -97,8 +97,8 @@ defmodule TWeb.FeedChannelTest do
                "current_session" => %{id: session_id, expires_at: ~U[2021-07-21 12:55:18Z]},
                "invites" => [
                  %{
-                   profile: %{name: "mate", story: [], user_id: mate.user_id},
-                   session: %{id: mate_session_id, expires_at: ~U[2021-07-21 12:55:18Z]}
+                   "profile" => %{name: "mate", story: [], user_id: mate.user_id},
+                   "session" => %{id: mate_session_id, expires_at: ~U[2021-07-21 12:55:18Z]}
                  }
                ]
              }
@@ -265,11 +265,11 @@ defmodule TWeb.FeedChannelTest do
 
       assert feed == [
                %{
-                 session: %{
+                 "session" => %{
                    id: s1,
                    expires_at: ~U[2021-07-21 12:55:18Z]
                  },
-                 profile: %{
+                 "profile" => %{
                    name: nil,
                    story: [
                      %{
@@ -285,11 +285,11 @@ defmodule TWeb.FeedChannelTest do
                  }
                },
                %{
-                 session: %{
+                 "session" => %{
                    id: s2,
                    expires_at: ~U[2021-07-21 12:55:18Z]
                  },
-                 profile: %{
+                 "profile" => %{
                    name: nil,
                    story: [
                      %{
@@ -315,11 +315,11 @@ defmodule TWeb.FeedChannelTest do
 
       assert feed == [
                %{
-                 session: %{
+                 "session" => %{
                    id: s3,
                    expires_at: ~U[2021-07-21 12:55:18Z]
                  },
-                 profile: %{
+                 "profile" => %{
                    name: nil,
                    story: [
                      %{
@@ -361,126 +361,120 @@ defmodule TWeb.FeedChannelTest do
       assert_push "activated", push
 
       assert push == %{
-               "feed_item" => %{
-                 session: %{
-                   id: s1,
-                   expires_at: ~U[2021-07-21 12:55:18Z]
-                 },
-                 profile: %{
-                   name: "that",
-                   story: [
-                     %{
-                       "background" => %{
-                         "proxy" =>
-                           "https://d1234.cloudfront.net/e9a8Yq80qbgr7QH43crdCBPWdt6OACyhD5xWN8ysFok/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Bob3RvLmpwZw",
-                         "s3_key" => "photo.jpg"
+               "session" => %{
+                 id: s1,
+                 expires_at: ~U[2021-07-21 12:55:18Z]
+               },
+               "profile" => %{
+                 name: "that",
+                 story: [
+                   %{
+                     "background" => %{
+                       "proxy" =>
+                         "https://d1234.cloudfront.net/e9a8Yq80qbgr7QH43crdCBPWdt6OACyhD5xWN8ysFok/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Bob3RvLmpwZw",
+                       "s3_key" => "photo.jpg"
+                     },
+                     "labels" => [
+                       %{
+                         "dimensions" => [400, 800],
+                         "position" => 'dd',
+                         "rotation" => 21,
+                         "type" => "text",
+                         "value" => "just some text",
+                         "zoom" => 1.2
                        },
-                       "labels" => [
-                         %{
-                           "dimensions" => [400, 800],
-                           "position" => 'dd',
-                           "rotation" => 21,
-                           "type" => "text",
-                           "value" => "just some text",
-                           "zoom" => 1.2
-                         },
-                         %{
-                           "answer" => "msu",
-                           "dimensions" => [400, 800],
-                           "position" => [150, 150],
-                           "question" => "university",
-                           "type" => "answer",
-                           "value" => "🥊\nменя воспитала улица"
-                         }
-                       ]
-                     }
-                   ],
-                   user_id: me.id
-                 }
+                       %{
+                         "answer" => "msu",
+                         "dimensions" => [400, 800],
+                         "position" => [150, 150],
+                         "question" => "university",
+                         "type" => "answer",
+                         "value" => "🥊\nменя воспитала улица"
+                       }
+                     ]
+                   }
+                 ],
+                 user_id: me.id
                }
              }
 
       assert_push "activated", push
 
       assert push == %{
-               "feed_item" => %{
-                 session: %{
-                   id: s2,
-                   expires_at: ~U[2021-07-21 12:55:18Z]
-                 },
-                 profile: %{
-                   name: "that",
-                   story: [
-                     %{
-                       "background" => %{
-                         "proxy" =>
-                           "https://d1234.cloudfront.net/e9a8Yq80qbgr7QH43crdCBPWdt6OACyhD5xWN8ysFok/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Bob3RvLmpwZw",
-                         "s3_key" => "photo.jpg"
+               "session" => %{
+                 id: s2,
+                 expires_at: ~U[2021-07-21 12:55:18Z]
+               },
+               "profile" => %{
+                 name: "that",
+                 story: [
+                   %{
+                     "background" => %{
+                       "proxy" =>
+                         "https://d1234.cloudfront.net/e9a8Yq80qbgr7QH43crdCBPWdt6OACyhD5xWN8ysFok/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Bob3RvLmpwZw",
+                       "s3_key" => "photo.jpg"
+                     },
+                     "labels" => [
+                       %{
+                         "dimensions" => [400, 800],
+                         "position" => 'dd',
+                         "rotation" => 21,
+                         "type" => "text",
+                         "value" => "just some text",
+                         "zoom" => 1.2
                        },
-                       "labels" => [
-                         %{
-                           "dimensions" => [400, 800],
-                           "position" => 'dd',
-                           "rotation" => 21,
-                           "type" => "text",
-                           "value" => "just some text",
-                           "zoom" => 1.2
-                         },
-                         %{
-                           "answer" => "msu",
-                           "dimensions" => [400, 800],
-                           "position" => [150, 150],
-                           "question" => "university",
-                           "type" => "answer",
-                           "value" => "🥊\nменя воспитала улица"
-                         }
-                       ]
-                     }
-                   ],
-                   user_id: other.id
-                 }
+                       %{
+                         "answer" => "msu",
+                         "dimensions" => [400, 800],
+                         "position" => [150, 150],
+                         "question" => "university",
+                         "type" => "answer",
+                         "value" => "🥊\nменя воспитала улица"
+                       }
+                     ]
+                   }
+                 ],
+                 user_id: other.id
                }
              }
 
       assert_push "invite", push
 
       assert push == %{
-               "feed_item" => %{
-                 session: %{
-                   id: s2,
-                   expires_at: ~U[2021-07-21 12:55:18Z]
-                 },
-                 profile: %{
-                   name: "that",
-                   story: [
-                     %{
-                       "background" => %{
-                         "proxy" =>
-                           "https://d1234.cloudfront.net/e9a8Yq80qbgr7QH43crdCBPWdt6OACyhD5xWN8ysFok/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Bob3RvLmpwZw",
-                         "s3_key" => "photo.jpg"
+               "session" => %{
+                 id: s2,
+                 expires_at: ~U[2021-07-21 12:55:18Z]
+               },
+               "profile" => %{
+                 name: "that",
+                 story: [
+                   %{
+                     "background" => %{
+                       "proxy" =>
+                         "https://d1234.cloudfront.net/e9a8Yq80qbgr7QH43crdCBPWdt6OACyhD5xWN8ysFok/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Bob3RvLmpwZw",
+                       "s3_key" => "photo.jpg"
+                     },
+                     "labels" => [
+                       %{
+                         "dimensions" => [400, 800],
+                         "position" => 'dd',
+                         "rotation" => 21,
+                         "type" => "text",
+                         "value" => "just some text",
+                         "zoom" => 1.2
                        },
-                       "labels" => [
-                         %{
-                           "dimensions" => [400, 800],
-                           "position" => 'dd',
-                           "rotation" => 21,
-                           "type" => "text",
-                           "value" => "just some text",
-                           "zoom" => 1.2
-                         },
-                         %{
-                           "answer" => "msu",
-                           "dimensions" => [400, 800],
-                           "position" => [150, 150],
-                           "question" => "university",
-                           "type" => "answer",
-                           "value" => "🥊\nменя воспитала улица"
-                         }
-                       ]
-                     }
-                   ],
-                   user_id: other.id
-                 }
+                       %{
+                         "answer" => "msu",
+                         "dimensions" => [400, 800],
+                         "position" => [150, 150],
+                         "question" => "university",
+                         "type" => "answer",
+                         "value" => "🥊\nменя воспитала улица"
+                       }
+                     ]
+                   }
+                 ],
+                 user_id: other.id
                }
              }
 
@@ -492,11 +486,11 @@ defmodule TWeb.FeedChannelTest do
       assert reply == %{
                "invites" => [
                  %{
-                   session: %{
+                   "session" => %{
                      id: s2,
                      expires_at: ~U[2021-07-21 12:55:18Z]
                    },
-                   profile: %{
+                   "profile" => %{
                      name: "that",
                      story: [
                        %{
@@ -576,10 +570,8 @@ defmodule TWeb.FeedChannelTest do
 
       # current user receives invite
       assert_push "invite", %{
-        "feed_item" => %{
-          profile: profile,
-          session: %{expires_at: %DateTime{}, id: _session_id}
-        }
+        "profile" => profile,
+        "session" => %{expires_at: %DateTime{}, id: _session_id}
       }
 
       assert profile == %{name: nil, story: [], user_id: mate.user_id}
@@ -1257,10 +1249,8 @@ defmodule TWeb.FeedChannelTest do
 
     # our user receives "activated" event
     assert_push "activated", %{
-      "feed_item" => %{
-        profile: profile,
-        session: %{expires_at: %DateTime{}, id: _session_id}
-      }
+      "profile" => profile,
+      "session" => %{expires_at: %DateTime{}, id: _session_id}
     }
 
     assert profile == %{name: nil, story: [], user_id: mate.user_id}

@@ -1,7 +1,7 @@
 defmodule TWeb.UserSocket do
   use Phoenix.Socket
   require Logger
-  alias T.{Accounts, Bot}
+  alias T.Accounts
   alias __MODULE__.Monitor
 
   # feed:<user-id>
@@ -19,8 +19,7 @@ defmodule TWeb.UserSocket do
 
     if user = Accounts.get_user_by_session_token(token, "mobile") do
       Logger.metadata(user_id: user.id)
-
-      Bot.async_post_message("user online #{user.phone_number}")
+      Logger.warn("user online #{user.phone_number}")
 
       {:ok,
        assign(socket,
@@ -77,7 +76,7 @@ defmodule TWeb.UserSocket do
       pid,
       _on_disconnect = fn ->
         Accounts.update_last_active(user_id)
-        Bot.post_message("user offline #{phone_number}")
+        Logger.warn("user offline #{phone_number}")
       end
     )
   end

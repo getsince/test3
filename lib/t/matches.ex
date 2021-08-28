@@ -4,7 +4,9 @@ defmodule T.Matches do
   import Ecto.{Query, Changeset}
   alias Ecto.Multi
 
-  alias T.{Repo, Bot}
+  require Logger
+
+  alias T.Repo
   alias T.Matches.{Match, Like, Timeslot}
   alias T.Feeds.FeedProfile
   alias T.Accounts.Profile
@@ -138,7 +140,7 @@ defmodule T.Matches do
 
   @spec unmatch_match(uuid, uuid) :: boolean
   def unmatch_match(by_user_id, match_id) do
-    Bot.async_post_silent_message("#{by_user_id} unmatches match-id=#{match_id}")
+    Logger.warn("#{by_user_id} unmatches match-id=#{match_id}")
 
     Multi.new()
     |> Multi.run(:unmatch, fn _repo, _changes ->
@@ -193,7 +195,7 @@ defmodule T.Matches do
 
   @spec unmatch_with_user(uuid, uuid) :: boolean
   def unmatch_with_user(by_user_id, user_id) do
-    Bot.async_post_silent_message("#{by_user_id} unmatches with user_id=#{user_id}")
+    Logger.warn("#{by_user_id} unmatches with user_id=#{user_id}")
     [uid1, uid2] = Enum.sort([by_user_id, user_id])
 
     Multi.new()
@@ -300,7 +302,7 @@ defmodule T.Matches do
   @spec save_slots_offer(uuid, uuid, uuid, [iso_8601 :: String.t()], DateTime.t()) ::
           {:ok, %Timeslot{}} | {:error, %Ecto.Changeset{}}
   defp save_slots_offer(offerer_id, mate_id, match_id, slots, reference) do
-    T.Bot.async_post_silent_message(
+    Logger.warn(
       "saving slots offer for match #{match_id} (users #{offerer_id}, #{mate_id}) from #{offerer_id}: #{inspect(slots)}"
     )
 
@@ -355,7 +357,7 @@ defmodule T.Matches do
 
   @spec accept_slot(uuid, uuid, uuid, iso_8601, DateTime.t()) :: %Timeslot{}
   defp accept_slot(picker, mate, match_id, slot, reference) do
-    Bot.async_post_silent_message(
+    Logger.warn(
       "accepting slot for match #{match_id} (users #{picker}, #{mate}) by #{picker}: #{inspect(slot)}"
     )
 
@@ -426,7 +428,7 @@ defmodule T.Matches do
 
   @spec cancel_slot(uuid, uuid, uuid) :: :ok
   defp cancel_slot(by_user_id, match_id, mate_id) do
-    Bot.async_post_silent_message(
+    Logger.warn(
       "cancelling timeslot for match #{match_id} (with mate #{mate_id}) by #{by_user_id}"
     )
 

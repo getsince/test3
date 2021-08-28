@@ -7,6 +7,8 @@ defmodule T.Accounts do
   import Ecto.Changeset
   alias Ecto.Multi
 
+  require Logger
+
   alias T.{Repo, Media, Bot, Feeds, Matches}
 
   alias T.Accounts.{
@@ -82,6 +84,7 @@ defmodule T.Accounts do
     |> Repo.transaction()
     |> case do
       {:ok, %{user: user, profile: profile}} ->
+        Logger.warn("new user #{user.phone_number || user.apple_id}")
         Bot.async_post_message("new user #{user.phone_number || user.apple_id}")
         {:ok, %User{user | profile: profile}}
 
@@ -160,6 +163,7 @@ defmodule T.Accounts do
         {:ok, %{to: phone_number, body: nil}}
       else
         code = PasswordlessAuth.generate_code(phone_number)
+        Logger.warn("sent sms to #{phone_number}")
         Bot.async_post_message("sent sms code=#{code} to #{phone_number}")
         UserNotifier.deliver_confirmation_instructions(phone_number, code)
       end
@@ -177,7 +181,7 @@ defmodule T.Accounts do
   end
 
   def login_or_register_user_with_phone(phone_number, code) do
-    Bot.async_post_message("trying to log in #{phone_number} with code=#{code}")
+    Logger.warn("trying to log in #{phone_number}")
 
     with {:format, {:ok, phone_number}} <- {:format, formatted_phone_number(phone_number)},
          {:code, :ok} <- {:code, verify_code(phone_number, code)},
@@ -229,9 +233,7 @@ defmodule T.Accounts do
 
   # TODO test
   def report_user(from_user_id, on_user_id, reason) do
-    Bot.async_post_silent_message(
-      "user #{from_user_id} reported #{on_user_id} with reason #{reason}"
-    )
+    Logger.warn("user #{from_user_id} reported #{on_user_id} with reason #{reason}")
 
     report_changeset =
       %UserReport{from_user_id: from_user_id, on_user_id: on_user_id}
@@ -275,7 +277,9 @@ defmodule T.Accounts do
           |> block_user_q()
           |> repo.update_all([])
 
-          Bot.async_post_silent_message("blocking user #{reported_user_id} due to #reports >= 3")
+          m = "blocking user #{reported_user_id} due to #reports >= 3"
+          Logger.warn(m)
+          Bot.async_post_silent_message(m)
 
           Profile
           |> where(user_id: ^reported_user_id)
@@ -336,7 +340,9 @@ defmodule T.Accounts do
 
   # TODO deactivate session
   def delete_user(user_id) do
-    Bot.async_post_silent_message("deleted user #{user_id}")
+    m = "deleted user #{user_id}"
+    Logger.warn(m)
+    Bot.async_post_silent_message(m)
 
     Multi.new()
     |> unmatch_all(user_id)
@@ -567,7 +573,9 @@ defmodule T.Accounts do
     |> Repo.transaction()
     |> case do
       {:ok, %{user: user, profile: %Profile{} = profile}} ->
-        Bot.async_post_message("user onboarded #{user.phone_number}")
+        m = "user onboarded #{user.phone_number}"
+        Logger.warn(m)
+        Bot.async_post_message(m)
         {:ok, %Profile{profile | hidden?: false}}
 
       {:error, :user, :already_onboarded, _changes} ->
@@ -581,7 +589,7 @@ defmodule T.Accounts do
   end
 
   def update_profile(%Profile{} = profile, attrs, opts \\ []) do
-    Bot.async_post_message("user #{profile.user_id} updated profile with #{inspect(attrs)}")
+    Logger.warn("user #{profile.user_id} updates profile with #{inspect(attrs)}")
 
     Multi.new()
     |> Multi.update(:profile, Profile.changeset(profile, attrs, opts), returning: true)

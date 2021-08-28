@@ -16,17 +16,13 @@ config :logger, :console,
   metadata: [:request_id, :user_id, :remote_ip]
 
 config :logger,
-  backends: [:console, Sentry.LoggerBackend]
+  utc_log: true,
+  metadata: [:user_id, :remote_ip],
+  format: "$time $metadata[$level] $message\n"
 
 config :sentry,
   environment_name: config_env(),
   included_environments: [:prod]
-
-config :logger, Sentry.LoggerBackend,
-  level: :warn,
-  capture_log_messages: true,
-  # [:cowboy] by default
-  excluded_domains: []
 
 config :t, T.PromEx, disabled: config_env() != :prod
 
@@ -54,6 +50,14 @@ if config_env() == :prod and not in_build? do
     account_sid: System.fetch_env!("TWILIO_ACCOUNT_SID"),
     key_sid: System.fetch_env!("TWILIO_KEY_SID"),
     auth_token: System.fetch_env!("TWILIO_AUTH_TOKEN")
+
+  config :logger, level: :info, backends: [:console, CloudWatch, Sentry.LoggerBackend]
+
+  config :logger, CloudWatch,
+    level: :warn,
+    metadata: [:user_id, :remote_ip],
+    log_stream_name: "backend",
+    log_group_name: "prod"
 
   config :sentry,
     dsn: System.fetch_env!("SENTRY_DSN")
@@ -99,9 +103,6 @@ if config_env() == :prod and not in_build? do
     ],
     secret_key_base: System.fetch_env!("SECRET_KEY_BASE"),
     server: true
-
-  # Do not print debug messages in production
-  config :logger, level: :info
 
   config :t, :dashboard,
     username: System.fetch_env!("DASHBOARD_USERNAME"),
@@ -233,8 +234,8 @@ if config_env() == :test do
     http: [port: 4002],
     server: false
 
-  # Print only warnings and errors during test
-  config :logger, level: :warn
+  # Print only errors during test
+  config :logger, level: :error
 
   config :t, Oban, queues: false, plugins: false
 

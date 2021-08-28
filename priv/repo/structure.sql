@@ -93,7 +93,9 @@ CREATE TABLE public.apns_devices (
     device_id bytea NOT NULL,
     inserted_at timestamp(0) without time zone NOT NULL,
     updated_at timestamp(0) without time zone NOT NULL,
-    locale character varying(255)
+    locale character varying(255),
+    topic character varying(255),
+    env character varying(255)
 );
 
 
@@ -311,7 +313,9 @@ CREATE TABLE public.pushkit_devices (
     token_id uuid NOT NULL,
     device_id bytea NOT NULL,
     inserted_at timestamp(0) without time zone NOT NULL,
-    updated_at timestamp(0) without time zone NOT NULL
+    updated_at timestamp(0) without time zone NOT NULL,
+    topic character varying(255),
+    env character varying(255)
 );
 
 
@@ -1029,3 +1033,4 @@ INSERT INTO public."schema_migrations" (version) VALUES (20210721111936);
 INSERT INTO public."schema_migrations" (version) VALUES (20210723120936);
 INSERT INTO public."schema_migrations" (version) VALUES (20210728221728);
 INSERT INTO public."schema_migrations" (version) VALUES (20210824160204);
+INSERT INTO public."schema_migrations" (version) VALUES (20210827113144);

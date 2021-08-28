@@ -6,14 +6,13 @@ defmodule T.Calls do
   alias T.Calls.Call
   alias T.Invites.CallInvite
   alias T.Feeds.{FeedProfile, ActiveSession}
+  alias T.Matches.Match
   alias T.PushNotifications.APNS
 
   @spec ice_servers :: [map]
   def ice_servers do
     Twilio.ice_servers()
   end
-
-  # TODO call match
 
   @spec call(Ecto.UUID.t(), Ecto.UUID.t()) ::
           {:ok, call_id :: Ecto.UUID.t()} | {:error, reason :: String.t()}
@@ -30,9 +29,12 @@ defmodule T.Calls do
     end
   end
 
+  # TODO matched can forgo call_allowed? check
   def call_allowed?(caller_id, called_id) do
     # call invites reference active sessions, so if it exists no need to check active session
-    invited?(called_id, caller_id) or (active?(called_id) and missed?(called_id, caller_id))
+    invited?(called_id, caller_id) or
+      (active?(called_id) and missed?(called_id, caller_id)) or
+      matched?(caller_id, called_id)
   end
 
   defp active?(user_id) do
@@ -53,6 +55,15 @@ defmodule T.Calls do
     |> where(caller_id: ^caller_id)
     |> where(called_id: ^called_id)
     |> where([c], is_nil(c.accepted_at) and not is_nil(c.ended_at))
+    |> Repo.exists?()
+  end
+
+  defp matched?(caller_id, called_id) do
+    [user_id_1, user_id_2] = Enum.sort([caller_id, called_id])
+
+    Match
+    |> where(user_id_1: ^user_id_1)
+    |> where(user_id_2: ^user_id_2)
     |> Repo.exists?()
   end
 

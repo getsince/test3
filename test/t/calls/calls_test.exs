@@ -8,6 +8,8 @@ defmodule T.CallsTest do
     @tag skip: true
     test "when not allowed"
     @tag skip: true
+    test "call matched"
+    @tag skip: true
     test "when caller is invited by called"
     @tag skip: true
     test "when missed call"
@@ -31,11 +33,6 @@ defmodule T.CallsTest do
   describe "end_call/1" do
     @tag skip: true
     test "sets ended_at on call"
-  end
-
-  describe "list_missed_calls/1" do
-    @tag skip: true
-    test "lists calls without accepted_at"
   end
 
   describe "list_missed_calls_with_profile/1" do

@@ -4,7 +4,9 @@ defmodule T.Feeds do
   import Ecto.Query
   import Ecto.Changeset
 
-  alias T.{Repo, Bot}
+  require Logger
+
+  alias T.Repo
   alias T.Accounts.UserReport
   alias T.Invites.CallInvite
   alias T.Feeds.{ActiveSession, FeedProfile}
@@ -81,7 +83,7 @@ defmodule T.Feeds do
   # TODO test pubsub
   @spec activate_session(Ecto.UUID.t(), integer, DateTime.t()) :: %ActiveSession{}
   def activate_session(user_id, duration_in_minutes, reference \\ DateTime.utc_now()) do
-    Bot.async_post_silent_message(
+    Logger.warn(
       "user #{user_id} activated session for #{duration_in_minutes} minutes since #{reference}"
     )
 
@@ -142,7 +144,7 @@ defmodule T.Feeds do
 
   @spec invite_active_user(Ecto.UUID.t(), Ecto.UUID.t()) :: boolean
   def invite_active_user(by_user_id, user_id) do
-    Bot.async_post_silent_message("user #{by_user_id} invited #{user_id}")
+    Logger.warn("user #{by_user_id} invited #{user_id}")
 
     Ecto.Multi.new()
     |> mark_invited(by_user_id, user_id)

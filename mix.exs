@@ -51,7 +51,8 @@ defmodule T.MixProject do
       {:gettext, "~> 0.11"},
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.5"},
-      {:ex_aws, "~> 2.2.3"},
+      # TODO use hex after https://github.com/ex-aws/ex_aws/pull/811 is merged
+      {:ex_aws, github: "ruslandoga/ex_aws", branch: "add-eu-north-1-for-logs", override: true},
       {:ex_aws_s3, "~> 2.3.0"},
       {:ex_aws_sns, "~> 2.1"},
       {:sweet_xml, "~> 0.6"},

@@ -166,16 +166,42 @@ defmodule T.FeedsTest do
     end
 
     test "with no data in db", %{me: me} do
-      assert {[], nil} == Feeds.fetch_feed(me.user_id, _count = 10, _cursor = nil)
+      assert {[], nil} ==
+               Feeds.fetch_feed(
+                 me.user_id,
+                 _gender_preference = ["F"],
+                 _count = 10,
+                 _cursor = nil
+               )
     end
 
     test "with no active users", %{me: me} do
-      insert_list(3, :profile)
-      assert {[], nil} == Feeds.fetch_feed(me.user_id, _count = 10, _cursor = nil)
+      insert_list(3, :profile, gender: "F")
+
+      assert {[], nil} ==
+               Feeds.fetch_feed(
+                 me.user_id,
+                 _gender_preference = ["F"],
+                 _count = 10,
+                 _cursor = nil
+               )
+    end
+
+    test "with no users of preferred gender", %{me: me} do
+      others = insert_list(3, :profile, gender: "M")
+      activate_sessions(others, @reference)
+
+      assert {[], nil} ==
+               Feeds.fetch_feed(
+                 me.user_id,
+                 _gender_preference = ["F"],
+                 _count = 10,
+                 _cursor = nil
+               )
     end
 
     test "with active users fewer than count", %{me: me} do
-      others = insert_list(3, :profile)
+      others = insert_list(3, :profile, gender: "F")
       activate_sessions(others, @reference)
 
       assert {[
@@ -183,29 +209,42 @@ defmodule T.FeedsTest do
                 {%FeedProfile{}, %ActiveSession{expires_at: ~U[2021-07-21 12:55:18Z]}},
                 {%FeedProfile{},
                  %ActiveSession{flake: cursor, expires_at: ~U[2021-07-21 12:55:18Z]}}
-              ], cursor} = Feeds.fetch_feed(me.user_id, _count = 10, _cursor = nil)
+              ],
+              cursor} =
+               Feeds.fetch_feed(
+                 me.user_id,
+                 _gender_preference = ["F"],
+                 _count = 10,
+                 _cursor = nil
+               )
 
-      assert {[], ^cursor} = Feeds.fetch_feed(me.user_id, _count = 10, cursor)
+      assert {[], ^cursor} =
+               Feeds.fetch_feed(me.user_id, _gender_preference = ["F"], _count = 10, cursor)
     end
 
     test "with active users more than count", %{me: me} do
-      others = insert_list(3, :profile)
+      others = insert_list(3, :profile, gender: "F")
       activate_sessions(others, @reference)
 
       assert {[
                 {%FeedProfile{}, %ActiveSession{expires_at: ~U[2021-07-21 12:55:18Z]}},
                 {%FeedProfile{},
                  %ActiveSession{flake: cursor1, expires_at: ~U[2021-07-21 12:55:18Z]}}
-              ], cursor1} = Feeds.fetch_feed(me.user_id, _count = 2, _cursor = nil)
+              ],
+              cursor1} =
+               Feeds.fetch_feed(me.user_id, _gender_preference = ["F"], _count = 2, _cursor = nil)
 
       assert {[
                 {%FeedProfile{},
                  %ActiveSession{flake: cursor2, expires_at: ~U[2021-07-21 12:55:18Z]}}
-              ], cursor2} = Feeds.fetch_feed(me.user_id, _count = 10, cursor1)
+              ],
+              cursor2} =
+               Feeds.fetch_feed(me.user_id, _gender_preference = ["F"], _count = 10, cursor1)
 
       assert cursor2 != cursor1
 
-      assert {[], ^cursor2} = Feeds.fetch_feed(me.user_id, _count = 10, cursor2)
+      assert {[], ^cursor2} =
+               Feeds.fetch_feed(me.user_id, _gender_preference = ["F"], _count = 10, cursor2)
     end
   end
 

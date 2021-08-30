@@ -211,9 +211,10 @@ defmodule T.Feeds do
   @type feed_cursor :: String.t()
   @type feed_item :: {%FeedProfile{}, %ActiveSession{}}
 
-  @spec fetch_feed(Ecto.UUID.t(), pos_integer, feed_cursor | nil) :: {[feed_item], feed_cursor}
-  def fetch_feed(user_id, count, feed_cursor) do
-    profiles_q = not_invited_profiles_q(user_id)
+  @spec fetch_feed(Ecto.UUID.t(), [String.t()], pos_integer, feed_cursor | nil) ::
+          {[feed_item], feed_cursor}
+  def fetch_feed(user_id, gender_preferences, count, feed_cursor) do
+    profiles_q = filtered_profiles_q(user_id, gender_preferences)
 
     feed_items =
       active_sessions_q(user_id, feed_cursor)
@@ -271,7 +272,7 @@ defmodule T.Feeds do
     UserReport |> where(from_user_id: ^user_id) |> select([r], r.on_user_id)
   end
 
-  defp invited_user_ids(user_id) do
+  defp invited_user_ids_q(user_id) do
     q1 = CallInvite |> where([i], i.user_id == ^user_id) |> select([i], i.by_user_id)
     q2 = CallInvite |> where([i], i.by_user_id == ^user_id) |> select([i], i.user_id)
     union(q1, ^q2)
@@ -281,18 +282,25 @@ defmodule T.Feeds do
     where(FeedProfile, hidden?: false)
   end
 
-  defp not_reported_profiles_q(user_id) do
-    not_hidden_profiles_q()
-    # TODO is inner join faster?
-    |> where([p], p.user_id not in subquery(reported_user_ids_q(user_id)))
+  defp not_reported_profiles_q(query \\ not_hidden_profiles_q(), user_id) do
+    where(query, [p], p.user_id not in subquery(reported_user_ids_q(user_id)))
   end
 
-  defp not_invited_profiles_q(user_id) do
-    invited_user_ids = invited_user_ids(user_id)
+  # TODO might not need this
+  defp not_invited_profiles_q(query, user_id) do
+    where(query, [p], p.user_id not in subquery(invited_user_ids_q(user_id)))
+  end
 
-    user_id
-    |> not_reported_profiles_q()
-    # TODO might not need this
-    |> where([p], p.user_id not in subquery(invited_user_ids))
+  defp maybe_gender_preferenced_q(query, _no_preferences = []), do: query
+
+  defp maybe_gender_preferenced_q(query, gender_preference) do
+    where(query, [p], p.gender in ^gender_preference)
+  end
+
+  defp filtered_profiles_q(user_id, gender_preference) when is_list(gender_preference) do
+    not_hidden_profiles_q()
+    |> not_reported_profiles_q(user_id)
+    |> not_invited_profiles_q(user_id)
+    |> maybe_gender_preferenced_q(gender_preference)
   end
 end

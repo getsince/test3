@@ -647,6 +647,12 @@ defmodule T.Accounts do
     )
   end
 
+  def list_gender_preferences(user_id) do
+    GenderPreference
+    |> where(user_id: ^user_id)
+    |> Repo.all()
+  end
+
   defp maybe_unhide_profile_with_story(user_id) when is_binary(user_id) do
     Profile
     |> where(user_id: ^user_id)

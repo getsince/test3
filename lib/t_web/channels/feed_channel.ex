@@ -4,14 +4,14 @@ defmodule TWeb.FeedChannel do
 
   alias TWeb.{FeedView, MatchView, ErrorView}
   alias T.Feeds.{FeedProfile, ActiveSession}
-  alias T.{Feeds, Calls, Matches}
-
-  # TODO presence per active user
+  alias T.{Feeds, Calls, Matches, Accounts}
 
   @impl true
   def join("feed:" <> user_id, params, socket) do
     user_id = ChannelHelpers.verify_user_id(socket, user_id)
     %{screen_width: screen_width} = socket.assigns
+
+    gender_preferences = Accounts.list_gender_preferences(user_id)
 
     :ok = Feeds.subscribe_for_invites(user_id)
     :ok = Feeds.subscribe_for_activated_sessions()
@@ -45,13 +45,17 @@ defmodule TWeb.FeedChannel do
       |> maybe_put("invites", invites)
       |> maybe_put("matches", matches)
 
-    {:ok, reply, socket}
+    {:ok, reply, assign(socket, gender_preferences: gender_preferences)}
   end
 
   @impl true
   def handle_in("more", params, socket) do
-    %{current_user: user, screen_width: screen_width} = socket.assigns
-    {feed, cursor} = Feeds.fetch_feed(user.id, params["count"] || 10, params["cursor"])
+    %{current_user: user, screen_width: screen_width, gender_preferences: gender_preferences} =
+      socket.assigns
+
+    {feed, cursor} =
+      Feeds.fetch_feed(user.id, gender_preferences, params["count"] || 10, params["cursor"])
+
     {:reply, {:ok, %{"feed" => render_feed(feed, screen_width), "cursor" => cursor}}, socket}
   end
 

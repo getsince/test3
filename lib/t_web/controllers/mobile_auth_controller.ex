@@ -26,7 +26,7 @@ defmodule TWeb.MobileAuthController do
     id_token = Base.decode64!(base64_id_token)
 
     case Accounts.login_or_register_user_with_apple_id(id_token) do
-      {:ok, user} -> verification_success_response(conn, user)
+      {:ok, %Accounts.User{} = user} -> verification_success_response(conn, user)
       {:error, _reason} -> send_resp(conn, 400, [])
     end
   end

@@ -10,8 +10,7 @@ defmodule T.PushNotifications.APNS do
 
   @type apns_env :: :prod | :dev
 
-  @spec push(%Notification{}, apns_env) :: %Notification{}
-  @spec push([%Notification{}], apns_env) :: [%Notification{}]
+  @spec push(n, apns_env) :: n when n: Notification.t() | [Notification.t()]
   defp push([] = empty, _env), do: empty
 
   defp push(notifications, env) when env in [:dev, :prod] do
@@ -42,7 +41,7 @@ defmodule T.PushNotifications.APNS do
 
   # pushkit
 
-  @spec pushkit_call([%PushKitDevice{}], map) :: [%Notification{}]
+  @spec pushkit_call([%PushKitDevice{}], map) :: [Notification.t()]
   def pushkit_call(devices, payload) when is_list(devices) do
     grouped_devices = Enum.group_by(devices, fn device -> apns_env(device) end)
 
@@ -59,7 +58,7 @@ defmodule T.PushNotifications.APNS do
     prod_n ++ dev_n
   end
 
-  @spec build_call_notification(%PushKitDevice{}, map) :: %Notification{}
+  @spec build_call_notification(%PushKitDevice{}, map) :: Notification.t()
   defp build_call_notification(%PushKitDevice{device_id: device_id} = device, payload) do
     %Notification{
       device_token: device_id,
@@ -72,7 +71,7 @@ defmodule T.PushNotifications.APNS do
 
   # alerts
 
-  @spec push_alert(String.t(), %APNSDevice{}, map) :: %Notification{}
+  @spec push_alert(String.t(), %APNSDevice{}, map) :: Notification.t()
   def push_alert(template, device, data) do
     notification_locale(device)
     |> Gettext.with_locale(fn -> build_notification(template, device, data) end)
@@ -83,7 +82,7 @@ defmodule T.PushNotifications.APNS do
   defp notification_locale(%APNSDevice{locale: locale}) when is_binary(locale), do: locale
   defp notification_locale(%APNSDevice{locale: nil}), do: "en"
 
-  @spec base_notification(%APNSDevice{}, String.t(), map) :: %Notification{}
+  @spec base_notification(%APNSDevice{}, String.t(), map) :: Notification.t()
   defp base_notification(%APNSDevice{device_id: device_id} = device, type, data) do
     %Notification{
       device_token: device_id,
@@ -97,7 +96,7 @@ defmodule T.PushNotifications.APNS do
     |> Notification.put_custom(data)
   end
 
-  @spec build_notification(String.t(), %APNSDevice{}, map) :: %Notification{}
+  @spec build_notification(String.t(), %APNSDevice{}, map) :: Notification.t()
   defp build_notification(template, device, date)
 
   defp build_notification("match", device, data) do

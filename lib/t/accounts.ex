@@ -194,6 +194,9 @@ defmodule T.Accounts do
     end
   end
 
+  @spec login_or_register_user_with_apple_id(String.t()) ::
+          {:ok, %User{profile: %Profile{}}}
+          | {:error, :invalid_key_id | :invalid_token | Ecto.Changeset.t()}
   def login_or_register_user_with_apple_id(id_token) do
     case AppleSignIn.fields_from_token(id_token) do
       {:ok, apple_id} -> get_or_register_user_with_apple_id(apple_id)

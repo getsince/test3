@@ -74,7 +74,7 @@ defmodule T.MixProject do
       {:rexbug, "~> 1.0"},
       {:geo_postgis, "~> 3.4"},
       {:finch, "~> 0.8", override: true},
-      {:locus, "~> 1.16"},
+      {:locus, "~> 2.0"},
       {:prom_ex, "~> 1.3"},
       {:esbuild, "~> 0.2", runtime: Mix.env() == :dev},
       {:retry, "~> 0.14.1"},

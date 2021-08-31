@@ -653,6 +653,7 @@ defmodule T.Accounts do
   def list_gender_preferences(user_id) do
     GenderPreference
     |> where(user_id: ^user_id)
+    |> select([p], p.gender)
     |> Repo.all()
   end
 

@@ -1,6 +1,6 @@
 defmodule T.Factory do
   use ExMachina.Ecto, repo: T.Repo
-  alias T.Accounts.{User, Profile}
+  alias T.Accounts.{User, Profile, GenderPreference}
   alias T.Matches.{Match, Timeslot}
   alias T.Calls.Call
 
@@ -30,6 +30,10 @@ defmodule T.Factory do
       caller: build(:user),
       called: build(:user)
     }
+  end
+
+  def gender_preference_factory do
+    %GenderPreference{}
   end
 
   def phone_number do

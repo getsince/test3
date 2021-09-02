@@ -17,7 +17,7 @@ msgstr "нельзя пустым"
 msgid "has already been taken"
 msgstr "занято"
 
-#: lib/t/accounts/user.ex:36
+#: lib/t/accounts/user.ex:42
 msgid "is invalid"
 msgstr "не тот формат"
 

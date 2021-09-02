@@ -12,91 +12,66 @@ msgstr ""
 "Plural-Forms: nplurals=3\n"
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:150
+#: lib/t/push_notifications/apns.ex:161
 msgid "Аудио-дэйт начинается"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:140
+#: lib/t/push_notifications/apns.ex:152
 msgid "Аудио-дэйт совсем скоро"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:120
+#: lib/t/push_notifications/apns.ex:134
 msgid "Добавь аудио-дэйт в календарь, чтобы не пропустить 🙌"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:71
-msgid "Заходи посмотреть 🤫"
-msgstr ""
-
-#, elixir-format
-#: lib/t/push_notifications/apns.ex:110
+#: lib/t/push_notifications/apns.ex:125
 msgid "Заходи, чтобы ответить на приглашение 👀"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:90
-msgid "Не веришь? Проверь"
-msgstr ""
-
-#, elixir-format
-#: lib/t/push_notifications/apns.ex:130
+#: lib/t/push_notifications/apns.ex:143
 msgid "Попробуй предложить другое время 👉"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:99
-msgid "Привет!"
-msgstr ""
-
-#, elixir-format
-#: lib/t/push_notifications/apns.ex:141
+#: lib/t/push_notifications/apns.ex:153
 msgid "Приготовься, у тебя 15 минут 👋"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:151
+#: lib/t/push_notifications/apns.ex:162
 msgid "Скорее заходи и звони 🖤"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:61
+#: lib/t/push_notifications/apns.ex:104
 msgid "Скорее заходи!"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:119
+#: lib/t/push_notifications/apns.ex:133
 msgid "Твое приглашение на дэйт принято"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:129
+#: lib/t/push_notifications/apns.ex:142
 msgid "Твой дэйт отменён"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:89
-msgid "Тебе отправили сообщение ;)"
-msgstr ""
-
-#, elixir-format
-#: lib/t/push_notifications/apns.ex:109
+#: lib/t/push_notifications/apns.ex:124
 msgid "Тебя пригласили на свидание!"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:70
-msgid "У тебя новый лайк"
-msgstr ""
-
-#, elixir-format
-#: lib/t/push_notifications/apns.ex:60
+#: lib/t/push_notifications/apns.ex:103
 msgid "Это новый мэтч!"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:100
-msgid "Это сообщение от поддержки 🌚"
-msgstr ""
+#: lib/t/push_notifications/apns.ex:116
+msgid "%{name} invited you for a call"
+msgstr "%{name} хочет поговорить"

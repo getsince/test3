@@ -16,7 +16,7 @@ msgid "has already been taken"
 msgstr ""
 
 ## From Ecto.Changeset.put_change/3
-#: lib/t/accounts/user.ex:36
+#: lib/t/accounts/user.ex:42
 msgid "is invalid"
 msgstr ""
 

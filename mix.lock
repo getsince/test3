@@ -5,7 +5,7 @@
   "bigflake": {:hex, :bigflake, "0.5.0", "a0d7df9b8b5a6b6a7fe7f866a9ec6abc522917e5fac2e35cbc3ea60ce8334b27", [:mix], [{:base62, "~> 1.2.0", [hex: :base62, repo: "hexpm", optional: false]}], "hexpm", "930d3cd6cfc990be77736f033bee241f7cf7a1b5e0f545771ffc00691c533ec1"},
   "castore": {:hex, :castore, "0.1.11", "c0665858e0e1c3e8c27178e73dffea699a5b28eb72239a3b2642d208e8594914", [:mix], [], "hexpm", "91b009ba61973b532b84f7c09ce441cba7aa15cb8b006cf06c6f4bba18220081"},
   "certifi": {:hex, :certifi, "2.6.1", "dbab8e5e155a0763eea978c913ca280a6b544bfa115633fa20249c3d396d9493", [:rebar3], [], "hexpm", "524c97b4991b3849dd5c17a631223896272c6b0af446778ba4675a1dff53bb7e"},
-  "cloud_watch": {:git, "https://github.com/ruslandoga/cloud_watch.git", "0d680055d23c1bcdc81be7fc788fe66f30f323fd", [branch: "adapt-to-ex-aws"]},
+  "cloud_watch": {:git, "https://github.com/heyoutline/cloud_watch.git", "714faf48479847d80624c9f022960bd12f5edc1d", []},
   "combine": {:hex, :combine, "0.10.0", "eff8224eeb56498a2af13011d142c5e7997a80c8f5b97c499f84c841032e429f", [:mix], [], "hexpm", "1b1dbc1790073076580d0d1d64e42eae2366583e7aecd455d1215b0d16f2451b"},
   "connection": {:hex, :connection, "1.1.0", "ff2a49c4b75b6fb3e674bfc5536451607270aac754ffd1bdfe175abe4a6d7a68", [:mix], [], "hexpm", "722c1eb0a418fbe91ba7bd59a47e28008a189d47e37e0e7bb85585a016b2869c"},
   "cowboy": {:hex, :cowboy, "2.9.0", "865dd8b6607e14cf03282e10e934023a1bd8be6f6bacf921a7e2a96d800cd452", [:make, :rebar3], [{:cowlib, "2.11.0", [hex: :cowlib, repo: "hexpm", optional: false]}, {:ranch, "1.8.0", [hex: :ranch, repo: "hexpm", optional: false]}], "hexpm", "2c729f934b4e1aa149aff882f57c6372c15399a20d54f65c8d67bef583021bde"},

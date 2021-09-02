@@ -78,7 +78,7 @@ defmodule T.MixProject do
       {:esbuild, "~> 0.2", runtime: Mix.env() == :dev},
       {:retry, "~> 0.14.1"},
       # TODO use hex after https://github.com/heyoutline/cloud_watch/pull/25 is merged
-      {:cloud_watch, github: "ruslandoga/cloud_watch", branch: "adapt-to-ex-aws"},
+      {:cloud_watch, github: "heyoutline/cloud_watch"},
       {:benchee, "~> 1.0", only: :bench}
     ]
   end

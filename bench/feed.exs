@@ -1,14 +1,19 @@
 :active_sessions =
   :ets.new(:active_sessions, [:named_table, :ordered_set, read_concurrency: true])
 
+set = Discord.SortedSet.new()
+
 # :active_sessions1 = :ets.new(:active_sessions1, [:named_table, :ordered_set])
 # :active_sessions2 = :ets.new(:active_sessions2, [:named_table, :ordered_set])
+
+# https://github.com/discord/sorted_set_nif
 
 {time, ids} =
   :timer.tc(fn ->
     Enum.map(1..1_000, fn _ ->
       {:ok, id} = Bigflake.mint()
       :ets.insert(:active_sessions, {id})
+      Discord.SortedSet.add(set, Bigflake.Base62.encode(id))
       id
     end)
   end)
@@ -70,7 +75,8 @@ Benchee.run(
     # "ActiveSessions.more2" => fn -> ActiveSessions.more2(id2) end,
     # "lookup" => fn -> :ets.lookup(:active_sessions, id1) end,
     # "ActiveSessions.more3 count=30" => fn -> ActiveSessions.more3(id1, 30) end,
-    "ActiveSessions.more3 count=10 id=100th" => fn -> ActiveSessions.more3(id_100, 10) end
+    "ActiveSessions.more3 count=10 id=100th" => fn -> ActiveSessions.more3(id_100, 10) end,
+    "SortedSet count=10 at=100" => fn -> Discord.SortedSet.slice(set, 100, 10) end
     # "ActiveSessions.more3 count=10 id=5000th" => fn -> ActiveSessions.more3(id_5000, 10) end,
     # "ActiveSessions.more3 count=10 id=50000th" => fn -> ActiveSessions.more3(id_50000, 10) end,
     # "ActiveSessions.more3 count=10 id=95000th" => fn -> ActiveSessions.more3(id_95000, 10) end

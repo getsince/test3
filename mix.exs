@@ -79,7 +79,8 @@ defmodule T.MixProject do
       {:retry, "~> 0.14.1"},
       # TODO use hex after https://github.com/heyoutline/cloud_watch/pull/25 is merged
       {:cloud_watch, github: "heyoutline/cloud_watch"},
-      {:benchee, "~> 1.0", only: :bench}
+      {:benchee, "~> 1.0", only: :bench},
+      {:sorted_set_nif, "~> 1.2.0"}
     ]
   end
 

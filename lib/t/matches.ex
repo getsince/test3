@@ -439,9 +439,9 @@ defmodule T.Matches do
       |> select([t], t)
       |> Repo.delete_all()
 
-    if selected_slot do
-      broadcast_for_user(mate_id, {__MODULE__, [:timeslot, :cancelled], timeslot})
+    broadcast_for_user(mate_id, {__MODULE__, [:timeslot, :cancelled], timeslot})
 
+    if selected_slot do
       push =
         DispatchJob.new(%{
           "type" => "timeslot_cancelled",

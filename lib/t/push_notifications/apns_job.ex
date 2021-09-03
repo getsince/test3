@@ -11,14 +11,14 @@ defmodule T.PushNotifications.APNSJob do
     %{"template" => template, "data" => data, "device_id" => device_id} = args
 
     device = %APNSDevice{
-      token: device_id,
+      device_id: device_id,
       env: args["env"],
       topic: args["topic"],
       locale: args["locale"]
     }
 
     case APNS.push_alert(template, device, data) do
-      %Notification{response: :ok} ->
+      %Notification{response: :success} ->
         :ok
 
       %Notification{response: response, device_token: device_id}

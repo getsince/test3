@@ -623,7 +623,9 @@ defmodule TWeb.FeedChannelTest do
         assert n.topic == "app.topic.voip"
         assert n.push_type == "voip"
         assert n.expiration == 0
-        assert n.payload == %{"caller_id" => me.id, "caller_name" => "that"}
+        assert n.payload["caller_id"] == me.id
+        assert n.payload["caller_name"] == "that"
+        assert n.payload["call_id"]
         [%Notification{n | response: :bad_device_token}]
       end)
       # BABABABABA on sandbox -> fails!
@@ -632,7 +634,9 @@ defmodule TWeb.FeedChannelTest do
         assert n.topic == "app.topic.voip"
         assert n.push_type == "voip"
         assert n.expiration == 0
-        assert n.payload == %{"caller_id" => me.id, "caller_name" => "that"}
+        assert n.payload["caller_id"] == me.id
+        assert n.payload["caller_name"] == "that"
+        assert n.payload["call_id"]
         [%Notification{n | response: :bad_device_token}]
       end)
 

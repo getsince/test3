@@ -3,8 +3,7 @@ defmodule T.Calls do
   import Ecto.Query
 
   alias T.{Repo, Twilio, Accounts}
-  alias T.Calls.Call
-  alias T.Invites.CallInvite
+  alias T.Calls.{Call, Invite}
   alias T.Feeds.{FeedProfile, ActiveSession}
   alias T.Matches.Match
   alias T.PushNotifications.APNS
@@ -17,10 +16,14 @@ defmodule T.Calls do
   @spec call(Ecto.UUID.t(), Ecto.UUID.t()) ::
           {:ok, call_id :: Ecto.UUID.t()} | {:error, reason :: String.t()}
   def call(caller_id, called_id) do
+    call_id = Ecto.Bigflake.UUID.generate()
+
     with {:allowed?, true} <- {:allowed?, call_allowed?(caller_id, called_id)},
          {:devices, [_ | _] = devices} <- {:devices, Accounts.list_pushkit_devices(called_id)},
-         {:push, _any_push_sent? = true} <- {:push, push_call(caller_id, devices)} do
-      %Call{id: call_id} = Repo.insert!(%Call{caller_id: caller_id, called_id: called_id})
+         {:push, _any_push_sent? = true} <- {:push, push_call(caller_id, call_id, devices)} do
+      %Call{id: ^call_id} =
+        Repo.insert!(%Call{id: call_id, caller_id: caller_id, called_id: called_id})
+
       {:ok, call_id}
     else
       {:allowed?, false} -> {:error, "call not allowed"}
@@ -44,7 +47,7 @@ defmodule T.Calls do
   end
 
   defp invited?(inviter_id, invited_id) do
-    CallInvite
+    Invite
     |> where(by_user_id: ^inviter_id)
     |> where(user_id: ^invited_id)
     |> Repo.exists?()
@@ -67,12 +70,12 @@ defmodule T.Calls do
     |> Repo.exists?()
   end
 
-  @spec push_call(Ecto.UUID.t(), [%Accounts.PushKitDevice{}]) :: boolean
-  def push_call(caller_id, devices) do
+  @spec push_call(Ecto.UUID.t(), Ecto.UUID.t(), [%Accounts.PushKitDevice{}]) :: boolean
+  def push_call(caller_id, call_id, devices) do
     alias Pigeon.APNS.Notification
 
     caller_name = fetch_name(caller_id)
-    payload = %{"caller_id" => caller_id, "caller_name" => caller_name}
+    payload = %{"caller_id" => caller_id, "call_id" => call_id, "caller_name" => caller_name}
 
     devices
     |> APNS.pushkit_call(payload)
@@ -92,8 +95,7 @@ defmodule T.Calls do
   def get_call_role_and_peer(call_id, user_id) do
     Call
     |> where(id: ^call_id)
-    |> where(caller_id: ^user_id)
-    |> or_where(called_id: ^user_id)
+    |> where([c], c.caller_id == ^user_id or c.called_id == ^user_id)
     |> Repo.one()
     |> case do
       %Call{ended_at: %DateTime{}} -> {:error, :ended}

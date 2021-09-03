@@ -1,4 +1,4 @@
-defmodule T.Invites.CallInvite do
+defmodule T.Calls.Invite do
   use Ecto.Schema
   alias T.Accounts.User
 

@@ -8,7 +8,7 @@ defmodule T.Feeds do
 
   alias T.Repo
   alias T.Accounts.UserReport
-  alias T.Invites.CallInvite
+  alias T.Calls
   alias T.Feeds.{ActiveSession, FeedProfile}
   alias T.PushNotifications.DispatchJob
 
@@ -21,7 +21,7 @@ defmodule T.Feeds do
   @pubsub T.PubSub
 
   defp notify_subscribers({:ok, %{invite: invite}} = success, :invited = event) do
-    %CallInvite{by_user_id: by_user_id, user_id: user_id} = invite
+    %Calls.Invite{by_user_id: by_user_id, user_id: user_id} = invite
     topic = invites_topic(user_id)
     broadcast(topic, {__MODULE__, event, by_user_id})
     success
@@ -97,6 +97,8 @@ defmodule T.Feeds do
   # TODO test pubsub
   @spec deactivate_session(Ecto.UUID.t()) :: boolean
   def deactivate_session(user_id) do
+    Logger.warn("user #{user_id} deactivated session")
+
     ActiveSession
     |> where(user_id: ^user_id)
     |> Repo.delete_all()
@@ -162,7 +164,7 @@ defmodule T.Feeds do
   def list_received_invites(user_id) do
     profiles_q = not_reported_profiles_q(user_id)
 
-    CallInvite
+    Calls.Invite
     |> where(user_id: ^user_id)
     |> join(:inner, [i], s in ActiveSession, on: i.by_user_id == s.user_id)
     |> join(:inner, [..., s], p in subquery(profiles_q), on: p.user_id == s.user_id)
@@ -171,7 +173,7 @@ defmodule T.Feeds do
   end
 
   defp mark_invited(multi, by_user_id, user_id, inserted_at \\ NaiveDateTime.utc_now()) do
-    invite = %CallInvite{
+    invite = %Calls.Invite{
       by_user_id: by_user_id,
       user_id: user_id,
       inserted_at: NaiveDateTime.truncate(inserted_at, :second)
@@ -193,14 +195,14 @@ defmodule T.Feeds do
   end
 
   def delete_invites_for_blocked(blocked_user_id) do
-    CallInvite
+    Calls.Invite
     |> where(by_user_id: ^blocked_user_id)
     |> or_where(user_id: ^blocked_user_id)
     |> Repo.delete_all()
   end
 
   def delete_invites_for_reported(reporter_id, reported_id) do
-    CallInvite
+    Calls.Invite
     |> where([i], i.by_user_id == ^reporter_id and i.user_id == ^reported_id)
     |> or_where([i], i.user_id == ^reporter_id and i.by_user_id == ^reported_id)
     |> Repo.delete_all()
@@ -273,8 +275,8 @@ defmodule T.Feeds do
   end
 
   defp invited_user_ids_q(user_id) do
-    q1 = CallInvite |> where([i], i.user_id == ^user_id) |> select([i], i.by_user_id)
-    q2 = CallInvite |> where([i], i.by_user_id == ^user_id) |> select([i], i.user_id)
+    q1 = Calls.Invite |> where([i], i.user_id == ^user_id) |> select([i], i.by_user_id)
+    q2 = Calls.Invite |> where([i], i.by_user_id == ^user_id) |> select([i], i.user_id)
     union(q1, ^q2)
   end
 

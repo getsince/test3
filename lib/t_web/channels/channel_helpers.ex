@@ -20,7 +20,7 @@ defmodule TWeb.ChannelHelpers do
   def me_id(%Socket{assigns: %{current_user: %User{id: id}}}), do: id
 
   def report(socket, params) do
-    %{"reason" => reason, "user_id" => reported_user_id} = params
+    {reason, reported_user_id} = report_params(params)
     %{current_user: reporter} = socket.assigns
 
     case T.Accounts.report_user(reporter.id, reported_user_id, reason) do
@@ -32,6 +32,10 @@ defmodule TWeb.ChannelHelpers do
         {:reply, {:error, %{report: rendered}}, socket}
     end
   end
+
+  defp report_params(%{"reason" => reason, "user_id" => user_id}), do: {reason, user_id}
+  defp report_params(%{"reason" => reason, "profile_id" => user_id}), do: {reason, user_id}
+  defp report_params(%{"report" => params}), do: report_params(params)
 
   def maybe_put(map, _key, nil), do: map
   def maybe_put(map, _key, []), do: map

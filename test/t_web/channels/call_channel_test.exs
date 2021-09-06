@@ -150,6 +150,9 @@ defmodule TWeb.CallChannelTest do
 
       assert_broadcast "pick-up", broadcast
       assert broadcast == %{}
+
+      %Call{} = call = Repo.get(Call, call_id)
+      assert call.accepted_at
     end
 
     test "can only be done by called" do
@@ -164,6 +167,9 @@ defmodule TWeb.CallChannelTest do
       assert reply == %{"reason" => "not_called"}
 
       refute_broadcast "pick-up", _
+
+      %Call{} = call = Repo.get(Call, call_id)
+      refute call.accepted_at
     end
   end
 
@@ -192,6 +198,9 @@ defmodule TWeb.CallChannelTest do
       assert broadcast == %{}
 
       assert {:error, %{"reason" => "ended"}} = join(socket, "call:#{call.id}")
+
+      %Call{} = call = Repo.get(Call, call.id)
+      assert call.ended_at
     end
   end
 

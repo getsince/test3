@@ -38,8 +38,11 @@ defmodule TWeb.CallChannel do
   end
 
   def handle_in("pick-up", _params, socket) do
-    case socket.assigns.role do
+    %{call_id: call_id, role: role} = socket.assigns
+
+    case role do
       :called ->
+        :ok = Calls.accept_call(call_id)
         broadcast_from!(socket, "pick-up", %{})
         {:reply, :ok, socket}
 

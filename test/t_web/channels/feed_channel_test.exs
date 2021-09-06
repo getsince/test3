@@ -745,7 +745,36 @@ defmodule TWeb.FeedChannelTest do
 
       # mate joins call channel and waits
       {:ok, reply, mate_socket} = join(mate_socket, "call:" <> call_id)
-      assert reply == %{ice_servers: %{}}
+
+      assert reply == %{
+               ice_servers: [
+                 %{
+                   "url" => "stun:global.stun.twilio.com:3478?transport=udp",
+                   "urls" => "stun:global.stun.twilio.com:3478?transport=udp"
+                 },
+                 %{
+                   "credential" => "B2AhKtD3x/T0vATYL2FimHFlPMTIJAmAmHBRrqAHEKc=",
+                   "url" => "turn:global.turn.twilio.com:3478?transport=udp",
+                   "urls" => "turn:global.turn.twilio.com:3478?transport=udp",
+                   "username" =>
+                     "65d32d2326762b02b0133dadd624f74333dea32e5588ef495986d9b5e4b932d3"
+                 },
+                 %{
+                   "credential" => "B2AhKtD3x/T0vATYL2FimHFlPMTIJAmAmHBRrqAHEKc=",
+                   "url" => "turn:global.turn.twilio.com:3478?transport=tcp",
+                   "urls" => "turn:global.turn.twilio.com:3478?transport=tcp",
+                   "username" =>
+                     "65d32d2326762b02b0133dadd624f74333dea32e5588ef495986d9b5e4b932d3"
+                 },
+                 %{
+                   "credential" => "B2AhKtD3x/T0vATYL2FimHFlPMTIJAmAmHBRrqAHEKc=",
+                   "url" => "turn:global.turn.twilio.com:443?transport=tcp",
+                   "urls" => "turn:global.turn.twilio.com:443?transport=tcp",
+                   "username" =>
+                     "65d32d2326762b02b0133dadd624f74333dea32e5588ef495986d9b5e4b932d3"
+                 }
+               ]
+             }
 
       # and then hangs up
       ref = push(mate_socket, "hang-up")

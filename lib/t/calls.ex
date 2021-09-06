@@ -105,14 +105,26 @@ defmodule T.Calls do
     end
   end
 
-  @spec end_call(Ecto.UUID.t()) :: :ok
-  def end_call(call_id) do
-    ended_at = DateTime.truncate(DateTime.utc_now(), :second)
+  defp utc_now do
+    DateTime.truncate(DateTime.utc_now(), :second)
+  end
 
+  @spec accept_call(Ecto.UUID.t(), DateTime.t()) :: :ok
+  def accept_call(call_id, now \\ utc_now()) do
     {1, _} =
       Call
       |> where(id: ^call_id)
-      |> Repo.update_all(set: [ended_at: ended_at])
+      |> Repo.update_all(set: [accepted_at: now])
+
+    :ok
+  end
+
+  @spec end_call(Ecto.UUID.t(), DateTime.t()) :: :ok
+  def end_call(call_id, now \\ utc_now()) do
+    {1, _} =
+      Call
+      |> where(id: ^call_id)
+      |> Repo.update_all(set: [ended_at: now])
 
     :ok
   end

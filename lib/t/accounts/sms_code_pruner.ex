@@ -4,6 +4,7 @@ defmodule T.Accounts.SMSCodePruner do
   """
 
   use GenServer
+  alias T.Accounts.PasswordlessAuth
 
   @doc """
 
@@ -16,20 +17,23 @@ defmodule T.Accounts.SMSCodePruner do
 
   @impl true
   def init(opts) do
-    ttl_seconds = opts[:ttl_seconds] || 300
-    check_interval = opts[:check_interval] || :timer.minutes(5)
-    :timer.send_interval(check_interval, :prune)
-    {:ok, %{ttl_seconds: ttl_seconds}}
+    state = %{
+      ttl_seconds: opts[:ttl_seconds] || 300,
+      check_interval: opts[:check_interval] || :timer.minutes(5)
+    }
+
+    schedule_next_prune(state)
+    {:ok, state}
   end
 
-  @doc false
-  def prune(ttl_seconds) do
-    T.Accounts.PasswordlessAuth.prune(ttl_seconds)
+  defp schedule_next_prune(%{check_interval: check_interval}) do
+    Process.send_after(self(), :prune, check_interval)
   end
 
   @impl true
   def handle_info(:prune, %{ttl_seconds: ttl_seconds} = state) do
-    prune(ttl_seconds)
+    PasswordlessAuth.prune(ttl_seconds)
+    schedule_next_prune(state)
     {:noreply, state}
   end
 end

@@ -59,11 +59,7 @@ defmodule T.Twilio do
 
   defp clean_timer_for_key(state, key) do
     {timer, timers} = pop_timer(state, key)
-
-    if timer do
-      {:ok, :cancel} = :timer.cancel(timer)
-    end
-
+    if timer, do: Process.cancel_timer(timer)
     %State{state | ttl_timers: timers}
   end
 
@@ -76,7 +72,7 @@ defmodule T.Twilio do
 
   defp schedule_cleanup_for_key(state, key, ttl) do
     %State{ttl_timers: timers} = state
-    {:ok, timer} = :timer.send_after(ttl, {:expire, key})
-    %State{state | ttl_timers: Map.put(timers, key, timer)}
+    timer_ref = Process.send_after(self(), {:expire, key}, ttl)
+    %State{state | ttl_timers: Map.put(timers, key, timer_ref)}
   end
 end

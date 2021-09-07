@@ -8,17 +8,16 @@ defmodule T.PushNotifications.APNS.Pigeon do
 
   @impl true
   @spec push(n, :dev | :prod) :: n when n: Notification.t() | [Notification.t()]
-  def push(notifications, env) when is_valid_env(env) when is_list(notifications) do
-    notifications |> APNS.push(to: env) |> Enum.map(&maybe_warned/1)
+  def push(notifications, env) when is_valid_env(env) do
+    notifications |> APNS.push(to: env) |> maybe_warned()
   end
 
-  def push(%Notification{} = notification, env) when is_valid_env(env) do
-    notification |> APNS.push(to: env) |> maybe_warned()
+  defp maybe_warned(notifications) when is_list(notifications) do
+    Enum.map(notifications, &maybe_warned/1)
   end
 
   defp maybe_warned(%Notification{response: response} = notification) do
     unless response == :success do
-      # Logger.warn("failed to send apns notification reason=#{response}: #{inspect(n)}")
       Sentry.capture_message(
         "failed to send apns notification reason=#{response}: #{inspect(notification)}"
       )

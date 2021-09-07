@@ -4,7 +4,6 @@ defmodule T.PushNotifications.APNSJob do
   use Oban.Worker, queue: :apns, max_attempts: 5
   alias T.{PushNotifications.APNS, Accounts, Accounts.APNSDevice}
   alias Pigeon.APNS.Notification
-  require Logger
 
   @impl true
   def perform(%Oban.Job{args: args}) do
@@ -23,7 +22,6 @@ defmodule T.PushNotifications.APNSJob do
 
       %Notification{response: response, device_token: device_id}
       when response in [:bad_device_token, :unregistered] ->
-        Logger.warn("failed to send apns notification reason=#{response}: #{inspect(args)}")
         Accounts.remove_apns_device(device_id)
         :discard
     end

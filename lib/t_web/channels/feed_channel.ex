@@ -12,6 +12,7 @@ defmodule TWeb.FeedChannel do
     %{screen_width: screen_width} = socket.assigns
 
     gender_preferences = Accounts.list_gender_preferences(user_id)
+    location = Accounts.get_location!(user_id)
 
     :ok = Feeds.subscribe_for_invites(user_id)
     :ok = Feeds.subscribe_for_activated_sessions()
@@ -30,7 +31,7 @@ defmodule TWeb.FeedChannel do
 
     invites =
       user_id
-      |> Feeds.list_received_invites()
+      |> Feeds.list_received_invites(location)
       |> render_feed(screen_width)
 
     matches =
@@ -45,16 +46,26 @@ defmodule TWeb.FeedChannel do
       |> maybe_put("invites", invites)
       |> maybe_put("matches", matches)
 
-    {:ok, reply, assign(socket, gender_preferences: gender_preferences)}
+    {:ok, reply, assign(socket, gender_preferences: gender_preferences, location: location)}
   end
 
   @impl true
   def handle_in("more", params, socket) do
-    %{current_user: user, screen_width: screen_width, gender_preferences: gender_preferences} =
-      socket.assigns
+    %{
+      current_user: user,
+      screen_width: screen_width,
+      gender_preferences: gender_preferences,
+      location: location
+    } = socket.assigns
 
     {feed, cursor} =
-      Feeds.fetch_feed(user.id, gender_preferences, params["count"] || 10, params["cursor"])
+      Feeds.fetch_feed(
+        user.id,
+        location,
+        gender_preferences,
+        params["count"] || 10,
+        params["cursor"]
+      )
 
     {:reply, {:ok, %{"feed" => render_feed(feed, screen_width), "cursor" => cursor}}, socket}
   end
@@ -65,8 +76,10 @@ defmodule TWeb.FeedChannel do
   end
 
   def handle_in("invites", _params, socket) do
-    %{current_user: %{id: user_id}, screen_width: screen_width} = socket.assigns
-    invites = user_id |> Feeds.list_received_invites() |> render_feed(screen_width)
+    %{current_user: %{id: user_id}, screen_width: screen_width, location: location} =
+      socket.assigns
+
+    invites = user_id |> Feeds.list_received_invites(location) |> render_feed(screen_width)
     {:reply, {:ok, %{"invites" => invites}}, socket}
   end
 
@@ -160,9 +173,9 @@ defmodule TWeb.FeedChannel do
 
   @impl true
   def handle_info({Feeds, :invited, by_user_id}, socket) do
-    %{current_user: user, screen_width: screen_width} = socket.assigns
+    %{current_user: user, screen_width: screen_width, location: location} = socket.assigns
 
-    if feed_item = Feeds.get_feed_item(user.id, by_user_id) do
+    if feed_item = Feeds.get_feed_item(user.id, location, by_user_id) do
       push(socket, "invite", render_feed_item(feed_item, screen_width))
     end
 
@@ -173,9 +186,9 @@ defmodule TWeb.FeedChannel do
   # TODO reduce # queries
   # TODO optimise pubsub, and use fastlane (one encode per screen width) or move screen width logic to the client
   def handle_info({Feeds, :activated, user_id}, socket) do
-    %{current_user: user, screen_width: screen_width} = socket.assigns
+    %{current_user: user, screen_width: screen_width, location: location} = socket.assigns
 
-    if feed_item = Feeds.get_feed_item(user.id, user_id) do
+    if feed_item = Feeds.get_feed_item(user.id, location, user_id) do
       push(socket, "activated", render_feed_item(feed_item, screen_width))
     end
 
@@ -234,14 +247,11 @@ defmodule TWeb.FeedChannel do
     {:noreply, socket}
   end
 
+  # TODO refactor
   defp render_feed_item(feed_item, screen_width) do
-    {%FeedProfile{} = profile, %ActiveSession{} = session} = feed_item
-
-    render(FeedView, "feed_item.json",
-      profile: profile,
-      session: session,
-      screen_width: screen_width
-    )
+    {%FeedProfile{} = profile, %ActiveSession{} = session, distance} = feed_item
+    assigns = [profile: profile, session: session, screen_width: screen_width, distance: distance]
+    render(FeedView, "feed_item.json", assigns)
   end
 
   defp render_feed(feed, screen_width) do

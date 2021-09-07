@@ -69,13 +69,26 @@ defmodule T.Factory do
     ]
   end
 
-  def onboarding_attrs(gender \\ "M") do
+  # https://yandex.com/maps/-/CCUmFHtcGA
+  def moscow_location do
+    [lat: 55.755516, lon: 37.615040]
+  end
+
+  # https://yandex.com/maps/-/CCUmFHtYpB
+  def apple_location do
+    [lat: 37.331647, lon: -122.029970]
+  end
+
+  def onboarding_attrs(opts \\ []) do
+    gender = opts[:gender] || "M"
+    %{lat: lat, lon: lon} = Map.new(opts[:location] || [lat: 55.755833, lon: 37.617222])
+
     %{
-      story: profile_story(),
-      latitude: 50.0,
-      longitude: 50.0,
+      story: opts[:story] || profile_story(),
+      latitude: lat,
+      longitude: lon,
       gender: gender,
-      name: "that"
+      name: opts[:name] || "that"
     }
   end
 
@@ -86,8 +99,9 @@ defmodule T.Factory do
     user
   end
 
-  def onboarded_user(user \\ registered_user()) do
-    {:ok, profile} = Accounts.onboard_profile(user.profile, onboarding_attrs())
+  def onboarded_user(opts \\ []) do
+    user = registered_user(opts[:phone_number] || phone_number())
+    {:ok, profile} = Accounts.onboard_profile(user.profile, onboarding_attrs(opts))
     %Accounts.User{user | profile: profile}
   end
 end

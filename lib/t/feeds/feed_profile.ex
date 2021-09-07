@@ -8,6 +8,7 @@ defmodule T.Feeds.FeedProfile do
     field :name, :string
     field :story, {:array, :map}
     field :hidden?, :boolean
+    field :location, Geo.PostGIS.Geometry
     # F | M | N
     field :gender, :string
   end

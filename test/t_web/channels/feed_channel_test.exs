@@ -1,5 +1,6 @@
 defmodule TWeb.FeedChannelTest do
   use TWeb.ChannelCase
+  import Assertions
 
   alias T.{Feeds, Accounts, Calls, Matches}
   alias Matches.{Timeslot, Match}
@@ -11,7 +12,7 @@ defmodule TWeb.FeedChannelTest do
   setup :verify_on_exit!
 
   setup do
-    me = onboarded_user()
+    me = onboarded_user(location: moscow_location())
     {:ok, me: me, socket: connected_socket(me)}
   end
 
@@ -32,14 +33,14 @@ defmodule TWeb.FeedChannelTest do
     test "with matches", %{socket: socket, me: me} do
       [p1, p2, p3] =
         mates = [
-          insert(:profile, hidden?: false, story: [], name: "mate-1"),
-          insert(:profile, hidden?: false, story: [], name: "mate-2"),
-          insert(:profile, hidden?: false, story: [], name: "mate-3")
+          onboarded_user(story: [], name: "mate-1", location: apple_location()),
+          onboarded_user(story: [], name: "mate-2", location: apple_location()),
+          onboarded_user(story: [], name: "mate-3", location: apple_location())
         ]
 
       [m1, m2, m3] =
         for mate <- mates do
-          insert(:match, user_id_1: me.id, user_id_2: mate.user_id)
+          insert(:match, user_id_1: me.id, user_id_2: mate.id)
         end
 
       # if it's 14:47 right now ...
@@ -57,39 +58,37 @@ defmodule TWeb.FeedChannelTest do
       ]
 
       insert(:timeslot, match_id: m2.id, slots: slots, picker_id: me.id)
-      insert(:timeslot, match_id: m3.id, slots: slots, selected_slot: s2, picker_id: p3.user_id)
-      assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id)
+      insert(:timeslot, match_id: m3.id, slots: slots, selected_slot: s2, picker_id: p3.id)
+      assert {:ok, %{"matches" => matches}, _socket} = join(socket, "feed:" <> me.id)
 
-      assert reply == %{
-               "matches" => [
-                 %{
-                   "id" => m1.id,
-                   "profile" => %{name: "mate-1", story: [], user_id: p1.user_id}
-                 },
-                 %{
-                   "id" => m2.id,
-                   "profile" => %{name: "mate-2", story: [], user_id: p2.user_id},
-                   "timeslot" => %{"picker" => me.id, "slots" => slots}
-                 },
-                 %{
-                   "id" => m3.id,
-                   "profile" => %{name: "mate-3", story: [], user_id: p3.user_id},
-                   "timeslot" => %{"selected_slot" => s2}
-                 }
-               ]
-             }
+      assert_lists_equal(matches, [
+        %{
+          "id" => m1.id,
+          "profile" => %{name: "mate-1", story: [], user_id: p1.id}
+        },
+        %{
+          "id" => m2.id,
+          "profile" => %{name: "mate-2", story: [], user_id: p2.id},
+          "timeslot" => %{"picker" => me.id, "slots" => slots}
+        },
+        %{
+          "id" => m3.id,
+          "profile" => %{name: "mate-3", story: [], user_id: p3.id},
+          "timeslot" => %{"selected_slot" => s2}
+        }
+      ])
     end
 
     test "with invites and current session", %{socket: socket, me: me} do
-      mate = insert(:profile, hidden?: false, story: [], name: "mate")
+      mate = onboarded_user(story: [], name: "mate", location: apple_location())
 
       %ActiveSession{flake: session_id} =
         Feeds.activate_session(me.id, _duration = 60, @reference)
 
       %ActiveSession{flake: mate_session_id} =
-        Feeds.activate_session(mate.user_id, _duration = 60, @reference)
+        Feeds.activate_session(mate.id, _duration = 60, @reference)
 
-      assert true = Feeds.invite_active_user(mate.user_id, me.id)
+      assert true = Feeds.invite_active_user(mate.id, me.id)
 
       assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id)
 
@@ -97,7 +96,8 @@ defmodule TWeb.FeedChannelTest do
                "current_session" => %{id: session_id, expires_at: ~U[2021-07-21 12:55:18Z]},
                "invites" => [
                  %{
-                   "profile" => %{name: "mate", story: [], user_id: mate.user_id},
+                   "distance" => 9510,
+                   "profile" => %{name: "mate", story: [], user_id: mate.id},
                    "session" => %{id: mate_session_id, expires_at: ~U[2021-07-21 12:55:18Z]}
                  }
                ]
@@ -106,14 +106,14 @@ defmodule TWeb.FeedChannelTest do
 
     test "with missed calls", %{socket: socket, me: me} do
       "user_socket:" <> token = socket.id
-      mate = insert(:profile, hidden?: false, story: [], name: "mate")
+      mate = onboarded_user(story: [], location: apple_location(), name: "mate")
 
       # activated sessions
       %ActiveSession{flake: session_id} =
         Feeds.activate_session(me.id, _duration = 60, @reference)
 
       %ActiveSession{flake: mate_session_id} =
-        Feeds.activate_session(mate.user_id, _duration = 60, @reference)
+        Feeds.activate_session(mate.id, _duration = 60, @reference)
 
       # prepare pushkit devices
       :ok = Accounts.save_pushkit_device_id(me.id, token, Base.decode16!("ABABAB"), env: "prod")
@@ -122,13 +122,13 @@ defmodule TWeb.FeedChannelTest do
       expect(MockAPNS, :push, 2, fn [push], :prod -> [%{push | response: :success}] end)
 
       # mate invites me
-      true = Feeds.invite_active_user(me.id, mate.user_id)
+      true = Feeds.invite_active_user(me.id, mate.id)
 
       # mate calls me
-      {:ok, call_id1} = Calls.call(mate.user_id, me.id)
+      {:ok, call_id1} = Calls.call(mate.id, me.id)
 
       # TODO forbid "duplicate" calls?
-      {:ok, call_id2} = Calls.call(mate.user_id, me.id)
+      {:ok, call_id2} = Calls.call(mate.id, me.id)
 
       refute call_id1 == call_id2
 
@@ -147,7 +147,7 @@ defmodule TWeb.FeedChannelTest do
                      "started_at" => DateTime.from_naive!(c1.inserted_at, "Etc/UTC"),
                      "ended_at" => c1.ended_at
                    },
-                   "profile" => %{name: "mate", story: [], user_id: mate.user_id},
+                   "profile" => %{name: "mate", story: [], user_id: mate.id},
                    "session" => %{expires_at: ~U[2021-07-21 12:55:18Z], id: mate_session_id}
                  },
                  %{
@@ -156,7 +156,7 @@ defmodule TWeb.FeedChannelTest do
                      "id" => call_id2,
                      "started_at" => DateTime.from_naive!(c2.inserted_at, "Etc/UTC")
                    },
-                   "profile" => %{name: "mate", story: [], user_id: mate.user_id},
+                   "profile" => %{name: "mate", story: [], user_id: mate.id},
                    "session" => %{expires_at: ~U[2021-07-21 12:55:18Z], id: mate_session_id}
                  }
                ]
@@ -174,7 +174,7 @@ defmodule TWeb.FeedChannelTest do
                      "id" => call_id2,
                      "started_at" => DateTime.from_naive!(c2.inserted_at, "Etc/UTC")
                    },
-                   "profile" => %{name: "mate", story: [], user_id: mate.user_id},
+                   "profile" => %{name: "mate", story: [], user_id: mate.id},
                    "session" => %{expires_at: ~U[2021-07-21 12:55:18Z], id: mate_session_id}
                  }
                ]
@@ -187,7 +187,7 @@ defmodule TWeb.FeedChannelTest do
 
     test "creates new session", %{socket: socket, me: me} do
       ref = push(socket, "activate-session", %{"duration" => _minutes = 60})
-      assert_reply ref, :ok
+      assert_reply(ref, :ok)
       refute_receive _anything
 
       assert %ActiveSession{expires_at: expires_at} = Feeds.get_current_session(me.id)
@@ -197,14 +197,14 @@ defmodule TWeb.FeedChannelTest do
 
     test "prolongs prev session", %{socket: socket, me: me} do
       ref = push(socket, "activate-session", %{"duration" => _minutes = 20})
-      assert_reply ref, :ok
+      assert_reply(ref, :ok)
 
       assert %ActiveSession{flake: id, expires_at: expires_at} = Feeds.get_current_session(me.id)
       diff = DateTime.diff(expires_at, DateTime.utc_now())
       assert_in_delta diff, _20_minutes = 1200, 2
 
       ref = push(socket, "activate-session", %{"duration" => _minutes = 40})
-      assert_reply ref, :ok
+      assert_reply(ref, :ok)
       refute_receive _anything
 
       assert %ActiveSession{flake: ^id, expires_at: expires_at} = Feeds.get_current_session(me.id)
@@ -218,18 +218,18 @@ defmodule TWeb.FeedChannelTest do
 
     test "with active session", %{socket: socket} do
       ref = push(socket, "activate-session", %{"duration" => _minutes = 60})
-      assert_reply ref, :ok
+      assert_reply(ref, :ok)
       refute_receive _anything
 
       ref = push(socket, "deactivate-session")
-      assert_reply ref, :ok, reply
+      assert_reply(ref, :ok, reply)
       assert reply == %{"deactivated" => true}
       refute_receive _anything
     end
 
     test "without active session", %{socket: socket} do
       ref = push(socket, "deactivate-session")
-      assert_reply ref, :ok, reply
+      assert_reply(ref, :ok, reply)
       assert reply == %{"deactivated" => false}
       refute_receive _anything
     end
@@ -240,7 +240,7 @@ defmodule TWeb.FeedChannelTest do
 
     test "with no data in db", %{socket: socket} do
       ref = push(socket, "more")
-      assert_reply ref, :ok, reply
+      assert_reply(ref, :ok, reply)
       assert reply == %{"cursor" => nil, "feed" => []}
     end
 
@@ -248,29 +248,45 @@ defmodule TWeb.FeedChannelTest do
       insert_list(3, :profile)
 
       ref = push(socket, "more")
-      assert_reply ref, :ok, reply
+      assert_reply(ref, :ok, reply)
       assert reply == %{"cursor" => nil, "feed" => []}
     end
 
     test "with active users more than count", %{socket: socket} do
-      [p1, p2, p3] =
-        others =
-        insert_list(3, :profile, story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}])
+      [m1, m2, m3] =
+        others = [
+          onboarded_user(
+            name: "mate-1",
+            location: apple_location(),
+            story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}]
+          ),
+          onboarded_user(
+            name: "mate-2",
+            location: apple_location(),
+            story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}]
+          ),
+          onboarded_user(
+            name: "mate-3",
+            location: apple_location(),
+            story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}]
+          )
+        ]
 
       [%{flake: s1}, %{flake: s2}, %{flake: s3}] = activate_sessions(others, @reference)
 
       ref = push(socket, "more", %{"count" => 2})
-      assert_reply ref, :ok, %{"cursor" => cursor, "feed" => feed}
+      assert_reply(ref, :ok, %{"cursor" => cursor, "feed" => feed})
       assert is_binary(cursor)
 
       assert feed == [
                %{
+                 "distance" => 9510,
                  "session" => %{
                    id: s1,
                    expires_at: ~U[2021-07-21 12:55:18Z]
                  },
                  "profile" => %{
-                   name: nil,
+                   name: "mate-1",
                    story: [
                      %{
                        "background" => %{
@@ -281,16 +297,17 @@ defmodule TWeb.FeedChannelTest do
                        "labels" => []
                      }
                    ],
-                   user_id: p1.user_id
+                   user_id: m1.id
                  }
                },
                %{
+                 "distance" => 9510,
                  "session" => %{
                    id: s2,
                    expires_at: ~U[2021-07-21 12:55:18Z]
                  },
                  "profile" => %{
-                   name: nil,
+                   name: "mate-2",
                    story: [
                      %{
                        "background" => %{
@@ -301,26 +318,27 @@ defmodule TWeb.FeedChannelTest do
                        "labels" => []
                      }
                    ],
-                   user_id: p2.user_id
+                   user_id: m2.id
                  }
                }
              ]
 
       ref = push(socket, "more", %{"cursor" => cursor})
 
-      assert_reply ref, :ok, %{
+      assert_reply(ref, :ok, %{
         "cursor" => cursor,
         "feed" => feed
-      }
+      })
 
       assert feed == [
                %{
+                 "distance" => 9510,
                  "session" => %{
                    id: s3,
                    expires_at: ~U[2021-07-21 12:55:18Z]
                  },
                  "profile" => %{
-                   name: nil,
+                   name: "mate-3",
                    story: [
                      %{
                        "background" => %{
@@ -331,13 +349,13 @@ defmodule TWeb.FeedChannelTest do
                        "labels" => []
                      }
                    ],
-                   user_id: p3.user_id
+                   user_id: m3.id
                  }
                }
              ]
 
       ref = push(socket, "more", %{"cursor" => cursor})
-      assert_reply ref, :ok, %{"cursor" => ^cursor, "feed" => []}
+      assert_reply(ref, :ok, %{"cursor" => ^cursor, "feed" => []})
     end
   end
 
@@ -347,20 +365,22 @@ defmodule TWeb.FeedChannelTest do
     test "invited by active user", %{me: me, socket: socket} do
       %{flake: s1} = activate_session(me, @reference)
 
-      other = onboarded_user()
+      other = onboarded_user(location: [lat: 55.548964, lon: 35.007845])
       %{flake: s2} = activate_session(other, @reference)
 
       spawn(fn ->
         socket = connected_socket(other)
         {:ok, _reply, socket} = subscribe_and_join(socket, "feed:" <> other.id)
         ref = push(socket, "invite", %{"user_id" => me.id})
-        assert_reply ref, :ok, reply
+        assert_reply(ref, :ok, reply)
         assert reply == %{"invited" => true}
       end)
 
-      assert_push "activated", push
+      # me activated
+      assert_push("activated", push)
 
       assert push == %{
+               "distance" => 0,
                "session" => %{
                  id: s1,
                  expires_at: ~U[2021-07-21 12:55:18Z]
@@ -398,9 +418,11 @@ defmodule TWeb.FeedChannelTest do
                }
              }
 
-      assert_push "activated", push
+      assert_push("activated", push)
 
       assert push == %{
+               # mate activated
+               "distance" => 166,
                "session" => %{
                  id: s2,
                  expires_at: ~U[2021-07-21 12:55:18Z]
@@ -438,9 +460,10 @@ defmodule TWeb.FeedChannelTest do
                }
              }
 
-      assert_push "invite", push
+      assert_push("invite", push)
 
       assert push == %{
+               "distance" => 166,
                "session" => %{
                  id: s2,
                  expires_at: ~U[2021-07-21 12:55:18Z]
@@ -481,11 +504,12 @@ defmodule TWeb.FeedChannelTest do
       refute_receive _anything_else
 
       ref = push(socket, "invites")
-      assert_reply ref, :ok, reply
+      assert_reply(ref, :ok, reply)
 
       assert reply == %{
                "invites" => [
                  %{
+                   "distance" => 166,
                    "session" => %{
                      id: s2,
                      expires_at: ~U[2021-07-21 12:55:18Z]
@@ -531,13 +555,13 @@ defmodule TWeb.FeedChannelTest do
     setup [:joined, :activated]
 
     setup do
-      {:ok, mate: insert(:profile, story: [], hidden?: false)}
+      {:ok, mate: onboarded_user(name: "mate", gender: "F", location: apple_location())}
     end
 
     # mate doesn't have an active session, so they can't be called
     test "is not allowed", %{socket: socket, mate: mate} do
-      ref = push(socket, "call", %{"user_id" => mate.user_id})
-      assert_reply ref, :error, reply
+      ref = push(socket, "call", %{"user_id" => mate.id})
+      assert_reply(ref, :error, reply)
       assert reply == %{"reason" => "call not allowed"}
     end
   end
@@ -546,14 +570,15 @@ defmodule TWeb.FeedChannelTest do
     setup [:joined, :activated]
 
     setup do
-      {:ok, mate: insert(:profile, story: [], hidden?: false)}
+      {:ok,
+       mate: onboarded_user(name: "mate", story: [], gender: "F", location: apple_location())}
     end
 
     setup :activated_mate
 
     test "missing invite", %{socket: socket, mate: mate} do
-      ref = push(socket, "call", %{"user_id" => mate.user_id})
-      assert_reply ref, :error, reply
+      ref = push(socket, "call", %{"user_id" => mate.id})
+      assert_reply(ref, :error, reply)
       assert reply == %{"reason" => "call not allowed"}
     end
 
@@ -565,21 +590,21 @@ defmodule TWeb.FeedChannelTest do
     } do
       # mate invites us
       ref = push(mate_socket, "invite", %{"user_id" => me.id})
-      assert_reply ref, :ok, reply
+      assert_reply(ref, :ok, reply)
       assert reply == %{"invited" => true}
 
       # current user receives invite
-      assert_push "invite", %{
+      assert_push("invite", %{
         "profile" => profile,
         "session" => %{expires_at: %DateTime{}, id: _session_id}
-      }
+      })
 
-      assert profile == %{name: nil, story: [], user_id: mate.user_id}
+      assert profile == %{name: "mate", story: [], user_id: mate.id}
       refute_receive _anything_else
 
       # call still fails since mate is missing pushkit devices
-      ref = push(socket, "call", %{"user_id" => mate.user_id})
-      assert_reply ref, :error, reply
+      ref = push(socket, "call", %{"user_id" => mate.id})
+      assert_reply(ref, :error, reply)
       assert reply == %{"reason" => "no pushkit devices available"}
     end
 
@@ -593,7 +618,7 @@ defmodule TWeb.FeedChannelTest do
       # store some apns devices for mate
       :ok =
         Accounts.save_pushkit_device_id(
-          mate.user_id,
+          mate.id,
           mate_token,
           Base.decode16!("ABABABAB"),
           env: "prod"
@@ -601,8 +626,8 @@ defmodule TWeb.FeedChannelTest do
 
       :ok =
         Accounts.save_pushkit_device_id(
-          mate.user_id,
-          mate.user
+          mate.id,
+          mate
           |> Accounts.generate_user_session_token("mobile")
           |> Accounts.UserToken.encoded_token(),
           Base.decode16!("BABABABABA"),
@@ -611,10 +636,10 @@ defmodule TWeb.FeedChannelTest do
 
       # mate invites us
       ref = push(mate_socket, "invite", %{"user_id" => me.id})
-      assert_reply ref, :ok, _reply
+      assert_reply(ref, :ok, _reply)
 
       # current user receives invite
-      assert_push "invite", _push
+      assert_push("invite", _push)
 
       MockAPNS
       # ABABABAB on prod -> fails!
@@ -641,8 +666,8 @@ defmodule TWeb.FeedChannelTest do
       end)
 
       # call still can fail if apns requests fail
-      ref = push(socket, "call", %{"user_id" => mate.user_id})
-      assert_reply ref, :error, reply
+      ref = push(socket, "call", %{"user_id" => mate.id})
+      assert_reply(ref, :error, reply)
       assert reply == %{"reason" => "all pushes failed"}
     end
   end
@@ -651,7 +676,7 @@ defmodule TWeb.FeedChannelTest do
     setup [:joined, :activated]
 
     setup do
-      {:ok, mate: insert(:profile, story: [], hidden?: false)}
+      {:ok, mate: onboarded_user(story: [], location: apple_location(), name: "mate")}
     end
 
     setup :activated_mate
@@ -661,7 +686,7 @@ defmodule TWeb.FeedChannelTest do
 
       :ok =
         Accounts.save_pushkit_device_id(
-          mate.user_id,
+          mate.id,
           mate_token,
           Base.decode16!("ABABABAB"),
           env: "prod"
@@ -669,8 +694,8 @@ defmodule TWeb.FeedChannelTest do
 
       :ok =
         Accounts.save_pushkit_device_id(
-          mate.user_id,
-          mate.user
+          mate.id,
+          mate
           |> Accounts.generate_user_session_token("mobile")
           |> Accounts.UserToken.encoded_token(),
           Base.decode16!("BABABABABA"),
@@ -686,10 +711,10 @@ defmodule TWeb.FeedChannelTest do
     } do
       # mate invites us
       ref = push(mate_socket, "invite", %{"user_id" => me.id})
-      assert_reply ref, :ok, _reply
+      assert_reply(ref, :ok, _reply)
 
       # current user receives invite
-      assert_push "invite", _push
+      assert_push("invite", _push)
 
       MockAPNS
       # ABABABAB on prod -> fails!
@@ -702,15 +727,15 @@ defmodule TWeb.FeedChannelTest do
       end)
 
       # call succeeds
-      ref = push(socket, "call", %{"user_id" => mate.user_id})
-      assert_reply ref, :ok, %{"call_id" => call_id}
+      ref = push(socket, "call", %{"user_id" => mate.id})
+      assert_reply(ref, :ok, %{"call_id" => call_id})
 
       assert %Call{id: ^call_id} = call = Repo.get!(Calls.Call, call_id)
 
       refute call.ended_at
       refute call.accepted_at
       assert call.caller_id == me.id
-      assert call.called_id == mate.user_id
+      assert call.called_id == mate.id
     end
 
     test "when missed mate's call", %{
@@ -731,8 +756,8 @@ defmodule TWeb.FeedChannelTest do
         )
 
       # we invite mate
-      ref = push(socket, "invite", %{"user_id" => mate.user_id})
-      assert_reply ref, :ok, _reply
+      ref = push(socket, "invite", %{"user_id" => mate.id})
+      assert_reply(ref, :ok, _reply)
 
       # ABCBABCA on prod -> success
       expect(MockAPNS, :push, fn [%Notification{} = n], :prod ->
@@ -741,7 +766,7 @@ defmodule TWeb.FeedChannelTest do
 
       # mate calls us
       ref = push(mate_socket, "call", %{"user_id" => me.id})
-      assert_reply ref, :ok, %{"call_id" => call_id}
+      assert_reply(ref, :ok, %{"call_id" => call_id})
 
       # mate joins call channel and waits
       {:ok, reply, mate_socket} = join(mate_socket, "call:" <> call_id)
@@ -778,7 +803,7 @@ defmodule TWeb.FeedChannelTest do
 
       # and then hangs up
       ref = push(mate_socket, "hang-up")
-      assert_reply ref, :ok, _reply
+      assert_reply(ref, :ok, _reply)
 
       # we missed the call but we can call now
 
@@ -794,15 +819,15 @@ defmodule TWeb.FeedChannelTest do
       end)
 
       # call succeeds
-      ref = push(socket, "call", %{"user_id" => mate.user_id})
-      assert_reply ref, :ok, %{"call_id" => call_id2}
+      ref = push(socket, "call", %{"user_id" => mate.id})
+      assert_reply(ref, :ok, %{"call_id" => call_id2})
 
       # it's a new call
       refute call_id2 == call_id
     end
 
     test "when matched with mate", %{me: me, mate: mate, socket: socket} do
-      insert(:match, user_id_1: me.id, user_id_2: mate.user_id)
+      insert(:match, user_id_1: me.id, user_id_2: mate.id)
 
       # these are the pushes sent to mate
       MockAPNS
@@ -815,15 +840,15 @@ defmodule TWeb.FeedChannelTest do
         [%Notification{n | response: :bad_device_token}]
       end)
 
-      ref = push(socket, "call", %{"user_id" => mate.user_id})
-      assert_reply ref, :ok, %{"call_id" => call_id}
+      ref = push(socket, "call", %{"user_id" => mate.id})
+      assert_reply(ref, :ok, %{"call_id" => call_id})
 
       assert %Call{id: ^call_id} = call = Repo.get!(Calls.Call, call_id)
 
       refute call.ended_at
       refute call.accepted_at
       assert call.caller_id == me.id
-      assert call.called_id == mate.user_id
+      assert call.called_id == mate.id
     end
   end
 
@@ -831,7 +856,7 @@ defmodule TWeb.FeedChannelTest do
     setup :joined
 
     setup do
-      {:ok, mate: insert(:profile, story: [], hidden?: false)}
+      {:ok, mate: onboarded_user(story: [], location: apple_location(), name: "mate")}
     end
 
     setup :joined_mate
@@ -844,12 +869,12 @@ defmodule TWeb.FeedChannelTest do
     } do
       # mate likes us
       ref = push(mate_socket, "like", %{"user_id" => me.id})
-      assert_reply ref, :ok, reply
+      assert_reply(ref, :ok, reply)
       assert reply == %{}
 
       # now it's our turn
-      ref = push(socket, "like", %{"user_id" => mate.user_id})
-      assert_reply ref, :ok, %{"match_id" => match_id}
+      ref = push(socket, "like", %{"user_id" => mate.id})
+      assert_reply(ref, :ok, %{"match_id" => match_id})
       assert is_binary(match_id)
     end
 
@@ -860,21 +885,21 @@ defmodule TWeb.FeedChannelTest do
       mate_socket: mate_socket
     } do
       # we like mate
-      ref = push(socket, "like", %{"user_id" => mate.user_id})
-      assert_reply ref, :ok, reply
+      ref = push(socket, "like", %{"user_id" => mate.id})
+      assert_reply(ref, :ok, reply)
       assert reply == %{}
 
       # now mate likes us
       ref = push(mate_socket, "like", %{"user_id" => me.id})
-      assert_reply ref, :ok, %{"match_id" => match_id}
+      assert_reply(ref, :ok, %{"match_id" => match_id})
       assert is_binary(match_id)
 
-      assert_push "matched", push
+      assert_push("matched", push)
 
       assert push == %{
                "match" => %{
                  "id" => match_id,
-                 "profile" => %{name: nil, story: [], user_id: mate.user_id}
+                 "profile" => %{name: "mate", story: [], user_id: mate.id}
                }
              }
     end
@@ -885,8 +910,8 @@ defmodule TWeb.FeedChannelTest do
     setup :joined
 
     setup %{me: me} do
-      mate = insert(:profile, story: [], hidden?: false)
-      match = insert(:match, user_id_1: me.id, user_id_2: mate.user_id)
+      mate = onboarded_user(story: [], location: apple_location(), name: "mate")
+      match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
 
       # if it's 14:47 right now, then the slots are
       %DateTime{hour: next_hour} = dt = DateTime.utc_now() |> DateTime.add(_seconds = 3600)
@@ -913,24 +938,24 @@ defmodule TWeb.FeedChannelTest do
           "slots" => Enum.map(slots, &DateTime.to_iso8601/1)
         })
 
-      assert_reply ref, :ok, %{}
+      assert_reply(ref, :ok, %{})
 
       # mate received slots
-      assert_push "slots_offer", push
+      assert_push("slots_offer", push)
       assert push == %{"match_id" => match.id, "slots" => slots}
     end
 
     test "with user_id", %{slots: slots, mate: mate, match: match, socket: socket} do
       ref =
         push(socket, "offer-slots", %{
-          "user_id" => mate.user_id,
+          "user_id" => mate.id,
           "slots" => Enum.map(slots, &DateTime.to_iso8601/1)
         })
 
-      assert_reply ref, :ok, %{}
+      assert_reply(ref, :ok, %{})
 
       # mate received slots
-      assert_push "slots_offer", push
+      assert_push("slots_offer", push)
       assert push == %{"match_id" => match.id, "slots" => slots}
     end
   end
@@ -939,13 +964,13 @@ defmodule TWeb.FeedChannelTest do
     setup :joined
 
     setup do
-      {:ok, mate: insert(:profile, story: [], hidden?: false)}
+      {:ok, mate: onboarded_user(story: [], location: apple_location(), name: "mate")}
     end
 
     @tag skip: true
     test "when no match exists", %{socket: socket, mate: mate} do
       Process.flag(:trap_exit, true)
-      push(socket, "offer-slots", %{"user_id" => mate.user_id, "slots" => []})
+      push(socket, "offer-slots", %{"user_id" => mate.id, "slots" => []})
       assert_receive {:EXIT, _pid, {%Ecto.NoResultsError{}, _stacktrace}}
     end
   end
@@ -954,8 +979,8 @@ defmodule TWeb.FeedChannelTest do
     setup :joined
 
     setup %{me: me} do
-      mate = insert(:profile, story: [], hidden?: false)
-      match = insert(:match, user_id_1: me.id, user_id_2: mate.user_id)
+      mate = onboarded_user(story: [], location: apple_location(), name: "mate")
+      match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
 
       # if it's 14:47 right now, then the slots are
       %DateTime{hour: prev_hour} = dt = DateTime.utc_now() |> DateTime.add(_seconds = -3600)
@@ -977,18 +1002,18 @@ defmodule TWeb.FeedChannelTest do
 
     test "with match_id", %{slots: slots, match: match, socket: socket} do
       ref = push(socket, "offer-slots", %{"match_id" => match.id, "slots" => []})
-      assert_reply ref, :error, %{slots: ["should have at least 1 item(s)"]}
+      assert_reply(ref, :error, %{slots: ["should have at least 1 item(s)"]})
 
       ref = push(socket, "offer-slots", %{"match_id" => match.id, "slots" => slots})
-      assert_reply ref, :error, %{slots: ["should have at least 1 item(s)"]}
+      assert_reply(ref, :error, %{slots: ["should have at least 1 item(s)"]})
     end
 
     test "with user_id", %{slots: slots, mate: mate, socket: socket} do
-      ref = push(socket, "offer-slots", %{"user_id" => mate.user_id, "slots" => []})
-      assert_reply ref, :error, %{slots: ["should have at least 1 item(s)"]}
+      ref = push(socket, "offer-slots", %{"user_id" => mate.id, "slots" => []})
+      assert_reply(ref, :error, %{slots: ["should have at least 1 item(s)"]})
 
-      ref = push(socket, "offer-slots", %{"user_id" => mate.user_id, "slots" => slots})
-      assert_reply ref, :error, %{slots: ["should have at least 1 item(s)"]}
+      ref = push(socket, "offer-slots", %{"user_id" => mate.id, "slots" => slots})
+      assert_reply(ref, :error, %{slots: ["should have at least 1 item(s)"]})
     end
   end
 
@@ -998,8 +1023,8 @@ defmodule TWeb.FeedChannelTest do
     setup :joined
 
     setup %{me: me} do
-      mate = insert(:profile, story: [], hidden?: false)
-      match = insert(:match, user_id_1: me.id, user_id_2: mate.user_id)
+      mate = onboarded_user(story: [], location: apple_location(), name: "mate")
+      match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
       {:ok, mate: mate, match: match}
     end
 
@@ -1023,10 +1048,10 @@ defmodule TWeb.FeedChannelTest do
       iso_slots = Enum.map(slots, &DateTime.to_iso8601/1)
 
       ref = push(mate_socket, "offer-slots", %{"match_id" => match.id, "slots" => iso_slots})
-      assert_reply ref, :ok, _reply
+      assert_reply(ref, :ok, _reply)
 
       # we get slots_offer
-      assert_push "slots_offer", push
+      assert_push("slots_offer", push)
       assert push == %{"match_id" => match.id, "slots" => slots}
       refute_receive _anything_else
 
@@ -1036,7 +1061,7 @@ defmodule TWeb.FeedChannelTest do
     test "with match_id", %{slots: [_s1, s2, _s3] = slots, match: match, socket: socket, me: me} do
       iso_slot = DateTime.to_iso8601(s2)
       ref = push(socket, "pick-slot", %{"match_id" => match.id, "slot" => iso_slot})
-      assert_reply ref, :ok, _reply
+      assert_reply(ref, :ok, _reply)
 
       assert %Timeslot{} = timeslot = Repo.get_by(Timeslot, match_id: match.id)
       assert timeslot.picker_id == me.id
@@ -1044,7 +1069,7 @@ defmodule TWeb.FeedChannelTest do
       assert timeslot.selected_slot == s2
 
       # mate gets a slot_accepted notification
-      assert_push "slot_accepted", push
+      assert_push("slot_accepted", push)
       assert push == %{"match_id" => match.id, "selected_slot" => s2}
     end
 
@@ -1056,8 +1081,8 @@ defmodule TWeb.FeedChannelTest do
       me: me
     } do
       iso_slot = DateTime.to_iso8601(s2)
-      ref = push(socket, "pick-slot", %{"user_id" => mate.user_id, "slot" => iso_slot})
-      assert_reply ref, :ok, _reply
+      ref = push(socket, "pick-slot", %{"user_id" => mate.id, "slot" => iso_slot})
+      assert_reply(ref, :ok, _reply)
 
       assert %Timeslot{} = timeslot = Repo.get_by(Timeslot, match_id: match.id)
       assert timeslot.picker_id == me.id
@@ -1065,25 +1090,25 @@ defmodule TWeb.FeedChannelTest do
       assert timeslot.selected_slot == s2
 
       # mate gets a slot_accepted notification
-      assert_push "slot_accepted", push
+      assert_push("slot_accepted", push)
       assert push == %{"match_id" => match.id, "selected_slot" => s2}
     end
 
     test "repick", %{slots: [s1, s2, _s3] = slots, match: match, socket: socket, me: me} do
       iso_slot = DateTime.to_iso8601(s2)
       ref = push(socket, "pick-slot", %{"match_id" => match.id, "slot" => iso_slot})
-      assert_reply ref, :ok, _reply
+      assert_reply(ref, :ok, _reply)
 
       # mate first gets second slot
-      assert_push "slot_accepted", push
+      assert_push("slot_accepted", push)
       assert push == %{"match_id" => match.id, "selected_slot" => s2}
 
       iso_slot = DateTime.to_iso8601(s1)
       ref = push(socket, "pick-slot", %{"match_id" => match.id, "slot" => iso_slot})
-      assert_reply ref, :ok, _reply
+      assert_reply(ref, :ok, _reply)
 
       # then mate gets first slot
-      assert_push "slot_accepted", push
+      assert_push("slot_accepted", push)
       assert push == %{"match_id" => match.id, "selected_slot" => s1}
 
       assert %Timeslot{} = timeslot = Repo.get_by(Timeslot, match_id: match.id)
@@ -1098,8 +1123,8 @@ defmodule TWeb.FeedChannelTest do
     setup :joined
 
     setup %{me: me} do
-      mate = insert(:profile, story: [], hidden?: false)
-      match = insert(:match, user_id_1: me.id, user_id_2: mate.user_id)
+      mate = onboarded_user(story: [], location: apple_location(), name: "mate")
+      match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
       {:ok, mate: mate, match: match}
     end
 
@@ -1124,20 +1149,20 @@ defmodule TWeb.FeedChannelTest do
       iso_slots = Enum.map(slots, &DateTime.to_iso8601/1)
 
       ref = push(mate_socket, "offer-slots", %{"match_id" => match.id, "slots" => iso_slots})
-      assert_reply ref, :ok, _reply
+      assert_reply(ref, :ok, _reply)
 
       # we get slots_offer
-      assert_push "slots_offer", push
+      assert_push("slots_offer", push)
       assert push == %{"match_id" => match.id, "slots" => slots}
       refute_receive _anything_else
 
       # we accept seocnd slot
       iso_slot = DateTime.to_iso8601(s2)
-      ref = push(socket, "pick-slot", %{"user_id" => mate.user_id, "slot" => iso_slot})
-      assert_reply ref, :ok, _reply
+      ref = push(socket, "pick-slot", %{"user_id" => mate.id, "slot" => iso_slot})
+      assert_reply(ref, :ok, _reply)
 
       # mate gets a slot_accepted notification
-      assert_push "slot_accepted", push
+      assert_push("slot_accepted", push)
       assert push == %{"match_id" => match.id, "selected_slot" => s2}
 
       {:ok, slots: slots}
@@ -1145,10 +1170,10 @@ defmodule TWeb.FeedChannelTest do
 
     test "with match_id", %{socket: socket, match: match} do
       ref = push(socket, "cancel-slot", %{"match_id" => match.id})
-      assert_reply ref, :ok, _reply
+      assert_reply(ref, :ok, _reply)
 
       # mate gets slot_cancelled notification
-      assert_push "slot_cancelled", push
+      assert_push("slot_cancelled", push)
       assert push == %{"match_id" => match.id}
 
       # timeslot is reset
@@ -1156,11 +1181,11 @@ defmodule TWeb.FeedChannelTest do
     end
 
     test "with user_id", %{socket: socket, match: match, mate: mate} do
-      ref = push(socket, "cancel-slot", %{"user_id" => mate.user_id})
-      assert_reply ref, :ok, _reply
+      ref = push(socket, "cancel-slot", %{"user_id" => mate.id})
+      assert_reply(ref, :ok, _reply)
 
       # mate gets slot_cancelled notification
-      assert_push "slot_cancelled", push
+      assert_push("slot_cancelled", push)
       assert push == %{"match_id" => match.id}
 
       # timeslot is reset
@@ -1172,7 +1197,7 @@ defmodule TWeb.FeedChannelTest do
     setup :joined
 
     setup do
-      {:ok, mate: insert(:profile, story: [], hidden?: false)}
+      {:ok, mate: onboarded_user(story: [], location: apple_location(), name: "mate")}
     end
 
     setup :joined_mate
@@ -1181,33 +1206,33 @@ defmodule TWeb.FeedChannelTest do
     setup %{me: me, socket: socket, mate: mate, mate_socket: mate_socket} do
       # mate likes us
       ref = push(mate_socket, "like", %{"user_id" => me.id})
-      assert_reply ref, :ok, reply
+      assert_reply(ref, :ok, reply)
       assert reply == %{}
 
       # now it's our turn
-      ref = push(socket, "like", %{"user_id" => mate.user_id})
-      assert_reply ref, :ok, %{"match_id" => match_id}
+      ref = push(socket, "like", %{"user_id" => mate.id})
+      assert_reply(ref, :ok, %{"match_id" => match_id})
 
       {:ok, match_id: match_id}
     end
 
     test "with match_id", %{socket: socket, match_id: match_id} do
       ref = push(socket, "unmatch", %{"match_id" => match_id})
-      assert_reply ref, :ok, %{"unmatched?" => true}
+      assert_reply(ref, :ok, %{"unmatched?" => true})
 
       # mate gets unmatched message
-      assert_push "unmatched", push
+      assert_push("unmatched", push)
       assert push == %{"match_id" => match_id}
 
       refute Repo.get(Match, match_id)
     end
 
     test "with user_id", %{socket: socket, mate: mate, match_id: match_id} do
-      ref = push(socket, "unmatch", %{"user_id" => mate.user_id})
-      assert_reply ref, :ok, %{"unmatched?" => true}
+      ref = push(socket, "unmatch", %{"user_id" => mate.id})
+      assert_reply(ref, :ok, %{"unmatched?" => true})
 
       # mate gets unmatched message
-      assert_push "unmatched", push
+      assert_push("unmatched", push)
       assert push == %{"match_id" => match_id}
 
       refute Repo.get(Match, match_id)
@@ -1218,7 +1243,7 @@ defmodule TWeb.FeedChannelTest do
     setup :joined
 
     setup do
-      {:ok, mate: insert(:profile, story: [], hidden?: false)}
+      {:ok, mate: onboarded_user(story: [], location: apple_location(), name: "mate")}
     end
 
     setup :joined_mate
@@ -1226,16 +1251,15 @@ defmodule TWeb.FeedChannelTest do
     test "reports mate", %{socket: socket, mate: mate, me: me} do
       ref =
         push(socket, "report", %{
-          "user_id" => mate.user_id,
+          "user_id" => mate.id,
           "reason" => "he don't believe in jesus"
         })
 
-      assert_reply ref, :ok, _reply
+      assert_reply(ref, :ok, _reply)
       refute_receive _anything_else
 
       assert %Accounts.UserReport{} =
-               report =
-               Repo.get_by(Accounts.UserReport, from_user_id: me.id, on_user_id: mate.user_id)
+               report = Repo.get_by(Accounts.UserReport, from_user_id: me.id, on_user_id: mate.id)
 
       assert report.reason == "he don't believe in jesus"
     end
@@ -1245,8 +1269,8 @@ defmodule TWeb.FeedChannelTest do
     setup :joined
 
     setup %{me: me} do
-      mate = insert(:profile, story: [], hidden?: false)
-      match = insert(:match, user_id_1: me.id, user_id_2: mate.user_id)
+      mate = onboarded_user(story: [], location: apple_location(), name: "mate")
+      match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
       {:ok, mate: mate, match: match}
     end
 
@@ -1260,19 +1284,18 @@ defmodule TWeb.FeedChannelTest do
     } do
       ref =
         push(socket, "report", %{
-          "user_id" => mate.user_id,
+          "user_id" => mate.id,
           "reason" => "he don't believe in jesus"
         })
 
-      assert_reply ref, :ok, _reply
+      assert_reply(ref, :ok, _reply)
 
       # mate gets unmatch message
-      assert_push "unmatched", push
+      assert_push("unmatched", push)
       assert push == %{"match_id" => match.id}
 
       assert %Accounts.UserReport{} =
-               report =
-               Repo.get_by(Accounts.UserReport, from_user_id: me.id, on_user_id: mate.user_id)
+               report = Repo.get_by(Accounts.UserReport, from_user_id: me.id, on_user_id: mate.id)
 
       assert report.reason == "he don't believe in jesus"
     end
@@ -1285,33 +1308,33 @@ defmodule TWeb.FeedChannelTest do
 
   defp activated(%{socket: socket}) do
     ref = push(socket, "activate-session", %{"duration" => 60})
-    assert_reply ref, :ok, _reply
+    assert_reply(ref, :ok, _reply)
     :ok
   end
 
   defp joined_mate(%{mate: mate}) do
-    socket = connected_socket(mate.user)
-    {:ok, _reply, socket} = join(socket, "feed:" <> mate.user_id)
+    socket = connected_socket(mate)
+    {:ok, _reply, socket} = join(socket, "feed:" <> mate.id)
     {:ok, mate_socket: socket}
   end
 
   defp activated_mate(%{mate: mate}) do
-    socket = connected_socket(mate.user)
-    {:ok, reply, socket} = join(socket, "feed:" <> mate.user_id)
+    socket = connected_socket(mate)
+    {:ok, reply, socket} = join(socket, "feed:" <> mate.id)
 
     # mate has no active session, so needs to activate one
     assert reply == %{}
 
     ref = push(socket, "activate-session", %{"duration" => _minutes = 60})
-    assert_reply ref, :ok, _reply
+    assert_reply(ref, :ok, _reply)
 
     # our user receives "activated" event
-    assert_push "activated", %{
+    assert_push("activated", %{
       "profile" => profile,
       "session" => %{expires_at: %DateTime{}, id: _session_id}
-    }
+    })
 
-    assert profile == %{name: nil, story: [], user_id: mate.user_id}
+    assert profile.user_id == mate.id
     refute_receive _anything_else
 
     {:ok, mate_socket: socket}

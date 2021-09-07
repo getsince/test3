@@ -3,6 +3,7 @@ defmodule T.Feeds do
 
   import Ecto.Query
   import Ecto.Changeset
+  import Geo.PostGIS
 
   require Logger
 
@@ -144,6 +145,15 @@ defmodule T.Feeds do
 
   ### Invites
 
+  defmacrop distance_km(location1, location2) do
+    quote do
+      fragment(
+        "round(? / 1000)::int",
+        st_distance_in_meters(unquote(location1), unquote(location2))
+      )
+    end
+  end
+
   @spec invite_active_user(Ecto.UUID.t(), Ecto.UUID.t()) :: boolean
   def invite_active_user(by_user_id, user_id) do
     Logger.warn("user #{by_user_id} invited #{user_id}")
@@ -160,15 +170,15 @@ defmodule T.Feeds do
   end
 
   # TODO accept cursor
-  @spec list_received_invites(Ecto.UUID.t()) :: [feed_item]
-  def list_received_invites(user_id) do
+  @spec list_received_invites(Ecto.UUID.t(), Geo.Point.t()) :: [feed_item]
+  def list_received_invites(user_id, location) do
     profiles_q = not_reported_profiles_q(user_id)
 
     Calls.Invite
     |> where(user_id: ^user_id)
     |> join(:inner, [i], s in ActiveSession, on: i.by_user_id == s.user_id)
     |> join(:inner, [..., s], p in subquery(profiles_q), on: p.user_id == s.user_id)
-    |> select([i, s, p], {p, s})
+    |> select([i, s, p], {p, s, distance_km(^location, p.location)})
     |> Repo.all()
   end
 
@@ -211,23 +221,23 @@ defmodule T.Feeds do
   ### Feed
 
   @type feed_cursor :: String.t()
-  @type feed_item :: {%FeedProfile{}, %ActiveSession{}}
+  @type feed_item :: {%FeedProfile{}, %ActiveSession{}, distance_km :: non_neg_integer}
 
-  @spec fetch_feed(Ecto.UUID.t(), [String.t()], pos_integer, feed_cursor | nil) ::
+  @spec fetch_feed(Ecto.UUID.t(), Geo.Point.t(), [String.t()], pos_integer, feed_cursor | nil) ::
           {[feed_item], feed_cursor}
-  def fetch_feed(user_id, gender_preferences, count, feed_cursor) do
+  def fetch_feed(user_id, location, gender_preferences, count, feed_cursor) do
     profiles_q = filtered_profiles_q(user_id, gender_preferences)
 
     feed_items =
       active_sessions_q(user_id, feed_cursor)
       |> join(:inner, [s], p in subquery(profiles_q), on: s.user_id == p.user_id)
       |> limit(^count)
-      |> select([s, p], {p, s})
+      |> select([s, p], {p, s, distance_km(^location, p.location)})
       |> Repo.all()
 
     feed_cursor =
       if last = List.last(feed_items) do
-        {_feed_profile, %ActiveSession{flake: last_flake}} = last
+        {_feed_profile, %ActiveSession{flake: last_flake}, _distance} = last
         last_flake
       else
         feed_cursor
@@ -236,8 +246,8 @@ defmodule T.Feeds do
     {feed_items, feed_cursor}
   end
 
-  @spec get_feed_item(Ecto.UUID.t(), Ecto.UUID.t()) :: feed_item | nil
-  def get_feed_item(by_user_id, user_id) do
+  @spec get_feed_item(Ecto.UUID.t(), Geo.Point.t() | nil, Ecto.UUID.t()) :: feed_item | nil
+  def get_feed_item(by_user_id, location, user_id) do
     p =
       by_user_id
       |> not_reported_profiles_q()
@@ -246,7 +256,7 @@ defmodule T.Feeds do
     ActiveSession
     |> where(user_id: ^user_id)
     |> join(:inner, [s], p in subquery(p), on: true)
-    |> select([s, p], {p, s})
+    |> select([s, p], {p, s, distance_km(^location, p.location)})
     |> Repo.one()
   end
 

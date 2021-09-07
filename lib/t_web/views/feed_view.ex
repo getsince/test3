@@ -7,10 +7,17 @@ defmodule TWeb.FeedView do
     render_profile(profile, [:user_id, :name, :story], screen_width)
   end
 
-  def render("feed_item.json", %{profile: profile, session: session, screen_width: screen_width}) do
+  def render("feed_item.json", %{
+        profile: profile,
+        session: session,
+        screen_width: screen_width,
+        distance: distance
+      })
+      when not is_nil(distance) do
     %{
       "profile" => render_profile(profile, [:user_id, :name, :story], screen_width),
-      "session" => render_session(session)
+      "session" => render_session(session),
+      "distance" => distance
     }
   end
 

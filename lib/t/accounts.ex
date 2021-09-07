@@ -650,6 +650,13 @@ defmodule T.Accounts do
     )
   end
 
+  def get_location!(user_id) do
+    Profile
+    |> where(user_id: ^user_id)
+    |> select([p], p.location)
+    |> Repo.one!()
+  end
+
   def list_gender_preferences(user_id) do
     GenderPreference
     |> where(user_id: ^user_id)

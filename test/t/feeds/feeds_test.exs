@@ -116,59 +116,64 @@ defmodule T.FeedsTest do
 
   describe "deactivate_session/1" do
     setup do
-      [p1, p2] = profiles = insert_list(2, :profile)
+      [u1, u2] =
+        users = [
+          onboarded_user(location: moscow_location()),
+          onboarded_user(location: apple_location())
+        ]
 
-      :ok = Feeds.subscribe_for_invites(p1.user_id)
-      :ok = Feeds.subscribe_for_invites(p2.user_id)
+      :ok = Feeds.subscribe_for_invites(u1.id)
+      :ok = Feeds.subscribe_for_invites(u2.id)
 
-      {:ok, profiles: profiles}
+      {:ok, users: users}
     end
 
-    test "invites are cleared when session is deactivated for inviter", %{profiles: [p1, p2]} do
-      Feeds.activate_session(p1.user_id, 60, @reference)
-      Feeds.activate_session(p2.user_id, 60, @reference)
+    test "invites are cleared when session is deactivated for inviter", %{users: [u1, u2]} do
+      Feeds.activate_session(u1.id, 60, @reference)
+      Feeds.activate_session(u2.id, 60, @reference)
 
-      assert true == Feeds.invite_active_user(p1.user_id, p2.user_id)
+      assert true == Feeds.invite_active_user(u1.id, u2.id)
 
       assert [
                {%FeedProfile{} = feed_profile,
-                %ActiveSession{expires_at: ~U[2021-07-21 12:55:18Z]}}
-             ] = Feeds.list_received_invites(p2.user_id)
+                %ActiveSession{expires_at: ~U[2021-07-21 12:55:18Z]}, _distance_km = 9510}
+             ] = Feeds.list_received_invites(u2.id, u2.profile.location)
 
-      assert feed_profile.user_id == p1.user_id
+      assert feed_profile.user_id == u1.id
 
-      assert true == Feeds.deactivate_session(p1.user_id)
-      assert [] == Feeds.list_received_invites(p2.user_id)
+      assert true == Feeds.deactivate_session(u1.id)
+      assert [] == Feeds.list_received_invites(u2.id, u2.profile.location)
     end
 
-    test "invites are cleared when session is deactivated for invitee", %{profiles: [p1, p2]} do
-      Feeds.activate_session(p1.user_id, 60, @reference)
-      Feeds.activate_session(p2.user_id, 60, @reference)
+    test "invites are cleared when session is deactivated for invitee", %{users: [u1, u2]} do
+      Feeds.activate_session(u1.id, 60, @reference)
+      Feeds.activate_session(u2.id, 60, @reference)
 
-      assert true == Feeds.invite_active_user(p1.user_id, p2.user_id)
+      assert true == Feeds.invite_active_user(u1.id, u2.id)
 
       assert [
                {%FeedProfile{} = feed_profile,
-                %ActiveSession{expires_at: ~U[2021-07-21 12:55:18Z]}}
-             ] = Feeds.list_received_invites(p2.user_id)
+                %ActiveSession{expires_at: ~U[2021-07-21 12:55:18Z]}, _distance_km = 9510}
+             ] = Feeds.list_received_invites(u2.id, u2.profile.location)
 
-      assert feed_profile.user_id == p1.user_id
+      assert feed_profile.user_id == u1.id
 
-      assert true == Feeds.deactivate_session(p2.user_id)
-      assert [] == Feeds.list_received_invites(p2.user_id)
+      assert true == Feeds.deactivate_session(u2.id)
+      assert [] == Feeds.list_received_invites(u2.id, u2.profile.location)
     end
   end
 
   describe "fetch_feed/3" do
     setup do
-      me = insert(:profile)
+      me = onboarded_user(location: moscow_location())
       {:ok, me: me}
     end
 
     test "with no data in db", %{me: me} do
       assert {[], nil} ==
                Feeds.fetch_feed(
-                 me.user_id,
+                 me.id,
+                 me.profile.location,
                  _gender_preference = ["F"],
                  _count = 10,
                  _cursor = nil
@@ -180,7 +185,8 @@ defmodule T.FeedsTest do
 
       assert {[], nil} ==
                Feeds.fetch_feed(
-                 me.user_id,
+                 me.id,
+                 me.profile.location,
                  _gender_preference = ["F"],
                  _count = 10,
                  _cursor = nil
@@ -193,7 +199,8 @@ defmodule T.FeedsTest do
 
       assert {[], nil} ==
                Feeds.fetch_feed(
-                 me.user_id,
+                 me.id,
+                 me.profile.location,
                  _gender_preference = ["F"],
                  _count = 10,
                  _cursor = nil
@@ -201,69 +208,96 @@ defmodule T.FeedsTest do
     end
 
     test "with active users fewer than count", %{me: me} do
-      others = insert_list(3, :profile, gender: "F")
+      others = Enum.map(1..3, fn _ -> onboarded_user(gender: "F", location: apple_location()) end)
       activate_sessions(others, @reference)
 
       assert {[
-                {%FeedProfile{}, %ActiveSession{expires_at: ~U[2021-07-21 12:55:18Z]}},
-                {%FeedProfile{}, %ActiveSession{expires_at: ~U[2021-07-21 12:55:18Z]}},
+                {%FeedProfile{}, %ActiveSession{expires_at: ~U[2021-07-21 12:55:18Z]},
+                 _distance = 9510},
+                {%FeedProfile{}, %ActiveSession{expires_at: ~U[2021-07-21 12:55:18Z]}, 9510},
                 {%FeedProfile{},
-                 %ActiveSession{flake: cursor, expires_at: ~U[2021-07-21 12:55:18Z]}}
+                 %ActiveSession{flake: cursor, expires_at: ~U[2021-07-21 12:55:18Z]}, 9510}
               ],
               cursor} =
                Feeds.fetch_feed(
-                 me.user_id,
+                 me.id,
+                 me.profile.location,
                  _gender_preference = ["F"],
                  _count = 10,
                  _cursor = nil
                )
 
       assert {[], ^cursor} =
-               Feeds.fetch_feed(me.user_id, _gender_preference = ["F"], _count = 10, cursor)
+               Feeds.fetch_feed(
+                 me.id,
+                 me.profile.location,
+                 _gender_preference = ["F"],
+                 _count = 10,
+                 cursor
+               )
     end
 
     test "with active users more than count", %{me: me} do
-      others = insert_list(3, :profile, gender: "F")
+      others = Enum.map(1..3, fn _ -> onboarded_user(gender: "F", location: apple_location()) end)
       activate_sessions(others, @reference)
 
       assert {[
-                {%FeedProfile{}, %ActiveSession{expires_at: ~U[2021-07-21 12:55:18Z]}},
+                {%FeedProfile{}, %ActiveSession{expires_at: ~U[2021-07-21 12:55:18Z]},
+                 _distance = 9510},
                 {%FeedProfile{},
-                 %ActiveSession{flake: cursor1, expires_at: ~U[2021-07-21 12:55:18Z]}}
+                 %ActiveSession{flake: cursor1, expires_at: ~U[2021-07-21 12:55:18Z]}, 9510}
               ],
               cursor1} =
-               Feeds.fetch_feed(me.user_id, _gender_preference = ["F"], _count = 2, _cursor = nil)
+               Feeds.fetch_feed(
+                 me.id,
+                 me.profile.location,
+                 _gender_preference = ["F"],
+                 _count = 2,
+                 _cursor = nil
+               )
 
       assert {[
                 {%FeedProfile{},
-                 %ActiveSession{flake: cursor2, expires_at: ~U[2021-07-21 12:55:18Z]}}
+                 %ActiveSession{flake: cursor2, expires_at: ~U[2021-07-21 12:55:18Z]}, 9510}
               ],
               cursor2} =
-               Feeds.fetch_feed(me.user_id, _gender_preference = ["F"], _count = 10, cursor1)
+               Feeds.fetch_feed(
+                 me.id,
+                 me.profile.location,
+                 _gender_preference = ["F"],
+                 _count = 10,
+                 cursor1
+               )
 
       assert cursor2 != cursor1
 
       assert {[], ^cursor2} =
-               Feeds.fetch_feed(me.user_id, _gender_preference = ["F"], _count = 10, cursor2)
+               Feeds.fetch_feed(
+                 me.id,
+                 me.profile.location,
+                 _gender_preference = ["F"],
+                 _count = 10,
+                 cursor2
+               )
     end
   end
 
   describe "get_feed_item/1" do
     setup do
-      me = insert(:user)
-      other = insert(:profile)
+      me = onboarded_user(location: moscow_location())
+      other = onboarded_user(location: apple_location())
       activate_session(other, @reference)
       {:ok, me: me, other: other}
     end
 
     test "returns non reported user", %{me: me, other: other} do
-      assert {%FeedProfile{}, %ActiveSession{expires_at: ~U[2021-07-21 12:55:18Z]}} =
-               Feeds.get_feed_item(me.id, other.user_id)
+      assert {%FeedProfile{}, %ActiveSession{expires_at: ~U[2021-07-21 12:55:18Z]},
+              _distance_km = 9510} = Feeds.get_feed_item(me.id, me.profile.location, other.id)
     end
 
     test "doesn't return reported user", %{me: me, other: other} do
-      assert :ok = Accounts.report_user(me.id, other.user_id, "ugly")
-      refute Feeds.get_feed_item(me.id, other.user_id)
+      assert :ok = Accounts.report_user(me.id, other.id, "ugly")
+      refute Feeds.get_feed_item(me.id, me.profile.location, other.id)
     end
   end
 end

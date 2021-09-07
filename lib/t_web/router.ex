@@ -48,24 +48,27 @@ defmodule TWeb.Router do
   scope "/admin", TWeb do
     pipe_through [:browser, :dashboard_auth]
 
-    live "/", AdminLive.Index, :index
+    live_session :admin do
+      live "/", AdminLive.Index, :index
 
-    live "/support", SupportLive.Index, :index
-    live "/support/:user_id", SupportLive.Index, :show
+      # live "/trace/calls", TraceLive.Index, :index
+      # live "/trace/calls/:user_id", TraceLive.Show, :show
 
-    live "/audio", AudioLive.PickUser, :pick_user, as: :audio
-    live "/audio/:user_id", AudioLive.PickMatch, :pick_match, as: :audio
-    live "/audio/:user_id/:mate_id", AudioLive.Index, :match, as: :audio
+      live "/profiles", ProfileLive.Index, :index
+      live "/profiles/:user_id", ProfileLive.Index, :show
 
-    live "/matches", MatchLive.Index, :index
-    live "/matches/:user_id", MatchLive.Index, :show
-    live "/matches/:user_id/call/:mate_id", MatchLive.Index, :call
+      live "/reports", ReportLive.Index, :index
 
-    live "/trace/calls", TraceLive.Index, :index
-    live "/trace/calls/:user_id", TraceLive.Show, :show
+      live "/active-sessions", ActiveSessionLive.Index, :index
+      live "/active-sessions/new", ActiveSessionLive.Index, :new
 
-    live "/stickers", StickerLive.Index, :index
-    live "/tokens", TokenLive.Index, :index
+      live "/active-sessions/:user_id", ActiveSessionLive.Show, :show
+      live "/active-sessions/:user_id/new", ActiveSessionLive.Show, :new
+      live "/active-sessions/:user_id/call/:call_id", ActiveSessionLive.Show, :call
+
+      live "/stickers", StickerLive.Index, :index
+      live "/tokens", TokenLive.Index, :index
+    end
   end
 
   scope "/api/bot", TWeb do

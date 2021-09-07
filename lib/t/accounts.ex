@@ -392,7 +392,7 @@ defmodule T.Accounts do
     |> join(:inner, [t], u in User, on: t.user_id == u.id)
     |> select([t, u], %{
       token: %{value: t.token, inserted_at: t.inserted_at},
-      user: %{id: u.id, phone_number: u.phone_number}
+      user: %{id: u.id, apple_id: u.apple_id}
     })
     |> Repo.all()
     |> Enum.group_by(

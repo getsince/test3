@@ -1,0 +1,65 @@
+<div class="h-12 flex items-center justify-between border-b dark:border-gray-700">
+  <div class="flex items-center">
+    <h1 class="font-semibold pl-4">Active Sessions</h1>
+    <%= live_patch to: Routes.active_session_show_path(@socket, :new, @me_id) do %>
+    <div class="ml-4 dark:hover:bg-gray-800 hover:bg-gray-200 transition p-1 rounded border dark:border-gray-700">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+    </div>
+    <% end %>
+
+    <form action="#" class="ml-4" phx-change="pick-user" phx-submit="pick-user">
+      <select name="user" class="block dark:bg-gray-800 dark:border-gray-700 h-8 py-0 rounded dark:hover:bg-gray-700 hover:bg-gray-200 border-gray-200 transition">
+        <option value="">Pick a user to impersonate</option>
+        <%= options_for_select @user_options, @me_id %>
+      </select>
+    </form>
+  </div>
+  <div class="relative inline-block text-left mx-4" x-data="{open: false}" @keydown.escape.stop="open = false" @click.away="open = false">
+    <div>
+      <button type="button" class="h-8 w-8 inline-flex justify-center items-center w-full rounded-full border dark:border-gray-700 shadow-sm px-1 py-1 dark:bg-gray-800 dark:text-white text-sm font-medium dark:hover:bg-gray-700 hover:bg-gray-200 transition focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-700 focus:ring-offset-gray-200 dark:focus:ring-blue-700 focus:ring-blue-600" id="menu-button" x-on:click="open = !open" aria-expanded="true" aria-haspopup="true">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 text-gray-500"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+      </button>
+    </div>
+
+    <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="transform opacity-0 scale-95" x-transition:enter-end="transform opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="transform opacity-100 scale-100" x-transition:leave-end="transform opacity-0 scale-95" class="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg dark:bg-gray-800 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none" role="menu" aria-orientation="vertical" aria-labelledby="menu-button" tabindex="-1">
+      <div class="py-1" role="none">
+        <span class="text-gray-100 block px-4 py-2 text-sm dark:bg-blue-800 bg-blue-600" role="menuitem" tabindex="-1" id="menu-item-0">Active sessions</span>
+        <%# live_redirect "Profiles", to: Routes.profile_index_path(@socket, :index), class: "dark:text-gray-100 block px-4 py-2 text-sm hover:bg-gray-200 transition" %>
+        <%# live_redirect "Reports", to: Routes.report_index_path(@socket, :index), class: "dark:text-gray-100 block px-4 py-2 text-sm hover:bg-gray-200 transition" %>
+        <%= live_redirect "Session tokens", to: Routes.token_index_path(@socket, :index), class: "dark:text-gray-100 block px-4 py-2 text-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition" %>
+        <%= live_redirect "Stickers", to: Routes.sticker_index_path(@socket, :index), class: "dark:text-gray-100 block px-4 py-2 text-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition" %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%= if @live_action == :new do %>
+<%= live_modal TWeb.ActiveSessionLive.SessionForm,
+  title: gettext("Session Form"),
+  action: @live_action,
+  user_options: @user_options,
+  return_to: Routes.active_session_show_path(@socket, :show, @me_id) %>
+<% end %>
+
+<%= if @live_action == :call do %>
+<%= live_modal TWeb.ActiveSessionLive.Call,
+	title: "Call",
+	role: @call_role,
+	return_to: Routes.active_session_show_path(@socket, :show, @me_id) %>
+<% end %>
+
+<div>
+  <table class="w-full">
+    <thead class="border-b dark:border-gray-700 h-10 text-sm">
+      <th class="border-r dark:border-gray-700">User</th>
+			<th class="border-r dark:border-gray-700">Session</th>
+			<th class="border-r dark:border-gray-700">Extra</th>
+      <th></th>
+    </thead>
+    <tbody>
+      <%= for feed_item <- @feed do %>
+				<.feed_item_row item={feed_item}></.feed_item_row>
+      <% end %>
+    </tbody>
+  </table>
+</div>

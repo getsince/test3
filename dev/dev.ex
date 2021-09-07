@@ -18,14 +18,20 @@ defmodule Dev do
   #   :telemetry.detach("test-handler")
   # end
 
-  # def send_notification(locale \\ "en") do
-  #   device_id = System.get_env("MY_APNS_ID")
+  def args do
+    %{
+      "data" => %{
+        "match_id" => "0000017b-b277-cbad-0242-ac1100020000"
+      },
+      "device_id" => "E069BD8A7CFF5BC34656C767209697AE3DB3B26E03E1252FA79EA7A773F75783",
+      "env" => "sandbox",
+      "locale" => nil,
+      "template" => "timeslot_started",
+      "topic" => "since.app.ios"
+    }
+  end
 
-  #   n =
-  #     Gettext.with_locale(locale, fn ->
-  #       APNS.build_notification("timeslot_started", device_id, %{})
-  #     end)
-
-  #   APNS.push(n)
-  # end
+  def send_notification(args \\ args()) do
+    T.PushNotifications.APNSJob.perform(%Oban.Job{args: args})
+  end
 end

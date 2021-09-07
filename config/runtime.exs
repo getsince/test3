@@ -72,15 +72,19 @@ if config_env() == :prod and not in_build? do
     token: System.fetch_env!("TG_BOT_KEY"),
     room_id: System.fetch_env!("TG_ROOM_ID") |> String.to_integer()
 
-  common_apns_config = %{
-    key: System.fetch_env!("APNS_KEY"),
-    key_identifier: System.fetch_env!("APNS_KEY_ID"),
-    team_id: System.fetch_env!("APNS_TEAM_ID")
-  }
-
   config :pigeon, :apns,
-    dev: Map.put(common_apns_config, :mode, :dev),
-    prod: Map.put(common_apns_config, :mode, :prod)
+    dev: %{
+      key: System.fetch_env!("SANDBOX_APNS_KEY"),
+      key_identifier: System.fetch_env!("SANDBOX_APNS_KEY_ID"),
+      team_id: System.fetch_env!("APNS_TEAM_ID"),
+      mode: :dev
+    },
+    prod: %{
+      key: System.fetch_env!("PROD_APNS_KEY"),
+      key_identifier: System.fetch_env!("PROD_APNS_KEY_ID"),
+      team_id: System.fetch_env!("APNS_TEAM_ID"),
+      mode: :prod
+    }
 
   config :t, T.PushNotifications.APNS, topic: System.fetch_env!("APNS_TOPIC")
 
@@ -133,15 +137,19 @@ end
 if config_env() == :dev do
   config :logger, level: :warn
 
-  common_apns_config = %{
-    key: System.fetch_env!("APNS_KEY"),
-    key_identifier: System.fetch_env!("APNS_KEY_ID"),
-    team_id: System.fetch_env!("APNS_TEAM_ID")
-  }
-
   config :pigeon, :apns,
-    dev: Map.put(common_apns_config, :mode, :dev),
-    prod: Map.put(common_apns_config, :mode, :prod)
+    dev: %{
+      key: System.fetch_env!("SANDBOX_APNS_KEY"),
+      key_identifier: System.fetch_env!("SANDBOX_APNS_KEY_ID"),
+      team_id: System.fetch_env!("APNS_TEAM_ID"),
+      mode: :dev
+    },
+    prod: %{
+      key: System.fetch_env!("PROD_APNS_KEY"),
+      key_identifier: System.fetch_env!("PROD_APNS_KEY_ID"),
+      team_id: System.fetch_env!("APNS_TEAM_ID"),
+      mode: :prod
+    }
 
   config :t, T.PushNotifications.APNS, topic: System.fetch_env!("APNS_TOPIC")
 

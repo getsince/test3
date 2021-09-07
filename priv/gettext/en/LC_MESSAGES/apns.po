@@ -14,32 +14,32 @@ msgstr ""
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:161
 msgid "Аудио-дэйт начинается"
-msgstr "Audio rendezvous is about to start"
+msgstr "Audio-date is about to start"
 
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:152
 msgid "Аудио-дэйт совсем скоро"
-msgstr "Audio Rendezvous is Nigh"
+msgstr "Audio-date coming soon"
 
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:134
 msgid "Добавь аудио-дэйт в календарь, чтобы не пропустить 🙌"
-msgstr "Don't miss it. Ah, you'll miss it. Add it to your calendar, you dummy."
+msgstr "Add audio-date to your calendar so you won't miss it 🙌"
 
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:125
 msgid "Заходи, чтобы ответить на приглашение 👀"
-msgstr "Accept it to make Nikita happy.\nWho's Nikita?"
+msgstr "Come in to answer the invitation 👀"
 
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:143
 msgid "Попробуй предложить другое время 👉"
-msgstr "Again, who's Nikita?\nAll I know is he likes counter-offers."
+msgstr "Try suggesting a different time 👉"
 
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:153
 msgid "Приготовься, у тебя 15 минут 👋"
-msgstr "Ready. Steady. Whatev.\nYou have 15 minutes.\nNo hurry."
+msgstr "Get ready, you have 15 minutes 👋"
 
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:162
@@ -54,22 +54,22 @@ msgstr "Come look!"
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:133
 msgid "Твое приглашение на дэйт принято"
-msgstr "Audio date ACCEPTED"
+msgstr "Your invitation to date is accepted"
 
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:142
 msgid "Твой дэйт отменён"
-msgstr "Oh, no! Nikita cancelled"
+msgstr "Your date is cancelled"
 
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:124
 msgid "Тебя пригласили на свидание!"
-msgstr "That's an INVITE ™"
+msgstr "You've been asked out on a date!"
 
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:103
 msgid "Это новый мэтч!"
-msgstr "That's a MATCH ™"
+msgstr "Wow, it's a new match!"
 
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:116

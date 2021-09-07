@@ -4,12 +4,12 @@ defmodule TWeb.ProfileChannelTest do
   alias T.Accounts
   alias Accounts.User
 
-  setup do
-    {:ok, %User{} = user} = Accounts.register_user_with_phone(%{phone_number: phone_number()})
-    {:ok, user: Repo.preload(user, :profile), socket: connected_socket(user)}
-  end
+  describe "join with empty profile" do
+    setup do
+      user = registered_user()
+      {:ok, user: user, socket: connected_socket(user)}
+    end
 
-  describe "join" do
     test "with empty profile", %{socket: socket, user: user} do
       {:ok, %{profile: profile, stickers: %{}}, _socket} =
         subscribe_and_join(socket, "profile:" <> user.id, %{})
@@ -23,6 +23,13 @@ defmodule TWeb.ProfileChannelTest do
                gender: nil,
                name: nil
              }
+    end
+  end
+
+  describe "join with onboarded profile" do
+    setup do
+      user = registered_user()
+      {:ok, user: user, socket: connected_socket(user)}
     end
 
     @tag skip: true
@@ -107,6 +114,11 @@ defmodule TWeb.ProfileChannelTest do
   end
 
   describe "onboarding flow" do
+    setup do
+      user = registered_user()
+      {:ok, user: user, socket: connected_socket(user)}
+    end
+
     setup :subscribe_and_join
 
     setup :verify_on_exit!
@@ -250,6 +262,11 @@ defmodule TWeb.ProfileChannelTest do
   end
 
   describe "upload-preflight" do
+    setup do
+      user = onboarded_user()
+      {:ok, user: user, socket: connected_socket(user)}
+    end
+
     setup :subscribe_and_join
 
     test "it works", %{socket: socket} do

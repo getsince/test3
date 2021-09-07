@@ -35,17 +35,7 @@ config :ex_aws,
   json_codec: Jason,
   region: "eu-north-1"
 
-config :esbuild,
-  default: [
-    args: ~w(js/app.js --bundle --target=es2016 --outdir=../priv/static/assets),
-    cd: Path.expand("../assets", __DIR__),
-    env: %{"NODE_PATH" => Path.expand("../deps", __DIR__)}
-  ]
-
-docker_stage = System.get_env("DOCKER_STAGE")
-in_build? = docker_stage == "build"
-
-if config_env() == :prod and not in_build? do
+if config_env() == :prod do
   config :t, T.Twilio,
     account_sid: System.fetch_env!("TWILIO_ACCOUNT_SID"),
     key_sid: System.fetch_env!("TWILIO_KEY_SID"),
@@ -123,15 +113,6 @@ if config_env() == :prod and not in_build? do
     user_bucket: System.fetch_env!("AWS_S3_BUCKET"),
     static_bucket: System.fetch_env!("AWS_S3_BUCKET_STATIC"),
     static_cdn: System.fetch_env!("STATIC_CDN")
-
-  if demo_phones = System.get_env("DEMO_PHONES") do
-    demo_phones
-    |> String.split(",")
-    |> Enum.each(fn phone_and_code ->
-      [phone, code] = String.split(phone_and_code, ":")
-      T.Accounts.add_demo_phone(phone, code)
-    end)
-  end
 end
 
 if config_env() == :dev do
@@ -266,7 +247,6 @@ if config_env() == :test do
     room_id: String.to_integer("-1234")
 
   config :t, T.Feeds.ActiveSessionPruner, disabled?: true
-  config :t, T.Accounts.SMSCodePruner, disabled?: true
 
   config :t, T.PushNotifications.APNS, topic: "app.topic"
 
@@ -280,7 +260,6 @@ if config_env() == :bench do
 
   config :t, T.Media.Static, disabled?: true
   config :t, T.Feeds.ActiveSessionPruner, disabled?: true
-  config :t, T.Accounts.SMSCodePruner, disabled?: true
   config :t, Oban, queues: false, plugins: false
 
   config :t, T.Repo,

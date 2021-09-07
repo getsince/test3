@@ -4,11 +4,14 @@ defmodule T.Repo.Migrations.AddAuthTables do
   def change do
     create table(:users, primary_key: false) do
       add :id, :uuid, primary_key: true
-      add :phone_number, :string, null: false
+      add :apple_id, :string
+      add :blocked_at, :utc_datetime
+      add :onboarded_at, :utc_datetime
       timestamps()
     end
 
-    create unique_index(:users, [:phone_number])
+    # TODO need where?
+    create unique_index(:users, [:apple_id], where: "apple_id is not null")
 
     create table(:users_tokens, primary_key: false) do
       add :id, :uuid, primary_key: true

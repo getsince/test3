@@ -13,7 +13,6 @@ RUN mix local.hex --force && \
 
 # set build ENV
 ENV MIX_ENV=prod
-ENV DOCKER_STAGE=build
 
 # install mix dependencies
 COPY mix.exs mix.lock ./
@@ -30,7 +29,7 @@ COPY config/runtime.exs config/
 # build assets
 COPY assets assets
 RUN cd assets && npm ci && npm run deploy
-RUN mix esbuild default --minify
+RUN mix esbuild --no-runtime-config default --minify
 RUN mix phx.digest
 
 # build release
@@ -48,6 +47,5 @@ RUN chown -R nobody: /app
 USER nobody
 
 ENV HOME=/app
-ENV DOCKER_STAGE=app
 
 CMD /app/bin/t start

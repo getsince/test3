@@ -5,13 +5,13 @@ defmodule T.Factory do
   alias T.Calls.Call
 
   def user_factory do
-    %User{phone_number: phone_number()}
+    %User{apple_id: apple_id()}
   end
 
   def profile_factory do
     %Profile{
       user: build(:user),
-      # last_active: DateTime.truncate(DateTime.utc_now(), :second),
+      last_active: DateTime.truncate(DateTime.utc_now(), :second),
       hidden?: false,
       gender: "M"
     }
@@ -36,9 +36,12 @@ defmodule T.Factory do
     %GenderPreference{}
   end
 
-  def phone_number do
-    rand = to_string(:rand.uniform(9_999_999))
-    "+7916" <> String.pad_leading(rand, 7, "0")
+  def apple_id do
+    # 000701.5bccb2a610e04475a96dbe39e47cda09.1630
+    # 001848.6244ee9f0798419db44fbedac8861ce1.1236
+    # 000822.7fc739b031e542e19fd7b877cdd23122.2012
+    rand = :crypto.strong_rand_bytes(16) |> Base.encode16(case: :lower)
+    "000701." <> rand <> ".1630"
   end
 
   def profile_story do
@@ -94,13 +97,13 @@ defmodule T.Factory do
 
   alias T.Accounts
 
-  def registered_user(phone_number \\ phone_number()) do
-    {:ok, user} = Accounts.register_user_with_phone(%{"phone_number" => phone_number})
+  def registered_user(apple_id \\ apple_id()) do
+    {:ok, user} = Accounts.register_user_with_apple_id(%{"apple_id" => apple_id})
     user
   end
 
   def onboarded_user(opts \\ []) do
-    user = registered_user(opts[:phone_number] || phone_number())
+    user = registered_user(opts[:apple_id] || apple_id())
     {:ok, profile} = Accounts.onboard_profile(user.profile, onboarding_attrs(opts))
     %Accounts.User{user | profile: profile}
   end

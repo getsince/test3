@@ -15,12 +15,10 @@ defmodule T.Accounts do
     User,
     Profile,
     UserToken,
-    UserNotifier,
     UserReport,
     APNSDevice,
     PushKitDevice,
     GenderPreference,
-    PasswordlessAuth,
     AppleSignIn
   }
 
@@ -34,18 +32,7 @@ defmodule T.Accounts do
 
   ## Database getters
 
-  def get_user_by_phone_number(phone_number) when is_binary(phone_number) do
-    User |> Repo.get_by(phone_number: phone_number) |> Repo.preload(:profile)
-  end
-
   def get_user!(id), do: Repo.get!(User, id)
-
-  def get_phone_number!(user_id) do
-    User
-    |> where(id: ^user_id)
-    |> select([u], u.phone_number)
-    |> Repo.one!()
-  end
 
   def user_onboarded?(id) do
     User
@@ -57,12 +44,6 @@ defmodule T.Accounts do
   ## User registration
 
   @doc false
-  def register_user_with_phone(attrs) do
-    Multi.new()
-    |> Multi.insert(:user, User.phone_registration_changeset(%User{}, attrs))
-    |> add_profile_and_transact()
-  end
-
   def register_user_with_apple_id(attrs) do
     Multi.new()
     |> Multi.insert(:user, User.apple_id_registration_changeset(%User{}, attrs))
@@ -84,8 +65,8 @@ defmodule T.Accounts do
     |> Repo.transaction()
     |> case do
       {:ok, %{user: user, profile: profile}} ->
-        Logger.warn("new user #{user.phone_number || user.apple_id}")
-        Bot.async_post_message("new user #{user.phone_number || user.apple_id}")
+        Logger.warn("new user #{user.apple_id}")
+        Bot.async_post_message("new user #{user.apple_id}")
         {:ok, %User{user | profile: profile}}
 
       {:error, :user, %Ecto.Changeset{} = changeset, _changes} ->
@@ -101,35 +82,6 @@ defmodule T.Accounts do
     |> Repo.update_all(set: [last_active: time])
   end
 
-  def add_demo_phone(phone_number, code) do
-    with {:ok, phone_number} <- formatted_phone_number(phone_number) do
-      new = Map.put(demo_phones(), phone_number, code)
-      Application.put_env(:t, :demo_phones, new)
-      new
-    end
-  end
-
-  def demo_phones do
-    Application.get_env(:t, :demo_phones) || %{}
-  end
-
-  defp demo_phone?(phone_number) do
-    phone_number in Map.keys(demo_phones())
-  end
-
-  defp demo_phone_code(phone_number) do
-    Map.fetch!(demo_phones(), phone_number)
-  end
-
-  # TODO in one transaction
-  defp get_or_register_user_with_phone(phone_number) do
-    if u = get_user_by_phone_number(phone_number) do
-      {:ok, ensure_has_profile(u)}
-    else
-      register_user_with_phone(%{phone_number: phone_number})
-    end
-  end
-
   defp ensure_has_profile(%User{profile: %Profile{}} = user), do: user
 
   defp ensure_has_profile(%User{profile: nil} = user) do
@@ -140,58 +92,6 @@ defmodule T.Accounts do
       })
 
     %User{user | profile: profile}
-  end
-
-  @doc """
-  Delivers the confirmation SMS instructions to the given user.
-
-  ## Examples
-
-      iex> deliver_user_confirmation_instructions(phone_number)
-      {:ok, %{to: ..., body: ...}}
-
-  """
-  def deliver_user_confirmation_instructions(phone_number) when is_binary(phone_number) do
-    # TODO rate limit
-    # TODO check if phone number belongs to someone deleted?
-    with {:ok, phone_number} <- formatted_phone_number(phone_number) do
-      if demo_phone?(phone_number) do
-        Bot.async_post_message(
-          "sent (not really) sms code=#{demo_phone_code(phone_number)} to #{phone_number}"
-        )
-
-        {:ok, %{to: phone_number, body: nil}}
-      else
-        code = PasswordlessAuth.generate_code(phone_number)
-        Logger.warn("sent sms to #{phone_number}")
-        Bot.async_post_message("sent sms code=#{code} to #{phone_number}")
-        UserNotifier.deliver_confirmation_instructions(phone_number, code)
-      end
-    end
-  end
-
-  @spec formatted_phone_number(String.t()) :: {:ok, String.t()} | {:error, :invalid_phone_number}
-  def formatted_phone_number(phone_number) when is_binary(phone_number) do
-    with {:ok, phone} <- ExPhoneNumber.parse(phone_number, "ru"),
-         true <- ExPhoneNumber.is_valid_number?(phone) do
-      {:ok, ExPhoneNumber.format(phone, :e164)}
-    else
-      _ -> {:error, :invalid_phone_number}
-    end
-  end
-
-  def login_or_register_user_with_phone(phone_number, code) do
-    Logger.warn("trying to log in #{phone_number}")
-
-    with {:format, {:ok, phone_number}} <- {:format, formatted_phone_number(phone_number)},
-         {:code, :ok} <- {:code, verify_code(phone_number, code)},
-         {:reg, {:ok, _user} = success} <- {:reg, get_or_register_user_with_phone(phone_number)} do
-      success
-    else
-      {:format, error} -> error
-      {:code, error} -> error
-      {:reg, error} -> error
-    end
   end
 
   @spec login_or_register_user_with_apple_id(String.t()) ::
@@ -218,20 +118,6 @@ defmodule T.Accounts do
     |> where(apple_id: ^apple_id)
     |> Repo.one()
     |> Repo.preload(:profile)
-  end
-
-  @spec verify_code(String.t(), String.t()) ::
-          :ok | {:error, ExPhoneNumber.verification_failed_reason()}
-  defp verify_code(phone_number, code) do
-    if demo_phone?(phone_number) do
-      if code == demo_phone_code(phone_number) do
-        :ok
-      else
-        {:error, :incorrect_code}
-      end
-    else
-      PasswordlessAuth.verify_code(phone_number, code)
-    end
   end
 
   # TODO test
@@ -517,13 +403,6 @@ defmodule T.Accounts do
     )
   end
 
-  def save_photo(%User{id: user_id}, s3_key) do
-    Profile
-    |> where(user_id: ^user_id)
-    |> select([p], p.photos)
-    |> Repo.update_all(push: [photos: s3_key])
-  end
-
   def photo_upload_form(content_type) do
     Media.sign_form_upload(
       key: Ecto.UUID.generate(),
@@ -576,7 +455,7 @@ defmodule T.Accounts do
     |> Repo.transaction()
     |> case do
       {:ok, %{user: user, profile: %Profile{} = profile}} ->
-        m = "user onboarded #{user.phone_number}"
+        m = "user onboarded #{user.id}"
         Logger.warn(m)
         Bot.async_post_message(m)
         {:ok, %Profile{profile | hidden?: false}}

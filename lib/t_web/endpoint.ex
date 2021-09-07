@@ -44,7 +44,7 @@ defmodule TWeb.Endpoint do
 
   plug Plug.RequestId
   # use standalone server on private port
-  plug PromEx.Plug, prom_ex_module: T.PromEx
+  # plug PromEx.Plug, prom_ex_module: T.PromEx
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
   plug Plug.Parsers,

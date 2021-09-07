@@ -91,11 +91,11 @@ CREATE TABLE public.apns_devices (
     user_id uuid NOT NULL,
     token_id uuid NOT NULL,
     device_id bytea NOT NULL,
-    inserted_at timestamp(0) without time zone NOT NULL,
-    updated_at timestamp(0) without time zone NOT NULL,
     locale character varying(255),
     topic character varying(255),
-    env character varying(255)
+    env character varying(255),
+    inserted_at timestamp(0) without time zone NOT NULL,
+    updated_at timestamp(0) without time zone NOT NULL
 );
 
 
@@ -119,17 +119,8 @@ CREATE TABLE public.calls (
     caller_id uuid NOT NULL,
     called_id uuid NOT NULL,
     ended_at timestamp with time zone,
-    inserted_at timestamp(0) without time zone NOT NULL,
-    accepted_at timestamp with time zone
-);
-
-
---
--- Name: emails; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.emails (
-    email character varying(255) NOT NULL
+    accepted_at timestamp with time zone,
+    inserted_at timestamp(0) without time zone NOT NULL
 );
 
 
@@ -150,21 +141,6 @@ CREATE TABLE public.gender_preferences (
 CREATE TABLE public.liked_profiles (
     by_user_id uuid NOT NULL,
     user_id uuid NOT NULL,
-    inserted_at timestamp(0) without time zone NOT NULL,
-    "seen?" boolean
-);
-
-
---
--- Name: match_messages; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.match_messages (
-    match_id uuid NOT NULL,
-    id uuid NOT NULL,
-    author_id uuid NOT NULL,
-    kind character varying(255) NOT NULL,
-    data jsonb NOT NULL,
     inserted_at timestamp(0) without time zone NOT NULL
 );
 
@@ -178,8 +154,7 @@ CREATE TABLE public.match_timeslot (
     picker_id uuid NOT NULL,
     slots timestamp(0) without time zone[] DEFAULT ARRAY[]::timestamp without time zone[],
     selected_slot timestamp(0) without time zone,
-    inserted_at timestamp(0) without time zone NOT NULL,
-    "seen?" boolean
+    inserted_at timestamp(0) without time zone NOT NULL
 );
 
 
@@ -253,53 +228,17 @@ ALTER SEQUENCE public.oban_jobs_id_seq OWNED BY public.oban_jobs.id;
 
 
 --
--- Name: phones; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.phones (
-    phone_number character varying(255) NOT NULL,
-    meta jsonb DEFAULT '{}'::jsonb,
-    inserted_at timestamp(0) without time zone NOT NULL
-);
-
-
---
--- Name: profile_feeds; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.profile_feeds (
-    user_id uuid NOT NULL,
-    feeded_id uuid NOT NULL
-);
-
-
---
 -- Name: profiles; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.profiles (
     user_id uuid NOT NULL,
     name text,
-    photos text[] DEFAULT ARRAY[]::text[],
     gender text,
-    birthdate date,
-    height integer,
-    city text,
-    occupation text,
-    job text,
-    university text,
-    major text,
-    most_important_in_life text,
-    interests text[] DEFAULT ARRAY[]::text[],
-    first_date_idea text,
-    free_form text,
-    tastes jsonb DEFAULT '{}'::jsonb NOT NULL,
-    times_liked integer DEFAULT 0 NOT NULL,
-    "hidden?" boolean DEFAULT true NOT NULL,
-    last_active timestamp(0) without time zone DEFAULT '2021-07-23 15:25:39.303254'::timestamp without time zone NOT NULL,
-    song jsonb,
-    story jsonb,
     location public.geography(Point,4326),
+    "hidden?" boolean DEFAULT true NOT NULL,
+    last_active timestamp(0) without time zone NOT NULL,
+    story jsonb,
     filters jsonb DEFAULT '{}'::jsonb
 );
 
@@ -312,21 +251,10 @@ CREATE TABLE public.pushkit_devices (
     user_id uuid NOT NULL,
     token_id uuid NOT NULL,
     device_id bytea NOT NULL,
-    inserted_at timestamp(0) without time zone NOT NULL,
-    updated_at timestamp(0) without time zone NOT NULL,
     topic character varying(255),
-    env character varying(255)
-);
-
-
---
--- Name: referral_codes; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.referral_codes (
-    code character varying(255) NOT NULL,
-    meta jsonb,
-    inserted_at timestamp(0) without time zone NOT NULL
+    env character varying(255),
+    inserted_at timestamp(0) without time zone NOT NULL,
+    updated_at timestamp(0) without time zone NOT NULL
 );
 
 
@@ -337,54 +265,6 @@ CREATE TABLE public.referral_codes (
 CREATE TABLE public.schema_migrations (
     version bigint NOT NULL,
     inserted_at timestamp(0) without time zone
-);
-
-
---
--- Name: seen_matches; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.seen_matches (
-    by_user_id uuid NOT NULL,
-    match_id uuid NOT NULL,
-    inserted_at timestamp(0) without time zone NOT NULL
-);
-
-
---
--- Name: seen_profiles; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.seen_profiles (
-    by_user_id uuid NOT NULL,
-    user_id uuid NOT NULL,
-    inserted_at timestamp(0) without time zone NOT NULL
-);
-
-
---
--- Name: sms_codes; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.sms_codes (
-    phone_number character varying(255) NOT NULL,
-    code character varying(255) NOT NULL,
-    attempts integer DEFAULT 0 NOT NULL,
-    inserted_at timestamp(0) without time zone NOT NULL
-);
-
-
---
--- Name: support_messages; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.support_messages (
-    user_id uuid NOT NULL,
-    id uuid NOT NULL,
-    author_id uuid NOT NULL,
-    kind character varying(255) NOT NULL,
-    data jsonb NOT NULL,
-    inserted_at timestamp(0) without time zone NOT NULL
 );
 
 
@@ -407,12 +287,11 @@ CREATE TABLE public.user_reports (
 
 CREATE TABLE public.users (
     id uuid NOT NULL,
-    phone_number character varying(255),
-    inserted_at timestamp(0) without time zone NOT NULL,
-    updated_at timestamp(0) without time zone NOT NULL,
+    apple_id character varying(255),
     blocked_at timestamp(0) without time zone,
     onboarded_at timestamp(0) without time zone,
-    apple_id character varying(255)
+    inserted_at timestamp(0) without time zone NOT NULL,
+    updated_at timestamp(0) without time zone NOT NULL
 );
 
 
@@ -426,17 +305,6 @@ CREATE TABLE public.users_tokens (
     token bytea NOT NULL,
     context character varying(255) NOT NULL,
     sent_to character varying(255),
-    inserted_at timestamp(0) without time zone NOT NULL
-);
-
-
---
--- Name: visits; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.visits (
-    id uuid NOT NULL,
-    meta jsonb DEFAULT '{}'::jsonb,
     inserted_at timestamp(0) without time zone NOT NULL
 );
 
@@ -497,14 +365,6 @@ ALTER TABLE ONLY public.liked_profiles
 
 
 --
--- Name: match_messages match_messages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.match_messages
-    ADD CONSTRAINT match_messages_pkey PRIMARY KEY (match_id, id);
-
-
---
 -- Name: match_timeslot match_timeslot_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -529,14 +389,6 @@ ALTER TABLE ONLY public.oban_jobs
 
 
 --
--- Name: profile_feeds profile_feeds_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profile_feeds
-    ADD CONSTRAINT profile_feeds_pkey PRIMARY KEY (user_id, feeded_id);
-
-
---
 -- Name: profiles profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -553,51 +405,11 @@ ALTER TABLE ONLY public.pushkit_devices
 
 
 --
--- Name: referral_codes referral_codes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.referral_codes
-    ADD CONSTRAINT referral_codes_pkey PRIMARY KEY (code);
-
-
---
 -- Name: schema_migrations schema_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.schema_migrations
     ADD CONSTRAINT schema_migrations_pkey PRIMARY KEY (version);
-
-
---
--- Name: seen_matches seen_matches_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.seen_matches
-    ADD CONSTRAINT seen_matches_pkey PRIMARY KEY (by_user_id, match_id);
-
-
---
--- Name: seen_profiles seen_profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.seen_profiles
-    ADD CONSTRAINT seen_profiles_pkey PRIMARY KEY (by_user_id, user_id);
-
-
---
--- Name: sms_codes sms_codes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.sms_codes
-    ADD CONSTRAINT sms_codes_pkey PRIMARY KEY (phone_number);
-
-
---
--- Name: support_messages support_messages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.support_messages
-    ADD CONSTRAINT support_messages_pkey PRIMARY KEY (user_id, id);
 
 
 --
@@ -674,20 +486,6 @@ CREATE INDEX oban_jobs_queue_state_priority_scheduled_at_id_index ON public.oban
 
 
 --
--- Name: profiles_date_trunc__day___last_active__timestamp_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX profiles_date_trunc__day___last_active__timestamp_index ON public.profiles USING btree (date_trunc('day'::text, last_active));
-
-
---
--- Name: profiles_gender_hidden_times_liked_desc_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX profiles_gender_hidden_times_liked_desc_index ON public.profiles USING btree (gender, "hidden?", times_liked DESC) WHERE ("hidden?" = false);
-
-
---
 -- Name: profiles_location_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -706,13 +504,6 @@ CREATE UNIQUE INDEX pushkit_devices_device_id_index ON public.pushkit_devices US
 --
 
 CREATE UNIQUE INDEX users_apple_id_index ON public.users USING btree (apple_id) WHERE (apple_id IS NOT NULL);
-
-
---
--- Name: users_phone_number_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX users_phone_number_index ON public.users USING btree (phone_number) WHERE (phone_number IS NOT NULL);
 
 
 --
@@ -817,22 +608,6 @@ ALTER TABLE ONLY public.liked_profiles
 
 
 --
--- Name: match_messages match_messages_author_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.match_messages
-    ADD CONSTRAINT match_messages_author_id_fkey FOREIGN KEY (author_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: match_messages match_messages_match_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.match_messages
-    ADD CONSTRAINT match_messages_match_id_fkey FOREIGN KEY (match_id) REFERENCES public.matches(id) ON DELETE CASCADE;
-
-
---
 -- Name: match_timeslot match_timeslot_match_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -865,22 +640,6 @@ ALTER TABLE ONLY public.matches
 
 
 --
--- Name: profile_feeds profile_feeds_feeded_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profile_feeds
-    ADD CONSTRAINT profile_feeds_feeded_id_fkey FOREIGN KEY (feeded_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: profile_feeds profile_feeds_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profile_feeds
-    ADD CONSTRAINT profile_feeds_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
 -- Name: profiles profiles_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -902,54 +661,6 @@ ALTER TABLE ONLY public.pushkit_devices
 
 ALTER TABLE ONLY public.pushkit_devices
     ADD CONSTRAINT pushkit_devices_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: seen_matches seen_matches_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.seen_matches
-    ADD CONSTRAINT seen_matches_by_user_id_fkey FOREIGN KEY (by_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: seen_matches seen_matches_match_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.seen_matches
-    ADD CONSTRAINT seen_matches_match_id_fkey FOREIGN KEY (match_id) REFERENCES public.matches(id) ON DELETE CASCADE;
-
-
---
--- Name: seen_profiles seen_profiles_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.seen_profiles
-    ADD CONSTRAINT seen_profiles_by_user_id_fkey FOREIGN KEY (by_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: seen_profiles seen_profiles_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.seen_profiles
-    ADD CONSTRAINT seen_profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: support_messages support_messages_author_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.support_messages
-    ADD CONSTRAINT support_messages_author_id_fkey FOREIGN KEY (author_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: support_messages support_messages_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.support_messages
-    ADD CONSTRAINT support_messages_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
@@ -980,57 +691,15 @@ ALTER TABLE ONLY public.users_tokens
 -- PostgreSQL database dump complete
 --
 
-INSERT INTO public."schema_migrations" (version) VALUES (20201212122150);
-INSERT INTO public."schema_migrations" (version) VALUES (20201212122212);
 INSERT INTO public."schema_migrations" (version) VALUES (20201212184331);
-INSERT INTO public."schema_migrations" (version) VALUES (20201214124702);
-INSERT INTO public."schema_migrations" (version) VALUES (20201215141153);
 INSERT INTO public."schema_migrations" (version) VALUES (20201219095342);
 INSERT INTO public."schema_migrations" (version) VALUES (20201219112614);
-INSERT INTO public."schema_migrations" (version) VALUES (20201223080010);
-INSERT INTO public."schema_migrations" (version) VALUES (20201231001626);
 INSERT INTO public."schema_migrations" (version) VALUES (20201231002022);
 INSERT INTO public."schema_migrations" (version) VALUES (20201231002323);
-INSERT INTO public."schema_migrations" (version) VALUES (20210113151839);
-INSERT INTO public."schema_migrations" (version) VALUES (20210113153633);
-INSERT INTO public."schema_migrations" (version) VALUES (20210113212327);
-INSERT INTO public."schema_migrations" (version) VALUES (20210113220005);
-INSERT INTO public."schema_migrations" (version) VALUES (20210113224758);
-INSERT INTO public."schema_migrations" (version) VALUES (20210113230120);
-INSERT INTO public."schema_migrations" (version) VALUES (20210114212305);
 INSERT INTO public."schema_migrations" (version) VALUES (20210117175420);
 INSERT INTO public."schema_migrations" (version) VALUES (20210117182435);
-INSERT INTO public."schema_migrations" (version) VALUES (20210118001343);
-INSERT INTO public."schema_migrations" (version) VALUES (20210130101400);
-INSERT INTO public."schema_migrations" (version) VALUES (20210130101533);
-INSERT INTO public."schema_migrations" (version) VALUES (20210130101812);
-INSERT INTO public."schema_migrations" (version) VALUES (20210131190658);
-INSERT INTO public."schema_migrations" (version) VALUES (20210214144221);
-INSERT INTO public."schema_migrations" (version) VALUES (20210220194329);
-INSERT INTO public."schema_migrations" (version) VALUES (20210224130138);
-INSERT INTO public."schema_migrations" (version) VALUES (20210224181753);
-INSERT INTO public."schema_migrations" (version) VALUES (20210224181910);
 INSERT INTO public."schema_migrations" (version) VALUES (20210323124108);
-INSERT INTO public."schema_migrations" (version) VALUES (20210407205627);
-INSERT INTO public."schema_migrations" (version) VALUES (20210407211518);
-INSERT INTO public."schema_migrations" (version) VALUES (20210430215633);
-INSERT INTO public."schema_migrations" (version) VALUES (20210504090355);
-INSERT INTO public."schema_migrations" (version) VALUES (20210504100737);
-INSERT INTO public."schema_migrations" (version) VALUES (20210504125559);
-INSERT INTO public."schema_migrations" (version) VALUES (20210520105939);
-INSERT INTO public."schema_migrations" (version) VALUES (20210520110036);
-INSERT INTO public."schema_migrations" (version) VALUES (20210520113351);
-INSERT INTO public."schema_migrations" (version) VALUES (20210603235924);
-INSERT INTO public."schema_migrations" (version) VALUES (20210612185455);
-INSERT INTO public."schema_migrations" (version) VALUES (20210617223758);
-INSERT INTO public."schema_migrations" (version) VALUES (20210621092132);
-INSERT INTO public."schema_migrations" (version) VALUES (20210621153637);
 INSERT INTO public."schema_migrations" (version) VALUES (20210624195942);
-INSERT INTO public."schema_migrations" (version) VALUES (20210630134928);
-INSERT INTO public."schema_migrations" (version) VALUES (20210713134509);
 INSERT INTO public."schema_migrations" (version) VALUES (20210721105547);
 INSERT INTO public."schema_migrations" (version) VALUES (20210721111936);
 INSERT INTO public."schema_migrations" (version) VALUES (20210723120936);
-INSERT INTO public."schema_migrations" (version) VALUES (20210728221728);
-INSERT INTO public."schema_migrations" (version) VALUES (20210824160204);
-INSERT INTO public."schema_migrations" (version) VALUES (20210827113144);

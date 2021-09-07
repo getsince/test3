@@ -19,7 +19,7 @@ defmodule TWeb.UserSocket do
 
     if user = Accounts.get_user_by_session_token(token, "mobile") do
       Logger.metadata(user_id: user.id)
-      Logger.warn("user online #{user.phone_number}")
+      Logger.warn("user online #{user.id}")
 
       {:ok,
        assign(socket,
@@ -69,14 +69,14 @@ defmodule TWeb.UserSocket do
 
   # TODO test
   defp on_connect(pid, current_user) do
-    %Accounts.User{id: user_id, phone_number: phone_number} = current_user
+    %Accounts.User{id: user_id} = current_user
 
     # TODO not needed anymore (now that we have active sessions)
     Monitor.monitor(
       pid,
       _on_disconnect = fn ->
         Accounts.update_last_active(user_id)
-        Logger.warn("user offline #{phone_number}")
+        Logger.warn("user offline #{user_id}")
       end
     )
   end

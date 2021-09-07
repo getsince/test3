@@ -3,9 +3,7 @@ defmodule T.AccountsTest do
   use Oban.Testing, repo: Repo
 
   alias T.Accounts
-  alias T.Accounts.{Profile, PasswordlessAuth}
-
-  doctest PasswordlessAuth, import: true
+  alias T.Accounts.Profile
 
   # TODO empty arrays pass changesets
   describe "onboard_profile/2" do
@@ -60,7 +58,7 @@ defmodule T.AccountsTest do
   describe "update_last_active/1" do
     test "it works" do
       {:ok, %{profile: %Profile{user_id: user_id, last_active: last_active}}} =
-        Accounts.register_user_with_phone(%{phone_number: phone_number()})
+        Accounts.register_user_with_apple_id(%{"apple_id" => apple_id()})
 
       assert last_active
 

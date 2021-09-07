@@ -3,25 +3,6 @@ defmodule TWeb.MobileAuthController do
   alias TWeb.UserAuth
   alias T.Accounts
 
-  def request_sms(conn, %{"phone_number" => phone_number}) do
-    case Accounts.deliver_user_confirmation_instructions(phone_number) do
-      {:ok, _sent} -> send_resp(conn, 201, [])
-      # TODO
-      {:error, :invalid_phone_number} -> send_resp(conn, 400, [])
-    end
-  end
-
-  def verify_phone_number(conn, %{"phone_number" => phone_number, "code" => code}) do
-    case Accounts.login_or_register_user_with_phone(phone_number, code) do
-      {:ok, user} ->
-        verification_success_response(conn, user)
-
-      {:error, _reason} ->
-        # TODO
-        send_resp(conn, 400, [])
-    end
-  end
-
   def verify_apple_id(conn, %{"token" => base64_id_token}) do
     id_token = Base.decode64!(base64_id_token)
 

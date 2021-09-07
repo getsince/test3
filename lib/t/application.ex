@@ -10,7 +10,7 @@ defmodule T.Application do
     children =
       [
         {Task.Supervisor, name: T.TaskSupervisor},
-        T.PromEx,
+        # T.PromEx,
         {Finch, name: T.Finch},
         T.Twilio,
         {Phoenix.PubSub, name: T.PubSub},
@@ -20,7 +20,6 @@ defmodule T.Application do
         T.Repo,
         TWeb.Endpoint,
         unless_disabled(T.Feeds.ActiveSessionPruner),
-        unless_disabled(T.Accounts.SMSCodePruner),
         TWeb.Telemetry,
         maybe_migrator(),
         {Oban, oban_config()},

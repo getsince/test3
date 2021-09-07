@@ -29,7 +29,7 @@ msgstr "Add audio date to your calendar so you don't miss it 🙌"
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:125
 msgid "Заходи, чтобы ответить на приглашение 👀"
-msgstr "Come in to respond the invitation 👀"
+msgstr "Come in to respond to the invitation 👀"
 
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:143

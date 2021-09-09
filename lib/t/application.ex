@@ -27,6 +27,7 @@ defmodule T.Application do
       ]
       |> Enum.reject(&is_nil/1)
 
+    # TODO wait with :locus.await_loader(@db) before readiness_notifier
     maybe_setup_locus()
 
     # Only attach the telemetry logger when we aren't in an IEx shell

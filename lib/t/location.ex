@@ -13,11 +13,8 @@ defmodule T.Location do
       {:ok, %{"location" => %{"latitude" => lat, "longitude" => lon}}} ->
         [lat, lon]
 
-      {:error, reason} ->
-        Logger.error(
-          "failed to fetch location for #{inspect(ip_address)}, reason: #{inspect(reason)}"
-        )
-
+      :not_found ->
+        Logger.error("couldn't find location for ip address #{inspect(ip_address)}")
         nil
     end
   end

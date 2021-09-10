@@ -153,6 +153,7 @@ defmodule T.Calls do
     Call
     |> where(called_id: ^user_id)
     |> where([c], is_nil(c.accepted_at))
+    |> where([c], c.ended_at != nil)
     |> order_by(asc: :id)
     |> maybe_after_missed_calls(opts[:after])
   end

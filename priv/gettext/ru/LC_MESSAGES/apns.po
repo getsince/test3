@@ -75,3 +75,8 @@ msgstr ""
 #: lib/t/push_notifications/apns.ex:116
 msgid "%{name} invited you for a call"
 msgstr "%{name} хочет поговорить"
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:170
+msgid "Твоя сессия завершена"
+msgstr ""

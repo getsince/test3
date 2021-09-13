@@ -165,4 +165,12 @@ defmodule T.PushNotifications.APNS do
     |> Notification.put_alert(%{"title" => title, "body" => body})
     |> Notification.put_badge(1)
   end
+
+  defp build_notification("session_deactivated", device, data) do
+    title = dgettext("apns", "Твоя сессия завершена")
+
+    base_notification(device, "session_deactivated", data)
+    |> Notification.put_alert(%{"title" => title})
+    |> Notification.put_badge(1)
+  end
 end

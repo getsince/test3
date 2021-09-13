@@ -126,6 +126,16 @@ defmodule T.PushNotifications.DispatchJob do
     |> Repo.one()
   end
 
+  defp handle_type("deactivated" = type, args) do
+    %{"user_id" => user_id} = args
+
+    data = %{}
+
+    user_id |> Accounts.list_apns_devices() |> schedule_apns(type, data)
+
+    :ok
+  end
+
   @spec schedule_apns([%Accounts.APNSDevice{}], String.t(), map) :: [Oban.Job.t()]
   defp schedule_apns(apns_devices, template, data) do
     apns_devices

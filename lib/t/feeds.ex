@@ -46,6 +46,13 @@ defmodule T.Feeds do
     for user_id <- user_ids do
       broadcast(topic, {__MODULE__, :deactivated, user_id})
     end
+
+    schedule_deactivated_push_notification(user_id)
+  end
+
+  defp schedule_deactivated_push_notification(user_id) do
+    job = DispatchJob.new(%{"type" => "deactivated", "user_id" => user_id})
+    Oban.insert(job)
   end
 
   def subscribe_for_invites(user_id) do

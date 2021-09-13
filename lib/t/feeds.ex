@@ -45,9 +45,8 @@ defmodule T.Feeds do
 
     for user_id <- user_ids do
       broadcast(topic, {__MODULE__, :deactivated, user_id})
+      schedule_deactivated_push_notification(user_id)
     end
-
-    schedule_deactivated_push_notification(user_id)
   end
 
   defp schedule_deactivated_push_notification(user_id) do

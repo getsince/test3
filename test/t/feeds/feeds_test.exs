@@ -6,6 +6,8 @@ defmodule T.FeedsTest do
   alias T.PushNotifications.DispatchJob
   alias Feeds.{ActiveSession, FeedProfile}
 
+  @reference ~U[2021-07-21 11:55:18.941048Z]
+
   describe "activate_session/2" do
     test "doesn't raise on conflict, latest session takes precedence" do
       user = insert(:user)
@@ -20,32 +22,6 @@ defmodule T.FeedsTest do
 
       assert %ActiveSession{expires_at: ~U[2021-07-21 11:15:18Z]} =
                Feeds.get_current_session(user.id)
-    end
-  end
-
-  describe "expired sessions" do
-    @reference ~U[2021-07-21 11:55:18.941048Z]
-
-    setup do
-      [u1, u2, u3] = users = insert_list(3, :user)
-
-      Feeds.activate_session(u1.id, 60, _reference = ~U[2021-07-21 10:50:18Z])
-      Feeds.activate_session(u2.id, 60, _reference = ~U[2021-07-21 10:53:18Z])
-      Feeds.activate_session(u3.id, 60, _reference = ~U[2021-07-21 10:56:18Z])
-
-      {:ok, users: users}
-    end
-
-    test "expired_sessions/0 returns expired sessions" do
-      assert [
-               %ActiveSession{expires_at: ~U[2021-07-21 11:50:18Z]},
-               %ActiveSession{expires_at: ~U[2021-07-21 11:53:18Z]}
-             ] = Feeds.expired_sessions(@reference)
-    end
-
-    test "delete_expired_sessions/0 deletes expired sessions", %{users: [u1, u2, _u3]} do
-      assert {2, [u1.id, u2.id]} == Feeds.delete_expired_sessions(@reference)
-      assert [] == Feeds.expired_sessions(@reference)
     end
   end
 

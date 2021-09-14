@@ -123,7 +123,7 @@ defmodule T.Feeds.ExpiredSessionsTest do
           %Notification{n | response: :success}
       end)
 
-      assert %{failure: 0, success: 2} = Oban.drain_queue(queue: :apns)
+      assert %{failure: 0, success: 2} = Oban.drain_queue(queue: :apns, with_safety: false)
     end
   end
 end

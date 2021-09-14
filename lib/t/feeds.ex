@@ -131,6 +131,7 @@ defmodule T.Feeds do
   end
 
   # TODO test pubsub
+  # TODO test apns
   def delete_expired_sessions(reference \\ DateTime.utc_now()) do
     {_count, user_ids} =
       result =
@@ -139,8 +140,17 @@ defmodule T.Feeds do
       |> select([s], s.user_id)
       |> Repo.delete_all()
 
+    schedule_session_expired_push_notfications(user_ids)
     notify_deactivated(user_ids)
     result
+  end
+
+  defp schedule_session_expired_push_notfications(user_ids) when is_list(user_ids) do
+    user_ids
+    |> Enum.map(fn user_id ->
+      DispatchJob.new(%{"user_id" => user_id, "type" => "session_expired"})
+    end)
+    |> Oban.insert_all()
   end
 
   ### Invites

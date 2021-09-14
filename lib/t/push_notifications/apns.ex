@@ -120,6 +120,14 @@ defmodule T.PushNotifications.APNS do
     |> Notification.put_badge(1)
   end
 
+  defp build_notification("session_expired", device, _data) do
+    title = dgettext("apns", "Твоя сессия завершена")
+
+    base_notification(device, "session_expired", _data = %{})
+    |> Notification.put_alert(%{"title" => title})
+    |> Notification.put_badge(1)
+  end
+
   defp build_notification("timeslot_offer", device, data) do
     title = dgettext("apns", "Тебя пригласили на свидание!")
     body = dgettext("apns", "Заходи, чтобы ответить на приглашение 👀")

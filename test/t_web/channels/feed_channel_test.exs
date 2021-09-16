@@ -33,9 +33,9 @@ defmodule TWeb.FeedChannelTest do
     test "with matches", %{socket: socket, me: me} do
       [p1, p2, p3] =
         mates = [
-          onboarded_user(story: [], name: "mate-1", location: apple_location()),
-          onboarded_user(story: [], name: "mate-2", location: apple_location()),
-          onboarded_user(story: [], name: "mate-3", location: apple_location())
+          onboarded_user(story: [], name: "mate-1", location: apple_location(), gender: "F"),
+          onboarded_user(story: [], name: "mate-2", location: apple_location(), gender: "N"),
+          onboarded_user(story: [], name: "mate-3", location: apple_location(), gender: "M")
         ]
 
       [m1, m2, m3] =
@@ -64,23 +64,23 @@ defmodule TWeb.FeedChannelTest do
       assert_lists_equal(matches, [
         %{
           "id" => m1.id,
-          "profile" => %{name: "mate-1", story: [], user_id: p1.id}
+          "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"}
         },
         %{
           "id" => m2.id,
-          "profile" => %{name: "mate-2", story: [], user_id: p2.id},
+          "profile" => %{name: "mate-2", story: [], user_id: p2.id, gender: "N"},
           "timeslot" => %{"picker" => me.id, "slots" => slots}
         },
         %{
           "id" => m3.id,
-          "profile" => %{name: "mate-3", story: [], user_id: p3.id},
+          "profile" => %{name: "mate-3", story: [], user_id: p3.id, gender: "M"},
           "timeslot" => %{"selected_slot" => s2}
         }
       ])
     end
 
     test "with invites and current session", %{socket: socket, me: me} do
-      mate = onboarded_user(story: [], name: "mate", location: apple_location())
+      mate = onboarded_user(story: [], name: "mate", location: apple_location(), gender: "F")
 
       %ActiveSession{flake: session_id} =
         Feeds.activate_session(me.id, _duration = 60, @reference)
@@ -97,7 +97,7 @@ defmodule TWeb.FeedChannelTest do
                "invites" => [
                  %{
                    "distance" => 9510,
-                   "profile" => %{name: "mate", story: [], user_id: mate.id},
+                   "profile" => %{name: "mate", story: [], user_id: mate.id, gender: "F"},
                    "session" => %{id: mate_session_id, expires_at: ~U[2021-07-21 12:55:18Z]}
                  }
                ]
@@ -106,7 +106,7 @@ defmodule TWeb.FeedChannelTest do
 
     test "with missed calls", %{socket: socket, me: me} do
       "user_socket:" <> token = socket.id
-      mate = onboarded_user(story: [], location: apple_location(), name: "mate")
+      mate = onboarded_user(story: [], location: apple_location(), name: "mate", gender: "F")
 
       # activated sessions
       %ActiveSession{flake: session_id} =
@@ -147,7 +147,7 @@ defmodule TWeb.FeedChannelTest do
                      "started_at" => DateTime.from_naive!(c1.inserted_at, "Etc/UTC"),
                      "ended_at" => c1.ended_at
                    },
-                   "profile" => %{name: "mate", story: [], user_id: mate.id},
+                   "profile" => %{name: "mate", story: [], user_id: mate.id, gender: "F"},
                    "session" => %{expires_at: ~U[2021-07-21 12:55:18Z], id: mate_session_id}
                  },
                  %{
@@ -156,7 +156,7 @@ defmodule TWeb.FeedChannelTest do
                      "id" => call_id2,
                      "started_at" => DateTime.from_naive!(c2.inserted_at, "Etc/UTC")
                    },
-                   "profile" => %{name: "mate", story: [], user_id: mate.id},
+                   "profile" => %{name: "mate", story: [], user_id: mate.id, gender: "F"},
                    "session" => %{expires_at: ~U[2021-07-21 12:55:18Z], id: mate_session_id}
                  }
                ]
@@ -174,7 +174,7 @@ defmodule TWeb.FeedChannelTest do
                      "id" => call_id2,
                      "started_at" => DateTime.from_naive!(c2.inserted_at, "Etc/UTC")
                    },
-                   "profile" => %{name: "mate", story: [], user_id: mate.id},
+                   "profile" => %{name: "mate", story: [], user_id: mate.id, gender: "F"},
                    "session" => %{expires_at: ~U[2021-07-21 12:55:18Z], id: mate_session_id}
                  }
                ]
@@ -258,17 +258,20 @@ defmodule TWeb.FeedChannelTest do
           onboarded_user(
             name: "mate-1",
             location: apple_location(),
-            story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}]
+            story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
+            gender: "F"
           ),
           onboarded_user(
             name: "mate-2",
             location: apple_location(),
-            story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}]
+            story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
+            gender: "N"
           ),
           onboarded_user(
             name: "mate-3",
             location: apple_location(),
-            story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}]
+            story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
+            gender: "M"
           )
         ]
 
@@ -286,7 +289,9 @@ defmodule TWeb.FeedChannelTest do
                    expires_at: ~U[2021-07-21 12:55:18Z]
                  },
                  "profile" => %{
+                   user_id: m1.id,
                    name: "mate-1",
+                   gender: "F",
                    story: [
                      %{
                        "background" => %{
@@ -296,8 +301,7 @@ defmodule TWeb.FeedChannelTest do
                        },
                        "labels" => []
                      }
-                   ],
-                   user_id: m1.id
+                   ]
                  }
                },
                %{
@@ -307,7 +311,9 @@ defmodule TWeb.FeedChannelTest do
                    expires_at: ~U[2021-07-21 12:55:18Z]
                  },
                  "profile" => %{
+                   user_id: m2.id,
                    name: "mate-2",
+                   gender: "N",
                    story: [
                      %{
                        "background" => %{
@@ -317,8 +323,7 @@ defmodule TWeb.FeedChannelTest do
                        },
                        "labels" => []
                      }
-                   ],
-                   user_id: m2.id
+                   ]
                  }
                }
              ]
@@ -338,7 +343,9 @@ defmodule TWeb.FeedChannelTest do
                    expires_at: ~U[2021-07-21 12:55:18Z]
                  },
                  "profile" => %{
+                   user_id: m3.id,
                    name: "mate-3",
+                   gender: "M",
                    story: [
                      %{
                        "background" => %{
@@ -348,8 +355,7 @@ defmodule TWeb.FeedChannelTest do
                        },
                        "labels" => []
                      }
-                   ],
-                   user_id: m3.id
+                   ]
                  }
                }
              ]
@@ -386,7 +392,9 @@ defmodule TWeb.FeedChannelTest do
                  expires_at: ~U[2021-07-21 12:55:18Z]
                },
                "profile" => %{
+                 user_id: me.id,
                  name: "that",
+                 gender: "M",
                  story: [
                    %{
                      "background" => %{
@@ -413,8 +421,7 @@ defmodule TWeb.FeedChannelTest do
                        }
                      ]
                    }
-                 ],
-                 user_id: me.id
+                 ]
                }
              }
 
@@ -428,7 +435,9 @@ defmodule TWeb.FeedChannelTest do
                  expires_at: ~U[2021-07-21 12:55:18Z]
                },
                "profile" => %{
+                 user_id: other.id,
                  name: "that",
+                 gender: "M",
                  story: [
                    %{
                      "background" => %{
@@ -455,8 +464,7 @@ defmodule TWeb.FeedChannelTest do
                        }
                      ]
                    }
-                 ],
-                 user_id: other.id
+                 ]
                }
              }
 
@@ -469,6 +477,8 @@ defmodule TWeb.FeedChannelTest do
                  expires_at: ~U[2021-07-21 12:55:18Z]
                },
                "profile" => %{
+                 user_id: other.id,
+                 gender: "M",
                  name: "that",
                  story: [
                    %{
@@ -496,8 +506,7 @@ defmodule TWeb.FeedChannelTest do
                        }
                      ]
                    }
-                 ],
-                 user_id: other.id
+                 ]
                }
              }
 
@@ -515,7 +524,9 @@ defmodule TWeb.FeedChannelTest do
                      expires_at: ~U[2021-07-21 12:55:18Z]
                    },
                    "profile" => %{
+                     user_id: other.id,
                      name: "that",
+                     gender: "M",
                      story: [
                        %{
                          "background" => %{
@@ -542,8 +553,7 @@ defmodule TWeb.FeedChannelTest do
                            }
                          ]
                        }
-                     ],
-                     user_id: other.id
+                     ]
                    }
                  }
                ]
@@ -599,7 +609,7 @@ defmodule TWeb.FeedChannelTest do
         "session" => %{expires_at: %DateTime{}, id: _session_id}
       })
 
-      assert profile == %{name: "mate", story: [], user_id: mate.id}
+      assert profile == %{name: "mate", story: [], user_id: mate.id, gender: "F"}
       refute_receive _anything_else
 
       # call still fails since mate is missing pushkit devices
@@ -899,7 +909,7 @@ defmodule TWeb.FeedChannelTest do
       assert push == %{
                "match" => %{
                  "id" => match_id,
-                 "profile" => %{name: "mate", story: [], user_id: mate.id}
+                 "profile" => %{name: "mate", story: [], user_id: mate.id, gender: "M"}
                }
              }
     end

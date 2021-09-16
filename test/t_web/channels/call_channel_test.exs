@@ -104,6 +104,7 @@ defmodule TWeb.CallChannelTest do
                caller: %{
                  name: "that",
                  user_id: caller.id,
+                 gender: "M",
                  story: [
                    %{
                      "background" => %{

@@ -40,7 +40,7 @@ defmodule TWeb.LogLive.Index do
   end
 
   defp log_text({_level, {_ymd, {h, m, s, ms}}, message}) do
-    time = Time.new!(h, m, s, ms)
+    time = Time.new!(h, m, s, {ms * 1000, 3})
     ~E[<%= time %>: <%= message %>]
   end
 

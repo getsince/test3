@@ -41,7 +41,9 @@ if config_env() == :prod do
     key_sid: System.fetch_env!("TWILIO_KEY_SID"),
     auth_token: System.fetch_env!("TWILIO_AUTH_TOKEN")
 
-  config :logger, level: :info, backends: [:console, CloudWatch, Sentry.LoggerBackend]
+  config :logger, backends: [:console, CloudWatch, Sentry.LoggerBackend, T.PubSubLoggerBackend]
+  config :logger, :console, level: :info
+  config :logger, T.PubSubLoggerBackend, level: :debug
 
   config :logger, CloudWatch,
     level: :warn,
@@ -116,7 +118,9 @@ if config_env() == :prod do
 end
 
 if config_env() == :dev do
-  config :logger, level: :warn
+  config :logger, :console, level: :warn
+  config :logger, backends: [:console, T.PubSubLoggerBackend]
+  config :logger, T.PubSubLoggerBackend, level: :debug
 
   config :pigeon, :apns,
     dev: %{

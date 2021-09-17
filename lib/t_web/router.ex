@@ -59,6 +59,8 @@ defmodule TWeb.Router do
 
       live "/reports", ReportLive.Index, :index
 
+      live "/logs", LogLive.Index, :index
+
       live "/active-sessions", ActiveSessionLive.Index, :index
       live "/active-sessions/new", ActiveSessionLive.Index, :new
 

@@ -10,7 +10,7 @@ defmodule TWeb.LogLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <div id="logs" phx-update="append" class="space-y-2 p-4">
+    <div id="logs" phx-update="append" class="space-y-2 p-4" phx-hook="ScrollWindowDownHook">
       <%= for {id, log} <- @logs do %>
         <pre id={id} class={log_class(log)}><%= log_text(log) %></pre>
       <% end %>

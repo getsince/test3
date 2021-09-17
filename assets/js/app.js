@@ -31,6 +31,15 @@ const ScrollDownHook = {
   },
 };
 
+const ScrollWindowDownHook = {
+  mounted() {
+    window.scrollTo(0, document.body.scrollHeight);
+  },
+  updated() {
+    window.scrollTo(0, document.body.scrollHeight);
+  },
+};
+
 const S3 = function (entries, onViewError) {
   entries.forEach((entry) => {
     let formData = new FormData();
@@ -69,6 +78,7 @@ let liveSocket = new LiveSocket("/live", Socket, {
   hooks: {
     MessagesHook,
     ScrollDownHook,
+    ScrollWindowDownHook,
     WebRTCHook,
   },
   dom: {

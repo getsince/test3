@@ -23,10 +23,17 @@ defmodule TWeb.LogLive.Index do
   defp log_class({level, _ts, _message}) do
     color =
       case level do
-        :debug -> " text-blue-200 bg-blue-900 border-blue-600"
-        :info -> " text-gray-200 bg-gray-800 border-gray-600"
-        :warn -> " text-yellow-200 bg-yellow-900 border-yellow-700"
-        :error -> " text-red-200 bg-red-800 border-red-600"
+        :debug ->
+          " text-blue-700 bg-blue-100 border-blue-500 dark:text-blue-200 dark:bg-blue-900 dark:border-blue-600"
+
+        :info ->
+          " text-gray-700 bg-gray-100 border-gray-500 dark:text-gray-200 dark:bg-gray-800 dark:border-gray-600"
+
+        :warn ->
+          " text-yellow-600 bg-yellow-100 border-yellow-500 dark:text-yellow-200 dark:bg-yellow-900 dark:border-yellow-700"
+
+        :error ->
+          " text-red-700 bg-red-100 border-red-500 dark:text-red-200 dark:bg-red-800 dark:border-red-600"
       end
 
     {:safe, [@base_log_class | color]}

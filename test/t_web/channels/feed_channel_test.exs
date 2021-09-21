@@ -12,7 +12,7 @@ defmodule TWeb.FeedChannelTest do
   setup :verify_on_exit!
 
   setup do
-    me = onboarded_user(location: moscow_location())
+    me = onboarded_user(location: moscow_location(), accept_genders: ["F", "N", "M"])
     {:ok, me: me, socket: connected_socket(me)}
   end
 
@@ -259,19 +259,22 @@ defmodule TWeb.FeedChannelTest do
             name: "mate-1",
             location: apple_location(),
             story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
-            gender: "F"
+            gender: "F",
+            accept_genders: ["M"]
           ),
           onboarded_user(
             name: "mate-2",
             location: apple_location(),
             story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
-            gender: "N"
+            gender: "N",
+            accept_genders: ["M"]
           ),
           onboarded_user(
             name: "mate-3",
             location: apple_location(),
             story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
-            gender: "M"
+            gender: "M",
+            accept_genders: ["M"]
           )
         ]
 

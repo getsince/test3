@@ -150,6 +150,7 @@ defmodule T.FeedsTest do
                Feeds.fetch_feed(
                  me.id,
                  me.profile.location,
+                 _gender = "M",
                  _gender_preference = ["F"],
                  _count = 10,
                  _cursor = nil
@@ -163,6 +164,7 @@ defmodule T.FeedsTest do
                Feeds.fetch_feed(
                  me.id,
                  me.profile.location,
+                 _gender = "M",
                  _gender_preference = ["F"],
                  _count = 10,
                  _cursor = nil
@@ -177,6 +179,27 @@ defmodule T.FeedsTest do
                Feeds.fetch_feed(
                  me.id,
                  me.profile.location,
+                 _gender = "M",
+                 _gender_preference = ["F"],
+                 _count = 10,
+                 _cursor = nil
+               )
+    end
+
+    test "with users of preferred gender but not interested", %{me: me} do
+      others = insert_list(3, :profile, gender: "F")
+
+      for profile <- others do
+        insert(:gender_preference, user_id: profile.user_id, gender: "F")
+      end
+
+      activate_sessions(others, @reference)
+
+      assert {[], nil} ==
+               Feeds.fetch_feed(
+                 me.id,
+                 me.profile.location,
+                 _gender = "M",
                  _gender_preference = ["F"],
                  _count = 10,
                  _cursor = nil
@@ -184,7 +207,11 @@ defmodule T.FeedsTest do
     end
 
     test "with active users fewer than count", %{me: me} do
-      others = Enum.map(1..3, fn _ -> onboarded_user(gender: "F", location: apple_location()) end)
+      others =
+        Enum.map(1..3, fn _ ->
+          onboarded_user(gender: "F", location: apple_location(), accept_genders: ["M", "N"])
+        end)
+
       activate_sessions(others, @reference)
 
       assert {[
@@ -198,6 +225,7 @@ defmodule T.FeedsTest do
                Feeds.fetch_feed(
                  me.id,
                  me.profile.location,
+                 _gender = "M",
                  _gender_preference = ["F"],
                  _count = 10,
                  _cursor = nil
@@ -207,6 +235,7 @@ defmodule T.FeedsTest do
                Feeds.fetch_feed(
                  me.id,
                  me.profile.location,
+                 _gender = "M",
                  _gender_preference = ["F"],
                  _count = 10,
                  cursor
@@ -214,7 +243,11 @@ defmodule T.FeedsTest do
     end
 
     test "with active users more than count", %{me: me} do
-      others = Enum.map(1..3, fn _ -> onboarded_user(gender: "F", location: apple_location()) end)
+      others =
+        Enum.map(1..3, fn _ ->
+          onboarded_user(gender: "F", location: apple_location(), accept_genders: ["M", "N"])
+        end)
+
       activate_sessions(others, @reference)
 
       assert {[
@@ -227,6 +260,7 @@ defmodule T.FeedsTest do
                Feeds.fetch_feed(
                  me.id,
                  me.profile.location,
+                 _gender = "M",
                  _gender_preference = ["F"],
                  _count = 2,
                  _cursor = nil
@@ -240,6 +274,7 @@ defmodule T.FeedsTest do
                Feeds.fetch_feed(
                  me.id,
                  me.profile.location,
+                 _gender = "M",
                  _gender_preference = ["F"],
                  _count = 10,
                  cursor1
@@ -251,6 +286,7 @@ defmodule T.FeedsTest do
                Feeds.fetch_feed(
                  me.id,
                  me.profile.location,
+                 _gender = "M",
                  _gender_preference = ["F"],
                  _count = 10,
                  cursor2

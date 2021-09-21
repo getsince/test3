@@ -529,10 +529,10 @@ defmodule T.Accounts do
     )
   end
 
-  def get_location!(user_id) do
+  def get_location_and_gender!(user_id) do
     Profile
     |> where(user_id: ^user_id)
-    |> select([p], p.location)
+    |> select([p], {p.location, p.gender})
     |> Repo.one!()
   end
 

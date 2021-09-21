@@ -91,7 +91,8 @@ defmodule T.Factory do
       latitude: lat,
       longitude: lon,
       gender: gender,
-      name: opts[:name] || "that"
+      name: opts[:name] || "that",
+      filters: %{genders: opts[:accept_genders] || ["F"]}
     }
   end
 

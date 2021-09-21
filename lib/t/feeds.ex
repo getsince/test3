@@ -8,7 +8,7 @@ defmodule T.Feeds do
   require Logger
 
   alias T.Repo
-  alias T.Accounts.UserReport
+  alias T.Accounts.{UserReport, GenderPreference}
   alias T.Calls
   alias T.Feeds.{ActiveSession, FeedProfile}
   alias T.PushNotifications.DispatchJob
@@ -233,10 +233,17 @@ defmodule T.Feeds do
   @type feed_cursor :: String.t()
   @type feed_item :: {%FeedProfile{}, %ActiveSession{}, distance_km :: non_neg_integer}
 
-  @spec fetch_feed(Ecto.UUID.t(), Geo.Point.t(), [String.t()], pos_integer, feed_cursor | nil) ::
+  @spec fetch_feed(
+          Ecto.UUID.t(),
+          Geo.Point.t(),
+          String.t(),
+          [String.t()],
+          pos_integer,
+          feed_cursor | nil
+        ) ::
           {[feed_item], feed_cursor}
-  def fetch_feed(user_id, location, gender_preferences, count, feed_cursor) do
-    profiles_q = filtered_profiles_q(user_id, gender_preferences)
+  def fetch_feed(user_id, location, gender, gender_preferences, count, feed_cursor) do
+    profiles_q = filtered_profiles_q(user_id, gender, gender_preferences)
 
     feed_items =
       active_sessions_q(user_id, feed_cursor)
@@ -313,16 +320,23 @@ defmodule T.Feeds do
     where(query, [p], p.user_id not in subquery(invited_user_ids_q(user_id)))
   end
 
+  defp profiles_that_accept_gender_q(query, gender) do
+    join(query, :inner, [p], gp in GenderPreference,
+      on: gp.gender == ^gender and p.user_id == gp.user_id
+    )
+  end
+
   defp maybe_gender_preferenced_q(query, _no_preferences = []), do: query
 
   defp maybe_gender_preferenced_q(query, gender_preference) do
     where(query, [p], p.gender in ^gender_preference)
   end
 
-  defp filtered_profiles_q(user_id, gender_preference) when is_list(gender_preference) do
+  defp filtered_profiles_q(user_id, gender, gender_preference) when is_list(gender_preference) do
     not_hidden_profiles_q()
     |> not_reported_profiles_q(user_id)
     |> not_invited_profiles_q(user_id)
+    |> profiles_that_accept_gender_q(gender)
     |> maybe_gender_preferenced_q(gender_preference)
   end
 end

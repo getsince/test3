@@ -12,7 +12,7 @@ defmodule TWeb.FeedChannel do
     %{screen_width: screen_width} = socket.assigns
 
     gender_preferences = Accounts.list_gender_preferences(user_id)
-    location = Accounts.get_location!(user_id)
+    {location, gender} = Accounts.get_location_and_gender!(user_id)
 
     :ok = Feeds.subscribe_for_invites(user_id)
     :ok = Feeds.subscribe_for_activated_sessions()
@@ -46,7 +46,8 @@ defmodule TWeb.FeedChannel do
       |> maybe_put("invites", invites)
       |> maybe_put("matches", matches)
 
-    {:ok, reply, assign(socket, gender_preferences: gender_preferences, location: location)}
+    {:ok, reply,
+     assign(socket, gender_preferences: gender_preferences, location: location, gender: gender)}
   end
 
   @impl true
@@ -55,6 +56,7 @@ defmodule TWeb.FeedChannel do
       current_user: user,
       screen_width: screen_width,
       gender_preferences: gender_preferences,
+      gender: gender,
       location: location
     } = socket.assigns
 
@@ -62,6 +64,7 @@ defmodule TWeb.FeedChannel do
       Feeds.fetch_feed(
         user.id,
         location,
+        gender,
         gender_preferences,
         params["count"] || 10,
         params["cursor"]

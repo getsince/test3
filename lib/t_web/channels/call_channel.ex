@@ -58,6 +58,11 @@ defmodule TWeb.CallChannel do
     {:reply, :ok, socket}
   end
 
+  def handle_in("activate-topic", params, socket) do
+    broadcast_from!(socket, "topic-activated", params)
+    {:reply, :ok, socket}
+  end
+
   @impl true
   def handle_info(:after_join, socket) do
     # TODO possibly remove self from feed channel?

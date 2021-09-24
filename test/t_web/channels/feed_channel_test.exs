@@ -119,7 +119,7 @@ defmodule TWeb.FeedChannelTest do
       :ok = Accounts.save_pushkit_device_id(me.id, token, Base.decode16!("ABABAB"), env: "prod")
 
       # prepare apns mock
-      expect(MockAPNS, :push, 2, fn [push], :prod -> [%{push | response: :success}] end)
+      expect(MockAPNS, :push, 3, fn [push], :prod -> [%{push | response: :success}] end)
 
       # mate invites me
       true = Feeds.invite_active_user(me.id, mate.id)
@@ -127,14 +127,29 @@ defmodule TWeb.FeedChannelTest do
       # mate calls me
       {:ok, call_id1} = Calls.call(mate.id, me.id)
 
-      # TODO forbid "duplicate" calls?
+      # mate calls me
       {:ok, call_id2} = Calls.call(mate.id, me.id)
 
-      refute call_id1 == call_id2
+      # TODO forbid "duplicate" calls?
+      {:ok, call_id3} = Calls.call(mate.id, me.id)
 
-      :ok = Calls.end_call(call_id1)
+      assert [_, _, _] = Enum.uniq([call_id1, call_id2, call_id3])
+
+      # me ends call, so call_id1 shouldn't be considered missed
+      :ok = Calls.end_call(me.id, call_id1)
+
+      # mate ends call, so call_id2, should be considered missed
+      :ok = Calls.end_call(mate.id, call_id2)
+
       %Call{} = c1 = Repo.get(Call, call_id1)
       %Call{} = c2 = Repo.get(Call, call_id2)
+      %Call{} = c3 = Repo.get(Call, call_id2)
+
+      assert c1.ended_at
+      assert c1.ended_by == me.id
+
+      assert c2.ended_at
+      assert c2.ended_by == mate.id
 
       assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id)
 
@@ -142,19 +157,19 @@ defmodule TWeb.FeedChannelTest do
                "current_session" => %{expires_at: ~U[2021-07-21 12:55:18Z], id: session_id},
                "missed_calls" => [
                  %{
+                   # TODO call without ended_at should be joined from ios?
                    "call" => %{
-                     "id" => call_id1,
-                     "started_at" => DateTime.from_naive!(c1.inserted_at, "Etc/UTC"),
-                     "ended_at" => c1.ended_at
+                     "id" => call_id2,
+                     "started_at" => DateTime.from_naive!(c2.inserted_at, "Etc/UTC"),
+                     "ended_at" => DateTime.from_naive!(c3.ended_at, "Etc/UTC")
                    },
                    "profile" => %{name: "mate", story: [], user_id: mate.id, gender: "F"},
                    "session" => %{expires_at: ~U[2021-07-21 12:55:18Z], id: mate_session_id}
                  },
                  %{
-                   # TODO call without ended_at should be joined from ios?
                    "call" => %{
-                     "id" => call_id2,
-                     "started_at" => DateTime.from_naive!(c2.inserted_at, "Etc/UTC")
+                     "id" => call_id3,
+                     "started_at" => DateTime.from_naive!(c3.inserted_at, "Etc/UTC")
                    },
                    "profile" => %{name: "mate", story: [], user_id: mate.id, gender: "F"},
                    "session" => %{expires_at: ~U[2021-07-21 12:55:18Z], id: mate_session_id}
@@ -164,15 +179,15 @@ defmodule TWeb.FeedChannelTest do
 
       # now with missed_calls_cursor
       assert {:ok, reply, _socket} =
-               join(socket, "feed:" <> me.id, %{"missed_calls_cursor" => call_id1})
+               join(socket, "feed:" <> me.id, %{"missed_calls_cursor" => call_id2})
 
       assert reply == %{
                "current_session" => %{expires_at: ~U[2021-07-21 12:55:18Z], id: session_id},
                "missed_calls" => [
                  %{
                    "call" => %{
-                     "id" => call_id2,
-                     "started_at" => DateTime.from_naive!(c2.inserted_at, "Etc/UTC")
+                     "id" => call_id3,
+                     "started_at" => DateTime.from_naive!(c3.inserted_at, "Etc/UTC")
                    },
                    "profile" => %{name: "mate", story: [], user_id: mate.id, gender: "F"},
                    "session" => %{expires_at: ~U[2021-07-21 12:55:18Z], id: mate_session_id}

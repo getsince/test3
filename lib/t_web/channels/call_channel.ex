@@ -54,7 +54,8 @@ defmodule TWeb.CallChannel do
   def handle_in("hang-up", _params, socket) do
     # also when last user disconnects, call ends as well?
     broadcast_from!(socket, "hang-up", %{})
-    :ok = Calls.end_call(socket.assigns.call_id)
+    %{current_user: user, call_id: call_id} = socket.assigns
+    :ok = Calls.end_call(user.id, call_id)
     {:reply, :ok, socket}
   end
 

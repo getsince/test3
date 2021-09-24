@@ -34,7 +34,7 @@ defmodule TWeb.ActiveSessionLive.Show do
   @impl true
   def handle_params(params, _uri, socket) do
     if call_id = socket.assigns[:call_id] do
-      :ok = Calls.end_call(call_id)
+      :ok = Calls.end_call(socket.assigns.me_id, call_id)
     end
 
     socket =

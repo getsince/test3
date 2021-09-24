@@ -8,6 +8,7 @@ defmodule T.Calls.Call do
     belongs_to :caller, User
     belongs_to :called, User
 
+    field :ended_by, Ecto.Bigflake.UUID
     field :ended_at, :utc_datetime
     field :accepted_at, :utc_datetime
 

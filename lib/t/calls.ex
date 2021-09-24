@@ -119,12 +119,12 @@ defmodule T.Calls do
     :ok
   end
 
-  @spec end_call(Ecto.UUID.t(), DateTime.t()) :: :ok
-  def end_call(call_id, now \\ utc_now()) do
+  @spec end_call(Ecto.UUID.t(), Ecto.UUID.t(), DateTime.t()) :: :ok
+  def end_call(user_id, call_id, now \\ utc_now()) do
     {1, _} =
       Call
       |> where(id: ^call_id)
-      |> Repo.update_all(set: [ended_at: now])
+      |> Repo.update_all(set: [ended_at: now, ended_by: user_id])
 
     :ok
   end
@@ -147,12 +147,14 @@ defmodule T.Calls do
     |> Repo.all()
   end
 
-  # TODO remove the ones hung up by user_id
   @spec missed_calls_q(Ecto.UUID.t(), Keyword.t()) :: Ecto.Query.t()
   defp missed_calls_q(user_id, opts) do
     Call
     |> where(called_id: ^user_id)
+    # call hasn't been picked up
     |> where([c], is_nil(c.accepted_at))
+    # and call hasn't been declined
+    |> where([c], is_nil(c.ended_by) or c.ended_by != c.called_id)
     |> order_by(asc: :id)
     |> maybe_after_missed_calls(opts[:after])
   end

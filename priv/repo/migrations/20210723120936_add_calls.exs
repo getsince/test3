@@ -8,6 +8,7 @@ defmodule T.Repo.Migrations.AddCalls do
       add :id, :uuid, primary_key: true
       add :caller_id, references(:profiles, @opts), null: false
       add :called_id, references(:profiles, @opts), null: false
+      add :ended_by, references(:profiles, @opts)
       add :ended_at, :timestamptz
       add :accepted_at, :timestamptz
 

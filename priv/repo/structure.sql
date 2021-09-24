@@ -118,6 +118,7 @@ CREATE TABLE public.calls (
     id uuid NOT NULL,
     caller_id uuid NOT NULL,
     called_id uuid NOT NULL,
+    ended_by uuid,
     ended_at timestamp with time zone,
     accepted_at timestamp with time zone,
     inserted_at timestamp(0) without time zone NOT NULL
@@ -581,6 +582,14 @@ ALTER TABLE ONLY public.calls
 
 ALTER TABLE ONLY public.calls
     ADD CONSTRAINT calls_caller_id_fkey FOREIGN KEY (caller_id) REFERENCES public.profiles(user_id) ON DELETE CASCADE;
+
+
+--
+-- Name: calls calls_ended_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.calls
+    ADD CONSTRAINT calls_ended_by_fkey FOREIGN KEY (ended_by) REFERENCES public.profiles(user_id) ON DELETE CASCADE;
 
 
 --

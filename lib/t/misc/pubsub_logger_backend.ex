@@ -23,7 +23,6 @@ defmodule T.PubSubLoggerBackend do
   end
 
   @impl true
-
   def handle_info(_, state) do
     {:ok, state}
   end

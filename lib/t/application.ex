@@ -36,7 +36,12 @@ defmodule T.Application do
       T.ObanReporter.attach()
     end
 
-    Supervisor.start_link(children, strategy: :one_for_one, name: T.Supervisor)
+    opts = [strategy: :one_for_one, name: T.Supervisor]
+
+    with {:ok, _pid} = result <- Supervisor.start_link(children, opts) do
+      maybe_add_pusbub_logger_backend()
+      result
+    end
   end
 
   # Tell Phoenix to update the endpoint configuration
@@ -70,6 +75,12 @@ defmodule T.Application do
   defp maybe_setup_locus do
     if key = Application.get_env(:t, :maxmind_license_key) do
       T.Location.setup(key)
+    end
+  end
+
+  defp maybe_add_pusbub_logger_backend do
+    if _config = Application.get_env(:logger, T.PubSubLoggerBackend) do
+      {:ok, _pid} = Logger.add_backend(T.PubSubLoggerBackend)
     end
   end
 

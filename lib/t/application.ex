@@ -17,8 +17,8 @@ defmodule T.Application do
         unless_disabled(T.Media.Static),
         TWeb.Presence,
         TWeb.UserSocket.Monitor,
-        T.Repo,
-        TWeb.Endpoint,
+        maybe_repo(),
+        maybe_endpoint(),
         unless_disabled(T.Feeds.ActiveSessionPruner),
         TWeb.Telemetry,
         maybe_migrator(),
@@ -62,6 +62,28 @@ defmodule T.Application do
       |> Keyword.put(:plugins, false)
     else
       config
+    end
+  end
+
+  defp maybe_repo do
+    config = Application.get_env(:t, T.Repo)
+
+    if get_in(config, [:url]) do
+      T.Repo
+    else
+      Logger.warn("not starting repo due to missing url info")
+      nil
+    end
+  end
+
+  defp maybe_endpoint do
+    config = Application.get_env(:t, TWeb.Endpoint)
+
+    if get_in(config, [:http]) do
+      TWeb.Endpoint
+    else
+      Logger.warn("not starting web endpoint due to missing http info")
+      nil
     end
   end
 

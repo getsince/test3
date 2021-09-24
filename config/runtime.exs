@@ -35,7 +35,9 @@ config :ex_aws,
   json_codec: Jason,
   region: "eu-north-1"
 
-if config_env() == :prod do
+smoke? = System.get_env("SMOKE") == "true"
+
+if config_env() == :prod and not smoke? do
   config :t, T.Twilio,
     account_sid: System.fetch_env!("TWILIO_ACCOUNT_SID"),
     key_sid: System.fetch_env!("TWILIO_KEY_SID"),
@@ -213,10 +215,7 @@ if config_env() == :test do
   # to provide built-in test partitioning in CI environment.
   # Run `mix help test` for more information.
   config :t, T.Repo,
-    username: "postgres",
-    password: "postgres",
-    database: "t_test#{System.get_env("MIX_TEST_PARTITION")}",
-    hostname: "localhost",
+    url: "ecto://postgres:postgres@localhost:5432/t_test#{System.get_env("MIX_TEST_PARTITION")}",
     pool: Ecto.Adapters.SQL.Sandbox
 
   # We don't run a server during test. If one is required,

@@ -36,6 +36,8 @@ config :ex_aws,
   region: "eu-north-1"
 
 if config_env() == :prod do
+  config :t, current_admin_id: System.fetch_env!("ADMIN_ID")
+
   config :t, T.Twilio,
     account_sid: System.fetch_env!("TWILIO_ACCOUNT_SID"),
     key_sid: System.fetch_env!("TWILIO_KEY_SID"),
@@ -207,6 +209,8 @@ if config_env() == :dev do
 end
 
 if config_env() == :test do
+  config :t, current_admin_id: "36a0a181-db31-400a-8397-db7f560c152e"
+
   # Configure your database
   #
   # The MIX_TEST_PARTITION environment variable can be used

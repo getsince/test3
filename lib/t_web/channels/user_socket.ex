@@ -10,6 +10,8 @@ defmodule TWeb.UserSocket do
   channel "call:*", TWeb.CallChannel
   # profile:<user-id>
   channel "profile:*", TWeb.ProfileChannel
+  # admin
+  channel "admin", TWeb.AdminChannel
 
   @impl true
   def connect(%{"token" => token} = params, socket, connect_info) do

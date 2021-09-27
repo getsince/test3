@@ -99,17 +99,20 @@ defmodule T.Accounts do
           | {:error, :invalid_key_id | :invalid_token | Ecto.Changeset.t()}
   def login_or_register_user_with_apple_id(id_token) do
     case AppleSignIn.fields_from_token(id_token) do
-      {:ok, apple_id} -> get_or_register_user_with_apple_id(apple_id)
-      {:error, _reason} = failure -> failure
+      {:ok, %{user_id: apple_id, email: email}} ->
+        get_or_register_user_with_apple_id(apple_id, email)
+
+      {:error, _reason} = failure ->
+        failure
     end
   end
 
   # TODO in one transaction
-  defp get_or_register_user_with_apple_id(apple_id) do
+  defp get_or_register_user_with_apple_id(apple_id, email) do
     if u = get_user_by_apple_id(apple_id) do
       {:ok, ensure_has_profile(u)}
     else
-      register_user_with_apple_id(%{apple_id: apple_id})
+      register_user_with_apple_id(%{apple_id: apple_id, email: email})
     end
   end
 

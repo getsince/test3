@@ -292,7 +292,8 @@ CREATE TABLE public.users (
     blocked_at timestamp(0) without time zone,
     onboarded_at timestamp(0) without time zone,
     inserted_at timestamp(0) without time zone NOT NULL,
-    updated_at timestamp(0) without time zone NOT NULL
+    updated_at timestamp(0) without time zone NOT NULL,
+    email character varying(255)
 );
 
 
@@ -712,3 +713,4 @@ INSERT INTO public."schema_migrations" (version) VALUES (20210624195942);
 INSERT INTO public."schema_migrations" (version) VALUES (20210721105547);
 INSERT INTO public."schema_migrations" (version) VALUES (20210721111936);
 INSERT INTO public."schema_migrations" (version) VALUES (20210723120936);
+INSERT INTO public."schema_migrations" (version) VALUES (20210927151552);

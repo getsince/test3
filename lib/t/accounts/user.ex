@@ -9,6 +9,7 @@ defmodule T.Accounts.User do
   @foreign_key_type Ecto.Bigflake.UUID
   schema "users" do
     field :apple_id, :string
+    field :email, :string
 
     field :onboarded_at, :utc_datetime
     field :blocked_at, :utc_datetime

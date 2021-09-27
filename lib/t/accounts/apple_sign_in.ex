@@ -5,7 +5,8 @@ defmodule T.Accounts.AppleSignIn do
   @apple_keys_url "https://appleid.apple.com/auth/keys"
 
   @spec fields_from_token(String.t(), [map()]) ::
-          {:ok, apple_user_id :: String.t()} | {:error, :invalid_key_id | :invalid_token}
+          {:ok, %{user_id: String.t(), email: String.t()}}
+          | {:error, :invalid_key_id | :invalid_token}
   def fields_from_token(id_token, keys \\ fetch_keys()) do
     with {:key, key} when not is_nil(key) <- {:key, key_for_token(keys, id_token)},
          {:verify, {:ok, fields}} <- {:verify, verify_token(key, id_token)} do
@@ -16,16 +17,17 @@ defmodule T.Accounts.AppleSignIn do
     end
   end
 
-  @spec extract_user_id(map) :: String.t()
+  @spec extract_user_id(map) :: %{user_id: String.t(), email: String.t()}
   defp extract_user_id(fields) do
     %{
       # TODO verify bundle <> team id? aud == "com.example.apple-samplecode.juiceP85PYLD8U2"
       "aud" => _aud,
       "iss" => "https://appleid.apple.com",
-      "sub" => user_id
+      "sub" => user_id,
+      "email" => email
     } = fields
 
-    user_id
+    %{user_id: user_id, email: email}
   end
 
   @spec key_for_token([map()], String.t()) :: map() | nil

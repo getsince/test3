@@ -11,6 +11,7 @@ defmodule T.Feeds do
   alias T.Bot
   alias T.Accounts
   alias T.Accounts.{UserReport, GenderPreference}
+  alias T.Matches.{Like}
   alias T.Calls
   alias T.Feeds.{FeedProfile}
   alias T.PushNotifications.DispatchJob
@@ -54,16 +55,18 @@ defmodule T.Feeds do
   def list_received_likes(user_id, location) do
     profiles_q = not_reported_profiles_q(user_id)
 
-    Matches.Like
-    # |> where(user_id: ^user_id)
-    # |> select([i, p], {p, distance_km(^location, p.location)})
-    # |> Repo.all()
+    Like
+    |> where(user_id: ^user_id)
+    |> join(:inner, [l], p in subquery(profiles_q), on: p.user_id == l.by_user_id)
+    # |> select([l, p], {p})
+    |> select([l, p], {p, distance_km(^location, p.location)})
+    |> Repo.all()
   end
 
   ### Feed
 
   @type feed_cursor :: DateTime.t()
-  @type feed_profile :: {%FeedProfile{}, DateTime.t(), distance_km :: non_neg_integer}
+  @type feed_profile :: {%FeedProfile{}, distance_km :: non_neg_integer}
 
   @spec fetch_feed(
           Ecto.UUID.t(),
@@ -75,21 +78,18 @@ defmodule T.Feeds do
         ) ::
           {[feed_profile], feed_cursor}
   def fetch_feed(user_id, location, gender, gender_preferences, count, feed_cursor) do
-    profiles_q = filtered_profiles_q(user_id, gender, gender_preferences)
-
-    feed_profiles = profiles_q
-    # feed_profiles_q(user_id, feed_cursor)
+    feed_profiles = feed_profiles_q(user_id, gender, gender_preferences, feed_cursor)
       |> limit(^count)
-      # |> select([s, p], {p, s, distance_km(^location, p.location)})
+      |> select([p], {p, distance_km(^location, p.location)})
       |> Repo.all()
 
     feed_cursor =
-      # if last = List.last(feed_profiles) do
-        # {_feed_profile, timestamp, _distance} = last
-        # timestamp
-      # else
+      if last = List.last(feed_profiles) do
+        {feed_profile, _distance} = last
+        feed_profile.last_active
+      else
         feed_cursor
-      # end
+      end
 
     {feed_profiles, feed_cursor}
   end
@@ -101,18 +101,18 @@ defmodule T.Feeds do
     |> Repo.one()
   end
 
-  @spec feed_profiles_q(Ecto.UUID.t(), DateTime.t() | nil) :: Ecto.Query.t()
-  defp feed_profiles_q(user_id, nil) do
-    # Accounts.admin_list_profiles_ordered_by_activity()
-    FeedProfile
-    |> where(user_id: ^user_id)
-    |> Repo.all()
+  defp feed_profiles_q(user_id, gender, gender_preference, nil) do
+    treshold_date = DateTime.utc_now |> DateTime.add(-2*24*60*60, :second)
+
+    filtered_profiles_q(user_id, gender, gender_preference)
+    |> where([p], p.user_id != ^user_id)
+    |> where([p], p.last_active > ^treshold_date)
+    |> order_by(desc: :last_active)
   end
 
-  defp feed_profiles_q(user_id, last_date) do
-    user_id
-    |> feed_profiles_q(nil)
-    # |> where(last_active < last_date)
+  defp feed_profiles_q(user_id, gender, gender_preference, last_date) do
+    feed_profiles_q(user_id, gender, gender_preference, nil)
+    |> where([p], p.last_active < ^last_date)
   end
 
   defp reported_user_ids_q(user_id) do

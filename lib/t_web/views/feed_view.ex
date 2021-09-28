@@ -4,7 +4,7 @@ defmodule TWeb.FeedView do
   alias T.Feeds.{FeedProfile}
 
   def render("feed_profile.json", %{profile: profile, screen_width: screen_width}) do
-    render_profile(profile, [:user_id, :name, :gender, :story], screen_width)
+    render_profile(profile, [:user_id, :name, :last_active, :gender, :story], screen_width)
   end
 
   def render("feed_item.json", %{
@@ -14,7 +14,7 @@ defmodule TWeb.FeedView do
       })
       when not is_nil(distance) do
     %{
-      "profile" => render_profile(profile, [:user_id, :name, :gender, :story], screen_width),
+      "profile" => render_profile(profile, [:user_id, :name, :last_active, :gender, :story], screen_width),
       "distance" => distance
     }
   end

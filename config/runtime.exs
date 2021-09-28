@@ -205,7 +205,7 @@ if config_env() == :dev do
     static_bucket: System.fetch_env!("AWS_S3_BUCKET_STATIC"),
     static_cdn: System.fetch_env!("STATIC_CDN")
 
-  config :t, T.Media.Static, disabled?: true
+  config :t, T.Media.Static, disabled?: false
 end
 
 if config_env() == :test do

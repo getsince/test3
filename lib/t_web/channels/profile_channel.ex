@@ -10,7 +10,7 @@ defmodule TWeb.ProfileChannel do
     %{screen_width: screen_width, current_user: current_user} = socket.assigns
     %Profile{} = profile = Accounts.get_profile!(current_user)
 
-    {:ok, %{profile: render_profile(profile, screen_width), stickers: T.Media.known_stickers()},
+    {:ok, %{profile: render_profile(profile, screen_width), stickers: T.Media.known_stickers(), min_version: 1},
      assign(socket, uploads: %{}, profile: profile)}
   end
 

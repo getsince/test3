@@ -4,7 +4,7 @@ defmodule T.Calls do
 
   alias T.{Repo, Twilio, Accounts}
   alias T.Calls.{Call, Invite}
-  alias T.Feeds.{FeedProfile, ActiveSession}
+  alias T.Feeds.{FeedProfile}
   alias T.Matches.Match
   alias T.PushNotifications.APNS
 
@@ -35,22 +35,8 @@ defmodule T.Calls do
   # TODO matched can forgo call_allowed? check
   def call_allowed?(caller_id, called_id) do
     # call invites reference active sessions, so if it exists no need to check active session
-    invited?(called_id, caller_id) or
-      (active?(called_id) and missed?(called_id, caller_id)) or
+    missed?(called_id, caller_id) or
       matched?(caller_id, called_id)
-  end
-
-  defp active?(user_id) do
-    ActiveSession
-    |> where(user_id: ^user_id)
-    |> Repo.exists?()
-  end
-
-  defp invited?(inviter_id, invited_id) do
-    Invite
-    |> where(by_user_id: ^inviter_id)
-    |> where(user_id: ^invited_id)
-    |> Repo.exists?()
   end
 
   defp missed?(caller_id, called_id) do
@@ -136,14 +122,13 @@ defmodule T.Calls do
     |> Repo.one!()
   end
 
-  @spec list_missed_calls_with_profile_and_session(Ecto.UUID.t(), Keyword.t()) :: [
-          {%Call{}, %FeedProfile{}, %ActiveSession{} | nil}
+  @spec list_missed_calls_with_profile(Ecto.UUID.t(), Keyword.t()) :: [
+          {%Call{}, %FeedProfile{} | nil}
         ]
-  def list_missed_calls_with_profile_and_session(user_id, opts) do
+  def list_missed_calls_with_profile(user_id, opts) do
     missed_calls_q(user_id, opts)
     |> join(:inner, [c], p in FeedProfile, on: c.caller_id == p.user_id)
-    |> join(:left, [_c, p], s in ActiveSession, on: p.user_id == s.user_id)
-    |> select([c, p, s], {c, p, s})
+    |> select([c, p], {c, p})
     |> Repo.all()
   end
 

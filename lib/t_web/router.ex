@@ -61,13 +61,6 @@ defmodule TWeb.Router do
 
       live "/logs", LogLive.Index, :index
 
-      live "/active-sessions", ActiveSessionLive.Index, :index
-      live "/active-sessions/new", ActiveSessionLive.Index, :new
-
-      live "/active-sessions/:user_id", ActiveSessionLive.Show, :show
-      live "/active-sessions/:user_id/new", ActiveSessionLive.Show, :new
-      live "/active-sessions/:user_id/call/:call_id", ActiveSessionLive.Show, :call
-
       live "/stickers", StickerLive.Index, :index
       live "/tokens", TokenLive.Index, :index
     end

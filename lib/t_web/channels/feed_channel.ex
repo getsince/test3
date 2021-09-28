@@ -14,7 +14,6 @@ defmodule TWeb.FeedChannel do
     gender_preferences = Accounts.list_gender_preferences(user_id)
     {location, gender} = Accounts.get_location_and_gender!(user_id)
 
-    :ok = Feeds.subscribe_for_likes(user_id)
     :ok = Matches.subscribe_for_user(user_id)
 
     missed_calls =
@@ -198,10 +197,6 @@ defmodule TWeb.FeedChannel do
 
   defp render_feed(feed, screen_width) do
     Enum.map(feed, fn feed_item -> render_feed_item(feed_item, screen_width) end)
-  end
-
-  defp render_session(session) do
-    render(FeedView, "session.json", session: session)
   end
 
   defp render_changeset(changeset) do

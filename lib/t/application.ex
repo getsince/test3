@@ -19,7 +19,6 @@ defmodule T.Application do
         TWeb.UserSocket.Monitor,
         T.Repo,
         TWeb.Endpoint,
-        unless_disabled(T.Feeds.ActiveSessionPruner),
         TWeb.Telemetry,
         maybe_migrator(),
         {Oban, oban_config()},

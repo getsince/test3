@@ -9,7 +9,7 @@ defmodule T.Accounts do
 
   require Logger
 
-  alias T.{Repo, Media, Bot, Feeds, Matches}
+  alias T.{Repo, Media, Bot, Matches}
 
   alias T.Accounts.{
     User,
@@ -136,7 +136,6 @@ defmodule T.Accounts do
     Multi.new()
     |> Multi.insert(:report, report_changeset)
     |> maybe_block(on_user_id)
-    |> uninvite(from_user_id, on_user_id)
     |> Matches.unmatch_multi(from_user_id, on_user_id)
     |> Repo.transaction()
     |> case do
@@ -147,14 +146,6 @@ defmodule T.Accounts do
       {:error, :report, %Ecto.Changeset{} = changeset, _changes} ->
         {:error, changeset}
     end
-  end
-
-  # TODO check logic is correct
-  defp uninvite(multi, from_user_id, on_user_id) do
-    Multi.run(multi, :uninvite, fn _repo, _changes ->
-      {deleted_count, _} = Feeds.delete_invites_for_reported(from_user_id, on_user_id)
-      {:ok, deleted_count}
-    end)
   end
 
   # TODO test, unmatch
@@ -199,14 +190,6 @@ defmodule T.Accounts do
       |> repo.update_all(set: [hidden?: true])
 
       {:ok, nil}
-    end)
-    |> Multi.run(:uninvite, fn _repo, _changes ->
-      {deleted_count, _} = Feeds.delete_invites_for_blocked(user_id)
-      {:ok, deleted_count}
-    end)
-    |> Multi.run(:deactivate_session, fn _repo, _changes ->
-      deactivated? = Feeds.deactivate_session(user_id)
-      {:ok, deactivated?}
     end)
     |> unmatch_all(user_id)
     |> Repo.transaction()

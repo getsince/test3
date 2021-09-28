@@ -34,7 +34,6 @@ defmodule T.Calls do
 
   # TODO matched can forgo call_allowed? check
   def call_allowed?(caller_id, called_id) do
-    # call invites reference active sessions, so if it exists no need to check active session
     missed?(called_id, caller_id) or
       matched?(caller_id, called_id)
   end

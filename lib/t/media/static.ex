@@ -1,9 +1,10 @@
 defmodule T.Media.Static do
-  @moduledoc "In-memory cache of static files (only their keys) on AWS with periodic refresh."
+  @moduledoc "In-memory write-through cache of static (stickers) object keys on AWS S3."
   use GenServer
-  alias T.Media
+  alias T.{Media, Media.Client}
 
   @table __MODULE__
+  @task_sup T.TaskSupervisor
   @pubsub T.PubSub
   @topic to_string(__MODULE__)
 
@@ -11,11 +12,8 @@ defmodule T.Media.Static do
     Phoenix.PubSub.broadcast!(@pubsub, @topic, {__MODULE__, event})
   end
 
-  def notify_s3_updated do
-    notify_subscribers(:updated)
-  end
-
   defmodule Object do
+    @moduledoc false
     @enforce_keys [:key, :e_tag, :meta]
     defstruct [:key, :e_tag, :meta]
 
@@ -27,6 +25,14 @@ defmodule T.Media.Static do
         e_tag: e_tag,
         meta: %{last_modified: last_modified, size: size}
       }
+    end
+
+    def to_row(%__MODULE__{
+          key: key,
+          e_tag: e_tag,
+          meta: %{last_modified: last_modified, size: size}
+        }) do
+      {key, e_tag, last_modified, size}
     end
   end
 
@@ -48,7 +54,8 @@ defmodule T.Media.Static do
     end
   end
 
-  def list do
+  @spec list_cached :: [%Object{}]
+  def list_cached do
     ets_rows = :ets.tab2list(@table)
     Enum.map(ets_rows, fn row -> Object.new(row) end)
   end
@@ -57,26 +64,38 @@ defmodule T.Media.Static do
   def init(_opts) do
     @table = :ets.new(@table, [:named_table])
     Phoenix.PubSub.subscribe(@pubsub, @topic)
-    :timer.send_interval(:timer.minutes(1), :refresh)
-    {:ok, _refresh_task_ref = nil, {:continue, :refresh}}
+    {:ok, {:continue, :refresh}}
   end
 
   @impl true
-  def handle_continue(:refresh, _refresh_task_ref) do
-    {:noreply, async_refresh()}
+  def handle_continue(:refresh, _refresh_task_ref = nil) do
+    Media.static_bucket()
+    |> Client.list_objects()
+    |> Enum.map(fn object ->
+      %{e_tag: e_tag, key: key, last_modified: last_modified, size: size} = object
+      e_tag = String.replace(e_tag, "\"", "")
+      _ets_row = {key, e_tag, last_modified, size}
+    end)
+
+    {:noreply, _refresh_task_ref = nil}
   end
 
   @impl true
-  def handle_info(:refresh, _refresh_task_ref) do
+  def handle_call({command, _object} = message, _from, ref) when command in [:add, :remove] do
+    notify_subscribers(message)
+    {:reply, :ok, ref}
+  end
+
+  @impl true
+  def handle_cast(:refresh, nil) do
     {:noreply, async_refresh()}
   end
 
-  def handle_info({__MODULE__, :updated}, _refresh_task_ref) do
-    # just in case aws didn't propagate the change yet, schedule another refresh in 10 sec
-    Process.send_after(self(), :refresh, :timer.seconds(10))
-    {:noreply, async_refresh()}
+  def handle_cast(:refresh, ref) when is_reference(ref) do
+    {:noreply, ref}
   end
 
+  @impl true
   def handle_info({ref, [{_key, _e_tag, _last_modified, _size} | _rest] = ets_rows}, ref) do
     Process.demonitor(ref, [:flush])
     true = :ets.delete_all_objects(@table)
@@ -89,16 +108,26 @@ defmodule T.Media.Static do
     {:noreply, nil}
   end
 
-  defp async_refresh do
-    task =
-      Task.Supervisor.async_nolink(T.TaskSupervisor, fn ->
-        Enum.map(Media.list_static_files(), fn object ->
-          %{e_tag: e_tag, key: key, last_modified: last_modified, size: size} = object
-          e_tag = String.replace(e_tag, "\"", "")
-          _ets_row = {key, e_tag, last_modified, size}
-        end)
-      end)
+  def handle_info({__MODULE__, {:add, object}}, ref) do
+    :ets.insert(@table, Object.to_row(object))
+    {:noreply, ref}
+  end
 
+  def handle_info({__MODULE__, {:remove, key}}, ref) do
+    :ets.delete(@table, key)
+    {:noreply, ref}
+  end
+
+  defp async_refresh do
+    task = Task.Supervisor.async_nolink(@task_sup, fn -> refresh() end)
     task.ref
+  end
+
+  defp refresh do
+    Enum.map(Media.list_static_files(), fn object ->
+      %{e_tag: e_tag, key: key, last_modified: last_modified, size: size} = object
+      e_tag = String.replace(e_tag, "\"", "")
+      _ets_row = {key, e_tag, last_modified, size}
+    end)
   end
 end

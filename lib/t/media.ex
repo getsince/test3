@@ -228,52 +228,27 @@ defmodule T.Media do
     sticker_cache_busting_cdn_url(key, e_tag)
   end
 
+  @doc """
+  Builds a URL to s3 object if key exists in local cache.
+  """
   def known_sticker_url(key) do
-    if etag = Static.lookup_etag(key) do
+    if etag = Static.lookup_cached_etag(key) do
       sticker_cache_busting_cdn_url(key, etag)
     end
   end
 
+  @doc """
+  Lists all known cached s3 sticker keys. Doesn't make request to s3.
+  """
   def known_stickers do
-    Map.new(Static.list(), fn %Static.Object{key: key, e_tag: e_tag} ->
-      {key, sticker_cache_busting_cdn_url(key, e_tag)}
-    end)
+    Static.list_cached()
   end
 
-  def list_static_files do
-    Client.list_objects(static_bucket())
-  end
-
+  @doc """
+  Deletes s3 object by key. Makes request to s3 and updates local cache.
+  """
   def delete_sticker_by_key(key) do
-    result =
-      static_bucket()
-      |> ExAws.S3.delete_object(key)
-      |> ExAws.request!(region: "eu-north-1")
-
-    Static.notify_s3_updated()
-
-    result
-  end
-
-  def rename_static_file(from_key, to_key) do
-    bucket = static_bucket()
-    opts = [region: "eu-north-1"]
-
-    # TODO copied object is not public
-    %{status_code: 200} =
-      copy_result =
-      bucket
-      |> ExAws.S3.put_object_copy(to_key, bucket, from_key)
-      |> ExAws.request!(opts)
-
-    %{status_code: 204} =
-      delete_result =
-      bucket
-      |> ExAws.S3.delete_object(from_key)
-      |> ExAws.request!(opts)
-
-    Static.notify_s3_updated()
-    [copy_result, delete_result]
+    Static.remove(key)
   end
 
   @doc """

@@ -4,10 +4,6 @@ defmodule TWeb.StickerLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-    if connected?(socket) do
-      :timer.send_interval(:timer.seconds(1), :refresh)
-    end
-
     socket =
       socket
       |> fetch_stickers()
@@ -24,11 +20,63 @@ defmodule TWeb.StickerLive.Index do
   end
 
   @impl true
-  def handle_event("validate-upload-form", _params, socket) do
-    {:noreply, socket}
+  def render(assigns) do
+    ~H"""
+    <div class="min-h-screen w-full" phx-drop-target={@uploads.sticker.ref}>
+      <h2 class="text-lg p-4 flex items-center">
+        Stickers
+        <form class="ml-2 h-full flex items-center" action="#" method="post" phx-change="validate-upload-form" phx-submit="submit-upload-form">
+          <label class="flex items-center">
+            <div class="bg-gray-200 dark:bg-gray-700 rounded p-1 hover:bg-gray-300 dark:hover:bg-gray-600 transition cursor-pointer">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            </div>
+            <span class="ml-2 text-sm text-gray-600 dark:text-gray-500">(or drag-and-drop anywhere)</span>
+            <%= live_file_input @uploads.sticker, class: "hidden" %>
+          </label>
+        </form>
+      </h2>
+
+      <div class="flex flex-wrap">
+      <%= for entry <- @uploads.sticker.entries do %>
+        <div class="flex items-center w-full md:w-1/2 lg:w-1/3 p-3 bg-yellow-100 dark:bg-blue-900 transition">
+          <%= live_img_preview entry, class: "w-36 h-36 object-contain hover:bg-gray-200 dark:hover:bg-blue-800 transition" %>
+
+          <div class="ml-4">
+            <p class="font-semibold mb-2"><%= entry.client_name %></p>
+            <p class="text-sm text-gray-700 dark:text-gray-300">progress: <%= entry.progress %>%</p>
+
+            <%= for err <- upload_errors(@uploads.sticker, entry) do %>
+              <p class="text-sm text-red-300 dark:text-gray-300"><%= error_to_string(err) %></p>
+            <% end %>
+
+            <button phx-click="cancel-upload" phx-value-ref={entry.ref} class="mt-2 leading-6 px-2 rounded bg-red-200 dark:bg-red-800 text-red-700 dark:text-red-300 hover:bg-red-300 dark:hover:bg-red-500 transition">cancel</button>
+          </div>
+        </div>
+      <% end %>
+
+      <%= for sticker <- @stickers do %>
+        <div class="flex items-center w-full md:w-1/2 lg:w-1/3 p-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+          <img src={Media.sticker_cache_busting_cdn_url(sticker)} class="w-36 h-36 object-contain hover:bg-gray-200 transition"/>
+          <div class="ml-4">
+            <p class="font-semibold mb-2"><%= sticker.key %></p>
+            <%= if size = sticker.meta[:size] do %>
+              <p class="text-sm text-gray-700 dark:text-gray-300">size: <%= format_bytes(size) %></p>
+            <% end %>
+            <%= if last_modified = sticker.meta[:last_modified] do %>
+              <p class="text-sm text-gray-700 dark:text-gray-300">last modified: <%= last_modified %></p>
+            <% end %>
+            <button phx-click="delete-sticker" phx-value-key={sticker.key} class="mt-2 leading-6 px-2 rounded bg-red-200 dark:bg-red-800 text-red-700 dark:text-red-300 hover:bg-red-300 dark:hover:bg-red-500 transition">delete</button>
+          </div>
+        </div>
+      <% end %>
+      </div>
+    </div>
+    """
   end
 
-  def handle_event("submit-upload-form", _params, socket) do
+  @impl true
+  def handle_event(form_event, _params, socket)
+      when form_event in ["validate-upload-form", "submit-upload-form"] do
     {:noreply, socket}
   end
 
@@ -41,19 +89,14 @@ defmodule TWeb.StickerLive.Index do
     {:noreply, socket}
   end
 
-  @impl true
-  def handle_info(:refresh, socket) do
-    {:noreply, fetch_stickers(socket)}
-  end
-
   defp fetch_stickers(socket) do
-    stickers = Media.Static.list() |> Enum.sort_by(& &1.meta[:last_modified], :desc)
+    stickers = Enum.sort_by(Media.known_stickers(), & &1.meta[:last_modified], :desc)
     assign(socket, stickers: stickers)
   end
 
-  def error_to_string(:too_large), do: "Too large"
-  def error_to_string(:too_many_files), do: "You have selected too many files"
-  def error_to_string(:not_accepted), do: "You have selected an unacceptable file type"
+  defp error_to_string(:too_large), do: "Too large"
+  defp error_to_string(:too_many_files), do: "You have selected too many files"
+  defp error_to_string(:not_accepted), do: "You have selected an unacceptable file type"
 
   defp presign_upload(entry, socket) do
     uploads = socket.assigns.uploads
@@ -76,14 +119,13 @@ defmodule TWeb.StickerLive.Index do
 
   defp handle_progress(:sticker, entry, socket) do
     if entry.done? do
-      consume_uploaded_entry(socket, entry, fn _meta -> :ok end)
-      Media.Static.notify_s3_updated()
+      consume_uploaded_entry(socket, entry, fn meta -> Media.sticker_uploaded(meta.key) end)
     end
 
     {:noreply, socket}
   end
 
-  def format_bytes(bytes) when is_integer(bytes) do
+  defp format_bytes(bytes) when is_integer(bytes) do
     cond do
       bytes >= memory_unit(:TB) -> format_bytes(bytes, :TB)
       bytes >= memory_unit(:GB) -> format_bytes(bytes, :GB)
@@ -93,7 +135,7 @@ defmodule TWeb.StickerLive.Index do
     end
   end
 
-  def format_bytes(bytes) when is_binary(bytes) do
+  defp format_bytes(bytes) when is_binary(bytes) do
     format_bytes(String.to_integer(bytes))
   end
 

@@ -20,7 +20,7 @@ defmodule T.Accounts.User do
 
   def apple_id_registration_changeset(user, attrs) do
     user
-    |> cast(attrs, [:apple_id])
+    |> cast(attrs, [:apple_id, :email])
     |> validate_required([:apple_id])
     |> unsafe_validate_unique(:apple_id, T.Repo)
     |> unique_constraint(:apple_id)

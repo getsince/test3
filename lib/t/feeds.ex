@@ -8,6 +8,7 @@ defmodule T.Feeds do
   require Logger
 
   alias T.Repo
+  alias T.Bot
   alias T.Accounts.{UserReport, GenderPreference}
   alias T.Calls
   alias T.Feeds.{ActiveSession, FeedProfile}
@@ -84,9 +85,9 @@ defmodule T.Feeds do
   # TODO test pubsub
   @spec activate_session(Ecto.UUID.t(), integer, DateTime.t()) :: %ActiveSession{}
   def activate_session(user_id, duration_in_minutes, reference \\ DateTime.utc_now()) do
-    Logger.warn(
-      "user #{user_id} activated session for #{duration_in_minutes} minutes since #{reference}"
-    )
+    m = "user #{user_id} activated session for #{duration_in_minutes} minutes since #{reference}"
+    Logger.warn(m)
+    Bot.async_post_message(m)
 
     expires_at = reference |> DateTime.add(60 * duration_in_minutes) |> DateTime.truncate(:second)
 

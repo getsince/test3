@@ -21,10 +21,10 @@ defmodule TWeb.FeedChannel do
       |> Calls.list_missed_calls_with_profile(after: params["missed_calls_cursor"])
       |> render_missed_calls_with_profile(screen_width)
 
-    likes =
-      user_id
-      |> Feeds.list_received_likes(location)
-      |> render_feed(screen_width)
+    # likes =
+    #   user_id
+    #   |> Feeds.list_received_likes(location)
+    #   |> render_feed(screen_width)
 
     matches =
       user_id
@@ -34,7 +34,7 @@ defmodule TWeb.FeedChannel do
     reply =
       %{}
       |> maybe_put("missed_calls", missed_calls)
-      |> maybe_put("likes", likes)
+      # |> maybe_put("likes", likes)
       |> maybe_put("matches", matches)
 
     {:ok, reply,
@@ -190,8 +190,9 @@ defmodule TWeb.FeedChannel do
 
   # TODO refactor
   defp render_feed_item(feed_item, screen_width) do
-    {%FeedProfile{} = profile, distance} = feed_item
-    assigns = [profile: profile, screen_width: screen_width, distance: distance]
+    # {%FeedProfile{} = profile, distance} = feed_item
+    # assigns = [profile: profile, screen_width: screen_width, distance: distance]
+    assigns = [profile: feed_item, screen_width: screen_width, distance: 5]
     render(FeedView, "feed_item.json", assigns)
   end
 

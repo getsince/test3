@@ -57,8 +57,8 @@ defmodule T.Feeds do
 
     Like
     |> where(user_id: ^user_id)
+    |> where([l], is_nil(l.declined))
     |> join(:inner, [l], p in subquery(profiles_q), on: p.user_id == l.by_user_id)
-    # |> select([l, p], {p})
     |> select([l, p], {p, distance_km(^location, p.location)})
     |> Repo.all()
   end
@@ -78,7 +78,8 @@ defmodule T.Feeds do
         ) ::
           {[feed_profile], feed_cursor}
   def fetch_feed(user_id, location, gender, gender_preferences, count, feed_cursor) do
-    feed_profiles = feed_profiles_q(user_id, gender, gender_preferences, feed_cursor)
+    feed_profiles =
+      feed_profiles_q(user_id, gender, gender_preferences, feed_cursor)
       |> limit(^count)
       |> select([p], {p, distance_km(^location, p.location)})
       |> Repo.all()
@@ -102,7 +103,7 @@ defmodule T.Feeds do
   end
 
   defp feed_profiles_q(user_id, gender, gender_preference, nil) do
-    treshold_date = DateTime.utc_now |> DateTime.add(-2*24*60*60, :second)
+    treshold_date = DateTime.utc_now() |> DateTime.add(-2 * 24 * 60 * 60, :second)
 
     filtered_profiles_q(user_id, gender, gender_preference)
     |> where([p], p.user_id != ^user_id)

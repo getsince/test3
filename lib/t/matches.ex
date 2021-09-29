@@ -127,6 +127,23 @@ defmodule T.Matches do
     Multi.insert(multi, :like, changeset)
   end
 
+  @spec decline_like(Ecto.UUID.t(), Ecto.UUID.t()) ::
+          {:ok, %{}} | {:error, atom, term, map}
+  def decline_like(user_id, liker_id) do
+    changeset =
+      %Like{by_user_id: liker_id, user_id: user_id}
+      |> cast(%{declined: true}, [:declined])
+
+    Repo.update(changeset)
+    |> case do
+      {:ok, _like} = success ->
+        success
+
+      {:error, _step, _reason, _changes} = failure ->
+        failure
+    end
+  end
+
   # - Matches
 
   @spec list_matches(uuid) :: [%Match{}]

@@ -91,6 +91,18 @@ defmodule TWeb.FeedChannel do
     {:reply, reply, socket}
   end
 
+  def handle_in("decline", %{"user_id" => liker}, socket) do
+    %{current_user: %{id: user}} = socket.assigns
+
+    reply =
+      case Matches.decline_like(user, liker) do
+        {:ok, %{}} -> :ok
+        {:error, _step, _reason, _changes} -> :ok
+      end
+
+    {:reply, reply, socket}
+  end
+
   def handle_in("offer-slots", %{"slots" => slots} = params, socket) do
     me = me_id(socket)
 
@@ -141,7 +153,6 @@ defmodule TWeb.FeedChannel do
   def handle_in("report", params, socket) do
     report(socket, params)
   end
-
 
   def handle_info({Matches, :matched, match}, socket) do
     %{screen_width: screen_width} = socket.assigns

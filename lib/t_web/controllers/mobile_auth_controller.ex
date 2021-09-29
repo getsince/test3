@@ -39,7 +39,9 @@ defmodule TWeb.MobileAuthController do
   end
 
   defp render_user(user) do
-    %Accounts.User{id: id, blocked_at: blocked_at, onboarded_at: onboarded_at} = user
-    %{id: id, blocked_at: blocked_at, onboarded_at: onboarded_at}
+    %Accounts.User{id: id, blocked_at: blocked_at, onboarded_at: onboarded_at, email: email} =
+      user
+
+    %{id: id, blocked_at: blocked_at, onboarded_at: onboarded_at, email: email}
   end
 end

@@ -10,13 +10,11 @@ defmodule TWeb.MobileAuthControllerTest do
           )
       })
 
-    resp = json_response(conn, 200)
-    assert json_response(conn, 200)["user"]["email"] == "mn5bmf2yrs@privaterelay.appleid.com"
+    assert %{"user" => %{"email" => email, "id" => id}} = json_response(conn, 200)
+    assert email == "mn5bmf2yrs@privaterelay.appleid.com"
 
-    assert Repo.get!(T.Accounts.User, resp["user"]["id"]).apple_id ==
-             "000358.1453e2d47af5409b9cf21ac7a3ab845a.1941"
-
-    assert Repo.get!(T.Accounts.User, resp["user"]["id"]).email ==
-             "mn5bmf2yrs@privaterelay.appleid.com"
+    user = Repo.get!(T.Accounts.User, id)
+    assert user.email == email
+    assert user.apple_id == "000358.1453e2d47af5409b9cf21ac7a3ab845a.1941"
   end
 end

@@ -120,6 +120,22 @@ defmodule T.Feeds do
     UserReport |> where(from_user_id: ^user_id) |> select([r], r.on_user_id)
   end
 
+  defp liked_user_ids_q(user_id) do
+    Like |> where(by_user_id: ^user_id) |> select([l], l.user_id)
+  end
+
+  defp not_liked_profiles_q(query \\ not_hidden_profiles_q(), user_id) do
+    where(query, [p], p.user_id not in subquery(liked_user_ids_q(user_id)))
+  end
+
+  defp liker_user_ids_q(user_id) do
+    Like |> where(user_id: ^user_id) |> select([l], l.by_user_id)
+  end
+
+  defp not_liker_profiles_q(query \\ not_hidden_profiles_q(), user_id) do
+    where(query, [p], p.user_id not in subquery(liker_user_ids_q(user_id)))
+  end
+
   defp not_hidden_profiles_q do
     where(FeedProfile, hidden?: false)
   end
@@ -143,6 +159,8 @@ defmodule T.Feeds do
   defp filtered_profiles_q(user_id, gender, gender_preference) when is_list(gender_preference) do
     not_hidden_profiles_q()
     |> not_reported_profiles_q(user_id)
+    |> not_liked_profiles_q(user_id)
+    |> not_liker_profiles_q(user_id)
     |> profiles_that_accept_gender_q(gender)
     |> maybe_gender_preferenced_q(gender_preference)
   end

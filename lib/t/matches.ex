@@ -66,6 +66,12 @@ defmodule T.Matches do
 
   defp maybe_notify_liked_user(nil, by_user_id, user_id) do
     broadcast_from_for_user(user_id, {__MODULE__, :liked, %{by_user_id: by_user_id}})
+    schedule_liked_push(by_user_id, user_id)
+  end
+
+  defp schedule_liked_push(by_user_id, user_id) do
+    job = DispatchJob.new(%{"type" => "invite", "by_user_id" => by_user_id, "user_id" => user_id})
+    Oban.insert(job)
   end
 
   defp match_if_mutual(multi, by_user_id, user_id) do

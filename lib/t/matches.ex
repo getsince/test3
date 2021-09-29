@@ -47,6 +47,7 @@ defmodule T.Matches do
     |> case do
       {:ok, %{match: match}} = success ->
         maybe_notify_match(match, by_user_id, user_id)
+        maybe_notify_liked_user(match, by_user_id, user_id)
         success
 
       {:error, _step, _reason, _changes} = failure ->
@@ -60,6 +61,12 @@ defmodule T.Matches do
   end
 
   defp maybe_notify_match(nil, _by_user_id, _user_id), do: :ok
+
+  defp maybe_notify_liked_user(%Match{id: _match_id}, _by_user_id, _user_id), do: :ok
+
+  defp maybe_notify_liked_user(nil, by_user_id, user_id) do
+    broadcast_from_for_user(user_id, {__MODULE__, :liked, %{by_user_id: by_user_id}})
+  end
 
   defp match_if_mutual(multi, by_user_id, user_id) do
     multi
@@ -150,6 +157,7 @@ defmodule T.Matches do
   def list_matches(user_id) do
     Match
     |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
+    |> order_by(desc: :inserted_at)
     |> Repo.all()
     |> preload_match_profiles(user_id)
     |> with_timeslots(user_id)

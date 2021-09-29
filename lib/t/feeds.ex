@@ -58,6 +58,7 @@ defmodule T.Feeds do
     Like
     |> where(user_id: ^user_id)
     |> where([l], is_nil(l.declined))
+    |> order_by(desc: :inserted_at)
     |> join(:inner, [l], p in subquery(profiles_q), on: p.user_id == l.by_user_id)
     |> select([l, p], {p, distance_km(^location, p.location)})
     |> Repo.all()

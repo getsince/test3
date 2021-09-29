@@ -154,6 +154,18 @@ defmodule TWeb.FeedChannel do
     report(socket, params)
   end
 
+  def handle_info({Matches, :liked, like}, socket) do
+    %{screen_width: screen_width} = socket.assigns
+    %{by_user_id: by_user_id} = like
+
+    if profile = Feeds.get_mate_feed_profile(by_user_id) do
+      rendered = render_feed_item({profile, 5}, screen_width)
+      push(socket, "invite", rendered)
+    end
+
+    {:noreply, socket}
+  end
+
   def handle_info({Matches, :matched, match}, socket) do
     %{screen_width: screen_width} = socket.assigns
     %{id: match_id, mate: mate_id} = match

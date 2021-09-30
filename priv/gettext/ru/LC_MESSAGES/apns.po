@@ -73,8 +73,8 @@ msgstr ""
 
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:116
-msgid "%{name} invited you for a call"
-msgstr "%{name} хочет поговорить"
+msgid "%{name} invited you to talk"
+msgstr "%{name} хочет познакомиться"
 
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:124

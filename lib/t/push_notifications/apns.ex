@@ -113,7 +113,7 @@ defmodule T.PushNotifications.APNS do
 
     # TODO if current locale is ru, don't translitirate
     name_en = Helpers.translitirate_to_en(name)
-    title = dgettext("apns", "%{name} invited you for a call", name: name_en)
+    title = dgettext("apns", "%{name} invited you to connect", name: name_en)
 
     base_notification(device, "invite", %{"user_id" => user_id})
     |> Notification.put_alert(%{"title" => title})

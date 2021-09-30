@@ -11,7 +11,7 @@ defmodule T.Feeds do
   # alias T.Bot
   # alias T.Accounts
   alias T.Accounts.{UserReport, GenderPreference}
-  alias T.Matches.{Like}
+  alias T.Matches.{Match, Like}
   # alias T.Calls
   alias T.Feeds.{FeedProfile}
   # alias T.PushNotifications.DispatchJob
@@ -58,10 +58,28 @@ defmodule T.Feeds do
     Like
     |> where(user_id: ^user_id)
     |> where([l], is_nil(l.declined))
+    |> not_match1_profiles_q(user_id)
+    |> not_match2_profiles_q(user_id)
     |> order_by(desc: :inserted_at)
     |> join(:inner, [l], p in subquery(profiles_q), on: p.user_id == l.by_user_id)
     |> select([l, p], {p, distance_km(^location, p.location)})
     |> Repo.all()
+  end
+
+  defp match_user1_ids_q(user_id) do
+    Match |> where(user_id_1: ^user_id) |> select([m], m.user_id_2)
+  end
+
+  defp match_user2_ids_q(user_id) do
+    Match |> where(user_id_2: ^user_id) |> select([m], m.user_id_1)
+  end
+
+  defp not_match1_profiles_q(query, user_id) do
+    where(query, [p], p.user_id not in subquery(match_user1_ids_q(user_id)))
+  end
+
+  defp not_match2_profiles_q(query, user_id) do
+    where(query, [p], p.user_id not in subquery(match_user2_ids_q(user_id)))
   end
 
   ### Feed

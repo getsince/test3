@@ -2,11 +2,7 @@ defmodule T.FeedsTest do
   use T.DataCase, async: true
   use Oban.Testing, repo: T.Repo
 
-  alias T.{Feeds, Accounts}
-  alias T.PushNotifications.DispatchJob
-  alias Feeds.{FeedProfile}
-
-  @reference ~U[2021-07-21 11:55:18.941048Z]
+  alias T.Feeds
 
   describe "fetch_feed/3" do
     setup do
@@ -41,8 +37,7 @@ defmodule T.FeedsTest do
     end
 
     test "with no users of preferred gender", %{me: me} do
-      others = insert_list(3, :profile, gender: "M")
-      activate_sessions(others, @reference)
+      _others = insert_list(3, :profile, gender: "M")
 
       assert {[], nil} ==
                Feeds.fetch_feed(
@@ -61,8 +56,6 @@ defmodule T.FeedsTest do
       for profile <- others do
         insert(:gender_preference, user_id: profile.user_id, gender: "F")
       end
-
-      activate_sessions(others, @reference)
 
       assert {[], nil} ==
                Feeds.fetch_feed(

@@ -45,8 +45,10 @@ defmodule T.MatchesTest do
       assert [] == list_likes_for(p1_id)
       assert [] == list_likes_for(p2_id)
 
-      assert [%Oban.Job{args: %{"match_id" => ^match_id, "type" => "match"}}] =
-               all_enqueued(worker: DispatchJob)
+      assert [
+               %Oban.Job{args: %{"match_id" => ^match_id, "type" => "match"}},
+               %Oban.Job{args: %{"by_user_id" => ^p1_id, "type" => "invite", "user_id" => ^p2_id}}
+             ] = all_enqueued(worker: DispatchJob)
     end
   end
 

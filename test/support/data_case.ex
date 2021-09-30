@@ -54,23 +54,4 @@ defmodule T.DataCase do
       end)
     end)
   end
-
-  alias T.Feeds
-  alias T.Accounts.{User, Profile}
-
-  def activate_sessions(users, reference) do
-    Enum.map(users, &activate_session(&1, reference))
-  end
-
-  def activate_session(%User{id: user_id}, reference) do
-    activate_session(user_id, reference)
-  end
-
-  def activate_session(%Profile{user_id: user_id}, reference) do
-    activate_session(user_id, reference)
-  end
-
-  def activate_session(user_id, reference) when is_binary(user_id) do
-    Feeds.activate_session(user_id, _duration = 60, reference)
-  end
 end

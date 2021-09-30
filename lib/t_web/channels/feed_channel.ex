@@ -61,7 +61,7 @@ defmodule TWeb.FeedChannel do
         params["cursor"]
       )
 
-    {:noreply, {:ok, %{"feed" => render_feed(feed, screen_width), "cursor" => cursor}}, socket}
+    {:reply, {:ok, %{"feed" => render_feed(feed, screen_width), "cursor" => cursor}}, socket}
   end
 
   def handle_in("call", %{"user_id" => called}, socket) do

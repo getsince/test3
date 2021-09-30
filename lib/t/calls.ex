@@ -32,10 +32,8 @@ defmodule T.Calls do
     end
   end
 
-  # TODO matched can forgo call_allowed? check
   def call_allowed?(caller_id, called_id) do
-    missed?(called_id, caller_id) or
-      matched?(caller_id, called_id)
+    missed?(called_id, caller_id) or matched?(caller_id, called_id)
   end
 
   defp missed?(caller_id, called_id) do

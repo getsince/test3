@@ -2,7 +2,7 @@ defmodule TWeb.FeedChannelTest do
   use TWeb.ChannelCase
   import Assertions
 
-  alias T.{Feeds, Accounts, Calls, Matches}
+  alias T.{Accounts, Calls, Matches}
   alias Matches.{Timeslot, Match}
   alias Calls.Call
   alias Pigeon.APNS.Notification
@@ -16,19 +16,6 @@ defmodule TWeb.FeedChannelTest do
   end
 
   describe "join" do
-    test "returns no current session if there's none", %{socket: socket, me: me} do
-      assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id)
-      assert reply == %{}
-    end
-
-    @reference ~U[2021-07-21 11:55:18.941048Z]
-
-    test "returns current session if there is one", %{socket: socket, me: me} do
-      %{flake: id} = Feeds.activate_session(me.id, _duration = 60, @reference)
-      assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id)
-      assert reply == %{"current_session" => %{id: id, expires_at: ~U[2021-07-21 12:55:18Z]}}
-    end
-
     test "with matches", %{socket: socket, me: me} do
       [p1, p2, p3] =
         mates = [
@@ -76,6 +63,369 @@ defmodule TWeb.FeedChannelTest do
           "timeslot" => %{"selected_slot" => s2}
         }
       ])
+    end
+
+    test "with likes", %{socket: socket, me: me} do
+      mate = onboarded_user(story: [], name: "mate", location: apple_location(), gender: "F")
+
+      assert {:ok, %{like: %Matches.Like{}}} = Matches.like_user(mate.id, me.id)
+
+      assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id)
+
+      assert reply == %{
+               "likes" => [
+                 %{
+                   "distance" => 9510,
+                   "profile" => %{name: "mate", story: [], user_id: mate.id, gender: "F"}
+                 }
+               ]
+             }
+    end
+
+    test "with missed calls", %{socket: socket, me: me} do
+      "user_socket:" <> token = socket.id
+      mate = onboarded_user(story: [], location: apple_location(), name: "mate", gender: "F")
+
+      # prepare pushkit devices
+      :ok = Accounts.save_pushkit_device_id(me.id, token, Base.decode16!("ABABAB"), env: "prod")
+
+      # prepare apns mock
+      expect(MockAPNS, :push, 3, fn [push], :prod -> [%{push | response: :success}] end)
+
+      match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
+
+      # mate calls me
+      {:ok, call_id1} = Calls.call(mate.id, me.id)
+
+      # mate calls me
+      {:ok, call_id2} = Calls.call(mate.id, me.id)
+
+      # TODO forbid "duplicate" calls?
+      {:ok, call_id3} = Calls.call(mate.id, me.id)
+
+      assert [_, _, _] = Enum.uniq([call_id1, call_id2, call_id3])
+
+      # me ends call, so call_id1 shouldn't be considered missed
+      :ok = Calls.end_call(me.id, call_id1)
+
+      # mate ends call, so call_id2, should be considered missed
+      :ok = Calls.end_call(mate.id, call_id2)
+
+      %Call{} = c1 = Repo.get(Call, call_id1)
+      %Call{} = c2 = Repo.get(Call, call_id2)
+      %Call{} = c3 = Repo.get(Call, call_id2)
+
+      assert c1.ended_at
+      assert c1.ended_by == me.id
+
+      assert c2.ended_at
+      assert c2.ended_by == mate.id
+
+      assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id)
+
+      assert reply == %{
+               "missed_calls" => [
+                 %{
+                   # TODO call without ended_at should be joined from ios?
+                   "call" => %{
+                     "id" => call_id2,
+                     "started_at" => DateTime.from_naive!(c2.inserted_at, "Etc/UTC"),
+                     "ended_at" => DateTime.from_naive!(c3.ended_at, "Etc/UTC")
+                   },
+                   "profile" => %{name: "mate", story: [], user_id: mate.id, gender: "F"}
+                 },
+                 %{
+                   "call" => %{
+                     "id" => call_id3,
+                     "started_at" => DateTime.from_naive!(c3.inserted_at, "Etc/UTC")
+                   },
+                   "profile" => %{name: "mate", story: [], user_id: mate.id, gender: "F"}
+                 }
+               ],
+               "matches" => [
+                 %{
+                   "id" => match.id,
+                   "profile" => %{gender: "F", name: "mate", story: [], user_id: mate.id}
+                 }
+               ]
+             }
+
+      # now with missed_calls_cursor
+      assert {:ok, reply, _socket} =
+               join(socket, "feed:" <> me.id, %{"missed_calls_cursor" => call_id2})
+
+      assert reply == %{
+               "missed_calls" => [
+                 %{
+                   "call" => %{
+                     "id" => call_id3,
+                     "started_at" => DateTime.from_naive!(c3.inserted_at, "Etc/UTC")
+                   },
+                   "profile" => %{name: "mate", story: [], user_id: mate.id, gender: "F"}
+                 }
+               ],
+               "matches" => [
+                 %{
+                   "id" => match.id,
+                   "profile" => %{gender: "F", name: "mate", story: [], user_id: mate.id}
+                 }
+               ]
+             }
+    end
+  end
+
+  describe "more" do
+    setup :joined
+
+    test "with no data in db", %{socket: socket} do
+      ref = push(socket, "more")
+      assert_reply(ref, :ok, reply)
+      assert reply == %{"cursor" => nil, "feed" => []}
+    end
+
+    test "with no active users", %{socket: socket} do
+      insert_list(3, :profile)
+
+      ref = push(socket, "more")
+      assert_reply(ref, :ok, reply)
+      assert reply == %{"cursor" => nil, "feed" => []}
+    end
+
+    @tag skip: true
+    test "with active users more than count", %{socket: socket} do
+      [m1, m2, m3] = [
+        onboarded_user(
+          name: "mate-1",
+          location: apple_location(),
+          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
+          gender: "F",
+          accept_genders: ["M"]
+        ),
+        onboarded_user(
+          name: "mate-2",
+          location: apple_location(),
+          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
+          gender: "N",
+          accept_genders: ["M"]
+        ),
+        onboarded_user(
+          name: "mate-3",
+          location: apple_location(),
+          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
+          gender: "M",
+          accept_genders: ["M"]
+        )
+      ]
+
+      ref = push(socket, "more", %{"count" => 2})
+      assert_reply(ref, :ok, %{"cursor" => cursor, "feed" => feed})
+      assert %DateTime{} = cursor
+
+      assert feed == [
+               %{
+                 "distance" => 9510,
+                 "profile" => %{
+                   user_id: m1.id,
+                   name: "mate-1",
+                   gender: "F",
+                   story: [
+                     %{
+                       "background" => %{
+                         "proxy" =>
+                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
+                         "s3_key" => "test"
+                       },
+                       "labels" => []
+                     }
+                   ]
+                 }
+               },
+               %{
+                 "distance" => 9510,
+                 "profile" => %{
+                   user_id: m2.id,
+                   name: "mate-2",
+                   gender: "N",
+                   story: [
+                     %{
+                       "background" => %{
+                         "proxy" =>
+                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
+                         "s3_key" => "test"
+                       },
+                       "labels" => []
+                     }
+                   ]
+                 }
+               }
+             ]
+
+      ref = push(socket, "more", %{"cursor" => cursor})
+
+      assert_reply(ref, :ok, %{
+        "cursor" => cursor,
+        "feed" => feed
+      })
+
+      assert feed == [
+               %{
+                 "distance" => 9510,
+                 "profile" => %{
+                   user_id: m3.id,
+                   name: "mate-3",
+                   gender: "M",
+                   story: [
+                     %{
+                       "background" => %{
+                         "proxy" =>
+                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
+                         "s3_key" => "test"
+                       },
+                       "labels" => []
+                     }
+                   ]
+                 }
+               }
+             ]
+
+      ref = push(socket, "more", %{"cursor" => cursor})
+      assert_reply(ref, :ok, %{"cursor" => ^cursor, "feed" => []})
+    end
+  end
+
+  describe "failed calls to active mate" do
+    setup [:joined]
+
+    setup do
+      {:ok,
+       mate: onboarded_user(name: "mate", story: [], gender: "F", location: apple_location())}
+    end
+
+    setup :joined_mate
+
+    test "missing invite", %{socket: socket, mate: mate} do
+      ref = push(socket, "call", %{"user_id" => mate.id})
+      assert_reply(ref, :error, reply)
+      assert reply == %{"reason" => "call not allowed"}
+    end
+
+    @tag skip: true
+    test "missing pushkit devices", %{
+      me: me,
+      socket: socket,
+      mate: mate,
+      mate_socket: mate_socket
+    } do
+      # mate invites us
+      ref = push(mate_socket, "invite", %{"user_id" => me.id})
+      assert_reply(ref, :ok, reply)
+      assert reply == %{"invited" => true}
+
+      # current user receives invite
+      assert_push("invite", %{
+        "profile" => profile,
+        "session" => %{expires_at: %DateTime{}, id: _session_id}
+      })
+
+      assert profile == %{name: "mate", story: [], user_id: mate.id, gender: "F"}
+      refute_receive _anything_else
+
+      # call still fails since mate is missing pushkit devices
+      ref = push(socket, "call", %{"user_id" => mate.id})
+      assert_reply(ref, :error, reply)
+      assert reply == %{"reason" => "no pushkit devices available"}
+    end
+
+    test "failed apns request", %{
+      me: me,
+      socket: socket,
+      mate: mate,
+      mate_socket: mate_socket
+    } do
+      "user_socket:" <> mate_token = mate_socket.id
+      # store some apns devices for mate
+      :ok =
+        Accounts.save_pushkit_device_id(
+          mate.id,
+          mate_token,
+          Base.decode16!("ABABABAB"),
+          env: "prod"
+        )
+
+      :ok =
+        Accounts.save_pushkit_device_id(
+          mate.id,
+          mate
+          |> Accounts.generate_user_session_token("mobile")
+          |> Accounts.UserToken.encoded_token(),
+          Base.decode16!("BABABABABA"),
+          env: "sandbox"
+        )
+
+      insert(:match, user_id_1: me.id, user_id_2: mate.id)
+
+      # assert_reply(ref, :ok, _reply)
+
+      MockAPNS
+      # ABABABAB on prod -> fails!
+      |> expect(:push, fn [%Notification{} = n], :prod ->
+        assert n.device_token == "ABABABAB"
+        assert n.topic == "app.topic.voip"
+        assert n.push_type == "voip"
+        assert n.expiration == 0
+        assert n.payload["caller_id"] == me.id
+        assert n.payload["caller_name"] == "that"
+        assert n.payload["call_id"]
+        [%Notification{n | response: :bad_device_token}]
+      end)
+      # BABABABABA on sandbox -> fails!
+      |> expect(:push, fn [%Notification{} = n], :dev ->
+        assert n.device_token == "BABABABABA"
+        assert n.topic == "app.topic.voip"
+        assert n.push_type == "voip"
+        assert n.expiration == 0
+        assert n.payload["caller_id"] == me.id
+        assert n.payload["caller_name"] == "that"
+        assert n.payload["call_id"]
+        [%Notification{n | response: :bad_device_token}]
+      end)
+
+      # call still can fail if apns requests fail
+      ref = push(socket, "call", %{"user_id" => mate.id})
+      assert_reply(ref, :error, reply)
+      assert reply == %{"reason" => "all pushes failed"}
+    end
+  end
+
+  describe "successful calls to active mate" do
+    setup [:joined]
+
+    setup do
+      {:ok, mate: onboarded_user(story: [], location: apple_location(), name: "mate")}
+    end
+
+    setup :joined_mate
+
+    setup %{mate: mate, mate_socket: mate_socket} do
+      "user_socket:" <> mate_token = mate_socket.id
+
+      :ok =
+        Accounts.save_pushkit_device_id(
+          mate.id,
+          mate_token,
+          Base.decode16!("ABABABAB"),
+          env: "prod"
+        )
+
+      :ok =
+        Accounts.save_pushkit_device_id(
+          mate.id,
+          mate
+          |> Accounts.generate_user_session_token("mobile")
+          |> Accounts.UserToken.encoded_token(),
+          Base.decode16!("BABABABABA"),
+          env: "sandbox"
+        )
     end
 
     test "when matched with mate", %{me: me, mate: mate, socket: socket} do
@@ -556,12 +906,6 @@ defmodule TWeb.FeedChannelTest do
   defp joined(%{socket: socket, me: me}) do
     assert {:ok, _reply, socket} = subscribe_and_join(socket, "feed:" <> me.id)
     {:ok, socket: socket}
-  end
-
-  defp activated(%{socket: socket}) do
-    ref = push(socket, "activate-session", %{"duration" => 60})
-    assert_reply(ref, :ok, _reply)
-    :ok
   end
 
   defp joined_mate(%{mate: mate}) do

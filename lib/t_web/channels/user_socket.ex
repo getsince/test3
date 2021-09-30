@@ -22,6 +22,7 @@ defmodule TWeb.UserSocket do
     if user = Accounts.get_user_by_session_token(token, "mobile") do
       Logger.metadata(user_id: user.id)
       Logger.warn("user online #{user.id}")
+      Accounts.update_last_active(user.id)
 
       {:ok,
        assign(socket,

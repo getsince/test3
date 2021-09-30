@@ -16,6 +16,10 @@ defmodule TWeb.FeedChannelTest do
   end
 
   describe "join" do
+    test "with invalid topic", %{socket: socket} do
+      assert {:error, %{"error" => "forbidden"}} = join(socket, "feed:" <> Ecto.UUID.generate())
+    end
+
     test "with matches", %{socket: socket, me: me} do
       [p1, p2, p3] =
         mates = [

@@ -8,37 +8,41 @@ defmodule TWeb.FeedChannel do
 
   @impl true
   def join("feed:" <> user_id, params, socket) do
-    user_id = ChannelHelpers.verify_user_id(socket, user_id)
-    %{screen_width: screen_width} = socket.assigns
+    if ChannelHelpers.valid_user_topic?(socket, user_id) do
+      user_id = String.downcase(user_id)
+      %{screen_width: screen_width} = socket.assigns
 
-    gender_preferences = Accounts.list_gender_preferences(user_id)
-    {location, gender} = Accounts.get_location_and_gender!(user_id)
+      gender_preferences = Accounts.list_gender_preferences(user_id)
+      {location, gender} = Accounts.get_location_and_gender!(user_id)
 
-    :ok = Matches.subscribe_for_user(user_id)
+      :ok = Matches.subscribe_for_user(user_id)
 
-    missed_calls =
-      user_id
-      |> Calls.list_missed_calls_with_profile(after: params["missed_calls_cursor"])
-      |> render_missed_calls_with_profile(screen_width)
+      missed_calls =
+        user_id
+        |> Calls.list_missed_calls_with_profile(after: params["missed_calls_cursor"])
+        |> render_missed_calls_with_profile(screen_width)
 
-    likes =
-      user_id
-      |> Feeds.list_received_likes(location)
-      |> render_feed(screen_width)
+      likes =
+        user_id
+        |> Feeds.list_received_likes(location)
+        |> render_feed(screen_width)
 
-    matches =
-      user_id
-      |> Matches.list_matches()
-      |> render_matches(screen_width)
+      matches =
+        user_id
+        |> Matches.list_matches()
+        |> render_matches(screen_width)
 
-    reply =
-      %{}
-      |> maybe_put("missed_calls", missed_calls)
-      |> maybe_put("likes", likes)
-      |> maybe_put("matches", matches)
+      reply =
+        %{}
+        |> maybe_put("missed_calls", missed_calls)
+        |> maybe_put("likes", likes)
+        |> maybe_put("matches", matches)
 
-    {:ok, reply,
-     assign(socket, gender_preferences: gender_preferences, location: location, gender: gender)}
+      {:ok, reply,
+       assign(socket, gender_preferences: gender_preferences, location: location, gender: gender)}
+    else
+      {:error, %{"error" => "forbidden"}}
+    end
   end
 
   @impl true

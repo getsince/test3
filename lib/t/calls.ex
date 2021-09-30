@@ -3,7 +3,7 @@ defmodule T.Calls do
   import Ecto.Query
 
   alias T.{Repo, Twilio, Accounts}
-  alias T.Calls.{Call, Invite}
+  alias T.Calls.Call
   alias T.Feeds.{FeedProfile}
   alias T.Matches.Match
   alias T.PushNotifications.APNS

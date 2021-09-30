@@ -2,19 +2,19 @@ defmodule T.Feeds do
   @moduledoc "Feeds for alternative app. Invites & Calls."
 
   import Ecto.Query
-  import Ecto.Changeset
+  # import Ecto.Changeset
   import Geo.PostGIS
 
   require Logger
 
   alias T.Repo
-  alias T.Bot
-  alias T.Accounts
+  # alias T.Bot
+  # alias T.Accounts
   alias T.Accounts.{UserReport, GenderPreference}
   alias T.Matches.{Like}
-  alias T.Calls
+  # alias T.Calls
   alias T.Feeds.{FeedProfile}
-  alias T.PushNotifications.DispatchJob
+  # alias T.PushNotifications.DispatchJob
 
   ### PubSub
 
@@ -22,22 +22,22 @@ defmodule T.Feeds do
   # instead of single topic, use `up-to-filter` with each subscriber providing a value up to which
   # they are subscribed, and if the event is below that value -> send it, if not -> don't send it
 
-  @pubsub T.PubSub
+  # @pubsub T.PubSub
 
-  defp notify_subscribers({:error, _multi, _reason, _changes} = fail, _event), do: fail
-  defp notify_subscribers({:error, _reason} = fail, _event), do: fail
+  # defp notify_subscribers({:error, _multi, _reason, _changes} = fail, _event), do: fail
+  # defp notify_subscribers({:error, _reason} = fail, _event), do: fail
 
-  defp broadcast(topic, message) do
-    Phoenix.PubSub.broadcast(@pubsub, topic, message)
-  end
+  # defp broadcast(topic, message) do
+  #   Phoenix.PubSub.broadcast(@pubsub, topic, message)
+  # end
 
-  defp broadcast_from(topic, message) do
-    Phoenix.PubSub.broadcast_from(@pubsub, self(), topic, message)
-  end
+  # defp broadcast_from(topic, message) do
+  #   Phoenix.PubSub.broadcast_from(@pubsub, self(), topic, message)
+  # end
 
-  defp subscribe(topic) do
-    Phoenix.PubSub.subscribe(@pubsub, topic)
-  end
+  # defp subscribe(topic) do
+  #   Phoenix.PubSub.subscribe(@pubsub, topic)
+  # end
 
   ### Likes
 
@@ -125,7 +125,7 @@ defmodule T.Feeds do
     Like |> where(by_user_id: ^user_id) |> select([l], l.user_id)
   end
 
-  defp not_liked_profiles_q(query \\ not_hidden_profiles_q(), user_id) do
+  defp not_liked_profiles_q(query, user_id) do
     where(query, [p], p.user_id not in subquery(liked_user_ids_q(user_id)))
   end
 
@@ -133,7 +133,7 @@ defmodule T.Feeds do
     Like |> where(user_id: ^user_id) |> select([l], l.by_user_id)
   end
 
-  defp not_liker_profiles_q(query \\ not_hidden_profiles_q(), user_id) do
+  defp not_liker_profiles_q(query, user_id) do
     where(query, [p], p.user_id not in subquery(liker_user_ids_q(user_id)))
   end
 

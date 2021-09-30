@@ -98,13 +98,15 @@ defmodule T.Factory do
 
   alias T.Accounts
 
-  def registered_user(apple_id \\ apple_id()) do
-    {:ok, user} = Accounts.register_user_with_apple_id(%{"apple_id" => apple_id})
+  def registered_user(apple_id \\ apple_id(), last_active_at \\ DateTime.utc_now()) do
+    {:ok, user} = Accounts.register_user_with_apple_id(%{"apple_id" => apple_id}, last_active_at)
     user
   end
 
   def onboarded_user(opts \\ []) do
-    user = registered_user(opts[:apple_id] || apple_id())
+    user =
+      registered_user(opts[:apple_id] || apple_id(), opts[:last_active_at] || DateTime.utc_now())
+
     {:ok, profile} = Accounts.onboard_profile(user.profile, onboarding_attrs(opts))
     %Accounts.User{user | profile: profile}
   end

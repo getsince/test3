@@ -20,17 +20,17 @@ defmodule TWeb.FeedChannelTest do
     end
 
     test "with matches", %{socket: socket, me: me} do
-      [p1, p2, p3] =
-        mates = [
-          onboarded_user(story: [], name: "mate-1", location: apple_location(), gender: "F"),
-          onboarded_user(story: [], name: "mate-2", location: apple_location(), gender: "N"),
-          onboarded_user(story: [], name: "mate-3", location: apple_location(), gender: "M")
-        ]
+      [p1, p2, p3] = [
+        onboarded_user(story: [], name: "mate-1", location: apple_location(), gender: "F"),
+        onboarded_user(story: [], name: "mate-2", location: apple_location(), gender: "N"),
+        onboarded_user(story: [], name: "mate-3", location: apple_location(), gender: "M")
+      ]
 
-      [m1, m2, m3] =
-        for mate <- mates do
-          insert(:match, user_id_1: me.id, user_id_2: mate.id)
-        end
+      [m1, m2, m3] = [
+        insert(:match, user_id_1: me.id, user_id_2: p1.id, inserted_at: ~N[2021-09-30 12:16:05]),
+        insert(:match, user_id_1: me.id, user_id_2: p2.id, inserted_at: ~N[2021-09-30 12:16:06]),
+        insert(:match, user_id_1: me.id, user_id_2: p3.id, inserted_at: ~N[2021-09-30 12:16:07])
+      ]
 
       # if it's 14:47 right now ...
       %DateTime{hour: next_hour} = dt = DateTime.utc_now() |> DateTime.add(_seconds = 3600)
@@ -52,8 +52,9 @@ defmodule TWeb.FeedChannelTest do
 
       assert matches == [
                %{
-                 "id" => m1.id,
-                 "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"}
+                 "id" => m3.id,
+                 "profile" => %{name: "mate-3", story: [], user_id: p3.id, gender: "M"},
+                 "timeslot" => %{"selected_slot" => s2}
                },
                %{
                  "id" => m2.id,
@@ -61,9 +62,8 @@ defmodule TWeb.FeedChannelTest do
                  "timeslot" => %{"picker" => me.id, "slots" => slots}
                },
                %{
-                 "id" => m3.id,
-                 "profile" => %{name: "mate-3", story: [], user_id: p3.id, gender: "M"},
-                 "timeslot" => %{"selected_slot" => s2}
+                 "id" => m1.id,
+                 "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"}
                }
              ]
     end
@@ -187,36 +187,48 @@ defmodule TWeb.FeedChannelTest do
     end
 
     test "with no active users", %{socket: socket} do
-      insert_list(3, :profile)
+      long_ago = DateTime.add(DateTime.utc_now(), -49 * 60 * 60)
+
+      for _ <- 1..3 do
+        onboarded_user(
+          location: apple_location(),
+          accept_genders: ["F", "N", "M"],
+          last_active: long_ago
+        )
+      end
 
       ref = push(socket, "more")
       assert_reply(ref, :ok, reply)
       assert reply == %{"cursor" => nil, "feed" => []}
     end
 
-    @tag skip: true
     test "with active users more than count", %{socket: socket} do
+      now = DateTime.utc_now()
+
       [m1, m2, m3] = [
         onboarded_user(
           name: "mate-1",
           location: apple_location(),
           story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
           gender: "F",
-          accept_genders: ["M"]
+          accept_genders: ["M"],
+          last_active: DateTime.add(now, -1)
         ),
         onboarded_user(
           name: "mate-2",
           location: apple_location(),
           story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
           gender: "N",
-          accept_genders: ["M"]
+          accept_genders: ["M"],
+          last_active: DateTime.add(now, -2)
         ),
         onboarded_user(
           name: "mate-3",
           location: apple_location(),
           story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
           gender: "M",
-          accept_genders: ["M"]
+          accept_genders: ["M"],
+          last_active: DateTime.add(now, -3)
         )
       ]
 
@@ -296,6 +308,72 @@ defmodule TWeb.FeedChannelTest do
     end
   end
 
+  describe "like" do
+    setup :joined
+
+    setup do
+      {:ok, mate: onboarded_user(story: [], location: apple_location(), name: "mate")}
+    end
+
+    setup :joined_mate
+
+    test "when already liked by mate", %{
+      me: me,
+      socket: socket,
+      mate: mate,
+      mate_socket: mate_socket
+    } do
+      # mate likes us
+      ref = push(mate_socket, "like", %{"user_id" => me.id})
+      assert_reply(ref, :ok, reply)
+      assert reply == %{}
+
+      # we got notified of like
+      assert_push "invite", invite
+
+      assert invite == %{
+               "distance" => 5,
+               "profile" => %{
+                 gender: "M",
+                 name: "mate",
+                 story: [],
+                 user_id: mate.id
+               }
+             }
+
+      # now it's our turn
+      ref = push(socket, "like", %{"user_id" => mate.id})
+      assert_reply(ref, :ok, %{"match_id" => match_id})
+      assert is_binary(match_id)
+    end
+
+    test "when not yet liked by mate", %{
+      me: me,
+      socket: socket,
+      mate: mate,
+      mate_socket: mate_socket
+    } do
+      # we like mate
+      ref = push(socket, "like", %{"user_id" => mate.id})
+      assert_reply(ref, :ok, reply)
+      assert reply == %{}
+
+      # now mate likes us
+      ref = push(mate_socket, "like", %{"user_id" => me.id})
+      assert_reply(ref, :ok, %{"match_id" => match_id})
+      assert is_binary(match_id)
+
+      assert_push "matched", push
+
+      assert push == %{
+               "match" => %{
+                 "id" => match_id,
+                 "profile" => %{name: "mate", story: [], user_id: mate.id, gender: "M"}
+               }
+             }
+    end
+  end
+
   describe "failed calls to active mate" do
     setup [:joined]
 
@@ -312,26 +390,8 @@ defmodule TWeb.FeedChannelTest do
       assert reply == %{"reason" => "call not allowed"}
     end
 
-    @tag skip: true
-    test "missing pushkit devices", %{
-      me: me,
-      socket: socket,
-      mate: mate,
-      mate_socket: mate_socket
-    } do
-      # mate invites us
-      ref = push(mate_socket, "invite", %{"user_id" => me.id})
-      assert_reply(ref, :ok, reply)
-      assert reply == %{"invited" => true}
-
-      # current user receives invite
-      assert_push("invite", %{
-        "profile" => profile,
-        "session" => %{expires_at: %DateTime{}, id: _session_id}
-      })
-
-      assert profile == %{name: "mate", story: [], user_id: mate.id, gender: "F"}
-      refute_receive _anything_else
+    test "missing pushkit devices", %{me: me, socket: socket, mate: mate} do
+      insert(:match, user_id_1: me.id, user_id_2: mate.id)
 
       # call still fails since mate is missing pushkit devices
       ref = push(socket, "call", %{"user_id" => mate.id})
@@ -454,59 +514,6 @@ defmodule TWeb.FeedChannelTest do
       refute call.accepted_at
       assert call.caller_id == me.id
       assert call.called_id == mate.id
-    end
-  end
-
-  describe "like" do
-    setup :joined
-
-    setup do
-      {:ok, mate: onboarded_user(story: [], location: apple_location(), name: "mate")}
-    end
-
-    setup :joined_mate
-
-    test "when already liked by mate", %{
-      me: me,
-      socket: socket,
-      mate: mate,
-      mate_socket: mate_socket
-    } do
-      # mate likes us
-      ref = push(mate_socket, "like", %{"user_id" => me.id})
-      assert_reply(ref, :ok, reply)
-      assert reply == %{}
-
-      # now it's our turn
-      ref = push(socket, "like", %{"user_id" => mate.id})
-      assert_reply(ref, :ok, %{"match_id" => match_id})
-      assert is_binary(match_id)
-    end
-
-    test "when not yet liked by mate", %{
-      me: me,
-      socket: socket,
-      mate: mate,
-      mate_socket: mate_socket
-    } do
-      # we like mate
-      ref = push(socket, "like", %{"user_id" => mate.id})
-      assert_reply(ref, :ok, reply)
-      assert reply == %{}
-
-      # now mate likes us
-      ref = push(mate_socket, "like", %{"user_id" => me.id})
-      assert_reply(ref, :ok, %{"match_id" => match_id})
-      assert is_binary(match_id)
-
-      assert_push("matched", push)
-
-      assert push == %{
-               "match" => %{
-                 "id" => match_id,
-                 "profile" => %{name: "mate", story: [], user_id: mate.id, gender: "M"}
-               }
-             }
     end
   end
 

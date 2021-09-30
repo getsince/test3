@@ -269,12 +269,16 @@ defmodule T.Matches do
 
     mates = Map.keys(mate_matches)
 
-    FeedProfile
-    |> where([p], p.user_id in ^mates)
-    |> Repo.all()
-    |> Enum.map(fn mate ->
-      match = Map.fetch!(mate_matches, mate.user_id)
-      %Match{match | profile: mate}
+    profiles =
+      FeedProfile
+      |> where([p], p.user_id in ^mates)
+      |> Repo.all()
+      |> Map.new(fn profile -> {profile.user_id, profile} end)
+
+    Enum.map(matches, fn match ->
+      [mate_id] = [match.user_id_1, match.user_id_2] -- [user_id]
+      profile = Map.fetch!(profiles, mate_id)
+      %Match{match | profile: profile}
     end)
   end
 

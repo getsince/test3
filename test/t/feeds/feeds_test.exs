@@ -74,4 +74,5 @@ defmodule T.FeedsTest do
                  _cursor = nil
                )
     end
+  end
 end

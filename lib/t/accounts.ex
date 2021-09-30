@@ -44,21 +44,18 @@ defmodule T.Accounts do
   ## User registration
 
   @doc false
-  def register_user_with_apple_id(attrs) do
+  def register_user_with_apple_id(attrs, now \\ DateTime.utc_now()) do
     Multi.new()
     |> Multi.insert(:user, User.apple_id_registration_changeset(%User{}, attrs))
-    |> add_profile_and_transact()
+    |> add_profile_and_transact(now)
   end
 
-  defp add_profile_and_transact(multi) do
+  defp add_profile_and_transact(multi, now) do
     multi
     |> Multi.insert(
       :profile,
       fn %{user: user} ->
-        %Profile{
-          user_id: user.id,
-          last_active: DateTime.truncate(DateTime.utc_now(), :second)
-        }
+        %Profile{user_id: user.id, last_active: DateTime.truncate(now, :second)}
       end,
       returning: [:hidden?]
     )

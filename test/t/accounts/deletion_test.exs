@@ -31,8 +31,11 @@ defmodule T.Accounts.DeletionTest do
       Matches.subscribe_for_user(user.id)
       Matches.subscribe_for_user(p2.user_id)
 
-      assert {:ok, %{match: nil}} = Matches.like_user(p2.user_id, user.id)
-      assert {:ok, %{match: %Match{id: match_id}}} = Matches.like_user(user.id, p2.user_id)
+      assert {:ok, %{match: nil}} =
+               Matches.like_user(p2.user_id, user.id, _notify_on_like? = false)
+
+      assert {:ok, %{match: %Match{id: match_id}}} =
+               Matches.like_user(user.id, p2.user_id, _notify_on_like? = false)
 
       assert_receive {Matches, :matched, match}
       assert match == %{id: match_id, mate: user.id}

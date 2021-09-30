@@ -10,6 +10,7 @@ defmodule T.Matches.Like do
     belongs_to :user, User, primary_key: true
 
     field :liker_profile, :map, virtual: true
+    field :declined, :boolean
 
     timestamps(updated_at: false)
   end

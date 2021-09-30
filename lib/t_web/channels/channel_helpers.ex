@@ -12,8 +12,18 @@ defmodule TWeb.ChannelHelpers do
     ^user_id = current_user(socket).id
   end
 
+  @spec valid_user_topic?(Phoenix.Socket.t(), Ecto.UUID.t()) :: boolean
+  def valid_user_topic?(%Socket{} = socket, user_id) do
+    current_user(socket).id == downcased(user_id)
+  end
+
   def current_user(%Socket{assigns: assigns}) do
     %User{} = assigns.current_user
+  end
+
+  @spec version(Phoenix.Socket.t()) :: Version.t()
+  def version(socket) do
+    socket.assigns.version
   end
 
   def me(%Socket{assigns: %{current_user: %User{} = me}}), do: me

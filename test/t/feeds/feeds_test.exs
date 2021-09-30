@@ -139,7 +139,7 @@ defmodule T.FeedsTest do
     end
   end
 
-  describe "fetch_feed/3" do
+  describe "fetch_active_session_feed/3" do
     setup do
       me = onboarded_user(location: moscow_location())
       {:ok, me: me}
@@ -147,7 +147,7 @@ defmodule T.FeedsTest do
 
     test "with no data in db", %{me: me} do
       assert {[], nil} ==
-               Feeds.fetch_feed(
+               Feeds.fetch_active_session_feed(
                  me.id,
                  me.profile.location,
                  _gender = "M",
@@ -161,7 +161,7 @@ defmodule T.FeedsTest do
       insert_list(3, :profile, gender: "F")
 
       assert {[], nil} ==
-               Feeds.fetch_feed(
+               Feeds.fetch_active_session_feed(
                  me.id,
                  me.profile.location,
                  _gender = "M",
@@ -176,7 +176,7 @@ defmodule T.FeedsTest do
       activate_sessions(others, @reference)
 
       assert {[], nil} ==
-               Feeds.fetch_feed(
+               Feeds.fetch_active_session_feed(
                  me.id,
                  me.profile.location,
                  _gender = "M",
@@ -196,7 +196,7 @@ defmodule T.FeedsTest do
       activate_sessions(others, @reference)
 
       assert {[], nil} ==
-               Feeds.fetch_feed(
+               Feeds.fetch_active_session_feed(
                  me.id,
                  me.profile.location,
                  _gender = "M",
@@ -222,7 +222,7 @@ defmodule T.FeedsTest do
                  %ActiveSession{flake: cursor, expires_at: ~U[2021-07-21 12:55:18Z]}, 9510}
               ],
               cursor} =
-               Feeds.fetch_feed(
+               Feeds.fetch_active_session_feed(
                  me.id,
                  me.profile.location,
                  _gender = "M",
@@ -232,7 +232,7 @@ defmodule T.FeedsTest do
                )
 
       assert {[], ^cursor} =
-               Feeds.fetch_feed(
+               Feeds.fetch_active_session_feed(
                  me.id,
                  me.profile.location,
                  _gender = "M",
@@ -257,7 +257,7 @@ defmodule T.FeedsTest do
                  %ActiveSession{flake: cursor1, expires_at: ~U[2021-07-21 12:55:18Z]}, 9510}
               ],
               cursor1} =
-               Feeds.fetch_feed(
+               Feeds.fetch_active_session_feed(
                  me.id,
                  me.profile.location,
                  _gender = "M",
@@ -271,7 +271,7 @@ defmodule T.FeedsTest do
                  %ActiveSession{flake: cursor2, expires_at: ~U[2021-07-21 12:55:18Z]}, 9510}
               ],
               cursor2} =
-               Feeds.fetch_feed(
+               Feeds.fetch_active_session_feed(
                  me.id,
                  me.profile.location,
                  _gender = "M",
@@ -283,7 +283,7 @@ defmodule T.FeedsTest do
       assert cursor2 != cursor1
 
       assert {[], ^cursor2} =
-               Feeds.fetch_feed(
+               Feeds.fetch_active_session_feed(
                  me.id,
                  me.profile.location,
                  _gender = "M",

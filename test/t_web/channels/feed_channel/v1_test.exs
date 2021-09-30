@@ -1,4 +1,4 @@
-defmodule TWeb.FeedChannelTest do
+defmodule TWeb.FeedChannel.V1Test do
   use TWeb.ChannelCase
   import Assertions
 

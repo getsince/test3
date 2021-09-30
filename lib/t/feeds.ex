@@ -193,6 +193,37 @@ defmodule T.Feeds do
     |> Repo.all()
   end
 
+  @spec list_received_likes(Ecto.UUID.t(), Geo.Point.t()) :: [feed_profile]
+  def list_received_likes(user_id, location) do
+    profiles_q = not_reported_profiles_q(user_id)
+
+    Like
+    |> where(user_id: ^user_id)
+    |> where([l], is_nil(l.declined))
+    |> not_match1_profiles_q(user_id)
+    |> not_match2_profiles_q(user_id)
+    |> order_by(desc: :inserted_at)
+    |> join(:inner, [l], p in subquery(profiles_q), on: p.user_id == l.by_user_id)
+    |> select([l, p], {p, distance_km(^location, p.location)})
+    |> Repo.all()
+  end
+
+  defp match_user1_ids_q(user_id) do
+    Match |> where(user_id_1: ^user_id) |> select([m], m.user_id_2)
+  end
+
+  defp match_user2_ids_q(user_id) do
+    Match |> where(user_id_2: ^user_id) |> select([m], m.user_id_1)
+  end
+
+  defp not_match1_profiles_q(query, user_id) do
+    where(query, [p], p.by_user_id not in subquery(match_user1_ids_q(user_id)))
+  end
+
+  defp not_match2_profiles_q(query, user_id) do
+    where(query, [p], p.by_user_id not in subquery(match_user2_ids_q(user_id)))
+  end
+
   defp mark_invited(multi, by_user_id, user_id, inserted_at \\ NaiveDateTime.utc_now()) do
     invite = %Calls.Invite{
       by_user_id: by_user_id,
@@ -231,19 +262,21 @@ defmodule T.Feeds do
 
   ### Feed
 
-  @type feed_cursor :: String.t()
+  @type feed_cursor_v1 :: String.t()
+  @type feed_cursor_v2 :: DateTime.t() | String.t()
   @type feed_item :: {%FeedProfile{}, %ActiveSession{}, distance_km :: non_neg_integer}
+  @type feed_profile :: {%FeedProfile{}, distance_km :: non_neg_integer}
 
-  @spec fetch_feed(
+  @spec fetch_active_session_feed(
           Ecto.UUID.t(),
           Geo.Point.t(),
           String.t(),
           [String.t()],
           pos_integer,
-          feed_cursor | nil
+          feed_cursor_v1 | nil
         ) ::
-          {[feed_item], feed_cursor}
-  def fetch_feed(user_id, location, gender, gender_preferences, count, feed_cursor) do
+          {[feed_item], feed_cursor_v1}
+  def fetch_active_session_feed(user_id, location, gender, gender_preferences, count, feed_cursor) do
     profiles_q = filtered_profiles_q(user_id, gender, gender_preferences)
 
     feed_items =
@@ -262,6 +295,33 @@ defmodule T.Feeds do
       end
 
     {feed_items, feed_cursor}
+  end
+
+  @spec fetch_last_active_feed(
+          Ecto.UUID.t(),
+          Geo.Point.t(),
+          String.t(),
+          [String.t()],
+          pos_integer,
+          feed_cursor_v2 | nil
+        ) ::
+          {[feed_profile], feed_cursor_v2}
+  def fetch_last_active_feed(user_id, location, gender, gender_preferences, count, feed_cursor) do
+    feed_profiles =
+      feed_profiles_q(user_id, gender, gender_preferences, feed_cursor)
+      |> limit(^count)
+      |> select([p], {p, distance_km(^location, p.location)})
+      |> Repo.all()
+
+    feed_cursor =
+      if last = List.last(feed_profiles) do
+        {feed_profile, _distance} = last
+        feed_profile.last_active
+      else
+        feed_cursor
+      end
+
+    {feed_profiles, feed_cursor}
   end
 
   @spec get_feed_item(Ecto.UUID.t(), Geo.Point.t() | nil, Ecto.UUID.t()) :: feed_item | nil
@@ -296,6 +356,20 @@ defmodule T.Feeds do
     user_id
     |> active_sessions_q(nil)
     |> where([s], s.flake > ^last_flake)
+  end
+
+  defp feed_profiles_q(user_id, gender, gender_preference, nil) do
+    treshold_date = DateTime.utc_now() |> DateTime.add(-2 * 24 * 60 * 60, :second)
+
+    filtered_profiles_q(user_id, gender, gender_preference)
+    |> where([p], p.user_id != ^user_id)
+    |> where([p], p.last_active > ^treshold_date)
+    |> order_by(desc: :last_active)
+  end
+
+  defp feed_profiles_q(user_id, gender, gender_preference, last_date) do
+    feed_profiles_q(user_id, gender, gender_preference, nil)
+    |> where([p], p.last_active < ^last_date)
   end
 
   defp reported_user_ids_q(user_id) do

@@ -23,11 +23,15 @@ defmodule TWeb.UserSocket do
       Logger.metadata(user_id: user.id)
       Logger.warn("user online #{user.id}")
 
+      # TODO remove
+      Accounts.update_last_active(user.id)
+
       {:ok,
        assign(socket,
          current_user: user,
          token: token,
-         screen_width: params["screen_width"] || 1000
+         screen_width: params["screen_width"] || 1000,
+         version: extract_version(params)
        )}
     else
       # TODO return reason (like user deleted, or invalid token)
@@ -53,6 +57,15 @@ defmodule TWeb.UserSocket do
   end
 
   defp _extract_ip_address(_key, _connect_info), do: nil
+
+  defp extract_version(params) do
+    if version = params["version"] do
+      case Version.parse(version) do
+        {:ok, version} -> version
+        :error -> nil
+      end
+    end || %Version{major: 1, minor: 0, patch: 0}
+  end
 
   defoverridable init: 1
 

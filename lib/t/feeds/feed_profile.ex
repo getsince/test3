@@ -9,6 +9,7 @@ defmodule T.Feeds.FeedProfile do
     field :story, {:array, :map}
     field :hidden?, :boolean
     field :location, Geo.PostGIS.Geometry
+    field :last_active, :utc_datetime
     # F | M | N
     field :gender, :string
   end

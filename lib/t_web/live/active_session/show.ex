@@ -97,7 +97,7 @@ defmodule TWeb.ActiveSessionLive.Show do
   end
 
   def handle_event("like", %{"user" => user_id}, socket) do
-    Matches.like_user(socket.assigns.me_id, user_id)
+    Matches.like_user(socket.assigns.me_id, user_id, _notify_on_like? = false)
     {:noreply, update_feed(socket)}
   end
 

@@ -24,8 +24,11 @@ defmodule T.Accounts.BlockingTest do
       Matches.subscribe_for_user(reporter.id)
       Matches.subscribe_for_user(reported.id)
 
-      assert {:ok, %{match: nil}} = Matches.like_user(reporter.id, reported.id)
-      assert {:ok, %{match: %Match{id: match_id}}} = Matches.like_user(reported.id, reporter.id)
+      assert {:ok, %{match: nil}} =
+               Matches.like_user(reporter.id, reported.id, _notify_on_like? = false)
+
+      assert {:ok, %{match: %Match{id: match_id}}} =
+               Matches.like_user(reported.id, reporter.id, _notify_on_like? = false)
 
       # notification for reporter
       assert_receive {Matches, :matched, match}
@@ -71,8 +74,10 @@ defmodule T.Accounts.BlockingTest do
     test "unmatches if there is a match", %{user: user} do
       other = onboarded_user()
 
-      assert {:ok, %{match: nil}} = Matches.like_user(user.id, other.id)
-      assert {:ok, %{match: %Match{id: match_id}}} = Matches.like_user(other.id, user.id)
+      assert {:ok, %{match: nil}} = Matches.like_user(user.id, other.id, _notify_on_like? = false)
+
+      assert {:ok, %{match: %Match{id: match_id}}} =
+               Matches.like_user(other.id, user.id, _notify_on_like? = false)
 
       Matches.subscribe_for_user(user.id)
       Matches.subscribe_for_user(other.id)

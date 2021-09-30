@@ -147,6 +147,14 @@ defmodule T.Calls do
     |> Repo.all()
   end
 
+  @spec list_missed_calls_with_profile(Ecto.UUID.t(), Keyword.t()) :: [{%Call{}, %FeedProfile{}}]
+  def list_missed_calls_with_profile(user_id, opts) do
+    missed_calls_q(user_id, opts)
+    |> join(:inner, [c], p in FeedProfile, on: c.caller_id == p.user_id)
+    |> select([c, p], {c, p})
+    |> Repo.all()
+  end
+
   @spec missed_calls_q(Ecto.UUID.t(), Keyword.t()) :: Ecto.Query.t()
   defp missed_calls_q(user_id, opts) do
     Call

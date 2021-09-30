@@ -6,12 +6,15 @@ defmodule TWeb.ProfileChannel do
 
   @impl true
   def join("profile:" <> user_id, _params, socket) do
-    ChannelHelpers.verify_user_id(socket, user_id)
-    %{screen_width: screen_width, current_user: current_user} = socket.assigns
-    %Profile{} = profile = Accounts.get_profile!(current_user)
+    if ChannelHelpers.valid_user_topic?(socket, user_id) do
+      %{screen_width: screen_width, current_user: current_user} = socket.assigns
+      %Profile{} = profile = Accounts.get_profile!(current_user)
 
-    {:ok, %{profile: render_profile(profile, screen_width), stickers: T.Media.known_stickers()},
-     assign(socket, uploads: %{}, profile: profile)}
+      {:ok, %{profile: render_profile(profile, screen_width), stickers: T.Media.known_stickers()},
+       assign(socket, uploads: %{}, profile: profile)}
+    else
+      {:error, %{"error" => "forbidden"}}
+    end
   end
 
   @impl true

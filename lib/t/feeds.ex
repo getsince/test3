@@ -75,11 +75,11 @@ defmodule T.Feeds do
   end
 
   defp not_match1_profiles_q(query, user_id) do
-    where(query, [p], p.user_id not in subquery(match_user1_ids_q(user_id)))
+    where(query, [p], p.by_user_id not in subquery(match_user1_ids_q(user_id)))
   end
 
   defp not_match2_profiles_q(query, user_id) do
-    where(query, [p], p.user_id not in subquery(match_user2_ids_q(user_id)))
+    where(query, [p], p.by_user_id not in subquery(match_user2_ids_q(user_id)))
   end
 
   ### Feed

@@ -1,6 +1,5 @@
 defmodule TWeb.FeedChannelTest do
   use TWeb.ChannelCase
-  import Assertions
 
   alias T.{Accounts, Calls, Matches}
   alias Matches.{Timeslot, Match}
@@ -51,22 +50,22 @@ defmodule TWeb.FeedChannelTest do
       insert(:timeslot, match_id: m3.id, slots: slots, selected_slot: s2, picker_id: p3.id)
       assert {:ok, %{"matches" => matches}, _socket} = join(socket, "feed:" <> me.id)
 
-      assert_lists_equal(matches, [
-        %{
-          "id" => m1.id,
-          "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"}
-        },
-        %{
-          "id" => m2.id,
-          "profile" => %{name: "mate-2", story: [], user_id: p2.id, gender: "N"},
-          "timeslot" => %{"picker" => me.id, "slots" => slots}
-        },
-        %{
-          "id" => m3.id,
-          "profile" => %{name: "mate-3", story: [], user_id: p3.id, gender: "M"},
-          "timeslot" => %{"selected_slot" => s2}
-        }
-      ])
+      assert matches == [
+               %{
+                 "id" => m1.id,
+                 "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"}
+               },
+               %{
+                 "id" => m2.id,
+                 "profile" => %{name: "mate-2", story: [], user_id: p2.id, gender: "N"},
+                 "timeslot" => %{"picker" => me.id, "slots" => slots}
+               },
+               %{
+                 "id" => m3.id,
+                 "profile" => %{name: "mate-3", story: [], user_id: p3.id, gender: "M"},
+                 "timeslot" => %{"selected_slot" => s2}
+               }
+             ]
     end
 
     test "with likes", %{socket: socket, me: me} do

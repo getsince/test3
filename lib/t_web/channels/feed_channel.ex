@@ -227,10 +227,9 @@ defmodule TWeb.FeedChannel do
   end
 
   defp render_missed_calls_with_profile(missed_calls, screen_width) do
-    Enum.map(missed_calls, fn {call, profile, session} ->
+    Enum.map(missed_calls, fn {call, profile} ->
       render(FeedView, "missed_call.json",
         profile: profile,
-        session: session,
         call: call,
         screen_width: screen_width
       )

@@ -183,6 +183,10 @@ defmodule FeedCache do
     ]
   end
 
+  def gc do
+    Enum.each(Process.list(), fn pid -> :erlang.garbage_collect(pid) end)
+  end
+
   def demo_user do
     story = story() |> :erlang.term_to_binary()
 
@@ -263,8 +267,8 @@ defmodule FeedCache do
 
   def fetch_feed_profile(<<_::128>> = session_id) do
     [{^session_id, user_id}] = :ets.lookup(@session2profiles, session_id)
-    [{^user_id, _name, _gender, _story} = profile] = :ets.lookup(@profiles, user_id)
-    profile
+    [{^user_id, _name, _gender, story} = profile] = :ets.lookup(@profiles, user_id)
+    put_elem(profile, 3, :erlang.binary_to_term(story))
   end
 
   def fetch_feed_profile(<<_::288>> = session_id) do

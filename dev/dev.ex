@@ -247,6 +247,13 @@ defmodule FeedCache do
     do_fetch_feed(table(gender, preference), cursor, limit, _acc = [])
   end
 
+  # with two cursors and two gender preferences
+  def fetch_feed(<<c1::24-bytes, c2::24-bytes>>, gender, [p1, p2], limit) do
+    tables = [table(gender, p1), table(gender, p2)]
+    do_fetch_feed_cycle(tables, tables, [c1, c2], limit, _acc = [])
+  end
+
+  # with no cursor and single gender preference
   def fetch_feed(nil = _cursor, gender, [preference], limit) do
     do_fetch_feed(table(gender, preference), _cursor = <<0::192>>, limit, _acc = [])
   end
@@ -263,6 +270,28 @@ defmodule FeedCache do
 
   defp do_fetch_feed(_tab, cursor, 0, acc) do
     {cursor, :lists.reverse(acc)}
+  end
+
+  defp do_fetch_feed_cycle([tab | rest_tab], orig_tables, [cursor | rest_cursor], limit, acc)
+       when limit > 0 do
+    case :ets.next(tab, cursor) do
+      <<_geohash::64, session_id::16-bytes>> = cursor ->
+        acc = [fetch_feed_profile(session_id) | acc]
+        # TODO I don't like ++
+        do_fetch_feed_cycle(rest_tab, orig_tables, rest_cursor ++ [cursor], limit, acc)
+
+      :"$end_of_table" ->
+        do_fetch_feed_cycle(rest_tab, orig_tables, rest_cursor, limit, acc)
+    end
+  end
+
+  defp do_fetch_feed_cycle([], _tables, [], _limit, acc)
+    {cursor, acc}
+  end
+
+  defp do_fetch_feed_cycle([], tables, cursors, 0, acc)
+        do
+    do_fetch_feed_cycle(tables, tables, cursors, limit, acc)
   end
 
   def fetch_feed_profile(<<_::128>> = session_id) do
@@ -332,84 +361,3 @@ defmodule FeedCache do
     for pref <- prefs, do: :ets.insert(table(pref, gender), {<<0::64, session_id::bytes>>})
   end
 end
-
-# defmodule ActiveSessionCache do
-#   @moduledoc false
-#   use GenServer
-
-#   def start_link(opts) do
-#     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
-#   end
-
-#   @impl true
-#   def init(opts) do
-#     opts = [:named_table, :ordered_set]
-
-#     :ets.new(:sessions_MF, opts)
-#     :ets.new(:sessions_MM, opts)
-#     :ets.new(:sessions_MN, opts)
-#     :ets.new(:sessions_FF, opts)
-#     :ets.new(:sessions_FM, opts)
-#     :ets.new(:sessions_FN, opts)
-#     :ets.new(:sessions_NF, opts)
-#     :ets.new(:sessions_NM, opts)
-#     :ets.new(:sessions_NN, opts)
-
-#     {:continue, {:populate_cache, _state = nil}}
-#   end
-
-#   @impl true
-#   def handle_continue(:populate_cache, state) do
-#     {:ok, state}
-#   end
-
-#   # example cursor = %{"MF" => id, "M"}
-
-#   # tables
-#   # male who looks for female
-#   # male who looks for male
-#   # male who looks for non-binary
-#   # female who looks for female
-#   # female who looks for male
-#   # female who looks for non-binary
-#   # non-binary who looks for female
-#   # non-binary who looks for male
-#   # non-binary who looks for non-binary
-
-#   #                                              F who looks for M
-#   # I'm male who looks for female, I look into ["F",            "M"]
-#   # I'm female who looks for male or female, I look into FF and MF
-
-#   # simplified
-#   # male who looks for female
-#   # male who looks for male
-#   # female who looks for female
-#   # female who looks for male
-
-#   defp table("MF"), do: :sessions_MF
-#   defp table("FM"), do: :sessions_FM
-#   defp table("FF"), do: :sessions_FF
-#   defp table("MM"), do: :sessions_MM
-
-#   def list_active_sessions(%{"FM" => 0}) do
-#     next(:sessions_FM, _after = 0, _count = 10)
-#   end
-
-#   def next(table, after_id, count) when count > 0 do
-#     case :ets.next(table, after_id) do
-#       id when is_integer(id) -> [id | next(table, id, count - 1)]
-#       :"$end_of_table" -> []
-#     end
-#   end
-
-#   def next(_table, _after_id, 0), do: []
-
-#   def list_active_sessions(cursor, count) do
-#     for {table, last_id} <- cursor do
-#       case :ets.next(table(table), last_id) do
-#         id when is_integer(id) -> [id | nil]
-#         :"$end_of_table" -> []
-#       end
-#     end
-#   end
-# end

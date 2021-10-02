@@ -2,11 +2,10 @@ defmodule T.Calls do
   @moduledoc false
   import Ecto.Query
 
-  alias T.{Repo, Twilio, Accounts}
+  alias T.{Repo, Twilio, Accounts, APNS}
   alias T.Calls.{Call, Invite}
   alias T.Feeds.{FeedProfile, ActiveSession}
   alias T.Matches.Match
-  alias T.PushNotifications.APNS
 
   @spec ice_servers :: [map]
   def ice_servers do
@@ -72,14 +71,14 @@ defmodule T.Calls do
 
   @spec push_call(Ecto.UUID.t(), Ecto.UUID.t(), [%Accounts.PushKitDevice{}]) :: boolean
   def push_call(caller_id, call_id, devices) do
-    alias Pigeon.APNS.Notification
+    alias T.APNS.Request
 
     caller_name = fetch_name(caller_id)
     payload = %{"caller_id" => caller_id, "call_id" => call_id, "caller_name" => caller_name}
 
     devices
     |> APNS.pushkit_call(payload)
-    |> Enum.any?(fn %Notification{response: response} -> response == :success end)
+    |> Enum.any?(fn response -> response == :ok end)
   end
 
   @spec fetch_name(Ecto.UUID.t()) :: String.t()

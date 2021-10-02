@@ -44,6 +44,7 @@ defmodule T.MixProject do
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:ecto_sql, "~> 3.6"},
       {:postgrex, ">= 0.0.0"},
+      {:mime, "~> 2.0", override: true},
       {:phoenix_live_view, "~> 0.16.0"},
       {:phoenix_live_dashboard, "~> 0.5.0"},
       {:ecto_psql_extras, "~> 0.2"},
@@ -61,8 +62,6 @@ defmodule T.MixProject do
       {:ex_machina, "~> 2.4", only: :test},
       {:assertions, "~> 0.18.1", only: :test},
       {:floki, ">= 0.0.0", only: :test},
-      {:pigeon, "~> 1.6", runtime: Mix.env() in [:dev, :prod]},
-      {:kadabra, "~> 0.4.4"},
       {:sentry, "~> 8.0"},
       {:bigflake, "0.5.0"},
       {:imgproxy, "~> 2.0"},
@@ -73,10 +72,11 @@ defmodule T.MixProject do
       # {:prom_ex, "~> 1.3"},
       {:esbuild, "~> 0.3", runtime: Mix.env() == :dev},
       # {:retry, "~> 0.14.1"},
-      {:cloud_watch, "~> 0.4"},
+      # {:cloud_watch, "~> 0.4"},
       {:benchee, "~> 1.0", only: :bench},
       {:dialyxir, "~> 1.1", only: :dev, runtime: false},
-      {:h3, "~> 3.6"}
+      {:h3, "~> 3.6"},
+      {:jose, "~> 1.11"}
     ]
   end
 

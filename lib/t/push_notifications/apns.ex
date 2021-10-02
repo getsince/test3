@@ -1,12 +1,16 @@
+defmodule Notification do
+  defstruct [:device_token, :topic, :push_type, :expiration, :payload, :collapse_id]
+end
+
 defmodule T.PushNotifications.APNS do
   @moduledoc false
 
-  alias Pigeon.APNS.Notification
   alias T.PushNotifications.Helpers
   alias T.Accounts.{PushKitDevice, APNSDevice}
   import T.Gettext
 
-  @adapter Application.compile_env!(:t, [__MODULE__, :adapter])
+  # @adapter Application.compile_env!(:t, [__MODULE__, :adapter])
+  @adapter nil
 
   @type apns_env :: :prod | :dev
 

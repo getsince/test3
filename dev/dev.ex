@@ -32,6 +32,10 @@ defmodule Dev do
     T.Accounts.list_apns_devices("0000017c-1494-edea-0242-ac1100020000")
   end
 
+  def token do
+    "eyJhbGciOiJFUzI1NiIsImtpZCI6IkRHN0pDNzQyMjciLCJ0eXAiOiJKV1QifQ.eyJhdWQiOiJhcHBlbCIsImV4cCI6MTYzMzE4ODc1MywiaWF0IjoxNjMzMTg1MTUzLCJpc3MiOiI1MjVWQ1M3UEZVIiwianRpIjoiMnFsM3Fma3BxdWhyaGNxa2kwMDAwODYxIiwibmJmIjoxNjMzMTg1MTUzfQ.kLroByuVYgaiIr8rK5onMML-gW9i3ifTmYk670EG0o8HHwDoFVfbSFCUM550EnE19OvgbpQrGm4Dt2jhgxB-wQ"
+  end
+
   def others_devices do
     T.Accounts.APNSDevice
     |> join(:inner, [d], u in T.Accounts.User, on: d.user_id == u.id and not is_nil(u.apple_id))
@@ -41,31 +45,72 @@ defmodule Dev do
     end)
   end
 
-  def send_notification do
-    for device <- others_devices() do
-      %{device_id: device_id, env: env, topic: topic} = device
+  def eh(i) do
+    device_id = "6c0b96b86473d407517140ab898490309909395dd144cd30a4668affc1a1ec6b"
+    topic = "since.app.ios"
 
-      notification = %Pigeon.APNS.Notification{
-        device_token: device_id,
-        payload: %{
-          "aps" => %{
-            "alert" => %{
-              "title" => "Мы стали новее",
-              "body" =>
-                "Привет! Пожалуйста, обнови приложение, чтобы продолжить им пользоваться 👀❤️"
-            }
-          }
-        },
-        push_type: "alert",
-        topic: topic
+    payload = %{
+      "aps" => %{
+        "alert" => %{
+          "title" => "Your app has been removed from Google Play",
+          "body" =>
+            "We recommend that you watch this video which explains the various policy review outcomes, gives some common examples of what might cause a violation, and explains next steps for getting your flagged app or game back on Google Play."
+        }
       }
+    }
 
-      T.PushNotifications.APNS.Pigeon.push(notification, apns_env(env))
-    end
+    req = T.APNS.Request.new(device_id, topic, payload, _env = :prod)
+    T.APNS.push(req, token())
   end
 
-  defp apns_env("prod"), do: :prod
-  defp apns_env("sandbox"), do: :dev
+  @task_sup __MODULE__.TaskSupervisor
+
+  def ensure_task_supervisor do
+    Task.Supervisor.start_link(name: @task_sup)
+  end
+
+  def async_stream(enum, fun) do
+    ensure_task_supervisor()
+    opts = [ordered: false, max_concurrency: 100]
+    Task.Supervisor.async_stream(@task_sup, enum, fun, opts)
+  end
+
+  def eh2(count) do
+    1..count
+    |> async_stream(fn i -> eh(i) end)
+    |> Enum.reduce([], fn
+      {:ok, :ok}, acc -> acc
+      {:ok, error}, acc -> [error | acc]
+    end)
+    |> Enum.group_by(& &1, fn _ -> 1 end)
+    |> Map.new(fn {error, counts} -> {error, Enum.sum(counts)} end)
+  end
+
+  # def send_notification do
+  #   for device <- others_devices() do
+  #     %{device_id: device_id, env: env, topic: topic} = device
+
+  #     notification = %Pigeon.APNS.Notification{
+  #       device_token: device_id,
+  #       payload: %{
+  #         "aps" => %{
+  #           "alert" => %{
+  #             "title" => "Мы стали новее",
+  #             "body" =>
+  #               "Привет! Пожалуйста, обнови приложение, чтобы продолжить им пользоваться 👀❤️"
+  #           }
+  #         }
+  #       },
+  #       push_type: "alert",
+  #       topic: topic
+  #     }
+
+  #     T.PushNotifications.APNS.Pigeon.push(notification, apns_env(env))
+  #   end
+  # end
+
+  # defp apns_env("prod"), do: :prod
+  # defp apns_env("sandbox"), do: :dev
 
   def run do
     # notifications =
@@ -89,30 +134,30 @@ defmodule Dev do
     #   "topic" => "since.app.ios"
     # }
 
-    devices = [
-      "6ad0ce59461fc5a491a94bc012f03bc1c5e2c36ea6474f31ce419830e09b95f7",
-      "706e1db8abb8205351eefa0b5be078149f8f5f277a99dda0601bc8d8647a56cd",
-      "3546b5d371127f6cb30c4df4b596bbfba0ab6f62bfb9294f6a533f9e119e0661",
-      "8c38eb244937e9bb057ac6372d343111a73bb264e94484d899059bdaef234a10"
-    ]
+    # devices = [
+    #   "6ad0ce59461fc5a491a94bc012f03bc1c5e2c36ea6474f31ce419830e09b95f7",
+    #   "706e1db8abb8205351eefa0b5be078149f8f5f277a99dda0601bc8d8647a56cd",
+    #   "3546b5d371127f6cb30c4df4b596bbfba0ab6f62bfb9294f6a533f9e119e0661",
+    #   "8c38eb244937e9bb057ac6372d343111a73bb264e94484d899059bdaef234a10"
+    # ]
 
-    n =
-      Enum.map(devices, fn d ->
-        %Pigeon.APNS.Notification{
-          device_token: d,
-          payload: %{
-            "aps" => %{
-              "alert" => %{"title" => "Rail invited you for a call"}
-            },
-            "type" => "invite",
-            "user_id" => "0000017b-86b5-039d-0242-ac1100020000"
-          },
-          push_type: "alert",
-          topic: "since.app.ios"
-        }
-      end)
+    # n =
+    #   Enum.map(devices, fn d ->
+    #     %Pigeon.APNS.Notification{
+    #       device_token: d,
+    #       payload: %{
+    #         "aps" => %{
+    #           "alert" => %{"title" => "Rail invited you for a call"}
+    #         },
+    #         "type" => "invite",
+    #         "user_id" => "0000017b-86b5-039d-0242-ac1100020000"
+    #       },
+    #       push_type: "alert",
+    #       topic: "since.app.ios"
+    #     }
+    #   end)
 
-    Pigeon.APNS.push(n, to: :dev)
+    # Pigeon.APNS.push(n, to: :dev)
 
     # T.PushNotifications.APNSJob.perform(%Oban.Job{args: args})
   end

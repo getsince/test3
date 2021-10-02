@@ -5,9 +5,8 @@ defmodule T.Feeds.ExpiredSessionsTest do
   import Assertions
 
   alias T.{Feeds, Accounts}
-  alias T.PushNotifications.{DispatchJob, APNSJob}
+  alias T.APNS.{DispatchJob, APNSJob}
   alias Feeds.ActiveSession
-  alias Pigeon.APNS.Notification
 
   import Mox
   setup :verify_on_exit!

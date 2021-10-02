@@ -6,7 +6,6 @@ defmodule TWeb.FeedChannelTest do
   alias Matches.{Timeslot, Match}
   alias Feeds.ActiveSession
   alias Calls.Call
-  alias Pigeon.APNS.Notification
 
   import Mox
   setup :verify_on_exit!

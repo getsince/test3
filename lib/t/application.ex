@@ -11,7 +11,12 @@ defmodule T.Application do
       [
         {Task.Supervisor, name: T.TaskSupervisor},
         # T.PromEx,
-        {Finch, name: T.Finch},
+        {Finch,
+         name: T.Finch,
+         pools: %{
+           "https://api.development.push.apple.com" => [protocol: :http2],
+           "https://api.push.apple.com" => [protocol: :http2, count: 8]
+         }},
         T.Twilio,
         {Phoenix.PubSub, name: T.PubSub},
         unless_disabled(T.Media.Static),

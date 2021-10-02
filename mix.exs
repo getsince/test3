@@ -61,10 +61,6 @@ defmodule T.MixProject do
       {:ex_machina, "~> 2.4", only: :test},
       {:assertions, "~> 0.18.1", only: :test},
       {:floki, ">= 0.0.0", only: :test},
-      # {:pigeon,
-      #  github: "ruslandoga/pigeon",
-      #  branch: "drop-httpoison-and-make-poison-optional",
-      #  runtime: Mix.env() in [:dev, :prod]},
       {:pigeon, "~> 1.6", runtime: Mix.env() in [:dev, :prod]},
       {:kadabra, "~> 0.4.4"},
       {:sentry, "~> 8.0"},
@@ -79,7 +75,8 @@ defmodule T.MixProject do
       # {:retry, "~> 0.14.1"},
       {:cloud_watch, "~> 0.4"},
       {:benchee, "~> 1.0", only: :bench},
-      {:dialyxir, "~> 1.1", only: :dev, runtime: false}
+      {:dialyxir, "~> 1.1", only: :dev, runtime: false},
+      {:h3, "~> 3.6"}
     ]
   end
 

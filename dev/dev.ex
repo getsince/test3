@@ -5,6 +5,8 @@ defmodule Dev do
   # can select user to impersonate, if selected, can invite, call etc. based on status
   # search
 
+  import Ecto.Query
+
   def args do
     %{
       "data" => %{
@@ -18,9 +20,52 @@ defmodule Dev do
     }
   end
 
-  def send_notification(args \\ args()) do
-    T.PushNotifications.APNSJob.perform(%Oban.Job{args: args})
+  # def send_notification(args \\ args()) do
+  #   T.PushNotifications.APNSJob.perform(%Oban.Job{args: args})
+  # end
+
+  def me do
+    T.Repo.get!(T.Accounts.User, "0000017c-1494-edea-0242-ac1100020000")
   end
+
+  def my_devices do
+    T.Accounts.list_apns_devices("0000017c-1494-edea-0242-ac1100020000")
+  end
+
+  def others_devices do
+    T.Accounts.APNSDevice
+    |> join(:inner, [d], u in T.Accounts.User, on: d.user_id == u.id and not is_nil(u.apple_id))
+    |> T.Repo.all()
+    |> Enum.map(fn %{device_id: device_id} = device ->
+      %{device | device_id: Base.encode16(device_id)}
+    end)
+  end
+
+  def send_notification do
+    for device <- others_devices() do
+      %{device_id: device_id, env: env, topic: topic} = device
+
+      notification = %Pigeon.APNS.Notification{
+        device_token: device_id,
+        payload: %{
+          "aps" => %{
+            "alert" => %{
+              "title" => "Мы стали новее",
+              "body" =>
+                "Привет! Пожалуйста, обнови приложение, чтобы продолжить им пользоваться 👀❤️"
+            }
+          }
+        },
+        push_type: "alert",
+        topic: topic
+      }
+
+      T.PushNotifications.APNS.Pigeon.push(notification, apns_env(env))
+    end
+  end
+
+  defp apns_env("prod"), do: :prod
+  defp apns_env("sandbox"), do: :dev
 
   def run do
     # notifications =
@@ -190,9 +235,9 @@ defmodule FeedCache do
   def demo_user do
     story = story() |> :erlang.term_to_binary()
 
-    # binary story
+    # binary story (story = story() |> :erlang.term_to_binary())
     # 5 MB for 10_000 -> 100 MB for 200_000 -> 1 GB for 2_000_000
-    # map story
+    # map story (story = story())
     # 50 MB for 10_000 -> 100 MB for 20_000 -> 1 GB for 200_000
     1..10000
     |> Enum.map(fn _ ->
@@ -250,7 +295,8 @@ defmodule FeedCache do
   # with two cursors and two gender preferences
   def fetch_feed(<<c1::24-bytes, c2::24-bytes>>, gender, [p1, p2], limit) do
     tables = [table(gender, p1), table(gender, p2)]
-    do_fetch_feed_cycle(tables, tables, [c1, c2], limit, _acc = [])
+    cursors = [c1, c2]
+    do_fetch_feed_cycle(tables, tables, cursors, cursors, limit, _acc = [])
   end
 
   # with no cursor and single gender preference
@@ -272,7 +318,14 @@ defmodule FeedCache do
     {cursor, :lists.reverse(acc)}
   end
 
-  defp do_fetch_feed_cycle([tab | rest_tab], orig_tables, [cursor | rest_cursor], limit, acc)
+  defp do_fetch_feed_cycle(
+         [tab | rest_tab],
+         orig_tables,
+         [cursor | rest_cursor],
+         cursors,
+         limit,
+         acc
+       )
        when limit > 0 do
     case :ets.next(tab, cursor) do
       <<_geohash::64, session_id::16-bytes>> = cursor ->
@@ -281,17 +334,16 @@ defmodule FeedCache do
         do_fetch_feed_cycle(rest_tab, orig_tables, rest_cursor ++ [cursor], limit, acc)
 
       :"$end_of_table" ->
-        do_fetch_feed_cycle(rest_tab, orig_tables, rest_cursor, limit, acc)
+        do_fetch_feed_cycle(rest_tab, List.delete(orig_tables, tab), rest_cursor, limit, acc)
     end
   end
 
-  defp do_fetch_feed_cycle([], _tables, [], _limit, acc)
-    {cursor, acc}
+  defp do_fetch_feed_cycle([], _tables, [], _limit, acc) do
+    {_cursors = <<>>, acc}
   end
 
-  defp do_fetch_feed_cycle([], tables, cursors, 0, acc)
-        do
-    do_fetch_feed_cycle(tables, tables, cursors, limit, acc)
+  defp do_fetch_feed_cycle(_tables, _tables, _cursors, 0, acc) do
+    {_cursors = <<>>, :lists.reverse(acc)}
   end
 
   def fetch_feed_profile(<<_::128>> = session_id) do

@@ -32,10 +32,6 @@ defmodule Dev do
     T.Accounts.list_apns_devices("0000017c-1494-edea-0242-ac1100020000")
   end
 
-  def token do
-    "eyJhbGciOiJFUzI1NiIsImtpZCI6IkRHN0pDNzQyMjciLCJ0eXAiOiJKV1QifQ.eyJhdWQiOiJhcHBlbCIsImV4cCI6MTYzMzE4ODc1MywiaWF0IjoxNjMzMTg1MTUzLCJpc3MiOiI1MjVWQ1M3UEZVIiwianRpIjoiMnFsM3Fma3BxdWhyaGNxa2kwMDAwODYxIiwibmJmIjoxNjMzMTg1MTUzfQ.kLroByuVYgaiIr8rK5onMML-gW9i3ifTmYk670EG0o8HHwDoFVfbSFCUM550EnE19OvgbpQrGm4Dt2jhgxB-wQ"
-  end
-
   def others_devices do
     T.Accounts.APNSDevice
     |> join(:inner, [d], u in T.Accounts.User, on: d.user_id == u.id and not is_nil(u.apple_id))
@@ -60,7 +56,7 @@ defmodule Dev do
     }
 
     req = T.APNS.Request.new(device_id, topic, payload, _env = :prod)
-    T.APNS.push(req, token())
+    T.APNS.push(req)
   end
 
   @task_sup __MODULE__.TaskSupervisor

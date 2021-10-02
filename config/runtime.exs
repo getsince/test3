@@ -67,19 +67,23 @@ if config_env() == :prod do
     room_id: System.fetch_env!("TG_ROOM_ID") |> String.to_integer()
 
   config :t, T.APNS,
-    topic: System.fetch_env!("APNS_TOPIC"),
-    keys: %{
-      dev: %{
+    default_topic: System.fetch_env!("APNS_TOPIC"),
+    keys: [
+      %{
         key: System.fetch_env!("SANDBOX_APNS_KEY"),
-        key_identifier: System.fetch_env!("SANDBOX_APNS_KEY_ID"),
-        team_id: System.fetch_env!("APNS_TEAM_ID")
+        key_id: System.fetch_env!("SANDBOX_APNS_KEY_ID"),
+        team_id: System.fetch_env!("APNS_TEAM_ID"),
+        topic: System.fetch_env!("APNS_TOPIC"),
+        env: :dev
       },
-      prod: %{
+      %{
         key: System.fetch_env!("PROD_APNS_KEY"),
-        key_identifier: System.fetch_env!("PROD_APNS_KEY_ID"),
-        team_id: System.fetch_env!("APNS_TEAM_ID")
+        key_id: System.fetch_env!("PROD_APNS_KEY_ID"),
+        team_id: System.fetch_env!("APNS_TEAM_ID"),
+        topic: System.fetch_env!("APNS_TOPIC"),
+        env: :prod
       }
-    }
+    ]
 
   config :t, run_migrations_on_start?: true
 
@@ -124,19 +128,23 @@ if config_env() == :dev do
   config :logger, T.PubSubLoggerBackend, level: :debug
 
   config :t, T.APNS,
-    topic: System.fetch_env!("APNS_TOPIC"),
-    keys: %{
-      dev: %{
+    default_topic: System.fetch_env!("APNS_TOPIC"),
+    keys: [
+      %{
         key: System.fetch_env!("SANDBOX_APNS_KEY"),
-        key_identifier: System.fetch_env!("SANDBOX_APNS_KEY_ID"),
-        team_id: System.fetch_env!("APNS_TEAM_ID")
+        key_id: System.fetch_env!("SANDBOX_APNS_KEY_ID"),
+        team_id: System.fetch_env!("APNS_TEAM_ID"),
+        topic: System.fetch_env!("APNS_TOPIC"),
+        env: :dev
       },
-      prod: %{
+      %{
         key: System.fetch_env!("PROD_APNS_KEY"),
-        key_identifier: System.fetch_env!("PROD_APNS_KEY_ID"),
-        team_id: System.fetch_env!("APNS_TEAM_ID")
+        key_id: System.fetch_env!("PROD_APNS_KEY_ID"),
+        team_id: System.fetch_env!("APNS_TEAM_ID"),
+        topic: System.fetch_env!("APNS_TOPIC"),
+        env: :prod
       }
-    }
+    ]
 
   config :t, T.Twilio,
     account_sid: System.fetch_env!("TWILIO_ACCOUNT_SID"),
@@ -253,8 +261,6 @@ if config_env() == :test do
     room_id: String.to_integer("-1234")
 
   config :t, T.Feeds.ActiveSessionPruner, disabled?: true
-
-  config :t, T.APNS, topic: "app.bundle.id"
 end
 
 if config_env() == :bench do

@@ -1,5 +1,7 @@
 defmodule T.APNS.Request do
+  @moduledoc false
   defstruct [:payload, :device_id, :topic, :env, push_type: "alert"]
+  alias T.APNS.Token
 
   @type t :: %__MODULE__{
           payload: map,
@@ -16,6 +18,11 @@ defmodule T.APNS.Request do
 
   def url(:dev, device_id), do: "https://api.development.push.apple.com/3/device/" <> device_id
   def url(:prod, device_id), do: "https://api.push.apple.com/3/device/" <> device_id
+
+  def build_finch_request(%__MODULE__{topic: topic, env: env} = notification) do
+    token = Token.current_token(topic, env)
+    build_finch_request(notification, token)
+  end
 
   def build_finch_request(
         %__MODULE__{

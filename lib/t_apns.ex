@@ -4,12 +4,13 @@ defmodule T.APNS do
 
   @finch T.Finch
 
-  def push(notification, token \\ APNS.Token.current_token()) do
-    req = APNS.Request.build_finch_request(notification, token)
-
-    case Finch.request(req, @finch) do
+  def push(notification) do
+    notification
+    |> APNS.Request.build_finch_request()
+    |> Finch.request(@finch)
+    |> case do
       {:ok, %Finch.Response{status: 200}} -> :ok
-      {:ok, %Finch.Response{status: 429, body: body}} -> {:error, 429, Jason.decode!(body)}
+      {:ok, %Finch.Response{} = error_response} -> {:error, error_response}
       {:error, _reason} = error -> error
     end
   end

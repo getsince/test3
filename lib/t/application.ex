@@ -15,8 +15,9 @@ defmodule T.Application do
          name: T.Finch,
          pools: %{
            "https://api.development.push.apple.com" => [protocol: :http2],
-           "https://api.push.apple.com" => [protocol: :http2, count: 8]
+           "https://api.push.apple.com" => [protocol: :http2, count: 1]
          }},
+        T.APNS.Token,
         T.Twilio,
         {Phoenix.PubSub, name: T.PubSub},
         unless_disabled(T.Media.Static),

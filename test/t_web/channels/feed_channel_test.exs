@@ -24,7 +24,7 @@ defmodule TWeb.FeedChannelTest do
     @reference ~U[2021-07-21 11:55:18.941048Z]
 
     test "returns current session if there is one", %{socket: socket, me: me} do
-      %{flake: id} = Feeds.activate_session(me.id, _duration = 60, @reference)
+      %{id: id} = Feeds.activate_session(me.id, _duration = 60, @reference)
       assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id)
       assert reply == %{"current_session" => %{id: id, expires_at: ~U[2021-07-21 12:55:18Z]}}
     end
@@ -81,10 +81,9 @@ defmodule TWeb.FeedChannelTest do
     test "with invites and current session", %{socket: socket, me: me} do
       mate = onboarded_user(story: [], name: "mate", location: apple_location(), gender: "F")
 
-      %ActiveSession{flake: session_id} =
-        Feeds.activate_session(me.id, _duration = 60, @reference)
+      %ActiveSession{id: session_id} = Feeds.activate_session(me.id, _duration = 60, @reference)
 
-      %ActiveSession{flake: mate_session_id} =
+      %ActiveSession{id: mate_session_id} =
         Feeds.activate_session(mate.id, _duration = 60, @reference)
 
       assert true = Feeds.invite_active_user(mate.id, me.id)
@@ -108,10 +107,9 @@ defmodule TWeb.FeedChannelTest do
       mate = onboarded_user(story: [], location: apple_location(), name: "mate", gender: "F")
 
       # activated sessions
-      %ActiveSession{flake: session_id} =
-        Feeds.activate_session(me.id, _duration = 60, @reference)
+      %ActiveSession{id: session_id} = Feeds.activate_session(me.id, _duration = 60, @reference)
 
-      %ActiveSession{flake: mate_session_id} =
+      %ActiveSession{id: mate_session_id} =
         Feeds.activate_session(mate.id, _duration = 60, @reference)
 
       # prepare pushkit devices
@@ -213,7 +211,7 @@ defmodule TWeb.FeedChannelTest do
       ref = push(socket, "activate-session", %{"duration" => _minutes = 20})
       assert_reply(ref, :ok)
 
-      assert %ActiveSession{flake: id, expires_at: expires_at} = Feeds.get_current_session(me.id)
+      assert %ActiveSession{id: id, expires_at: expires_at} = Feeds.get_current_session(me.id)
       diff = DateTime.diff(expires_at, DateTime.utc_now())
       assert_in_delta diff, _20_minutes = 1200, 2
 
@@ -221,7 +219,7 @@ defmodule TWeb.FeedChannelTest do
       assert_reply(ref, :ok)
       refute_receive _anything
 
-      assert %ActiveSession{flake: ^id, expires_at: expires_at} = Feeds.get_current_session(me.id)
+      assert %ActiveSession{id: ^id, expires_at: expires_at} = Feeds.get_current_session(me.id)
       diff = DateTime.diff(expires_at, DateTime.utc_now())
       assert_in_delta diff, _40_minutes = 2400, 2
     end
@@ -292,7 +290,7 @@ defmodule TWeb.FeedChannelTest do
           )
         ]
 
-      [%{flake: s1}, %{flake: s2}, %{flake: s3}] = activate_sessions(others, @reference)
+      [%{id: s1}, %{id: s2}, %{id: s3}] = activate_sessions(others, @reference)
 
       ref = push(socket, "more", %{"count" => 2})
       assert_reply(ref, :ok, %{"cursor" => cursor, "feed" => feed})
@@ -386,10 +384,10 @@ defmodule TWeb.FeedChannelTest do
     setup :joined
 
     test "invited by active user", %{me: me, socket: socket} do
-      %{flake: s1} = activate_session(me, @reference)
+      %{id: s1} = activate_session(me, @reference)
 
       other = onboarded_user(location: [lat: 55.548964, lon: 35.007845])
-      %{flake: s2} = activate_session(other, @reference)
+      %{id: s2} = activate_session(other, @reference)
 
       spawn(fn ->
         socket = connected_socket(other)

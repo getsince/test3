@@ -45,8 +45,8 @@ defmodule TWeb.FeedView do
     render_session(session)
   end
 
-  defp render_session(%ActiveSession{flake: flake, expires_at: expires_at}) do
-    %{id: flake, expires_at: expires_at}
+  defp render_session(%ActiveSession{id: id, expires_at: expires_at}) do
+    %{id: id, expires_at: expires_at}
   end
 
   defp render_profile(%FeedProfile{} = profile, fields, screen_width) do

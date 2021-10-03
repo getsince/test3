@@ -75,8 +75,10 @@ defmodule T.MixProject do
       # {:cloud_watch, "~> 0.4"},
       {:benchee, "~> 1.0", only: :bench},
       {:dialyxir, "~> 1.1", only: :dev, runtime: false},
-      {:h3, "~> 3.6"},
+      # {:h3, "~> 3.6"},
       {:jose, "~> 1.11"}
+      # {:cuckoo_filter, "~> 0.3.1"}
+      # {:xxh3, "~> 0.3.2"}
     ]
   end
 

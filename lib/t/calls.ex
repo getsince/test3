@@ -1,10 +1,10 @@
 defmodule T.Calls do
-  @moduledoc false
+  @moduledoc "Calls management for the app."
   import Ecto.Query
 
   alias T.{Repo, Twilio, Accounts, APNS}
-  alias T.Calls.{Call, Invite}
-  alias T.Feeds.{FeedProfile, ActiveSession}
+  alias T.Calls.Call
+  alias T.Feeds.FeedProfile
   alias T.Matches.Match
 
   @spec ice_servers :: [map]
@@ -17,7 +17,7 @@ defmodule T.Calls do
   def call(caller_id, called_id) do
     call_id = Ecto.Bigflake.UUID.generate()
 
-    with {:allowed?, true} <- {:allowed?, call_allowed?(caller_id, called_id)},
+    with {:allowed?, true} <- {:allowed?, matched?(caller_id, called_id)},
          {:devices, [_ | _] = devices} <- {:devices, Accounts.list_pushkit_devices(called_id)},
          {:push, _any_push_sent? = true} <- {:push, push_call(caller_id, call_id, devices)} do
       %Call{id: ^call_id} =
@@ -31,35 +31,6 @@ defmodule T.Calls do
     end
   end
 
-  # TODO matched can forgo call_allowed? check
-  def call_allowed?(caller_id, called_id) do
-    # call invites reference active sessions, so if it exists no need to check active session
-    invited?(called_id, caller_id) or
-      (active?(called_id) and missed?(called_id, caller_id)) or
-      matched?(caller_id, called_id)
-  end
-
-  defp active?(user_id) do
-    ActiveSession
-    |> where(user_id: ^user_id)
-    |> Repo.exists?()
-  end
-
-  defp invited?(inviter_id, invited_id) do
-    Invite
-    |> where(by_user_id: ^inviter_id)
-    |> where(user_id: ^invited_id)
-    |> Repo.exists?()
-  end
-
-  defp missed?(caller_id, called_id) do
-    Call
-    |> where(caller_id: ^caller_id)
-    |> where(called_id: ^called_id)
-    |> where([c], is_nil(c.accepted_at) and not is_nil(c.ended_at))
-    |> Repo.exists?()
-  end
-
   defp matched?(caller_id, called_id) do
     [user_id_1, user_id_2] = Enum.sort([caller_id, called_id])
 
@@ -71,8 +42,6 @@ defmodule T.Calls do
 
   @spec push_call(Ecto.UUID.t(), Ecto.UUID.t(), [%Accounts.PushKitDevice{}]) :: boolean
   def push_call(caller_id, call_id, devices) do
-    alias T.APNS.Request
-
     caller_name = fetch_name(caller_id)
     payload = %{"caller_id" => caller_id, "call_id" => call_id, "caller_name" => caller_name}
 
@@ -135,13 +104,10 @@ defmodule T.Calls do
     |> Repo.one!()
   end
 
-  @spec list_missed_calls_with_profile_and_session(Ecto.UUID.t(), Keyword.t()) :: [
-          {%Call{}, %FeedProfile{}, %ActiveSession{} | nil}
-        ]
-  def list_missed_calls_with_profile_and_session(user_id, opts) do
+  @spec list_missed_calls_with_profile(Ecto.UUID.t(), Keyword.t()) :: [{%Call{}, %FeedProfile{}}]
+  def list_missed_calls_with_profile(user_id, opts) do
     missed_calls_q(user_id, opts)
     |> join(:inner, [c], p in FeedProfile, on: c.caller_id == p.user_id)
-    |> join(:left, [_c, p], s in ActiveSession, on: p.user_id == s.user_id)
     |> select([c, p, s], {c, p, s})
     |> Repo.all()
   end

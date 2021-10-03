@@ -1,4 +1,4 @@
-defmodule T.APNS do
+defmodule APNS do
   @moduledoc "Finch-based APNS client."
   alias __MODULE__
 

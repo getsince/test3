@@ -12,6 +12,9 @@ defmodule T.Accounts.UserToken do
     field :token, :binary
     field :context, :string
     field :sent_to, :string
+
+    # TODO put app version and other stuff here
+    field :meta, :map
     belongs_to :user, Accounts.User
 
     timestamps(updated_at: false)

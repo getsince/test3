@@ -218,8 +218,8 @@ defmodule T.FeedsTest do
                 {%FeedProfile{}, %ActiveSession{expires_at: ~U[2021-07-21 12:55:18Z]},
                  _distance = 9510},
                 {%FeedProfile{}, %ActiveSession{expires_at: ~U[2021-07-21 12:55:18Z]}, 9510},
-                {%FeedProfile{},
-                 %ActiveSession{flake: cursor, expires_at: ~U[2021-07-21 12:55:18Z]}, 9510}
+                {%FeedProfile{}, %ActiveSession{id: cursor, expires_at: ~U[2021-07-21 12:55:18Z]},
+                 9510}
               ],
               cursor} =
                Feeds.fetch_feed(
@@ -254,7 +254,7 @@ defmodule T.FeedsTest do
                 {%FeedProfile{}, %ActiveSession{expires_at: ~U[2021-07-21 12:55:18Z]},
                  _distance = 9510},
                 {%FeedProfile{},
-                 %ActiveSession{flake: cursor1, expires_at: ~U[2021-07-21 12:55:18Z]}, 9510}
+                 %ActiveSession{id: cursor1, expires_at: ~U[2021-07-21 12:55:18Z]}, 9510}
               ],
               cursor1} =
                Feeds.fetch_feed(
@@ -268,7 +268,7 @@ defmodule T.FeedsTest do
 
       assert {[
                 {%FeedProfile{},
-                 %ActiveSession{flake: cursor2, expires_at: ~U[2021-07-21 12:55:18Z]}, 9510}
+                 %ActiveSession{id: cursor2, expires_at: ~U[2021-07-21 12:55:18Z]}, 9510}
               ],
               cursor2} =
                Feeds.fetch_feed(

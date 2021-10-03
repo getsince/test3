@@ -1,5 +1,5 @@
 defmodule Notification do
-  defstruct [:device_token, :topic, :push_type, :expiration, :payload, :collapse_id]
+  defstruct [:response, :device_token, :topic, :push_type, :expiration, :payload, :collapse_id]
 end
 
 defmodule T.PushNotifications.APNS do

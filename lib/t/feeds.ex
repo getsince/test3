@@ -11,6 +11,7 @@ defmodule T.Feeds do
   @spec activate_session(Ecto.UUID.t(), pos_integer, DateTime.t()) :: %ActiveSession{}
   def activate_session(
         user_id,
+        # 48 hours by default
         duration_in_minutes \\ 2 * 24 * 60,
         reference \\ DateTime.utc_now()
       ) do

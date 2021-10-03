@@ -1,5 +1,5 @@
 defmodule T.MatchesTest do
-  use T.DataCase
+  use T.DataCase, async: true
   use Oban.Testing, repo: T.Repo
   alias T.{Matches, Feeds.FeedProfile, Accounts.Profile, PushNotifications.DispatchJob}
   alias Matches.{Match, Like}

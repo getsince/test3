@@ -1,8 +1,6 @@
 defmodule TWeb.CallChannel do
   @moduledoc "Calls for alternative app."
   use TWeb, :channel
-
-  alias TWeb.Presence
   alias T.Calls
 
   @impl true
@@ -12,12 +10,10 @@ defmodule TWeb.CallChannel do
 
     case Calls.get_call_role_and_peer(call_id, current_user.id) do
       {:ok, :caller = role, _peer} ->
-        send(self(), :after_join)
         reply = %{ice_servers: Calls.ice_servers()}
         {:ok, reply, assign(socket, role: role)}
 
       {:ok, :called = role, peer} ->
-        send(self(), :after_join)
         reply = %{caller: render_peer(peer, screen_width), ice_servers: Calls.ice_servers()}
         {:ok, reply, assign(socket, role: role)}
 
@@ -32,7 +28,7 @@ defmodule TWeb.CallChannel do
   @impl true
   def handle_in("peer-message", %{"body" => body}, socket) do
     me = socket.assigns.current_user.id
-    # TODO check that the peer is online?
+    # TODO acks?
     broadcast_from!(socket, "peer-message", %{"from" => me, "body" => body})
     {:reply, :ok, socket}
   end
@@ -57,14 +53,6 @@ defmodule TWeb.CallChannel do
     %{current_user: user, call_id: call_id} = socket.assigns
     :ok = Calls.end_call(user.id, call_id)
     {:reply, :ok, socket}
-  end
-
-  @impl true
-  def handle_info(:after_join, socket) do
-    # TODO possibly remove self from feed channel?
-    {:ok, _} = Presence.track(socket, socket.assigns.current_user.id, %{})
-    push(socket, "presence_state", Presence.list(socket))
-    {:noreply, socket}
   end
 
   defp render_peer(profile, screen_width) do

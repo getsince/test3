@@ -261,6 +261,7 @@ if config_env() == :test do
     room_id: String.to_integer("-1234")
 
   config :t, T.Feeds.ActiveSessionPruner, disabled?: true
+  config :t, T.Feeds.FeedCache, disabled?: true
 end
 
 if config_env() == :bench do
@@ -268,6 +269,7 @@ if config_env() == :bench do
 
   config :t, T.Media.Static, disabled?: true
   config :t, T.Feeds.ActiveSessionPruner, disabled?: true
+  config :t, T.Feeds.FeedCache, disabled?: true
   config :t, Oban, queues: false, plugins: false
 
   config :t, T.Repo,

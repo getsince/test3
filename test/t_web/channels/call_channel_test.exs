@@ -1,5 +1,5 @@
 defmodule TWeb.CallChannelTest do
-  use TWeb.ChannelCase
+  use TWeb.ChannelCase, async: true
   alias T.Calls.Call
 
   describe "join" do

@@ -1,5 +1,5 @@
 defmodule TWeb.UserSocketTest do
-  use TWeb.ChannelCase
+  use TWeb.ChannelCase, async: true
   alias TWeb.UserSocket
   alias T.Accounts
 

@@ -7,45 +7,46 @@ defmodule T.Application do
   require Logger
 
   def start(_type, _args) do
-    children =
-      [
-        {Task.Supervisor, name: T.TaskSupervisor},
-        # T.PromEx,
-        {Finch,
-         name: T.Finch,
-         pools: %{
-           "https://api.development.push.apple.com" => [protocol: :http2],
-           "https://api.push.apple.com" => [protocol: :http2, count: 1]
-         }},
-        T.APNS.Token,
-        T.Twilio,
-        {Phoenix.PubSub, name: T.PubSub},
-        unless_disabled(T.Media.Static),
-        TWeb.Presence,
-        TWeb.UserSocket.Monitor,
-        T.Repo,
-        TWeb.Endpoint,
-        unless_disabled(T.Feeds.ActiveSessionPruner),
-        TWeb.Telemetry,
-        maybe_migrator(),
-        {Oban, oban_config()},
-        Supervisor.child_spec({Task, &T.Release.mark_ready/0}, id: :readiness_notifier)
-      ]
-      |> Enum.reject(&is_nil/1)
+    sometimes_children = [
+      {Task.Supervisor, name: T.TaskSupervisor},
+      {Finch,
+       name: T.Finch,
+       pools: %{
+         # TODO add apple keys endpoint and twilio (possibly aws as well)
+         "https://api.development.push.apple.com" => [protocol: :http2],
+         "https://api.push.apple.com" => [protocol: :http2, count: 1]
+       }},
+      T.APNS.Token,
+      T.Twilio,
+      {Phoenix.PubSub, name: T.PubSub},
+      unless_disabled(T.Media.Static),
+      TWeb.Presence,
+      TWeb.UserSocket.Monitor,
+      T.Repo,
+      maybe_migrator(),
+      unless_disabled(T.Feeds.FeedCache),
+      TWeb.Endpoint,
+      unless_disabled(T.Feeds.ActiveSessionPruner),
+      TWeb.Telemetry,
+      {Oban, oban_config()}
+    ]
 
-    # TODO wait with :locus.await_loader(@db) before readiness_notifier
-    maybe_setup_locus()
-
-    # Only attach the telemetry logger when we aren't in an IEx shell
-    unless Code.ensure_loaded?(IEx) && IEx.started?() do
-      Oban.Telemetry.attach_default_logger(:info)
-      T.ObanReporter.attach()
-    end
-
+    children = Enum.reject(sometimes_children, &is_nil/1)
     opts = [strategy: :one_for_one, name: T.Supervisor]
 
     with {:ok, _pid} = result <- Supervisor.start_link(children, opts) do
       maybe_add_pusbub_logger_backend()
+
+      # TODO wait with :locus.await_loader(@db) before readiness_notifier
+      maybe_setup_locus()
+
+      # Only attach the telemetry logger when we aren't in an IEx shell
+      unless Code.ensure_loaded?(IEx) && IEx.started?() do
+        Oban.Telemetry.attach_default_logger(:info)
+        T.ObanReporter.attach()
+      end
+
+      T.Release.mark_ready()
       result
     end
   end

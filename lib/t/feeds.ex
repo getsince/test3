@@ -4,7 +4,7 @@ defmodule T.Feeds do
   import Ecto.Query
 
   alias T.Repo
-  alias T.Feeds.{ActiveSession, FeedProfile}
+  alias T.Feeds.{ActiveSession, FeedProfile, FeedCache}
 
   ### Active Sessions
 
@@ -55,7 +55,19 @@ defmodule T.Feeds do
           MapSet.t(Ecto.UUID.t())
         ) ::
           {feed_cursor, [%FeedProfile{}]}
-  def fetch_feed(cursor, gender, gender_preferences, limit, filter) do
-    FeedCache.fetch_feed(cursor, gender, gender_preferences, limit, filter)
+  def fetch_feed(_cursor = nil, gender, gender_preferences, limit, _filter) do
+    {cursor, feed} = FeedCache.feed_init(gender, gender_preferences, limit)
+    # TODO move encoding to feed cache
+    {Base.encode64(cursor, padding: false), feed}
+  end
+
+  def fetch_feed(cursor, gender, gender_preference, limit, filter) do
+    cursor = Base.decode16!(cursor, padding: false)
+
+    case FeedCache.feed_cont(cursor, limit) do
+      # TODO move encoding to feed cache
+      {cursor, feed} -> {Base.encode64(cursor, padding: false), feed}
+      :error -> fetch_feed(nil, gender, gender_preference, limit, filter)
+    end
   end
 end

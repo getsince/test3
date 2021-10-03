@@ -34,19 +34,32 @@ defmodule TWeb.UserSocket.Monitor do
 
   @impl true
   def init(_opts) do
-    # %{ref => on_down}
-    {:ok, _monitors = %{}}
+    # monitors: %{ref => on_down}
+    {:ok, %{monitors: %{}}}
   end
 
   @impl true
-  def handle_cast({:monitor, pid, on_down}, monitors) do
-    {:noreply, Map.put(monitors, Process.monitor(pid), on_down)}
+  def handle_cast({:monitor, pid, on_down}, %{monitors: monitors} = state) do
+    {:noreply, %{state | monitors: Map.put(monitors, Process.monitor(pid), on_down)}}
   end
 
   @impl true
-  def handle_info({:DOWN, ref, :process, _object, _reason}, monitors) do
+  def handle_info({:DOWN, ref, :process, _object, _reason}, %{monitors: monitors} = state) do
     {on_down, monitors} = Map.pop!(monitors, ref)
-    Task.Supervisor.start_child(@task_supervisor, on_down)
-    {:noreply, monitors}
+
+    Task.Supervisor.start_child(@task_supervisor, fn ->
+      before_exec(state)
+      on_down.()
+    end)
+
+    {:noreply, %{state | monitors: monitors}}
   end
+
+  # in tests before_exec allows task process into repo sandbox
+  # see test/support/channel_case.ex
+  defp before_exec(%{before_exec: before_exec}) do
+    before_exec.()
+  end
+
+  defp before_exec(_state), do: :ok
 end

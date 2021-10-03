@@ -36,7 +36,13 @@ defmodule TWeb.ChannelCase do
     alias Ecto.Adapters.SQL.Sandbox
 
     owner = Sandbox.start_owner!(T.Repo, shared: not tags[:async])
-    Sandbox.allow(T.Repo, self(), Process.whereis(TWeb.UserSocket.Monitor))
+    parent = self()
+
+    :sys.replace_state(TWeb.UserSocket.Monitor, fn state ->
+      Map.put(state, :before_exec, fn ->
+        Sandbox.allow(T.Repo, parent, self())
+      end)
+    end)
 
     # TODO
     # https://github.com/phoenixframework/phoenix/issues/3619

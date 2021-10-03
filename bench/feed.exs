@@ -1,79 +1,125 @@
-:active_sessions =
-  :ets.new(:active_sessions, [:named_table, :ordered_set, read_concurrency: true])
+alias T.Feeds.FeedCache
 
-# :active_sessions1 = :ets.new(:active_sessions1, [:named_table, :ordered_set])
-# :active_sessions2 = :ets.new(:active_sessions2, [:named_table, :ordered_set])
+{:ok, _pid} = FeedCache.start_link([])
 
-{time, ids} =
-  :timer.tc(fn ->
-    Enum.map(1..1_000, fn _ ->
-      {:ok, id} = Bigflake.mint()
-      :ets.insert(:active_sessions, {id})
-      id
-    end)
-  end)
-
-id_100 = Enum.at(ids, 100)
-# id_5000 = Enum.at(ids, 5000)
-# id_50000 = Enum.at(ids, 50000)
-# id_95000 = Enum.at(ids, 95000)
-
-IO.puts("inserted in #{time / 1000} ms")
-
-# {time, ids} =
-#   :timer.tc(fn ->
-#     Enum.map(1..10_000, fn i ->
-#       {:ok, id} = Bigflake.mint()
-
-#       if rem(i, 2) == 1 do
-#         :ets.insert(:active_sessions1, {id})
-#       else
-#         :ets.insert(:active_sessions2, {id})
-#       end
-
-#       id
-#     end)
-#   end)
-
-# id2 = Enum.at(ids, 5000)
-# IO.puts("inserted2 in #{time / 1000} ms")
-
-defmodule ActiveSessions do
-  # def more2(after_id, limit \\ 30) when is_integer(after_id) do
-  #   {ids1, _} = :ets.select(:active_sessions1, [{{:"$1"}, [{:>, :"$1", after_id}], [:"$1"]}], 15)
-  #   {ids2, _} = :ets.select(:active_sessions2, [{{:"$1"}, [{:>, :"$1", after_id}], [:"$1"]}], 15)
-  #   ids1 ++ ids2
-  # end
-
-  @spec more3(pos_integer, pos_integer) :: [pos_integer]
-  def more3(after_id, count) when count > 0 do
-    case :ets.next(:active_sessions, after_id) do
-      id when is_integer(id) -> [id | more3(id, count - 1)]
-      :"$end_of_table" -> []
-    end
-  end
-
-  def more3(_after_id, 0) do
-    []
-  end
-
-  # def more(after_id, limit \\ 30) when is_integer(after_id) do
-  #   {ids, _} = :ets.select(:active_sessions, [{{:"$1"}, [{:>, :"$1", after_id}], [:"$1"]}], limit)
-
-  #   ids
-  # end
-end
-
-Benchee.run(
+story = [
   %{
-    # "ActiveSessions.more" => fn -> ActiveSessions.more(id1) end,
-    # "ActiveSessions.more2" => fn -> ActiveSessions.more2(id2) end,
-    # "lookup" => fn -> :ets.lookup(:active_sessions, id1) end,
-    # "ActiveSessions.more3 count=30" => fn -> ActiveSessions.more3(id1, 30) end,
-    "ActiveSessions.more3 count=10 id=100th" => fn -> ActiveSessions.more3(id_100, 10) end
-    # "ActiveSessions.more3 count=10 id=5000th" => fn -> ActiveSessions.more3(id_5000, 10) end,
-    # "ActiveSessions.more3 count=10 id=50000th" => fn -> ActiveSessions.more3(id_50000, 10) end,
-    # "ActiveSessions.more3 count=10 id=95000th" => fn -> ActiveSessions.more3(id_95000, 10) end
+    "background" => %{"s3_key" => "1e08a6a1-c99a-4ac0-bc75-aef5e03fab8a"},
+    "labels" => [
+      %{
+        "answer" => "Moscow",
+        "position" => [16.39473684210526, 653.8865836791149],
+        "question" => "city",
+        "rotation" => 0,
+        "value" => "Moscow",
+        "zoom" => 1
+      },
+      %{
+        "answer" => "1992-06-15T09:29:34Z",
+        "position" => [17.76315789473683, 711.5131396957124],
+        "question" => "birthdate",
+        "rotation" => 0,
+        "value" => "29",
+        "zoom" => 1
+      },
+      %{
+        "answer" => "marketing",
+        "position" => [17.894736842105278, 768.5200553250346],
+        "question" => "occupation",
+        "rotation" => 0,
+        "value" => "marketing",
+        "zoom" => 1
+      }
+    ],
+    "size" => [414, 896]
   },
-  parallel: 1
-)
+  %{
+    "background" => %{"s3_key" => "7b2ee4ac-f52f-4428-8da5-7538cab82ca2"},
+    "labels" => [
+      %{
+        "answer" => "dog",
+        "position" => [32.45421914384576, 508.55878284923926],
+        "question" => "pets",
+        "rotation" => 0,
+        "value" => "dog",
+        "zoom" => 1
+      },
+      %{
+        "answer" => "",
+        "position" => [30.007430073955632, 125.42931999400341],
+        "question" => "height",
+        "rotation" => -0.1968919380719123,
+        "value" => "169 cm",
+        "zoom" => 0.929552717754467
+      }
+    ],
+    "size" => [414, 896]
+  },
+  %{
+    "background" => %{"s3_key" => "030cf497-eabc-40e8-9e25-22f0549d5828"},
+    "labels" => [
+      %{
+        "answer" => "politics",
+        "position" => [255.18867086246476, 172.7136929460581],
+        "question" => "interests",
+        "rotation" => 0,
+        "value" => "politics",
+        "zoom" => 1
+      },
+      %{
+        "answer" => "culture and art",
+        "position" => [188.0263157894737, 231.47884213914443],
+        "question" => "books",
+        "rotation" => 0,
+        "value" => "culture and art",
+        "zoom" => 1
+      }
+    ],
+    "size" => [414, 896]
+  },
+  %{
+    "background" => %{"s3_key" => "8ecc0c2c-89fb-437f-bfae-4893cba3c7fc"},
+    "labels" => [
+      %{
+        "answer" => "The Sopranos",
+        "position" => [9.407094262700014, 362.32365145228215],
+        "question" => "tv_shows",
+        "rotation" => 0,
+        "value" => "The Sopranos",
+        "zoom" => 1
+      }
+    ],
+    "size" => [414, 896]
+  }
+]
+
+story = :erlang.term_to_binary(story)
+
+# binary story (:erlang.term_to_binary(story))
+# 5 MB for 10_000 -> 100 MB for 200_000 -> 1 GB for 2_000_000
+# map story (story)
+# 50 MB for 10_000 -> 100 MB for 20_000 -> 1 GB for 200_000
+1..10000
+|> Enum.map(fn _ ->
+  user_id = Ecto.Bigflake.UUID.bingenerate()
+  session_id = Ecto.Bigflake.UUID.bingenerate()
+  {user_id, session_id, %{gender: "M", preferences: ["F"], name: "Ruslan", story: story}}
+end)
+|> FeedCache.put_many_users()
+
+# {[{_, cursor10}], _} = FeedCache.fetch_feed(nil, "F", ["M"], 10)
+# {[{_, cursor100}], _} = FeedCache.fetch_feed(nil, "F", ["M"], 100)
+# {[{_, cursor1000}], _} = FeedCache.fetch_feed(nil, "F", ["M"], 1000)
+
+{cursor10, _} = FeedCache.fetch_feed(nil, "F", ["M"], 10)
+{cursor100, _} = FeedCache.fetch_feed(nil, "F", ["M"], 100)
+{cursor1000, _} = FeedCache.fetch_feed(nil, "F", ["M"], 1000)
+
+Enum.each(Process.list(), fn pid -> :erlang.garbage_collect(pid) end)
+
+Benchee.run(%{
+  "count=10 cursor=nil" => fn -> FeedCache.fetch_feed(nil, "F", ["M"], 10) end,
+  "count=10 cursor=10th" => fn -> FeedCache.fetch_feed(cursor10, "F", ["M"], 10) end,
+  "count=10 cursor=100th" => fn -> FeedCache.fetch_feed(cursor100, "F", ["M"], 10) end,
+  "count=10 cursor=1000th" => fn -> FeedCache.fetch_feed(cursor1000, "F", ["M"], 10) end
+})

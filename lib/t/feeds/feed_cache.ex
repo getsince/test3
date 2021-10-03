@@ -34,94 +34,69 @@ defmodule T.Feeds.FeedCache do
   defp table("N", "F"), do: :active_FN
   defp table("N", "M"), do: :active_MN
 
-  # defp table_name(:active_FM), do: "FM"
-  # defp table_name(:active_MF), do: "MF"
-  # defp table_name(:active_MM), do: "MM"
-  # defp table_name(:active_NM), do: "NM"
-  # defp table_name(:active_FF), do: "FF"
-  # defp table_name(:active_NF), do: "NF"
-  # defp table_name(:active_NN), do: "NN"
-  # defp table_name(:active_FN), do: "FN"
-  # defp table_name(:active_MN), do: "MN"
+  @type feed_item :: {binary, String.t(), String.t(), [map]}
 
   # TODO add filters
-  @spec fetch_feed(binary, String.t(), [String.t()], pos_integer()) ::
-          {[{String.t(), binary}], [{binary, String.t(), String.t(), [map]}]}
-  def fetch_feed(cursor \\ nil, gender, preferences, limit \\ 10)
+  @spec fetch_feed(binary | nil, String.t(), [String.t()], pos_integer()) ::
+          {[{atom, binary}], [feed_item]}
+  def fetch_feed(cursor, gender, preferences, limit)
 
-  # with cursor and single gender preference
-  def fetch_feed(<<_::128>> = cursor, gender, [preference], limit) do
-    do_fetch_feed(table(gender, preference), cursor, limit, _acc = [])
+  def fetch_feed(_cursor = nil, gender, [gender_pref], limit) do
+    _fetch_feed(table(gender, gender_pref), <<0::128>>, limit, _acc = [])
   end
 
-  # with two cursors and two gender preferences
-  def fetch_feed(<<c1::128, c2::128>>, gender, [p1, p2], limit) do
-    tables = [table(gender, p1), table(gender, p2)]
-    cursors = [c1, c2]
-    do_fetch_feed_cycle(tables, [], cursors, [], limit, [], _acc = [])
+  def fetch_feed(<<_::128>> = cursor, gender, [gender_pref], limit) do
+    _fetch_feed(table(gender, gender_pref), cursor, limit, _acc = [])
   end
 
-  # with three cursors and three gender preferences
-  def fetch_feed(<<c1::128, c2::128, c3::128>>, gender, [p1, p2, p3], limit) do
-    tables = [table(gender, p1), table(gender, p2), table(gender, p3)]
-    cursors = [c1, c2, c3]
-    do_fetch_feed_cycle(tables, [], cursors, [], limit, [], _acc = [])
-  end
+  # @spec fetch_feed([{atom, binary}], pos_integer()) :: {[{atom, binary}], [feed_item]}
+  # def fetch_feed([{table, cursor}], limit) do
+  #   _fetch_feed(table, cursor, limit, _acc = [])
+  # end
 
-  # with no cursor and single gender preference
-  def fetch_feed(nil = _cursor, gender, [preference], limit) do
-    do_fetch_feed(table(gender, preference), _cursor = <<0::128>>, limit, _acc = [])
-  end
+  # def fetch_feed([{t1, c1}, {t2, c2}], limit) do
+  #   _fetch_feed_cycle([t1, t2], [], [c1, c2], [], limit, [], _acc = [])
+  # end
 
-  # with no cursor and two gender preferences
-  def fetch_feed(nil = _cursor, gender, [p1, p2], limit) do
-    tables = [table(gender, p1), table(gender, p2)]
-    cursors = [<<0::128>>, <<0::128>>]
-    do_fetch_feed_cycle(tables, [], cursors, [], limit, [], [])
-  end
+  # def fetch_feed([{t1, c1}, {t2, c2}, {t3, c3}], limit) do
+  #   _fetch_feed_cycle([t1, t2, t3], [], [c1, c2, c3], [], limit, [], _acc = [])
+  # end
 
-  def fetch_feed(nil = _cursor, gender, [p1, p2, p3], limit) do
-    tables = [table(gender, p1), table(gender, p2), table(gender, p3)]
-    cursors = [<<0::128>>, <<0::128>>, <<0::128>>]
-    do_fetch_feed_cycle(tables, [], cursors, [], limit, [], [])
-  end
-
-  defp do_fetch_feed(tab, cursor, limit, acc) when limit > 0 do
+  defp _fetch_feed(tab, cursor, limit, acc) when limit > 0 do
     case :ets.next(tab, cursor) do
-      <<session_id::16-bytes>> = cursor ->
-        do_fetch_feed(tab, cursor, limit - 1, [fetch_feed_profile(session_id) | acc])
+      <<session_id::128-bits>> = cursor ->
+        _fetch_feed(tab, cursor, limit - 1, [fetch_feed_profile(session_id) | acc])
 
       :"$end_of_table" ->
-        {[{tab, cursor}], :lists.reverse(acc)}
+        {cursor, :lists.reverse(acc)}
     end
   end
 
-  defp do_fetch_feed(tab, cursor, 0, acc) do
-    {[{tab, cursor}], :lists.reverse(acc)}
+  defp _fetch_feed(tab, cursor, 0, acc) do
+    {cursor, :lists.reverse(acc)}
   end
 
-  defp do_fetch_feed_cycle([t | ts], next_ts, [c | cs], next_cs, limit, ended, acc)
+  defp _fetch_feed_cycle([t | ts], next_ts, [c | cs], next_cs, limit, ended, acc)
        when limit > 0 do
     case :ets.next(t, c) do
       <<session_id::16-bytes>> = c ->
         acc = [fetch_feed_profile(session_id) | acc]
-        do_fetch_feed_cycle(ts, [t | next_ts], cs, [c | next_cs], limit - 1, ended, acc)
+        _fetch_feed_cycle(ts, [t | next_ts], cs, [c | next_cs], limit - 1, ended, acc)
 
       :"$end_of_table" ->
-        do_fetch_feed_cycle(ts, next_ts, cs, next_cs, limit, [{t, c} | ended], acc)
+        _fetch_feed_cycle(ts, next_ts, cs, next_cs, limit, [{t, c} | ended], acc)
     end
   end
 
-  # all tables ended
-  defp do_fetch_feed_cycle([], [], [], [], _limit, ended, acc) do
+  defp _fetch_feed_cycle([], [], [], [], _limit, ended, acc) do
     {ended, :lists.reverse(acc)}
   end
 
-  defp do_fetch_feed_cycle([], ts, [], cs, limit, ended, acc) do
-    do_fetch_feed_cycle(ts, [], cs, [], limit, ended, acc)
+  defp _fetch_feed_cycle([], ts, [], cs, limit, ended, acc) do
+    _fetch_feed_cycle(ts, [], cs, [], limit, ended, acc)
   end
 
-  defp do_fetch_feed_cycle(ts, next_ts, cs, next_cs, 0, ended, acc) do
+  defp _fetch_feed_cycle(ts, next_ts, cs, next_cs, 0, ended, acc) do
     tables = Enum.zip(ts, cs) ++ Enum.zip(next_ts, next_cs) ++ ended
     {tables, :lists.reverse(acc)}
   end

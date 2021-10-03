@@ -52,20 +52,21 @@ defmodule T.Feeds do
           [String.t()],
           pos_integer,
           # TODO replace with cuckoo filter
-          MapSet.t(Ecto.UUID.t())
+          MapSet.t(<<_::128>>)
         ) ::
           {feed_cursor, [%FeedProfile{}]}
-  def fetch_feed(_cursor = nil, gender, gender_preferences, limit, _filter) do
-    {cursor, feed} = FeedCache.feed_init(gender, gender_preferences, limit)
-    # TODO move encoding to feed cache
+
+  def fetch_feed(cursor \\ nil, gender, gender_preferences, limit \\ 10, filter)
+
+  def fetch_feed(_cursor = nil, gender, gender_preferences, limit, filter) do
+    {cursor, feed} = FeedCache.feed_init(gender, gender_preferences, limit, filter)
     {Base.encode64(cursor, padding: false), feed}
   end
 
   def fetch_feed(cursor, gender, gender_preference, limit, filter) do
-    cursor = Base.decode16!(cursor, padding: false)
-
-    case FeedCache.feed_cont(cursor, limit) do
-      # TODO move encoding to feed cache
+    Base.decode64!(cursor, padding: false)
+    |> FeedCache.feed_cont(limit, filter)
+    |> case do
       {cursor, feed} -> {Base.encode64(cursor, padding: false), feed}
       :error -> fetch_feed(nil, gender, gender_preference, limit, filter)
     end

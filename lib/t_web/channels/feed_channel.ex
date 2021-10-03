@@ -15,6 +15,7 @@ defmodule TWeb.FeedChannel do
     {_location, gender} = Accounts.get_location_and_gender!(user_id)
     reported_ids = Accounts.list_reported_user_ids(user_id)
 
+    # TODO filter ids need to be <<_::128>>
     # TODO use a cuckoo filter
     feed_filter = reported_ids |> MapSet.new() |> MapSet.put(user_id)
 

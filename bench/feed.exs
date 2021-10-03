@@ -101,6 +101,10 @@ story = :erlang.term_to_binary(story)
 # map story (story)
 # 50 MB for 10_000 -> 100 MB for 20_000 -> 1 GB for 200_000
 
+memory = fn -> "#{Float.round(:erlang.memory(:total) / 1000_000, 2)}MB" end
+
+IO.puts("total memory before insert: #{memory.()}")
+
 1..3000
 |> Enum.map(fn _ ->
   user_id = Ecto.Bigflake.UUID.bingenerate()
@@ -125,18 +129,26 @@ end)
 end)
 |> FeedCache.put_many_users()
 
-{cursor10, _feed} = FeedCache.feed_init("F", ["M"], 10)
-{cursor100, _feed} = FeedCache.feed_init("F", ["M"], 100)
-{cursor1000, _feed} = FeedCache.feed_init("F", ["M"], 1000)
-{multi_cursor10, _feed} = FeedCache.feed_init("F", ["M", "F"], 10)
+no_filter = MapSet.new()
+
+{cursor10, _feed} = FeedCache.feed_init("F", ["M"], 10, no_filter)
+{cursor100, _feed} = FeedCache.feed_init("F", ["M"], 100, no_filter)
+{cursor1000, _feed} = FeedCache.feed_init("F", ["M"], 1000, no_filter)
+{multi_cursor10, _feed} = FeedCache.feed_init("F", ["M", "F"], 10, no_filter)
+
+IO.puts("total memory after insert before gc: #{memory.()}")
 
 Enum.each(Process.list(), fn pid -> :erlang.garbage_collect(pid) end)
 
+IO.puts("total memory after gc: #{memory.()}\n")
+
 Benchee.run(%{
-  "feed_init" => fn -> FeedCache.feed_init("F", ["M"], 10) end,
-  "feed_init multi-preference" => fn -> FeedCache.feed_init("F", ["M", "F"], 10) end,
-  "feed_cont cursor=10th" => fn -> FeedCache.feed_cont(cursor10, 10) end,
-  "feed_cont cursor=100th" => fn -> FeedCache.feed_cont(cursor100, 10) end,
-  "feed_cont cursor=1000th" => fn -> FeedCache.feed_cont(cursor1000, 10) end,
-  "feed_cont multi-preference cursor=10th" => fn -> FeedCache.feed_cont(multi_cursor10, 10) end
+  "feed_init" => fn -> FeedCache.feed_init("F", ["M"], 10, no_filter) end,
+  "feed_init multi-preference" => fn -> FeedCache.feed_init("F", ["M", "F"], 10, no_filter) end,
+  "feed_cont cursor=10th" => fn -> FeedCache.feed_cont(cursor10, 10, no_filter) end,
+  "feed_cont cursor=100th" => fn -> FeedCache.feed_cont(cursor100, 10, no_filter) end,
+  "feed_cont cursor=1000th" => fn -> FeedCache.feed_cont(cursor1000, 10, no_filter) end,
+  "feed_cont multi-preference cursor=10th" => fn ->
+    FeedCache.feed_cont(multi_cursor10, 10, no_filter)
+  end
 })

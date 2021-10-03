@@ -34,57 +34,59 @@ defmodule T.Feeds.FeedCache do
     defp table_id(unquote(:"active_#{g1}#{g2}")), do: unquote(g1 <> g2)
   end
 
-  @type feed_item :: {binary, String.t(), String.t(), [map]}
+  @type feed_item :: {<<_::128>>, String.t(), String.t(), [map]}
 
   @max128 <<255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255>>
 
-  # TODO add filters
+  @spec feed_init(String.t(), [String.t()], pos_integer, MapSet.t(<<_::128>>)) ::
+          {binary, [feed_item]}
+  def feed_init(gender, preferences, limit, filter)
 
-  @spec feed_init(String.t(), [String.t()], pos_integer) :: {binary, [feed_item]}
-  def feed_init(gender, preferences, limit)
-
-  def feed_init(gender, [gender_pref], limit) do
-    fetch_feed(table(gender, gender_pref), @max128, limit, _acc = [])
+  def feed_init(gender, [gender_pref], limit, filter) do
+    fetch_feed(table(gender, gender_pref), @max128, limit, filter, _acc = [])
   end
 
-  def feed_init(gender, [p1, p2], limit) do
+  def feed_init(gender, [p1, p2], limit, filter) do
     fetch_feed_cycle(
       [table(gender, p1), table(gender, p2)],
       _next_tables = [],
       _cursors = [@max128, @max128],
       _next_cursors = [],
       limit,
+      filter,
       _ended = [],
       _acc = []
     )
   end
 
-  def feed_init(gender, [p1, p2, p3], limit) do
+  def feed_init(gender, [p1, p2, p3], limit, filter) do
     fetch_feed_cycle(
       [table(gender, p1), table(gender, p2), table(gender, p3)],
       _next_tables = [],
       [@max128, @max128, @max128],
       _next_cursors = [],
       limit,
+      filter,
       _ended = [],
       _acc = []
     )
   end
 
-  @spec feed_cont(binary, pos_integer) :: {binary, [feed_item]} | :error
-  def feed_cont(cursor, limit)
+  @spec feed_cont(binary, pos_integer, MapSet.t(<<_::128>>)) :: {binary, [feed_item]} | :error
+  def feed_cont(cursor, limit, filter)
 
-  def feed_cont(<<tab_id::2-bytes, cursor::128-bits>>, limit) do
-    fetch_feed(table(tab_id), cursor, limit, _acc = [])
+  def feed_cont(<<tab_id::2-bytes, cursor::128-bits>>, limit, filter) do
+    fetch_feed(table(tab_id), cursor, limit, filter, _acc = [])
   end
 
-  def feed_cont(<<t1::2-bytes, c1::128-bits, t2::2-bytes, c2::128-bits>>, limit) do
-    fetch_feed_cycle([table(t1), table(t2)], [], [c1, c2], [], limit, [], _acc = [])
+  def feed_cont(<<t1::2-bytes, c1::128-bits, t2::2-bytes, c2::128-bits>>, limit, filter) do
+    fetch_feed_cycle([table(t1), table(t2)], [], [c1, c2], [], limit, filter, [], _acc = [])
   end
 
   def feed_cont(
         <<t1::2-bytes, c1::128-bits, t2::2-bytes, c2::128-bits, t3::2-bytes, c3::128-bits>>,
-        limit
+        limit,
+        filter
       ) do
     fetch_feed_cycle(
       [table(t1), table(t2), table(t3)],
@@ -92,66 +94,88 @@ defmodule T.Feeds.FeedCache do
       [c1, c2, c3],
       _next_cursors = [],
       limit,
+      filter,
       _ended = [],
       _acc = []
     )
   end
 
-  def feed_cont(_cursor, _limit) do
+  def feed_cont(_cursor, _limit, _filter) do
     :error
   end
 
-  defp fetch_feed(tab, cursor, limit, acc) when limit > 0 do
+  defp fetch_feed(tab, cursor, limit, filter, acc) when limit > 0 do
     case :ets.prev(tab, cursor) do
       <<session_id::128-bits>> = cursor ->
-        fetch_feed(tab, cursor, limit - 1, [fetch_feed_profile(session_id) | acc])
+        if profile = fetch_feed_profile(session_id, filter) do
+          fetch_feed(tab, cursor, limit - 1, filter, [profile | acc])
+        else
+          fetch_feed(tab, cursor, limit, filter, acc)
+        end
 
       :"$end_of_table" ->
-        {table_id(tab) <> cursor, :lists.reverse(acc)}
+        {table_id(tab) <> cursor, postprocess_feed(acc, [])}
     end
   end
 
-  defp fetch_feed(tab, cursor, 0, acc) do
-    {table_id(tab) <> cursor, :lists.reverse(acc)}
+  defp fetch_feed(tab, cursor, 0, _filter, acc) do
+    {table_id(tab) <> cursor, postprocess_feed(acc, [])}
   end
 
-  defp fetch_feed_cycle([t | ts], next_ts, [c | cs], next_cs, limit, ended, acc)
+  defp fetch_feed_cycle([t | ts], next_ts, [c | cs], next_cs, limit, filter, ended, acc)
        when limit > 0 do
     case :ets.prev(t, c) do
       <<session_id::16-bytes>> = c ->
-        acc = [fetch_feed_profile(session_id) | acc]
-        fetch_feed_cycle(ts, [t | next_ts], cs, [c | next_cs], limit - 1, ended, acc)
+        if profile = fetch_feed_profile(session_id, filter) do
+          acc = [profile | acc]
+          fetch_feed_cycle(ts, [t | next_ts], cs, [c | next_cs], limit - 1, filter, ended, acc)
+        else
+          fetch_feed_cycle(ts, [t | next_ts], cs, [c | next_cs], limit, filter, ended, acc)
+        end
 
       :"$end_of_table" ->
-        fetch_feed_cycle(ts, next_ts, cs, next_cs, limit, [{t, c} | ended], acc)
+        fetch_feed_cycle(ts, next_ts, cs, next_cs, limit, filter, [{t, c} | ended], acc)
     end
   end
 
-  defp fetch_feed_cycle([], [], [], [], _limit, ended, acc) do
+  defp fetch_feed_cycle([], [], [], [], _limit, _filter, ended, acc) do
     cursor = Enum.reduce(ended, <<>>, fn {tab, cursor}, acc -> acc <> table_id(tab) <> cursor end)
-    {cursor, :lists.reverse(acc)}
+    {cursor, postprocess_feed(acc, [])}
   end
 
-  defp fetch_feed_cycle([], ts, [], cs, limit, ended, acc) do
-    fetch_feed_cycle(ts, [], cs, [], limit, ended, acc)
+  defp fetch_feed_cycle([], ts, [], cs, limit, filter, ended, acc) do
+    fetch_feed_cycle(ts, [], cs, [], limit, filter, ended, acc)
   end
 
-  defp fetch_feed_cycle(ts, next_ts, cs, next_cs, 0, ended, acc) do
+  defp fetch_feed_cycle(ts, next_ts, cs, next_cs, 0, _filter, ended, acc) do
     tabs = Enum.zip(ts, cs) ++ Enum.zip(next_ts, next_cs) ++ ended
     cursor = Enum.reduce(tabs, <<>>, fn {tab, cursor}, acc -> acc <> table_id(tab) <> cursor end)
-    {cursor, :lists.reverse(acc)}
+    {cursor, postprocess_feed(acc, [])}
   end
 
-  defp fetch_feed_profile(<<_::128>> = session_id) do
+  @spec postprocess_feed([{binary, String.t(), String.t(), binary}], acc) :: acc
+        when acc: [feed_item]
+  defp postprocess_feed([{_, _, _, story} = profile | rest], acc) do
+    postprocess_feed(rest, [put_elem(profile, 3, :erlang.binary_to_term(story)) | acc])
+  end
+
+  defp postprocess_feed([], acc), do: acc
+
+  @spec fetch_feed_profile(<<_::128>>, MapSet.t(<<_::128>>)) ::
+          {<<_::128>>, String.t(), String.t(), binary} | nil
+  defp fetch_feed_profile(<<_::128>> = session_id, filter) do
     [{^session_id, user_id}] = :ets.lookup(@session2profiles, session_id)
-    [{^user_id, _name, _gender, story} = profile] = :ets.lookup(@profiles, user_id)
-    put_elem(profile, 3, :erlang.binary_to_term(story))
+
+    unless MapSet.member?(filter, user_id) do
+      [{^user_id, _name, _gender, _story} = profile] = :ets.lookup(@profiles, user_id)
+      profile
+    end
   end
 
   @spec put_user(<<_::128>>, <<_::128>>, map) :: :ok
   def put_user(<<_::128>> = user_id, <<_::128>> = session_id, data) do
     data =
-      Map.update!(data, :story, fn story when is_list(story) ->
+      Map.update!(data, :story, fn [%{} | _rest] = story ->
         :erlang.term_to_binary(story)
       end)
 

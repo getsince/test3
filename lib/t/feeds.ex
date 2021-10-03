@@ -56,6 +56,8 @@ defmodule T.Feeds do
         ) ::
           {feed_cursor, [%FeedProfile{}]}
   def fetch_feed(cursor, gender, gender_preferences, limit, filter) do
+    # decode cursor
+    # sort preferences with cursors
     FeedCache.fetch_feed(cursor, gender, gender_preferences, limit, filter)
   end
 end

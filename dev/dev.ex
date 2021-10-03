@@ -28,8 +28,8 @@ defmodule Dev do
   # end
 
   def feed_setup do
-    {:ok, _pid} = FeedCache.start_link([])
-    FeedCache.demo_user()
+    {:ok, _pid} = T.Feeds.FeedCache.start_link([])
+    feed_demo_users()
   end
 
   def feed_demo_users do
@@ -45,7 +45,7 @@ defmodule Dev do
       session_id = Ecto.Bigflake.UUID.bingenerate()
       {user_id, session_id, %{gender: "M", preferences: ["F"], name: "Ruslan", story: story}}
     end)
-    |> FeedCache.put_many_users()
+    |> T.Feeds.FeedCache.put_many_users()
   end
 
   def me do

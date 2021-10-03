@@ -31,7 +31,7 @@ defmodule T.Accounts.Profile do
     if opts[:validate_required?], do: fun.(changeset), else: changeset
   end
 
-  @known_genders ["M", "F", "N"]
+  @known_genders ["F", "M", "N"]
 
   def essential_info_changeset(profile, attrs, opts \\ []) do
     attrs = attrs |> prepare_location() |> prepare_filters()

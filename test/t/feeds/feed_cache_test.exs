@@ -394,76 +394,70 @@ defmodule T.Feeds.FeedCacheTest do
     assert FeedCache.decode_story(story) == [
              %{
                "background" => %{
-                 "s3_key" =>
-                   <<30, 8, 166, 161, 201, 154, 74, 192, 188, 117, 174, 245, 224, 63, 171, 138>>
+                 "s3_key" => "1e08a6a1c99a4ac0bc75aef5e03fab8a"
                },
                "labels" => [
                  %{
                    "answer" => "Moscow",
-                   "position" => [16.394737243652344, 653.8865966796875],
+                   "position" => [16.395, 653.887],
                    "question" => "city"
                  },
                  %{
                    "answer" => "Moscow",
-                   "position" => [16.394737243652344, 653.8865966796875],
+                   "position" => [16.395, 653.887],
                    "question" => "city"
                  },
                  %{
                    "answer" => "Moscow",
-                   "position" => [16.394737243652344, 653.8865966796875],
+                   "position" => [16.395, 653.887],
                    "question" => "city"
-                 },
-                 nil
+                 }
                ],
                "size" => [414, 896]
              },
              %{
                "background" => %{
-                 "s3_key" =>
-                   <<30, 8, 166, 161, 201, 154, 74, 192, 188, 117, 174, 245, 224, 63, 171, 138>>
+                 "s3_key" => "1e08a6a1c99a4ac0bc75aef5e03fab8a"
                },
                "labels" => [
                  %{
                    "answer" => "Moscow",
-                   "position" => [16.394737243652344, 653.8865966796875],
+                   "position" => [16.395, 653.887],
                    "question" => "city"
                  },
                  %{
                    "answer" => "Moscow",
-                   "position" => [16.394737243652344, 653.8865966796875],
+                   "position" => [16.395, 653.887],
                    "question" => "city"
                  },
                  %{
                    "answer" => "Moscow",
-                   "position" => [16.394737243652344, 653.8865966796875],
+                   "position" => [16.395, 653.887],
                    "question" => "city"
-                 },
-                 nil
+                 }
                ],
                "size" => [414, 896]
              },
              %{
                "background" => %{
-                 "s3_key" =>
-                   <<30, 8, 166, 161, 201, 154, 74, 192, 188, 117, 174, 245, 224, 63, 171, 138>>
+                 "s3_key" => "1e08a6a1c99a4ac0bc75aef5e03fab8a"
                },
                "labels" => [
                  %{
                    "answer" => "Moscow",
-                   "position" => [16.394737243652344, 653.8865966796875],
+                   "position" => [16.395, 653.887],
                    "question" => "city"
                  },
                  %{
                    "answer" => "Moscow",
-                   "position" => [16.394737243652344, 653.8865966796875],
+                   "position" => [16.395, 653.887],
                    "question" => "city"
                  },
                  %{
                    "answer" => "Moscow",
-                   "position" => [16.394737243652344, 653.8865966796875],
+                   "position" => [16.395, 653.887],
                    "question" => "city"
-                 },
-                 nil
+                 }
                ],
                "size" => [414, 896]
              }

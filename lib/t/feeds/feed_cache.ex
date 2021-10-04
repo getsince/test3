@@ -34,26 +34,84 @@ defmodule T.Feeds.FeedCache do
     defp table_id(unquote(:"active_#{g1}#{g2}")), do: unquote(g1 <> g2)
   end
 
-  # def compress_story([page | rest]) do
-  #   [encode_background(page) <> encode_size(page) <> encode_labels(page) | compress_story(rest)]
-  # end
+  def decode_story(<<"s3", 16, key::16-bytes, w::16, h::16, rest::bytes>>) do
+    _decode_story(
+      rest,
+      _label = nil,
+      _labels = [],
+      _page = [
+        # "{'background': {'s3_key': '",
+        # key,
+        # "'},'size':[",
+        # to_string(w),
+        # ",",
+        # to_string(h),
+        # "],'labels':["
+      ],
+      _story = []
+    )
+  end
 
-  # def compress_story([]), do: []
+  # new page started
+  defp _decode_story(
+         <<"s3", 16, key::16-bytes, w::16, h::16, rest::bytes>>,
+         label,
+         labels,
+         page,
+         story
+       ) do
+    _decode_story(
+      rest,
+      _label = nil,
+      _labels = [],
+      page,
+      # _page = [["s3" | key], [w | h]],
+      story
+      # _story = [[page | [label | labels]] | story]
+    )
+  end
 
-  # defp encode_background(%{"background" => %{"s3_key" => s3_key}}), do: <<1, Ecto.UUID.dump!(s3_key)::16-bytes>>
-  # defp encode_background(%{"background" => %{"color" => color}}), do: <<0, color::16-bytes>>
+  # label decoding started
+  # question
+  defp _decode_story(
+         <<0::4, len::12, value::size(len)-bytes, rest::bytes>>,
+         label,
+         labels,
+         page,
+         story
+       ) do
+    # _decode_story(rest, [["question" | value]], [label | labels], page, story)
+    _decode_story(rest, [], labels, page, story)
+  end
 
-  # defp encode_size(%{"size" => [h, w]}), do: <<0, h::64, w::64>>
-  # defp encode_labels(%{"labels" => labels}) do
-  #   Enum.reduce(labels, <<>>, fn label, acc ->
-  #     acc <> Enum.reduce(label, <<>>, fn field, acc ->
-  #       case field do
-  #         {"question", val} -> acc <> <<>>
-  #         {"answer", val} -> acc <> <<0::4, ::>>
-  #       end
-  #     end)
-  #   end)
-  # end
+  # answer
+  defp _decode_story(
+         <<1::4, len::12, value::size(len)-bytes, rest::bytes>>,
+         label,
+         labels,
+         page,
+         story
+       ) do
+    _decode_story(rest, label, labels, page, story)
+    # _decode_story(rest, [["answer" | value] | label], labels, page, story)
+  end
+
+  # position
+  defp _decode_story(
+         <<2::4, 8::12, x::32-float, y::32-float, rest::bytes>>,
+         label,
+         labels,
+         page,
+         story
+       ) do
+    _decode_story(rest, label, labels, page, story)
+    # _decode_story(rest, [["position" | [x | y]] | label], labels, page, story)
+  end
+
+  defp _decode_story(<<>>, label, labels, page, story) do
+    # [[page | [label | labels]] | story] |> :lists.reverse()
+    story
+  end
 
   @type feed_item :: {<<_::128>>, String.t(), String.t(), [map]}
 
@@ -177,8 +235,7 @@ defmodule T.Feeds.FeedCache do
   @spec postprocess_feed([{binary, String.t(), String.t(), binary}], acc) :: acc
         when acc: [feed_item]
   defp postprocess_feed([{_, _, _, story} = profile | rest], acc) do
-    # postprocess_feed(rest, [put_elem(profile, 3, :erlang.binary_to_term(story)) | acc])
-    postprocess_feed(rest, [profile | acc])
+    postprocess_feed(rest, [put_elem(profile, 3, decode_story(story)) | acc])
   end
 
   defp postprocess_feed([], acc), do: acc

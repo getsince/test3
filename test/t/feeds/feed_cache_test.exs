@@ -61,79 +61,413 @@ defmodule T.Feeds.FeedCacheTest do
     assert cursor == "MF" <> session_id
   end
 
-  test "compress" do
+  test "decode_story/1" do
+    story = <<
+      # "s3"
+      115,
+      51,
+      # s3 key size
+      16,
+      # s3 key
+      30,
+      8,
+      166,
+      161,
+      201,
+      154,
+      74,
+      192,
+      188,
+      117,
+      174,
+      245,
+      224,
+      63,
+      171,
+      138,
+      # page dimensions
+      # x
+      414::16,
+      # y
+      896::16,
+      # label1
+      # labels count
+      # 3::8,
+      # type = question
+      0::4,
+      # key size
+      4::12,
+      # "city"
+      99,
+      105,
+      116,
+      121,
+      # type = answer
+      1::4,
+      # key size
+      6::12,
+      # "Moscow"
+      77,
+      111,
+      115,
+      99,
+      111,
+      119,
+      # type = position
+      2::4,
+      # key size
+      8::12,
+      16.39473684210526::32,
+      653.8865836791149::32,
+      # label1
+      # type = question
+      0::4,
+      # key size
+      4::12,
+      # "city"
+      99,
+      105,
+      116,
+      121,
+      # type = answer
+      1::4,
+      # key size
+      6::12,
+      # "Moscow"
+      77,
+      111,
+      115,
+      99,
+      111,
+      119,
+      # type = position
+      2::4,
+      # key size
+      8::12,
+      16.39473684210526::32,
+      653.8865836791149::32,
+      # label1
+      # type = question
+      0::4,
+      # key size
+      4::12,
+      # "city"
+      99,
+      105,
+      116,
+      121,
+      # type = answer
+      1::4,
+      # key size
+      6::12,
+      # "Moscow"
+      77,
+      111,
+      115,
+      99,
+      111,
+      119,
+      # type = position
+      2::4,
+      # key size
+      8::12,
+      16.39473684210526::32,
+      653.8865836791149::32,
+      # "s3"
+      115,
+      51,
+      # s3 key size
+      16,
+      # s3 key
+      30,
+      8,
+      166,
+      161,
+      201,
+      154,
+      74,
+      192,
+      188,
+      117,
+      174,
+      245,
+      224,
+      63,
+      171,
+      138,
+      # page dimensions
+      # x
+      414::16,
+      # y
+      896::16,
+      # label1
+      # type = question
+      0::4,
+      # key size
+      4::12,
+      # "city"
+      99,
+      105,
+      116,
+      121,
+      # type = answer
+      1::4,
+      # key size
+      6::12,
+      # "Moscow"
+      77,
+      111,
+      115,
+      99,
+      111,
+      119,
+      # type = position
+      2::4,
+      # key size
+      8::12,
+      16.39473684210526::32,
+      653.8865836791149::32,
+      # label1
+      # type = question
+      0::4,
+      # key size
+      4::12,
+      # "city"
+      99,
+      105,
+      116,
+      121,
+      # type = answer
+      1::4,
+      # key size
+      6::12,
+      # "Moscow"
+      77,
+      111,
+      115,
+      99,
+      111,
+      119,
+      # type = position
+      2::4,
+      # key size
+      8::12,
+      16.39473684210526::32,
+      653.8865836791149::32,
+      # label1
+      # type = question
+      0::4,
+      # key size
+      4::12,
+      # "city"
+      99,
+      105,
+      116,
+      121,
+      # type = answer
+      1::4,
+      # key size
+      6::12,
+      # "Moscow"
+      77,
+      111,
+      115,
+      99,
+      111,
+      119,
+      # type = position
+      2::4,
+      # key size
+      8::12,
+      16.39473684210526::32,
+      653.8865836791149::32,
+      # "s3"
+      115,
+      51,
+      # s3 key size
+      16,
+      # s3 key
+      30,
+      8,
+      166,
+      161,
+      201,
+      154,
+      74,
+      192,
+      188,
+      117,
+      174,
+      245,
+      224,
+      63,
+      171,
+      138,
+      # page dimensions
+      # x
+      414::16,
+      # y
+      896::16,
+      # label1
+      # type = question
+      0::4,
+      # key size
+      4::12,
+      # "city"
+      99,
+      105,
+      116,
+      121,
+      # type = answer
+      1::4,
+      # key size
+      6::12,
+      # "Moscow"
+      77,
+      111,
+      115,
+      99,
+      111,
+      119,
+      # type = position
+      2::4,
+      # key size
+      8::12,
+      16.39473684210526::32,
+      653.8865836791149::32,
+      # label1
+      # type = question
+      0::4,
+      # key size
+      4::12,
+      # "city"
+      99,
+      105,
+      116,
+      121,
+      # type = answer
+      1::4,
+      # key size
+      6::12,
+      # "Moscow"
+      77,
+      111,
+      115,
+      99,
+      111,
+      119,
+      # type = position
+      2::4,
+      # key size
+      8::12,
+      16.39473684210526::32,
+      653.8865836791149::32,
+      # label1
+      # type = question
+      0::4,
+      # key size
+      4::12,
+      # "city"
+      99,
+      105,
+      116,
+      121,
+      # type = answer
+      1::4,
+      # key size
+      6::12,
+      # "Moscow"
+      77,
+      111,
+      115,
+      99,
+      111,
+      119,
+      # type = position
+      2::4,
+      # key size
+      8::12,
+      16.39473684210526::32,
+      653.8865836791149::32
+    >>
 
-
-    [
-      [414 | 896],
-      ["s3" | "1e08a6a1-c99a-4ac0-bc75-aef5e03fab8a"],
-      [["q" | "city"], ["a" | "Moscow"], ["p" | [16.39473684210526 | 653.8865836791149]]],
-      [["q" | "birthdate"], ["a" | "1992-06-15"], ["p" | [17.76315789473683 | 711.5131396957124]]],
-      [["q" | "occupation"], ["a" | "marketing"], ["p" | [17.894736842105278 | 768.5200553250346] ]],
-
-
-      %{
-        "background" => %{"s3_key" => },
-        "labels" => [
-          %{
-            "answer" => "dog",
-            "position" => [32.45421914384576, 508.55878284923926],
-            "question" => "pets",
-            "rotation" => 0,
-            "value" => "dog",
-            "zoom" => 1
-          },
-          %{
-            "answer" => "",
-            "position" => [30.007430073955632, 125.42931999400341],
-            "question" => "height",
-            "rotation" => -0.1968919380719123,
-            "value" => "169 cm",
-            "zoom" => 0.929552717754467
-          }
-        ],
-        "size" => []
-      },
-      %{
-        "background" => %{"s3_key" => "030cf497-eabc-40e8-9e25-22f0549d5828"},
-        "labels" => [
-          %{
-            "answer" => "politics",
-            "position" => [255.18867086246476, 172.7136929460581],
-            "question" => "interests",
-            "rotation" => 0,
-            "value" => "politics",
-            "zoom" => 1
-          },
-          %{
-            "answer" => "culture and art",
-            "position" => [188.0263157894737, 231.47884213914443],
-            "question" => "books",
-            "rotation" => 0,
-            "value" => "culture and art",
-            "zoom" => 1
-          }
-        ],
-        "size" => [414, 896]
-      },
-      %{
-        "background" => %{"s3_key" => "8ecc0c2c-89fb-437f-bfae-4893cba3c7fc"},
-        "labels" => [
-          %{
-            "answer" => "The Sopranos",
-            "position" => [9.407094262700014, 362.32365145228215],
-            "question" => "tv_shows",
-            "rotation" => 0,
-            "value" => "The Sopranos",
-            "zoom" => 1
-          }
-        ],
-        "size" => [414, 896]
-      }
-    ]
-
-    assert <<_::128>> = compressed = FeedCache.compress(story)
-    assert FeedCache.decompress(compressed) == story
+    assert FeedCache.decode_story(story) == [
+             %{
+               "background" => %{
+                 "s3_key" =>
+                   <<30, 8, 166, 161, 201, 154, 74, 192, 188, 117, 174, 245, 224, 63, 171, 138>>
+               },
+               "labels" => [
+                 %{
+                   "answer" => "Moscow",
+                   "position" => [16.394737243652344, 653.8865966796875],
+                   "question" => "city"
+                 },
+                 %{
+                   "answer" => "Moscow",
+                   "position" => [16.394737243652344, 653.8865966796875],
+                   "question" => "city"
+                 },
+                 %{
+                   "answer" => "Moscow",
+                   "position" => [16.394737243652344, 653.8865966796875],
+                   "question" => "city"
+                 },
+                 nil
+               ],
+               "size" => [414, 896]
+             },
+             %{
+               "background" => %{
+                 "s3_key" =>
+                   <<30, 8, 166, 161, 201, 154, 74, 192, 188, 117, 174, 245, 224, 63, 171, 138>>
+               },
+               "labels" => [
+                 %{
+                   "answer" => "Moscow",
+                   "position" => [16.394737243652344, 653.8865966796875],
+                   "question" => "city"
+                 },
+                 %{
+                   "answer" => "Moscow",
+                   "position" => [16.394737243652344, 653.8865966796875],
+                   "question" => "city"
+                 },
+                 %{
+                   "answer" => "Moscow",
+                   "position" => [16.394737243652344, 653.8865966796875],
+                   "question" => "city"
+                 },
+                 nil
+               ],
+               "size" => [414, 896]
+             },
+             %{
+               "background" => %{
+                 "s3_key" =>
+                   <<30, 8, 166, 161, 201, 154, 74, 192, 188, 117, 174, 245, 224, 63, 171, 138>>
+               },
+               "labels" => [
+                 %{
+                   "answer" => "Moscow",
+                   "position" => [16.394737243652344, 653.8865966796875],
+                   "question" => "city"
+                 },
+                 %{
+                   "answer" => "Moscow",
+                   "position" => [16.394737243652344, 653.8865966796875],
+                   "question" => "city"
+                 },
+                 %{
+                   "answer" => "Moscow",
+                   "position" => [16.394737243652344, 653.8865966796875],
+                   "question" => "city"
+                 },
+                 nil
+               ],
+               "size" => [414, 896]
+             }
+           ]
   end
 
   defp fake_user(opts \\ []) do

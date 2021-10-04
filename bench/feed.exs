@@ -3,24 +3,353 @@ alias T.Feeds.FeedCache
 {:ok, _pid} = FeedCache.start_link([])
 
 story = [
-  ["s3" | "1e08a6a1-c99a-4ac0-bc75-aef5e03fab8a"],
+  ["s3" | <<30, 8, 166, 161, 201, 154, 74, 192, 188, 117, 174, 245, 224, 63, 171, 138>>],
   [414 | 896],
   [["q" | "city"], ["a" | "Moscow"], ["p" | [16.39473684210526 | 653.8865836791149]]],
   [["q" | "birthdate"], ["a" | "1992-06-15"], ["p" | [17.76315789473683 | 711.5131396957124]]],
   [["q" | "occupation"], ["a" | "marketing"], ["p" | [17.894736842105278 | 768.5200553250346]]],
-  ["s3" | "1e08a6a1-c99a-4ac0-bc75-aef5e03fab8a"],
+  ["s3" | <<30, 8, 166, 161, 201, 154, 74, 192, 188, 117, 174, 245, 224, 63, 171, 138>>],
   [414 | 896],
   [["q" | "city"], ["a" | "Moscow"], ["p" | [16.39473684210526 | 653.8865836791149]]],
   [["q" | "birthdate"], ["a" | "1992-06-15"], ["p" | [17.76315789473683 | 711.5131396957124]]],
   [["q" | "occupation"], ["a" | "marketing"], ["p" | [17.894736842105278 | 768.5200553250346]]],
-  ["s3" | "1e08a6a1-c99a-4ac0-bc75-aef5e03fab8a"],
+  ["s3" | <<30, 8, 166, 161, 201, 154, 74, 192, 188, 117, 174, 245, 224, 63, 171, 138>>],
   [414 | 896],
   [["q" | "city"], ["a" | "Moscow"], ["p" | [16.39473684210526 | 653.8865836791149]]],
   [["q" | "birthdate"], ["a" | "1992-06-15"], ["p" | [17.76315789473683 | 711.5131396957124]]],
   [["q" | "occupation"], ["a" | "marketing"], ["p" | [17.894736842105278 | 768.5200553250346]]]
 ]
 
-story = :erlang.term_to_binary(story)
+story = <<
+  # "s3"
+  115,
+  51,
+  # s3 key size
+  16,
+  # s3 key
+  30,
+  8,
+  166,
+  161,
+  201,
+  154,
+  74,
+  192,
+  188,
+  117,
+  174,
+  245,
+  224,
+  63,
+  171,
+  138,
+  # page dimensions
+  # x
+  414::16,
+  # y
+  896::16,
+  # label1
+  # labels count
+  # 3::8,
+  # type = question
+  0::4,
+  # key size
+  4::12,
+  # "city"
+  99,
+  105,
+  116,
+  121,
+  # type = answer
+  1::4,
+  # key size
+  6::12,
+  # "Moscow"
+  77,
+  111,
+  115,
+  99,
+  111,
+  119,
+  # type = position
+  2::4,
+  # key size
+  8::12,
+  16.39473684210526::32,
+  653.8865836791149::32,
+  # label1
+  # type = question
+  0::4,
+  # key size
+  4::12,
+  # "city"
+  99,
+  105,
+  116,
+  121,
+  # type = answer
+  1::4,
+  # key size
+  6::12,
+  # "Moscow"
+  77,
+  111,
+  115,
+  99,
+  111,
+  119,
+  # type = position
+  2::4,
+  # key size
+  8::12,
+  16.39473684210526::32,
+  653.8865836791149::32,
+  # label1
+  # type = question
+  0::4,
+  # key size
+  4::12,
+  # "city"
+  99,
+  105,
+  116,
+  121,
+  # type = answer
+  1::4,
+  # key size
+  6::12,
+  # "Moscow"
+  77,
+  111,
+  115,
+  99,
+  111,
+  119,
+  # type = position
+  2::4,
+  # key size
+  8::12,
+  16.39473684210526::32,
+  653.8865836791149::32,
+  # "s3"
+  115,
+  51,
+  # s3 key size
+  16,
+  # s3 key
+  30,
+  8,
+  166,
+  161,
+  201,
+  154,
+  74,
+  192,
+  188,
+  117,
+  174,
+  245,
+  224,
+  63,
+  171,
+  138,
+  # page dimensions
+  # x
+  414::16,
+  # y
+  896::16,
+  # label1
+  # type = question
+  0::4,
+  # key size
+  4::12,
+  # "city"
+  99,
+  105,
+  116,
+  121,
+  # type = answer
+  1::4,
+  # key size
+  6::12,
+  # "Moscow"
+  77,
+  111,
+  115,
+  99,
+  111,
+  119,
+  # type = position
+  2::4,
+  # key size
+  8::12,
+  16.39473684210526::32,
+  653.8865836791149::32,
+  # label1
+  # type = question
+  0::4,
+  # key size
+  4::12,
+  # "city"
+  99,
+  105,
+  116,
+  121,
+  # type = answer
+  1::4,
+  # key size
+  6::12,
+  # "Moscow"
+  77,
+  111,
+  115,
+  99,
+  111,
+  119,
+  # type = position
+  2::4,
+  # key size
+  8::12,
+  16.39473684210526::32,
+  653.8865836791149::32,
+  # label1
+  # type = question
+  0::4,
+  # key size
+  4::12,
+  # "city"
+  99,
+  105,
+  116,
+  121,
+  # type = answer
+  1::4,
+  # key size
+  6::12,
+  # "Moscow"
+  77,
+  111,
+  115,
+  99,
+  111,
+  119,
+  # type = position
+  2::4,
+  # key size
+  8::12,
+  16.39473684210526::32,
+  653.8865836791149::32,
+  # "s3"
+  115,
+  51,
+  # s3 key size
+  16,
+  # s3 key
+  30,
+  8,
+  166,
+  161,
+  201,
+  154,
+  74,
+  192,
+  188,
+  117,
+  174,
+  245,
+  224,
+  63,
+  171,
+  138,
+  # page dimensions
+  # x
+  414::16,
+  # y
+  896::16,
+  # label1
+  # type = question
+  0::4,
+  # key size
+  4::12,
+  # "city"
+  99,
+  105,
+  116,
+  121,
+  # type = answer
+  1::4,
+  # key size
+  6::12,
+  # "Moscow"
+  77,
+  111,
+  115,
+  99,
+  111,
+  119,
+  # type = position
+  2::4,
+  # key size
+  8::12,
+  16.39473684210526::32,
+  653.8865836791149::32,
+  # label1
+  # type = question
+  0::4,
+  # key size
+  4::12,
+  # "city"
+  99,
+  105,
+  116,
+  121,
+  # type = answer
+  1::4,
+  # key size
+  6::12,
+  # "Moscow"
+  77,
+  111,
+  115,
+  99,
+  111,
+  119,
+  # type = position
+  2::4,
+  # key size
+  8::12,
+  16.39473684210526::32,
+  653.8865836791149::32,
+  # label1
+  # type = question
+  0::4,
+  # key size
+  4::12,
+  # "city"
+  99,
+  105,
+  116,
+  121,
+  # type = answer
+  1::4,
+  # key size
+  6::12,
+  # "Moscow"
+  77,
+  111,
+  115,
+  99,
+  111,
+  119,
+  # type = position
+  2::4,
+  # key size
+  8::12,
+  16.39473684210526::32,
+  653.8865836791149::32
+>>
+
+# story = :erlang.term_to_binary(story)
 
 # binary story (:erlang.term_to_binary(story))
 # 5 MB for 10_000 -> 100 MB for 200_000 -> 1 GB for 2_000_000
@@ -71,6 +400,7 @@ IO.puts("ets memory after gc: #{memory.()}\n")
 
 Benchee.run(
   %{
+    "decode_story" => fn -> Enum.each(1..10, fn _ -> FeedCache.decode_story(story) end) end,
     "feed_init" => fn -> FeedCache.feed_init("F", ["M"], 10, no_filter) end,
     "feed_init multi-preference" => fn -> FeedCache.feed_init("F", ["M", "F"], 10, no_filter) end,
     "feed_cont cursor=10th" => fn -> FeedCache.feed_cont(cursor10, 10, no_filter) end,

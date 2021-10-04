@@ -93,6 +93,9 @@ story =
     }
   ])
 
+story =
+  "[{\"background\":{\"s3_key\":\"1e08a6a1c99a4ac0bc75aef5e03fab8a\"},\"labels\":[{\"answer\":\"Moscow\",\"position\":[16.395,653.887],\"question\":\"city\"},{\"answer\":\"Moscow\",\"position\":[16.395,653.887],\"question\":\"city\"},{\"answer\":\"Moscow\",\"position\":[16.395,653.887],\"question\":\"city\"}],\"size\":[414,896]},{\"background\":{\"s3_key\":\"1e08a6a1c99a4ac0bc75aef5e03fab8a\"},\"labels\":[{\"answer\":\"Moscow\",\"position\":[16.395,653.887],\"question\":\"city\"},{\"answer\":\"Moscow\",\"position\":[16.395,653.887],\"question\":\"city\"},{\"answer\":\"Moscow\",\"position\":[16.395,653.887],\"question\":\"city\"}],\"size\":[414,896]},{\"background\":{\"s3_key\":\"1e08a6a1c99a4ac0bc75aef5e03fab8a\"},\"labels\":[{\"answer\":\"Moscow\",\"position\":[16.395,653.887],\"question\":\"city\"},{\"answer\":\"Moscow\",\"position\":[16.395,653.887],\"question\":\"city\"},{\"answer\":\"Moscow\",\"position\":[16.395,653.887],\"question\":\"city\"}],\"size\":[414,896]}]"
+
 # story = :erlang.term_to_binary(story)
 
 # binary story (:erlang.term_to_binary(story))
@@ -142,9 +145,24 @@ Enum.each(Process.list(), fn pid -> :erlang.garbage_collect(pid) end)
 
 IO.puts("ets memory after gc: #{memory.()}\n")
 
+# url =
+#   "https://d3r9yicn85nax9.cloudfront.net/4_nhpMtPlaYOhXhMhJqQPdebmlr1sYXcgJUXDNGcixE/fit/1000/0/sm/0/aHR0cHM6Ly9zaW5jZS13aGVuLWFyZS15b3UtaGFwcHkuczMuYW1hem9uYXdzLmNvbS9hc2Rm"
+
+# pattern = :binary.compile_pattern(~s["background":{"s3_key":"1e08a6a1c99a4ac0bc75aef5e03fab8a"}])
+
 Benchee.run(
   %{
     # "decode_story" => fn -> Enum.each(1..10, fn _ -> FeedCache.decode_story(story) end) end,
+    # "replace" => fn ->
+    #   Enum.each(1..10, fn _ ->
+    #     String.replace(
+    #       story,
+    #       pattern,
+    #       "a"
+    #     )
+    #   end)
+    # end
+
     "feed_init" => fn -> FeedCache.feed_init("F", ["M"], 10, no_filter) end,
     "feed_init multi-preference" => fn -> FeedCache.feed_init("F", ["M", "F"], 10, no_filter) end,
     "feed_cont cursor=10th" => fn -> FeedCache.feed_cont(cursor10, 10, no_filter) end,
@@ -154,5 +172,12 @@ Benchee.run(
       FeedCache.feed_cont(multi_cursor10, 10, no_filter)
     end
   },
-  formatters: [{Benchee.Formatters.Console, extended_statistics: true}]
+  formatters: [{Benchee.Formatters.Console, extended_statistics: true}],
+  memory_time: 2
 )
+
+"/4_nhpMtPlaYOhXhMhJqQPdebmlr1sYXcgJUXDNGcixE/fit/1000/0/sm/0/aHR0cHM6Ly9zaW5jZS13aGVuLWFyZS15b3UtaGFwcHkuczMuYW1hem9uYXdzLmNvbS9hc2Rm"
+# <<"/", _signature::42-bytes, "/fit/800/", _rest::bytes>> -> true
+# <<"/", _signature::42-bytes, "/fit/1000/", _rest::bytes>> -> true
+# <<"/", _signature::42-bytes, "/fit/1200/", _rest::bytes>> -> true
+# _other -> false

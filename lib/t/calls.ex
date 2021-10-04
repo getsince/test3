@@ -108,6 +108,7 @@ defmodule T.Calls do
   @spec end_call(Ecto.UUID.t(), Ecto.UUID.t(), DateTime.t()) :: :ok
   def end_call(user_id, call_id, now \\ utc_now()) do
     m = "user #{user_id} ended a call #{call_id}"
+    
     Logger.warn(m)
     Bot.async_post_message(m)
     {1, _} =

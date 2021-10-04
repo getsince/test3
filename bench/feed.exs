@@ -142,13 +142,16 @@ Enum.each(Process.list(), fn pid -> :erlang.garbage_collect(pid) end)
 
 IO.puts("total memory after gc: #{memory.()}\n")
 
-Benchee.run(%{
-  "feed_init" => fn -> FeedCache.feed_init("F", ["M"], 10, no_filter) end,
-  "feed_init multi-preference" => fn -> FeedCache.feed_init("F", ["M", "F"], 10, no_filter) end,
-  "feed_cont cursor=10th" => fn -> FeedCache.feed_cont(cursor10, 10, no_filter) end,
-  "feed_cont cursor=100th" => fn -> FeedCache.feed_cont(cursor100, 10, no_filter) end,
-  "feed_cont cursor=1000th" => fn -> FeedCache.feed_cont(cursor1000, 10, no_filter) end,
-  "feed_cont multi-preference cursor=10th" => fn ->
-    FeedCache.feed_cont(multi_cursor10, 10, no_filter)
-  end
-})
+Benchee.run(
+  %{
+    "feed_init" => fn -> FeedCache.feed_init("F", ["M"], 10, no_filter) end,
+    "feed_init multi-preference" => fn -> FeedCache.feed_init("F", ["M", "F"], 10, no_filter) end,
+    "feed_cont cursor=10th" => fn -> FeedCache.feed_cont(cursor10, 10, no_filter) end,
+    "feed_cont cursor=100th" => fn -> FeedCache.feed_cont(cursor100, 10, no_filter) end,
+    "feed_cont cursor=1000th" => fn -> FeedCache.feed_cont(cursor1000, 10, no_filter) end,
+    "feed_cont multi-preference cursor=10th" => fn ->
+      FeedCache.feed_cont(multi_cursor10, 10, no_filter)
+    end
+  },
+  formatters: [{Benchee.Formatters.Console, extended_statistics: true}]
+)

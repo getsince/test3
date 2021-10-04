@@ -156,8 +156,7 @@ defmodule T.Feeds.FeedCache do
   @spec postprocess_feed([{binary, String.t(), String.t(), binary}], acc) :: acc
         when acc: [feed_item]
   defp postprocess_feed([{_, _, _, story} = profile | rest], acc) do
-    # postprocess_feed(rest, [put_elem(profile, 3, :erlang.binary_to_term(story)) | acc])
-    postprocess_feed(rest, [profile | acc])
+    postprocess_feed(rest, [put_elem(profile, 3, :erlang.binary_to_term(story)) | acc])
   end
 
   defp postprocess_feed([], acc), do: acc

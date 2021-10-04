@@ -2,6 +2,8 @@ defmodule T.Calls do
   @moduledoc false
   import Ecto.Query
 
+  require Logger
+
   alias T.{Repo, Twilio, Accounts}
   alias T.Calls.Call
   alias T.Feeds.{FeedProfile}

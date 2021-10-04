@@ -273,6 +273,6 @@ if config_env() == :bench do
   config :t, Oban, queues: false, plugins: false
 
   config :t, T.Repo,
-    url: System.get_env("DATABASE_URL") || "ecto://postgres:postgres@localhost:5432/t_dev",
+    url: System.get_env("DATABASE_URL") || "ecto://postgres:postgres@localhost:5432/t_bench",
     pool_size: 10
 end

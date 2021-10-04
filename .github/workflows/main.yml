@@ -93,6 +93,9 @@ jobs:
       - name: Compile
         run: MIX_ENV=bench mix compile
 
+      - name: Create DB
+        run: mix ecto.create
+
       - name: Run feed benchmarks
         run: MIX_ENV=bench mix run bench/feed.exs
 

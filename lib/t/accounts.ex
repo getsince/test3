@@ -436,9 +436,16 @@ defmodule T.Accounts do
       {:ok, count >= 1}
     end)
     |> Repo.transaction()
+
+    new_user_name = Profile
+    |> where(user_id: ^user_id)
+    |> select([p], p.name)
+    |> Repo.one!()
+    {:ok, new_user_name}
+
     |> case do
       {:ok, %{user: user, profile: %Profile{} = profile}} ->
-        m = "user onboarded #{user.id}"
+        m = "user registried #{user.id}, user_name #{new_user_name}"
         Logger.warn(m)
         Bot.async_post_message(m)
         {:ok, %Profile{profile | hidden?: false}}

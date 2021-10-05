@@ -53,6 +53,9 @@ jobs:
       - name: Run tests
         run: mix test
 
+      - name: eh
+        run: echo 'eh'
+
   build:
     name: build
     runs-on: ubuntu-latest

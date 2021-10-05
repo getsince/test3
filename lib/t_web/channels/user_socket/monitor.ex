@@ -28,25 +28,29 @@ defmodule TWeb.UserSocket.Monitor do
     GenServer.cast(__MODULE__, {:monitor, pid, on_down})
   end
 
-  def on_down_tasks do
-    Task.Supervisor.children(@task_supervisor)
-  end
-
   @impl true
   def init(_opts) do
-    # %{ref => on_down}
-    {:ok, _monitors = %{}}
+    # monitors: %{ref => on_down}
+    {:ok, %{monitors: %{}}}
   end
 
   @impl true
-  def handle_cast({:monitor, pid, on_down}, monitors) do
-    {:noreply, Map.put(monitors, Process.monitor(pid), on_down)}
+  def handle_cast({:monitor, pid, on_down}, %{monitors: monitors} = state) do
+    {:noreply, %{state | monitors: Map.put(monitors, Process.monitor(pid), on_down)}}
   end
 
   @impl true
-  def handle_info({:DOWN, ref, :process, _object, _reason}, monitors) do
+  def handle_info({:DOWN, ref, :process, _object, _reason}, %{monitors: monitors} = state) do
     {on_down, monitors} = Map.pop!(monitors, ref)
+    exec_on_down(state, on_down)
+    {:noreply, %{state | monitors: monitors}}
+  end
+
+  defp exec_on_down(%{task_exec: f}, on_down) when is_function(f, 1) do
+    f.(on_down)
+  end
+
+  defp exec_on_down(_state, on_down) do
     Task.Supervisor.start_child(@task_supervisor, on_down)
-    {:noreply, monitors}
   end
 end

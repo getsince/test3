@@ -1,5 +1,5 @@
 defmodule TWeb.FeedChannelTest do
-  use TWeb.ChannelCase
+  use TWeb.ChannelCase, async: true
   import Assertions
 
   alias T.{Feeds, Accounts, Calls, Matches}
@@ -203,7 +203,6 @@ defmodule TWeb.FeedChannelTest do
     test "creates new session", %{socket: socket, me: me} do
       ref = push(socket, "activate-session", %{"duration" => _minutes = 60})
       assert_reply(ref, :ok)
-      refute_receive _anything
 
       assert %ActiveSession{expires_at: expires_at} = Feeds.get_current_session(me.id)
       diff = DateTime.diff(expires_at, DateTime.utc_now())
@@ -220,7 +219,6 @@ defmodule TWeb.FeedChannelTest do
 
       ref = push(socket, "activate-session", %{"duration" => _minutes = 40})
       assert_reply(ref, :ok)
-      refute_receive _anything
 
       assert %ActiveSession{flake: ^id, expires_at: expires_at} = Feeds.get_current_session(me.id)
       diff = DateTime.diff(expires_at, DateTime.utc_now())
@@ -234,19 +232,16 @@ defmodule TWeb.FeedChannelTest do
     test "with active session", %{socket: socket} do
       ref = push(socket, "activate-session", %{"duration" => _minutes = 60})
       assert_reply(ref, :ok)
-      refute_receive _anything
 
       ref = push(socket, "deactivate-session")
       assert_reply(ref, :ok, reply)
       assert reply == %{"deactivated" => true}
-      refute_receive _anything
     end
 
     test "without active session", %{socket: socket} do
       ref = push(socket, "deactivate-session")
       assert_reply(ref, :ok, reply)
       assert reply == %{"deactivated" => false}
-      refute_receive _anything
     end
   end
 
@@ -392,7 +387,10 @@ defmodule TWeb.FeedChannelTest do
       other = onboarded_user(location: [lat: 55.548964, lon: 35.007845])
       %{flake: s2} = activate_session(other, @reference)
 
+      parent = self()
+
       spawn(fn ->
+        Ecto.Adapters.SQL.Sandbox.allow(T.Repo, parent, self())
         socket = connected_socket(other)
         {:ok, _reply, socket} = subscribe_and_join(socket, "feed:" <> other.id)
         ref = push(socket, "invite", %{"user_id" => me.id})
@@ -528,8 +526,6 @@ defmodule TWeb.FeedChannelTest do
                }
              }
 
-      refute_receive _anything_else
-
       ref = push(socket, "invites")
       assert_reply(ref, :ok, reply)
 
@@ -628,7 +624,6 @@ defmodule TWeb.FeedChannelTest do
       })
 
       assert profile == %{name: "mate", story: [], user_id: mate.id, gender: "F"}
-      refute_receive _anything_else
 
       # call still fails since mate is missing pushkit devices
       ref = push(socket, "call", %{"user_id" => mate.id})
@@ -1081,7 +1076,6 @@ defmodule TWeb.FeedChannelTest do
       # we get slots_offer
       assert_push("slots_offer", push)
       assert push == %{"match_id" => match.id, "slots" => slots}
-      refute_receive _anything_else
 
       {:ok, slots: slots}
     end
@@ -1182,7 +1176,6 @@ defmodule TWeb.FeedChannelTest do
       # we get slots_offer
       assert_push("slots_offer", push)
       assert push == %{"match_id" => match.id, "slots" => slots}
-      refute_receive _anything_else
 
       # we accept seocnd slot
       iso_slot = DateTime.to_iso8601(s2)
@@ -1284,7 +1277,6 @@ defmodule TWeb.FeedChannelTest do
         })
 
       assert_reply(ref, :ok, _reply)
-      refute_receive _anything_else
 
       assert %Accounts.UserReport{} =
                report = Repo.get_by(Accounts.UserReport, from_user_id: me.id, on_user_id: mate.id)
@@ -1363,8 +1355,6 @@ defmodule TWeb.FeedChannelTest do
     })
 
     assert profile.user_id == mate.id
-    refute_receive _anything_else
-
     {:ok, mate_socket: socket}
   end
 end

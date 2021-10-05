@@ -39,7 +39,6 @@ defmodule T.FeedsTest do
       assert false == Feeds.invite_active_user(u1.id, u2.id)
 
       assert [] = all_enqueued(worder: DispatchJob)
-      refute_receive _anything
     end
 
     test "when inviter is not active", %{users: [u1, u2]} do
@@ -48,7 +47,6 @@ defmodule T.FeedsTest do
       assert false == Feeds.invite_active_user(u1.id, u2.id)
 
       assert [] = all_enqueued(worder: DispatchJob)
-      refute_receive _anything
     end
 
     test "when invitee is not active", %{users: [u1, u2]} do
@@ -57,7 +55,6 @@ defmodule T.FeedsTest do
       assert false == Feeds.invite_active_user(u1.id, u2.id)
 
       assert [] = all_enqueued(worder: DispatchJob)
-      refute_receive _anything
     end
 
     test "when both users are active", %{users: [%{id: u1_id}, %{id: u2_id}]} do
@@ -70,7 +67,6 @@ defmodule T.FeedsTest do
                all_enqueued(worder: DispatchJob)
 
       assert_receive {Feeds, :invited, ^u1_id}
-      refute_receive _anything_else
     end
 
     test "no duplicate notifications on duplicate invite", %{users: [u1, u2]} do
@@ -83,7 +79,6 @@ defmodule T.FeedsTest do
       assert [%Oban.Job{}] = all_enqueued(worder: DispatchJob)
 
       assert_receive {Feeds, :invited, _by_user_id}
-      refute_receive _anything_else
     end
 
     @tag skip: true

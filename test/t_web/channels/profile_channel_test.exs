@@ -1,5 +1,5 @@
 defmodule TWeb.ProfileChannelTest do
-  use TWeb.ChannelCase
+  use TWeb.ChannelCase, async: true
   import Mox
   alias T.Accounts
   alias Accounts.User

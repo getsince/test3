@@ -30,7 +30,6 @@ defmodule T.Accounts.BlockingTest do
       # notification for reporter
       assert_receive {Matches, :matched, match}
       assert match == %{id: match_id, mate: reported.id}
-      refute_receive _anything_else
 
       assert :ok == Accounts.report_user(reporter.id, reported.id, "he show dicky")
       assert_receive {Matches, :unmatched, ^match_id}
@@ -80,7 +79,6 @@ defmodule T.Accounts.BlockingTest do
       assert :ok == Accounts.block_user(user.id)
 
       assert_receive {Matches, :unmatched, ^match_id}
-      refute_receive _anything_else
 
       assert [] == Matches.list_matches(user.id)
       assert [] == Matches.list_matches(other.id)

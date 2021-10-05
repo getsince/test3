@@ -34,20 +34,16 @@ defmodule TWeb.ChannelCase do
 
   setup tags do
     alias Ecto.Adapters.SQL.Sandbox
-
     owner = Sandbox.start_owner!(T.Repo, shared: not tags[:async])
 
-    # TODO
+    :sys.replace_state(TWeb.UserSocket.Monitor, fn state ->
+      Map.put(state, :task_exec, fn _task -> :ok end)
+    end)
+
+    # TODO still unsolved
     # https://github.com/phoenixframework/phoenix/issues/3619
     # https://github.com/phoenixframework/phoenix/pull/3856
     on_exit(fn ->
-      :timer.sleep(10)
-
-      for pid <- TWeb.UserSocket.Monitor.on_down_tasks() do
-        ref = Process.monitor(pid)
-        assert_receive {:DOWN, ^ref, _, _, _}, 1000
-      end
-
       Sandbox.stop_owner(owner)
     end)
 

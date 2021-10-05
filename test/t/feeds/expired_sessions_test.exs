@@ -1,5 +1,5 @@
 defmodule T.Feeds.ExpiredSessionsTest do
-  use T.DataCase
+  use T.DataCase, async: true
   use Oban.Testing, repo: T.Repo
 
   import Assertions

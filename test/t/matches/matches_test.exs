@@ -1,5 +1,5 @@
 defmodule T.MatchesTest do
-  use T.DataCase
+  use T.DataCase, async: true
   use Oban.Testing, repo: T.Repo
   alias T.{Matches, Feeds.FeedProfile, Accounts.Profile, PushNotifications.DispatchJob}
   alias Matches.{Match, Like}
@@ -26,7 +26,10 @@ defmodule T.MatchesTest do
       assert [%Match{id: ^match_id, profile: %FeedProfile{user_id: ^p1_id}}] =
                Matches.list_matches(p2_id)
 
+      parent = self()
+
       spawn(fn ->
+        Ecto.Adapters.SQL.Sandbox.allow(T.Repo, parent, self())
         assert true == Matches.unmatch_match(p1_id, match_id)
       end)
 
@@ -34,7 +37,6 @@ defmodule T.MatchesTest do
       assert_receive {Matches, :unmatched, ^match_id}
       # for p2
       assert_receive {Matches, :unmatched, ^match_id}
-      refute_receive _anything_else
 
       refute Repo.get(Profile, p1_id).hidden?
       refute Repo.get(Profile, p2_id).hidden?

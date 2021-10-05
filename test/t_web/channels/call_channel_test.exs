@@ -1,5 +1,5 @@
 defmodule TWeb.CallChannelTest do
-  use TWeb.ChannelCase
+  use TWeb.ChannelCase, async: true
   alias T.Calls.Call
 
   describe "join" do
@@ -231,7 +231,10 @@ defmodule TWeb.CallChannelTest do
       assert leaves == %{}
       assert Map.keys(joins) == [me.id]
 
+      parent = self()
+
       spawn(fn ->
+        Ecto.Adapters.SQL.Sandbox.allow(Repo, parent, self())
         socket = connected_socket(caller)
         assert {:ok, _reply, socket} = subscribe_and_join(socket, "call:#{call.id}")
 
@@ -253,8 +256,6 @@ defmodule TWeb.CallChannelTest do
         assert leaves == %{}
         assert Map.keys(joins) == [caller.id]
 
-        refute_receive _anything_else
-
         # %{
         #   "0000017a-d3e0-3cd6-1e00-8a0e24450000" => %{
         #     metas: [%{phx_ref: "FpRzeFr6EBgFWQGi"}]
@@ -266,8 +267,6 @@ defmodule TWeb.CallChannelTest do
         assert socket |> TWeb.Presence.list() |> Map.keys() == [me.id, caller.id]
 
         leave(socket)
-
-        refute_receive _anything_else
       end)
 
       # presence_diff broadcast for everyone
@@ -289,8 +288,6 @@ defmodule TWeb.CallChannelTest do
       assert_push "presence_diff", %{joins: joins, leaves: leaves}
       assert joins == %{}
       assert Map.keys(leaves) == [caller.id]
-
-      refute_receive _anything_else
     end
   end
 

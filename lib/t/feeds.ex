@@ -122,7 +122,7 @@ defmodule T.Feeds do
   end
 
   defp feed_profiles_q(user_id, gender, gender_preference, nil) do
-    treshold_date = DateTime.utc_now() |> DateTime.add(-2 * 24 * 60 * 60, :second)
+    treshold_date = DateTime.utc_now() |> DateTime.add(-30 * 24 * 60 * 60, :second)
 
     filtered_profiles_q(user_id, gender, gender_preference)
     |> where([p], p.user_id != ^user_id)

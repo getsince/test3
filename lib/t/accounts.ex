@@ -407,6 +407,11 @@ defmodule T.Accounts do
     Repo.get!(Profile, user_id)
   end
 
+  def print_profile_name(%Profile{user_id: user_id} = profile) do
+    m = "user registried #{user_id}, user name is #{profile.name}"
+    Bot.async_post_message(m)
+  end
+
   def onboard_profile(%Profile{user_id: user_id} = profile, attrs) do
     Multi.new()
     |> Multi.run(:user, fn repo, _changes ->

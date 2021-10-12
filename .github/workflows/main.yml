@@ -2,9 +2,9 @@ name: default
 
 on:
   push:
-    branches: [remove-active-sessions]
+    branches: [master, remove-active-sessions]
   pull_request:
-    branches: [remove-active-sessions]
+    branches: [master, remove-active-sessions]
 
 jobs:
   test:

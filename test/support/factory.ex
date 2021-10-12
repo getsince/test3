@@ -1,11 +1,16 @@
 defmodule T.Factory do
   use ExMachina.Ecto, repo: T.Repo
   alias T.Accounts.{User, Profile, GenderPreference}
+  alias T.Feeds.SeenProfile
   alias T.Matches.{Match, Timeslot}
   alias T.Calls.Call
 
   def user_factory do
     %User{apple_id: apple_id()}
+  end
+
+  def seen_profile_factory do
+    %SeenProfile{}
   end
 
   def profile_factory do

@@ -2,7 +2,7 @@ defmodule T.Feeds do
   @moduledoc "Feeds for alternative app. Invites & Calls."
 
   import Ecto.Query
-  # import Ecto.Changeset
+  import Ecto.Changeset
   import Geo.PostGIS
 
   require Logger
@@ -13,7 +13,7 @@ defmodule T.Feeds do
   alias T.Accounts.{UserReport, GenderPreference}
   alias T.Matches.{Match, Like}
   # alias T.Calls
-  alias T.Feeds.{FeedProfile}
+  alias T.Feeds.{FeedProfile, SeenProfile}
   # alias T.PushNotifications.DispatchJob
 
   ### PubSub
@@ -163,6 +163,14 @@ defmodule T.Feeds do
     where(query, [p], p.user_id not in subquery(reported_user_ids_q(user_id)))
   end
 
+  defp seen_user_ids_q(user_id) do
+    SeenProfile |> where(by_user_id: ^user_id) |> select([s], s.user_id)
+  end
+
+  defp not_seen_profiles_q(query, user_id) do
+    where(query, [p], p.user_id not in subquery(seen_user_ids_q(user_id)))
+  end
+
   defp profiles_that_accept_gender_q(query, gender) do
     join(query, :inner, [p], gp in GenderPreference,
       on: gp.gender == ^gender and p.user_id == gp.user_id
@@ -180,7 +188,28 @@ defmodule T.Feeds do
     |> not_reported_profiles_q(user_id)
     |> not_liked_profiles_q(user_id)
     |> not_liker_profiles_q(user_id)
+    |> not_seen_profiles_q(user_id)
     |> profiles_that_accept_gender_q(gender)
     |> maybe_gender_preferenced_q(gender_preference)
+  end
+
+  @doc "mark_profile_seen(user_id, by: <user-id>)"
+  def mark_profile_seen(user_id, opts) do
+    by_user_id = Keyword.fetch!(opts, :by)
+
+    seen_changeset(by_user_id, user_id)
+    |> Repo.insert()
+  end
+
+  defp seen_changeset(by_user_id, user_id) do
+    %SeenProfile{by_user_id: by_user_id, user_id: user_id}
+    |> change()
+    |> unique_constraint(:seen, name: :seen_profiles_pkey)
+  end
+
+  def prune_seen_profiles(ttl_days) do
+    SeenProfile
+    |> where([s], s.inserted_at < fragment("now() - ? * interval '1 day'", ^ttl_days))
+    |> Repo.delete_all()
   end
 end

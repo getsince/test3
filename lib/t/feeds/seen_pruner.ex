@@ -1,13 +1,13 @@
 defmodule T.Feeds.SeenPruner do
   @moduledoc """
   Periodically deletes seen_profiles rows from DB that
-  have inserted_at < now() - interval '<ttl>' (with default ttl = 7 days)
+  have inserted_at < now() - interval '<ttl>' (with default ttl = 1 days)
   """
 
   use GenServer
 
   @doc """
-      default_opts = [ttl_days: 7, check_interval: :timer.hours(1)]
+      default_opts = [ttl_days: 1, check_interval: :timer.hours(1)]
   """
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
@@ -15,7 +15,7 @@ defmodule T.Feeds.SeenPruner do
 
   @impl true
   def init(opts) do
-    ttl_days = opts[:ttl_days] || 7
+    ttl_days = opts[:ttl_days] || 1
     check_interval = opts[:check_interval] || :timer.hours(1)
     :timer.send_interval(check_interval, :prune)
     {:ok, %{ttl_days: ttl_days}}

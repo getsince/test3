@@ -212,10 +212,12 @@ defmodule T.Accounts do
 
   # TODO deactivate session
   def delete_user(user_id) do
-    delete_user_name = Profile
-    |> where(user_id: ^user_id)
-    |> select([p], p.name)
-    |> Repo.one!()
+    delete_user_name =
+      Profile
+      |> where(user_id: ^user_id)
+      |> select([p], p.name)
+      |> Repo.one!()
+
     {:ok, delete_user_name}
 
     m = "deleted user #{user_id}, user name is #{delete_user_name}"

@@ -97,10 +97,11 @@ defmodule T.Calls do
 
   @spec accept_call(Ecto.UUID.t(), DateTime.t()) :: :ok
   def accept_call(call_id, now \\ utc_now()) do
-    {caller, called} = Call
-    |> where(id: ^call_id)
-    |> select([p], {p.caller_id, p.called_id})
-    |> Repo.one!()
+    {caller, called} =
+      Call
+      |> where(id: ^call_id)
+      |> select([p], {p.caller_id, p.called_id})
+      |> Repo.one!()
 
     m = "New call starts: #{fetch_name(caller)} and #{fetch_name(called)}"
 
@@ -117,7 +118,6 @@ defmodule T.Calls do
 
   @spec end_call(Ecto.UUID.t(), Ecto.UUID.t(), DateTime.t()) :: :ok
   def end_call(user_id, call_id, now \\ utc_now()) do
-
     m = "user #{fetch_name(user_id)}, id #{user_id} ended a call #{call_id}"
 
     Logger.warn(m)

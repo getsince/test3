@@ -10,7 +10,6 @@ defmodule T.Calls do
   alias T.Matches.Match
   alias T.PushNotifications.APNS
   alias T.Bot
-  alias T.Accounts.Profile
 
   @spec ice_servers :: [map]
   def ice_servers do
@@ -98,6 +97,16 @@ defmodule T.Calls do
 
   @spec accept_call(Ecto.UUID.t(), DateTime.t()) :: :ok
   def accept_call(call_id, now \\ utc_now()) do
+    {caller, called} = Call
+    |> where(id: ^call_id)
+    |> select([p], {p.caller_id, p.called_id})
+    |> Repo.one!()
+
+    m = "New call starts: #{fetch_name(caller)} and #{fetch_name(called)}"
+
+    Logger.warn(m)
+    Bot.async_post_message(m)
+
     {1, _} =
       Call
       |> where(id: ^call_id)

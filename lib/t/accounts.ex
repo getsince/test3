@@ -218,8 +218,6 @@ defmodule T.Accounts do
       |> select([p], p.name)
       |> Repo.one!()
 
-    {:ok, delete_user_name}
-
     m = "deleted user #{user_id}, user name is #{delete_user_name}"
     Logger.warn(m)
     Bot.async_post_silent_message(m)
@@ -446,7 +444,7 @@ defmodule T.Accounts do
     |> Repo.transaction()
     |> case do
       {:ok, %{user: user, profile: %Profile{} = profile}} ->
-        m = "user registried #{user.id}, user name is #{profile.name}"
+        m = "user registered #{user.id}, user name is #{profile.name}"
         Logger.warn(m)
         Bot.async_post_message(m)
         {:ok, %Profile{profile | hidden?: false}}

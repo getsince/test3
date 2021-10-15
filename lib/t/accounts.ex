@@ -216,7 +216,14 @@ defmodule T.Accounts do
 
   # TODO deactivate session
   def delete_user(user_id) do
-    m = "deleted user #{user_id}"
+    delete_user_name =
+      Profile
+      |> where(user_id: ^user_id)
+      |> select([p], p.name)
+      |> Repo.one!()
+
+    m = "deleted user #{user_id}, user name is #{delete_user_name}"
+
     Logger.warn(m)
     Bot.async_post_silent_message(m)
 

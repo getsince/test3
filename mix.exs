@@ -59,7 +59,7 @@ defmodule T.MixProject do
       {:remote_ip, "~> 1.0.0"},
       {:mox, "~> 1.0", only: :test},
       {:ex_machina, "~> 2.4", only: :test},
-      {:assertions, "~> 0.18.1", only: :test},
+      {:assertions, "~> 0.19.0", only: :test},
       {:floki, ">= 0.0.0", only: :test},
       # {:pigeon,
       #  github: "ruslandoga/pigeon",

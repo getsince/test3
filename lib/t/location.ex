@@ -13,6 +13,10 @@ defmodule T.Location do
       {:ok, %{"location" => %{"latitude" => lat, "longitude" => lon}}} ->
         [lat, lon]
 
+      {:error, :database_unknown} ->
+        Logger.error("location database_unknown}")
+        [55.755516, 37.615040]
+
       :not_found ->
         Logger.error("couldn't find location for ip address #{inspect(ip_address)}")
         nil

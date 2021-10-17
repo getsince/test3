@@ -39,12 +39,12 @@ RUN mix release
 FROM alpine:3.14.2 AS app
 RUN apk add --no-cache --update bash openssl libgcc libstdc++
 
-RUN mkdir /app
 WORKDIR /app
 
-COPY --from=build /app/_build/prod/rel/t ./
-RUN chown -R nobody: /app
-USER nobody
+RUN chown nobody:nobody /app
+USER nobody:nobody
+
+COPY --from=build --chown=nobody:nobody /app/_build/prod/rel/t ./
 
 ENV HOME=/app
 

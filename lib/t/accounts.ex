@@ -449,7 +449,7 @@ defmodule T.Accounts do
     |> Repo.transaction()
     |> case do
       {:ok, %{user: user, profile: %Profile{} = profile}} ->
-        m = "user onboarded #{user.id}"
+        m = "user registered #{user.id}, user name is #{profile.name}"
         Logger.warn(m)
         Bot.async_post_message(m)
         {:ok, %Profile{profile | hidden?: false}}

@@ -1,0 +1,16 @@
+version: "3"
+
+services:
+  postgres:
+    image: postgis/postgis:13-3.0-alpine
+    environment:
+      POSTGRES_PASSWORD: postgres
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: always
+    ports:
+      - 5432:5432
+
+volumes:
+  pgdata:

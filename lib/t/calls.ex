@@ -103,7 +103,7 @@ defmodule T.Calls do
       |> select([p], {p.caller_id, p.called_id})
       |> Repo.one!()
 
-    m = "New call starts: #{fetch_name(caller)} and #{fetch_name(called)}"
+    m = "New call starts: #{fetch_name(caller)}(#{caller}) and #{fetch_name(called)}(#{called})"
 
     Logger.warn(m)
     Bot.async_post_message(m)

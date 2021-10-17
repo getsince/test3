@@ -259,6 +259,8 @@ if config_env() == :test do
   config :pigeon, :apns,
     prod: %{mode: :prod},
     dev: %{mode: :dev}
+
+  config :t, T.Feeds.SeenPruner, disabled?: true
 end
 
 if config_env() == :bench do

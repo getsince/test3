@@ -18,6 +18,7 @@ defmodule T.Application do
         TWeb.Presence,
         TWeb.UserSocket.Monitor,
         T.Repo,
+        unless_disabled(T.Feeds.SeenPruner),
         TWeb.Endpoint,
         TWeb.Telemetry,
         maybe_migrator(),

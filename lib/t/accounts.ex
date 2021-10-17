@@ -106,18 +106,22 @@ defmodule T.Accounts do
 
   # TODO in one transaction
   defp get_or_register_user_with_apple_id(apple_id, email) do
-    if u = get_user_by_apple_id(apple_id) do
+    if u = get_user_by_apple_id_updating_email(apple_id, email) do
       {:ok, ensure_has_profile(u)}
     else
       register_user_with_apple_id(%{apple_id: apple_id, email: email})
     end
   end
 
-  defp get_user_by_apple_id(apple_id) do
+  defp get_user_by_apple_id_updating_email(apple_id, email) do
     User
     |> where(apple_id: ^apple_id)
-    |> Repo.one()
-    |> Repo.preload(:profile)
+    |> select([u], u)
+    |> Repo.update_all(set: [email: email])
+    |> case do
+      {1, [user]} -> Repo.preload(user, :profile)
+      {0, _} -> nil
+    end
   end
 
   # TODO test
@@ -219,6 +223,7 @@ defmodule T.Accounts do
       |> Repo.one!()
 
     m = "deleted user #{user_id}, user name is #{delete_user_name}"
+
     Logger.warn(m)
     Bot.async_post_silent_message(m)
 

@@ -68,6 +68,12 @@ defmodule TWeb.FeedChannel do
     {:reply, {:ok, %{"feed" => render_feed(feed, screen_width), "cursor" => cursor}}, socket}
   end
 
+  # TODO possibly batch
+  def handle_in("seen", %{"user_id" => _user_id}, socket) do
+    # Feeds.mark_profile_seen(user_id, by: me_id(socket))
+    {:reply, :ok, socket}
+  end
+
   def handle_in("call", %{"user_id" => called}, socket) do
     caller = me_id(socket)
 

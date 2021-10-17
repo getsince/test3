@@ -187,7 +187,7 @@ defmodule TWeb.FeedChannelTest do
     end
 
     test "with no active users", %{socket: socket} do
-      long_ago = DateTime.add(DateTime.utc_now(), -49 * 60 * 60)
+      long_ago = DateTime.add(DateTime.utc_now(), -32 * 24 * 60 * 60)
 
       for _ <- 1..3 do
         onboarded_user(

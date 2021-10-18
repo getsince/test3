@@ -216,13 +216,7 @@ defmodule T.Accounts do
 
   # TODO deactivate session
   def delete_user(user_id) do
-    delete_user_name =
-      Profile
-      |> where(user_id: ^user_id)
-      |> select([p], p.name)
-      |> Repo.one!()
-
-    m = "deleted user #{delete_user_name} (#{user_id})"
+    m = "deleted user #{user_id}"
 
     Logger.warn(m)
     Bot.async_post_silent_message(m)
@@ -449,7 +443,7 @@ defmodule T.Accounts do
     |> Repo.transaction()
     |> case do
       {:ok, %{user: user, profile: %Profile{} = profile}} ->
-        m = "user registered #{profile.name} (#{user.id})"
+        m = "user onboarded #{user.id}"
         Logger.warn(m)
         Bot.async_post_message(m)
         {:ok, %Profile{profile | hidden?: false}}

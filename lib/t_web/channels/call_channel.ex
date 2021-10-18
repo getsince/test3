@@ -13,7 +13,11 @@ defmodule TWeb.CallChannel do
 
     locale = params["locale"]
 
-    topics = CallTopics.locale_topics(locale)
+    topics =
+      case locale do
+        nil -> CallTopics.locale_topics("en")
+        _ -> CallTopics.locale_topics(locale)
+      end
 
     case Calls.get_call_role_and_peer(call_id, current_user.id) do
       {:ok, :caller = role, _peer} ->

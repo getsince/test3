@@ -197,8 +197,11 @@ if config_env() == :dev do
     salt: System.fetch_env!("IMGPROXY_SALT")
 
   config :t, T.Bot,
-    token: System.fetch_env!("TG_BOT_KEY"),
-    room_id: System.fetch_env!("TG_ROOM_ID") |> String.to_integer()
+    token: "asdfasdfasdf",
+    room_id: String.to_integer("-1234")
+
+  # token: System.fetch_env!("TG_BOT_KEY"),
+  # room_id: System.fetch_env!("TG_ROOM_ID") |> String.to_integer()
 
   config :t, T.Media,
     user_bucket: System.fetch_env!("AWS_S3_BUCKET"),

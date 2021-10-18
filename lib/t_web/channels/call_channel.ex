@@ -4,6 +4,7 @@ defmodule TWeb.CallChannel do
 
   alias TWeb.Presence
   alias T.Calls
+  alias T.CallTopics
 
   @impl true
   def join("call:" <> call_id, params, socket) do
@@ -12,15 +13,7 @@ defmodule TWeb.CallChannel do
 
     locale = params["locale"]
 
-    filename =
-      case locale do
-        nil -> "priv/call_topics/en.txt"
-        _ -> "priv/call_topics/#{locale}.txt"
-      end
-
-    topics =
-      File.stream!(filename)
-      |> Enum.to_list()
+    topics = CallTopics.locale_topics(locale)
 
     case Calls.get_call_role_and_peer(call_id, current_user.id) do
       {:ok, :caller = role, _peer} ->

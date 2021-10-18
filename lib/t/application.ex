@@ -23,7 +23,8 @@ defmodule T.Application do
         TWeb.Telemetry,
         maybe_migrator(),
         {Oban, oban_config()},
-        Supervisor.child_spec({Task, &T.Release.mark_ready/0}, id: :readiness_notifier)
+        Supervisor.child_spec({Task, &T.Release.mark_ready/0}, id: :readiness_notifier),
+        T.CallTopics
       ]
       |> Enum.reject(&is_nil/1)
 

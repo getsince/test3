@@ -97,22 +97,83 @@ defmodule T.Feeds do
         ) ::
           {[feed_profile], feed_cursor}
   def fetch_feed(user_id, location, gender, gender_preferences, count, feed_cursor) do
-    feed_profiles =
-      feed_profiles_q(user_id, gender, gender_preferences, feed_cursor)
-      |> limit(^count)
-      |> select([p], {p, distance_km(^location, p.location)})
-      |> Repo.all()
+    case feed_cursor do
+      nil -> maybe_save_eligible_feed_profiles_to_memory(user_id, gender, gender_preferences)
+      _ -> :ok
+    end
+
+    feed_profiles_with_cursor = feed_profiles_from_memory(user_id, feed_cursor, count)
 
     feed_cursor =
-      if last = List.last(feed_profiles) do
-        {feed_profile, _distance} = last
-        feed_profile.last_active
+      if last = List.last(feed_profiles_with_cursor) do
+        {cursor, _feed_profile} = last
+        cursor
       else
         feed_cursor
       end
 
+    feed_profiles =
+      feed_profiles_with_cursor
+      |> Enum.map(fn {_cursor, profile} ->
+        # TODO
+        # distance = distance_km(location, p.location)
+
+        {profile, 5}
+      end)
+
     {feed_profiles, feed_cursor}
   end
+
+  def maybe_save_eligible_feed_profiles_to_memory(user_id, gender, gender_preferences) do
+    table_name = String.to_atom("feed_#{user_id}")
+
+    case :ets.whereis(table_name) do
+      :undefined ->
+        :ets.new(table_name, [:ordered_set, :named_table, read_concurrency: true])
+
+        feed_profiles =
+          feed_profiles_q(user_id, gender, gender_preferences, nil)
+          |> Repo.all()
+
+        for feed_profile <- feed_profiles do
+          id = Ecto.Bigflake.UUID.generate()
+          :ets.insert(table_name, {id, feed_profile})
+        end
+
+      _ ->
+        :ok
+    end
+  end
+
+  def feed_profiles_from_memory(user_id, feed_cursor, count) do
+    table_name = String.to_atom("feed_#{user_id}")
+
+    keys = next(table_name, feed_cursor, count)
+
+    feed_profiles =
+      keys
+      |> Enum.map(fn key ->
+        :ets.lookup(table_name, key) |> Enum.at(0)
+      end)
+
+    feed_profiles
+  end
+
+  def next(table, nil, count) when count > 0 do
+    case :ets.first(table) do
+      :"$end_of_table" -> []
+      id -> [id | next(table, id, count - 1)]
+    end
+  end
+
+  def next(table, cursor, count) when count > 0 do
+    case :ets.next(table, cursor) do
+      :"$end_of_table" -> []
+      id -> [id | next(table, id, count - 1)]
+    end
+  end
+
+  def next(_table, _after_id, 0), do: []
 
   @spec get_mate_feed_profile(Ecto.UUID.t()) :: %FeedProfile{} | nil
   def get_mate_feed_profile(user_id) do

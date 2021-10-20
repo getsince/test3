@@ -4,20 +4,12 @@ defmodule TWeb.CallChannel do
 
   alias TWeb.Presence
   alias T.Calls
-  alias T.CallTopics
 
   @impl true
   def join("call:" <> call_id, params, socket) do
     %{current_user: current_user, screen_width: screen_width} = socket.assigns
     socket = assign(socket, call_id: call_id)
-
-    locale = params["locale"]
-
-    topics =
-      case locale do
-        nil -> CallTopics.locale_topics("en")
-        _ -> CallTopics.locale_topics(locale)
-      end
+    topics = Calls.Topics.topics_json_fragment(params["locale"])
 
     case Calls.get_call_role_and_peer(call_id, current_user.id) do
       {:ok, :caller = role, _peer} ->

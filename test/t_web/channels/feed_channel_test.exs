@@ -6,7 +6,6 @@ defmodule TWeb.FeedChannelTest do
   alias Matches.{Timeslot, Match}
   alias Feeds.ActiveSession
   alias Calls.Call
-  alias Pigeon.APNS.Notification
 
   import Mox
   setup :verify_on_exit!
@@ -119,7 +118,7 @@ defmodule TWeb.FeedChannelTest do
       :ok = Accounts.save_pushkit_device_id(me.id, token, Base.decode16!("ABABAB"), env: "prod")
 
       # prepare apns mock
-      expect(MockAPNS, :push, 3, fn [push], :prod -> [%{push | response: :success}] end)
+      expect(MockAPNS, :push, 3, fn _notification -> :ok end)
 
       # mate invites me
       true = Feeds.invite_active_user(me.id, mate.id)
@@ -666,26 +665,24 @@ defmodule TWeb.FeedChannelTest do
 
       MockAPNS
       # ABABABAB on prod -> fails!
-      |> expect(:push, fn [%Notification{} = n], :prod ->
-        assert n.device_token == "ABABABAB"
+      |> expect(:push, fn %{env: :prod} = n ->
+        assert n.device_id == "ABABABAB"
         assert n.topic == "app.topic.voip"
         assert n.push_type == "voip"
-        assert n.expiration == 0
         assert n.payload["caller_id"] == me.id
         assert n.payload["caller_name"] == "that"
         assert n.payload["call_id"]
-        [%Notification{n | response: :bad_device_token}]
+        {:error, :bad_device_token}
       end)
       # BABABABABA on sandbox -> fails!
-      |> expect(:push, fn [%Notification{} = n], :dev ->
-        assert n.device_token == "BABABABABA"
+      |> expect(:push, fn %{env: :dev} = n ->
+        assert n.device_id == "BABABABABA"
         assert n.topic == "app.topic.voip"
         assert n.push_type == "voip"
-        assert n.expiration == 0
         assert n.payload["caller_id"] == me.id
         assert n.payload["caller_name"] == "that"
         assert n.payload["call_id"]
-        [%Notification{n | response: :bad_device_token}]
+        {:error, :bad_device_token}
       end)
 
       # call still can fail if apns requests fail
@@ -741,13 +738,9 @@ defmodule TWeb.FeedChannelTest do
 
       MockAPNS
       # ABABABAB on prod -> fails!
-      |> expect(:push, fn [%Notification{} = n], :prod ->
-        [%Notification{n | response: :bad_device_token}]
-      end)
+      |> expect(:push, fn %{env: :prod} -> {:error, :bad_device_token} end)
       # BABABABABA on sandbox -> success!
-      |> expect(:push, fn [%Notification{} = n], :dev ->
-        [%Notification{n | response: :success}]
-      end)
+      |> expect(:push, fn %{env: :dev} -> :ok end)
 
       # call succeeds
       ref = push(socket, "call", %{"user_id" => mate.id})
@@ -783,9 +776,7 @@ defmodule TWeb.FeedChannelTest do
       assert_reply(ref, :ok, _reply)
 
       # ABCBABCA on prod -> success
-      expect(MockAPNS, :push, fn [%Notification{} = n], :prod ->
-        [%Notification{n | response: :success}]
-      end)
+      expect(MockAPNS, :push, fn %{env: :prod} -> :ok end)
 
       # mate calls us
       ref = push(mate_socket, "call", %{"user_id" => me.id})
@@ -833,13 +824,9 @@ defmodule TWeb.FeedChannelTest do
       # these are the pushes sent to mate
       MockAPNS
       # ABABABAB on prod -> fails!
-      |> expect(:push, fn [%Notification{} = n], :prod ->
-        [%Notification{n | response: :bad_device_token}]
-      end)
+      |> expect(:push, fn %{env: :prod} -> {:error, :bad_device_token} end)
       # BABABABABA on sandbox -> success!
-      |> expect(:push, fn [%Notification{} = n], :dev ->
-        [%Notification{n | response: :success}]
-      end)
+      |> expect(:push, fn %{env: :dev} -> :ok end)
 
       # call succeeds
       ref = push(socket, "call", %{"user_id" => mate.id})
@@ -855,13 +842,9 @@ defmodule TWeb.FeedChannelTest do
       # these are the pushes sent to mate
       MockAPNS
       # ABABABAB on prod -> success!
-      |> expect(:push, fn [%Notification{} = n], :prod ->
-        [%Notification{n | response: :success}]
-      end)
+      |> expect(:push, fn %{env: :prod} -> :ok end)
       # BABABABABA on sandbox -> fails!
-      |> expect(:push, fn [%Notification{} = n], :dev ->
-        [%Notification{n | response: :bad_device_token}]
-      end)
+      |> expect(:push, fn %{env: :dev} -> {:error, :bad_device_token} end)
 
       ref = push(socket, "call", %{"user_id" => mate.id})
       assert_reply(ref, :ok, %{"call_id" => call_id})

@@ -10,8 +10,15 @@ defmodule T.Application do
     children =
       [
         {Task.Supervisor, name: T.TaskSupervisor},
+        APNS.Token,
         # T.PromEx,
-        {Finch, name: T.Finch},
+        # TODO add apple keys endpoint and twilio (possibly aws as well)
+        {Finch,
+         name: T.Finch,
+         pools: %{
+           "https://api.development.push.apple.com" => [protocol: :http2],
+           "https://api.push.apple.com" => [protocol: :http2, count: 1]
+         }},
         T.Twilio,
         {Phoenix.PubSub, name: T.PubSub},
         unless_disabled(T.Media.Static),

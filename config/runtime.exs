@@ -120,6 +120,15 @@ if config_env() == :prod do
     user_bucket: System.fetch_env!("AWS_S3_BUCKET"),
     static_bucket: System.fetch_env!("AWS_S3_BUCKET_STATIC"),
     static_cdn: System.fetch_env!("STATIC_CDN")
+
+  config :libcluster,
+    topologies: [
+      dns: [
+        node_basename: "t",
+        query: System.fetch_env!("CLUSTER_DNS_QUERY"),
+        resolver: fn query -> T.Cluster.resolve_route53_srv(query) end
+      ]
+    ]
 end
 
 if config_env() == :dev do

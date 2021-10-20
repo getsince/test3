@@ -9,6 +9,7 @@ defmodule T.Application do
   def start(_type, _args) do
     children =
       [
+        maybe_cluster(),
         {Task.Supervisor, name: T.TaskSupervisor},
         APNS.Token,
         # T.PromEx,
@@ -88,6 +89,12 @@ defmodule T.Application do
   defp maybe_add_pusbub_logger_backend do
     if _config = Application.get_env(:logger, T.PubSubLoggerBackend) do
       {:ok, _pid} = Logger.add_backend(T.PubSubLoggerBackend)
+    end
+  end
+
+  defp maybe_cluster do
+    if topologies = Application.get_env(:libcluster, :topologies) do
+      {Cluster.Supervisor, [topologies, [name: T.Cluster.Supervisor]]}
     end
   end
 

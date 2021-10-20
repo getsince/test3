@@ -73,7 +73,8 @@ defmodule T.MixProject do
       # {:retry, "~> 0.14.1"},
       {:benchee, "~> 1.0", only: :bench},
       {:dialyxir, "~> 1.1", only: :dev, runtime: false},
-      {:jose, "~> 1.11"}
+      {:jose, "~> 1.11"},
+      {:libcluster, "~> 3.3"}
     ]
   end
 

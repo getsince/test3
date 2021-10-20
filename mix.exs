@@ -77,7 +77,6 @@ defmodule T.MixProject do
       # {:prom_ex, "~> 1.3"},
       {:esbuild, "~> 0.3", runtime: Mix.env() == :dev},
       # {:retry, "~> 0.14.1"},
-      {:cloud_watch, github: "getsince/cloud_watch", branch: "drop-httpoison"},
       {:benchee, "~> 1.0", only: :bench},
       {:dialyxir, "~> 1.1", only: :dev, runtime: false}
     ]

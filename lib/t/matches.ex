@@ -11,6 +11,7 @@ defmodule T.Matches do
   alias T.Feeds.FeedProfile
   alias T.Accounts.Profile
   alias T.PushNotifications.DispatchJob
+  alias T.Bot
 
   @type uuid :: Ecto.UUID.t()
 
@@ -112,6 +113,8 @@ defmodule T.Matches do
     Multi.run(multi, :match, fn _repo, %{mutual: mutual} ->
       if mutual do
         [user_id_1, user_id_2] = Enum.sort(user_ids)
+        m = "New match: #{user_id_1} and #{user_id_2}"
+        Bot.async_post_message(m)
         Repo.insert(%Match{user_id_1: user_id_1, user_id_2: user_id_2})
       else
         {:ok, nil}

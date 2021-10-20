@@ -46,6 +46,7 @@ defmodule T.Matches do
     |> Repo.transaction()
     |> case do
       {:ok, %{match: match}} = success ->
+        bump_likes_count(user_id)
         maybe_notify_match(match, by_user_id, user_id)
         maybe_notify_liked_user(match, by_user_id, user_id)
         success
@@ -53,6 +54,12 @@ defmodule T.Matches do
       {:error, _step, _reason, _changes} = failure ->
         failure
     end
+  end
+
+  defp bump_likes_count(user_id) do
+    FeedProfile
+    |> where(user_id: ^user_id)
+    |> Repo.update_all(inc: [times_liked: 1])
   end
 
   defp maybe_notify_match(%Match{id: match_id}, by_user_id, user_id) do

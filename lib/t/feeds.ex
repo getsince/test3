@@ -98,7 +98,7 @@ defmodule T.Feeds do
           {[feed_profile], feed_cursor}
   def fetch_feed(user_id, location, gender, gender_preferences, count, feed_cursor) do
     case feed_cursor do
-      nil -> maybe_save_eligible_feed_profiles_to_memory(user_id, gender, gender_preferences)
+      nil -> save_eligible_feed_profiles_to_memory(user_id, location, gender, gender_preferences)
       _ -> :ok
     end
 
@@ -115,34 +115,47 @@ defmodule T.Feeds do
     feed_profiles =
       feed_profiles_with_cursor
       |> Enum.map(fn {_cursor, profile} ->
-        # TODO
-        # distance = distance_km(location, p.location)
-
-        {profile, 5}
+        profile
       end)
 
     {feed_profiles, feed_cursor}
   end
 
-  def maybe_save_eligible_feed_profiles_to_memory(user_id, gender, gender_preferences) do
-    table_name = String.to_atom("feed_#{user_id}")
+  def save_eligible_feed_profiles_to_memory(user_id, location, gender, gender_preferences) do
+    table = String.to_atom("feed_#{user_id}")
 
-    case :ets.whereis(table_name) do
-      :undefined ->
-        :ets.new(table_name, [:ordered_set, :named_table, read_concurrency: true])
-
-        feed_profiles =
-          feed_profiles_q(user_id, gender, gender_preferences, nil)
-          |> Repo.all()
-
-        for feed_profile <- feed_profiles do
-          id = Ecto.Bigflake.UUID.generate()
-          :ets.insert(table_name, {id, feed_profile})
-        end
-
-      _ ->
-        :ok
+    case :ets.whereis(table) do
+      :undefined -> :ok
+      _ -> :ets.delete(table)
     end
+
+    :ets.new(table, [:ordered_set, :named_table, read_concurrency: true])
+
+    eligible_feed_profiles =
+      feed_profiles_q(user_id, gender, gender_preferences)
+      |> select([p], {p, distance_km(^location, p.location)})
+      |> Repo.all()
+
+    most_liked_feed_profiles =
+      Enum.sort_by(eligible_feed_profiles, fn {p, _} -> p.times_liked end, :desc)
+
+    recently_active_feed_profiles =
+      Enum.sort_by(eligible_feed_profiles, fn {p, _} -> p.last_active end, {:desc, DateTime})
+
+    feed_profiles = mix_feed_profiles(most_liked_feed_profiles, recently_active_feed_profiles)
+
+    for feed_profile <- feed_profiles do
+      id = Ecto.Bigflake.UUID.generate()
+      :ets.insert(table, {id, feed_profile})
+    end
+  end
+
+  defp mix_feed_profiles(set1, set2) do
+    feed_profiles =
+      Enum.zip(set1, set2)
+      |> Enum.flat_map(fn {p1, p2} -> [p1, p2] end)
+
+    Enum.uniq(feed_profiles)
   end
 
   def feed_profiles_from_memory(user_id, feed_cursor, count) do
@@ -182,18 +195,12 @@ defmodule T.Feeds do
     |> Repo.one()
   end
 
-  defp feed_profiles_q(user_id, gender, gender_preference, nil) do
+  defp feed_profiles_q(user_id, gender, gender_preference) do
     treshold_date = DateTime.utc_now() |> DateTime.add(-30 * 24 * 60 * 60, :second)
 
     filtered_profiles_q(user_id, gender, gender_preference)
     |> where([p], p.user_id != ^user_id)
     |> where([p], p.last_active > ^treshold_date)
-    |> order_by(desc: :last_active)
-  end
-
-  defp feed_profiles_q(user_id, gender, gender_preference, last_date) do
-    feed_profiles_q(user_id, gender, gender_preference, nil)
-    |> where([p], p.last_active < ^last_date)
   end
 
   defp reported_user_ids_q(user_id) do
@@ -272,5 +279,22 @@ defmodule T.Feeds do
     SeenProfile
     |> where([s], s.inserted_at < fragment("now() - ? * interval '1 day'", ^ttl_days))
     |> Repo.delete_all()
+  end
+
+  # TODO
+  # TO BE USED ONCE (THEN DELETED)
+  def count_likes() do
+    FeedProfile
+    |> Repo.update_all(set: [times_liked: 0])
+
+    all_likes = Like |> Repo.all()
+
+    for like <- all_likes do
+      user_id = like.user_id
+
+      FeedProfile
+      |> where(user_id: ^user_id)
+      |> Repo.update_all(inc: [times_liked: 1])
+    end
   end
 end

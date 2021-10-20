@@ -234,7 +234,6 @@ defmodule TWeb.FeedChannelTest do
 
       ref = push(socket, "more", %{"count" => 2})
       assert_reply(ref, :ok, %{"cursor" => cursor, "feed" => feed})
-      assert %DateTime{} = cursor
 
       assert feed == [
                %{

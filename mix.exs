@@ -72,7 +72,8 @@ defmodule T.MixProject do
       {:esbuild, "~> 0.3", runtime: Mix.env() == :dev},
       # {:retry, "~> 0.14.1"},
       {:benchee, "~> 1.0", only: :bench},
-      {:dialyxir, "~> 1.1", only: :dev, runtime: false}
+      {:dialyxir, "~> 1.1", only: :dev, runtime: false},
+      {:jose, "~> 1.11"}
     ]
   end
 

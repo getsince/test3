@@ -7,7 +7,6 @@ defmodule T.Feeds.ExpiredSessionsTest do
   alias T.{Feeds, Accounts}
   alias T.PushNotifications.{DispatchJob, APNSJob}
   alias Feeds.ActiveSession
-  alias Pigeon.APNS.Notification
 
   import Mox
   setup :verify_on_exit!
@@ -98,29 +97,27 @@ defmodule T.Feeds.ExpiredSessionsTest do
       # verify apns executed
 
       expect(MockAPNS, :push, 2, fn
-        %Notification{device_token: "BABABABABA"} = n, :dev ->
-          assert n.payload == %{
+        %{device_id: "BABABABABA", payload: payload, env: :dev} ->
+          assert payload == %{
                    "aps" => %{
                      "alert" => %{"title" => "Your session has expired"},
-                     "badge" => 1,
-                     "mutable-content" => 1
+                     "badge" => 1
                    },
                    "type" => "session_expired"
                  }
 
-          %Notification{n | response: :success}
+          :ok
 
-        %Notification{device_token: "ABABABABAB"} = n, :dev ->
-          assert n.payload == %{
+        %{device_id: "ABABABABAB", payload: payload, env: :dev} ->
+          assert payload == %{
                    "aps" => %{
                      "alert" => %{"title" => "Твоя сессия завершена"},
-                     "badge" => 1,
-                     "mutable-content" => 1
+                     "badge" => 1
                    },
                    "type" => "session_expired"
                  }
 
-          %Notification{n | response: :success}
+          :ok
       end)
 
       assert %{failure: 0, success: 2} = Oban.drain_queue(queue: :apns, with_safety: false)

@@ -267,8 +267,8 @@ defmodule T.Feeds do
   @spec get_feed_item(Ecto.UUID.t(), Geo.Point.t() | nil, Ecto.UUID.t()) :: feed_item | nil
   def get_feed_item(by_user_id, location, user_id) do
     p =
-      by_user_id
-      |> not_reported_profiles_q()
+      not_hidden_profiles_q()
+      |> not_reported_profiles_q(by_user_id)
       |> where(user_id: ^user_id)
 
     ActiveSession

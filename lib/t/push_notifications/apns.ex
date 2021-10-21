@@ -10,10 +10,10 @@ defmodule T.PushNotifications.APNS do
 
   @type apns_env :: :prod | :dev
 
-  @spec push(n, apns_env) :: n when n: Notification.t() | [Notification.t()]
-  defp push([] = empty, _env), do: empty
+  @spec push(n, apns_env) :: n when n: Notiification.t() | [Notification.t()]
+  def push([] = empty, _env), do: empty
 
-  defp push(notifications, env) when env in [:dev, :prod] do
+  def push(notifications, env) when env in [:dev, :prod] do
     @adapter.push(notifications, env)
   end
 

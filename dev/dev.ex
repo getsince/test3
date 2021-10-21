@@ -1,76 +1,7 @@
 defmodule Dev do
-  # alias T.PushNotifications.APNS
-
   # click + -> can add session by picking user and inputting duration -> table updates
   # can select user to impersonate, if selected, can invite, call etc. based on status
   # search
-
-  def args do
-    %{
-      "data" => %{
-        "match_id" => "0000017b-b277-cbad-0242-ac1100020000"
-      },
-      "device_id" => "E069BD8A7CFF5BC34656C767209697AE3DB3B26E03E1252FA79EA7A773F75783",
-      "env" => "sandbox",
-      "locale" => nil,
-      "template" => "timeslot_started",
-      "topic" => "since.app.ios"
-    }
-  end
-
-  def send_notification(args \\ args()) do
-    T.PushNotifications.APNSJob.perform(%Oban.Job{args: args})
-  end
-
-  def run do
-    # notifications =
-    #   devices()
-    #   |> Enum.map(fn device ->
-    #     %Pigeon.APNS.Notification{
-    #       device_token: device.device_id,
-    #       push_type: "background",
-    #       topic: "since.app.ios"
-    #     }
-    #   end)
-
-    # Pigeon.APNS.push(notifications, to: :prod)
-
-    # args = %{
-    #   "data" => %{"name" => "Rail", "user_id" => "0000017b-86b5-039d-0242-ac1100020000"},
-    #   "device_id" => "706e1db8abb8205351eefa0b5be078149f8f5f277a99dda0601bc8d8647a56cd",
-    #   "env" => "sandbox",
-    #   "locale" => nil,
-    #   "template" => "invite",
-    #   "topic" => "since.app.ios"
-    # }
-
-    devices = [
-      "6ad0ce59461fc5a491a94bc012f03bc1c5e2c36ea6474f31ce419830e09b95f7",
-      "706e1db8abb8205351eefa0b5be078149f8f5f277a99dda0601bc8d8647a56cd",
-      "3546b5d371127f6cb30c4df4b596bbfba0ab6f62bfb9294f6a533f9e119e0661",
-      "8c38eb244937e9bb057ac6372d343111a73bb264e94484d899059bdaef234a10"
-    ]
-
-    n =
-      Enum.map(devices, fn d ->
-        %Pigeon.APNS.Notification{
-          device_token: d,
-          payload: %{
-            "aps" => %{
-              "alert" => %{"title" => "Rail invited you for a call"}
-            },
-            "type" => "invite",
-            "user_id" => "0000017b-86b5-039d-0242-ac1100020000"
-          },
-          push_type: "alert",
-          topic: "since.app.ios"
-        }
-      end)
-
-    Pigeon.APNS.push(n, to: :dev)
-
-    # T.PushNotifications.APNSJob.perform(%Oban.Job{args: args})
-  end
 
   def devices do
     T.Accounts.APNSDevice

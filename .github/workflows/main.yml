@@ -1,10 +1,9 @@
 name: default
 
 on:
-  push:
-    branches: [master, remove-active-sessions]
   pull_request:
-    branches: [master, remove-active-sessions]
+  push:
+    branches: [master]
 
 jobs:
   test:
@@ -29,7 +28,7 @@ jobs:
         uses: erlef/setup-elixir@v1
         with:
           elixir-version: "1.12.3"
-          otp-version: "24.1"
+          otp-version: "24.1.2"
 
       - name: Restore dependencies cache
         uses: actions/cache@v2

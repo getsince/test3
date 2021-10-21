@@ -1,5 +1,5 @@
 defmodule TWeb.AdminChannelTest do
-  use TWeb.ChannelCase
+  use TWeb.ChannelCase, async: true
 
   test "non-admin can't join" do
     not_admin = onboarded_user()

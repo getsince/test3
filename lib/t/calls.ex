@@ -58,14 +58,12 @@ defmodule T.Calls do
 
   @spec push_call(Ecto.UUID.t(), Ecto.UUID.t(), [%Accounts.PushKitDevice{}]) :: boolean
   def push_call(caller_id, call_id, devices) do
-    alias Pigeon.APNS.Notification
-
     caller_name = fetch_name(caller_id)
     payload = %{"caller_id" => caller_id, "call_id" => call_id, "caller_name" => caller_name}
 
     devices
     |> APNS.pushkit_call(payload)
-    |> Enum.any?(fn %Notification{response: response} -> response == :success end)
+    |> Enum.any?(fn response -> response == :ok end)
   end
 
   @spec fetch_name(Ecto.UUID.t()) :: String.t()

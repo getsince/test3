@@ -247,7 +247,7 @@ defmodule T.Accounts do
   # apns
 
   defp default_apns_topic do
-    T.PushNotifications.APNS.topic()
+    T.PushNotifications.APNS.default_topic()
   end
 
   defp with_base16_encoded_apns_device_id(devices) when is_list(devices) do

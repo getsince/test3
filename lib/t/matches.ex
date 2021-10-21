@@ -41,6 +41,9 @@ defmodule T.Matches do
   @spec like_user(Ecto.UUID.t(), Ecto.UUID.t()) ::
           {:ok, %{match: %Match{} | nil}} | {:error, atom, term, map}
   def like_user(by_user_id, user_id) do
+    m = "New like: #{by_user_id} liked #{user_id}"
+    Bot.async_post_message(m)
+
     Multi.new()
     |> mark_liked(by_user_id, user_id)
     |> match_if_mutual(by_user_id, user_id)
@@ -344,6 +347,9 @@ defmodule T.Matches do
       "saving slots offer for match #{match_id} (users #{offerer_id}, #{mate_id}) from #{offerer_id}: #{inspect(slots)}"
     )
 
+    m = "Saving slots offer for match: #{offerer_id} offered date  #{mate_id}"
+    Bot.async_post_message(m)
+
     changeset =
       timeslot_changeset(
         %Timeslot{match_id: match_id, picker_id: mate_id},
@@ -398,6 +404,9 @@ defmodule T.Matches do
     Logger.warn(
       "accepting slot for match #{match_id} (users #{picker}, #{mate}) by #{picker}: #{inspect(slot)}"
     )
+
+    m = "Accept slot for match: #{picker} with #{mate}"
+    Bot.async_post_message(m)
 
     {:ok, slot, 0} = DateTime.from_iso8601(slot)
     true = DateTime.compare(slot, prev_slot(reference)) in [:eq, :gt]
@@ -469,6 +478,9 @@ defmodule T.Matches do
     Logger.warn(
       "cancelling timeslot for match #{match_id} (with mate #{mate_id}) by #{by_user_id}"
     )
+
+    m = "Cancelled timeslot: #{by_user_id} cancelled date with #{mate_id}"
+    Bot.async_post_message(m)
 
     {1, [%Timeslot{selected_slot: selected_slot} = timeslot]} =
       Timeslot

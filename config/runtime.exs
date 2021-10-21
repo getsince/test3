@@ -260,7 +260,7 @@ if config_env() == :test do
     token: "asdfasdfasdf",
     room_id: String.to_integer("-1234")
 
-  config :t, T.PushNotifications.APNS, topic: "app.topic"
+  config :t, T.PushNotifications.APNS, default_topic: "app.topic"
 
   config :t, T.Feeds.SeenPruner, disabled?: true
 end

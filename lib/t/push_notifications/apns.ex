@@ -86,19 +86,8 @@ defmodule T.PushNotifications.APNS do
 
   def build_alert_payload("invite" = type, data) do
     %{"user_id" => user_id, "name" => name} = data
-<<<<<<< HEAD
-
-    # TODO if current locale is ru, don't translitirate
-    name_en = Helpers.translitirate_to_en(name)
-    title = dgettext("apns", "%{name} invited you to connect", name: name_en)
-
-    base_notification(device, "invite", %{"user_id" => user_id})
-    |> Notification.put_alert(%{"title" => title})
-    |> Notification.put_badge(1)
-=======
-    alert = %{"title" => dgettext("apns", "%{name} invited you for a call", name: name)}
+    alert = %{"title" => dgettext("apns", "%{name} invited you to connect", name: name)}
     base_alert_payload(type, alert, %{"user_id" => user_id})
->>>>>>> master
   end
 
   def build_alert_payload("session_expired" = type, _data) do

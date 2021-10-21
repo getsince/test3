@@ -1,5 +1,5 @@
 defmodule T.MatchesTest do
-  use T.DataCase, async: true
+  use T.DataCase
   use Oban.Testing, repo: T.Repo
 
   import Assertions

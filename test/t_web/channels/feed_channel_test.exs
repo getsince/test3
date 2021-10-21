@@ -1,6 +1,5 @@
 defmodule TWeb.FeedChannelTest do
   use TWeb.ChannelCase, async: true
-  import Assertions
 
   alias T.{Accounts, Calls, Matches}
   alias Matches.{Timeslot, Match}

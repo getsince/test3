@@ -33,7 +33,7 @@ defmodule APNS.Token do
     if key = find_apns_key(topic, env) do
       GenServer.call(__MODULE__, {:refresh_token, key})
     else
-      raise ArgumentError, "unknown key for topic #{topic} and env #{env}"
+      raise ArgumentError, "unknown key for topic #{inspect(topic)} and env #{inspect(env)}"
     end
   end
 

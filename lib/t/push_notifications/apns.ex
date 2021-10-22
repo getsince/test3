@@ -44,14 +44,7 @@ defmodule T.PushNotifications.APNS do
   defp build_call_notification(device, payload) do
     %PushKitDevice{device_id: device_id, topic: topic} = device
     topic = topic || default_topic()
-
-    APNS.build_notification(
-      device_id,
-      topic <> ".voip",
-      payload,
-      apns_env(device),
-      _type = "voip"
-    )
+    APNS.build_notification(device_id, topic, payload, apns_env(device), _type = "voip")
   end
 
   # alerts

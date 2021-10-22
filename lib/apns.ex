@@ -48,20 +48,24 @@ defmodule APNS do
 
     base_headers = [
       {"authorization", "bearer " <> token},
-      {"apns-topic", topic},
+      {"apns-topic", maybe_voip_topic(push_type, topic)},
       {"apns-push-type", push_type}
     ]
 
     url = url(env, device_id)
-    headers = maybe_app_expiration(push_type, base_headers)
+    headers = maybe_add_expiration(push_type, base_headers)
     body = Jason.encode_to_iodata!(payload)
 
     Finch.build(:post, url, headers, body)
   end
 
-  @spec maybe_app_expiration(String.t(), Finch.Request.headers()) :: Finch.Request.headers()
-  defp maybe_app_expiration("alert", headers), do: headers
-  defp maybe_app_expiration("voip", headers), do: [{"apns-expiration", 0} | headers]
+  @spec maybe_add_expiration(String.t(), Finch.Request.headers()) :: Finch.Request.headers()
+  defp maybe_add_expiration("alert", headers), do: headers
+  defp maybe_add_expiration("voip", headers), do: [{"apns-expiration", "0"} | headers]
+
+  @spec maybe_voip_topic(String.t(), String.t()) :: String.t()
+  defp maybe_voip_topic("alert", topic), do: topic
+  defp maybe_voip_topic("voip", topic), do: topic <> ".voip"
 
   defp error_reason(%{"reason" => reason}) do
     error_reason(reason)

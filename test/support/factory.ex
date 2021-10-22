@@ -1,11 +1,16 @@
 defmodule T.Factory do
   use ExMachina.Ecto, repo: T.Repo
   alias T.Accounts.{User, Profile, GenderPreference}
+  alias T.Feeds.SeenProfile
   alias T.Matches.{Match, Timeslot}
   alias T.Calls.Call
 
   def user_factory do
     %User{apple_id: apple_id()}
+  end
+
+  def seen_profile_factory do
+    %SeenProfile{}
   end
 
   def profile_factory do
@@ -98,13 +103,15 @@ defmodule T.Factory do
 
   alias T.Accounts
 
-  def registered_user(apple_id \\ apple_id()) do
-    {:ok, user} = Accounts.register_user_with_apple_id(%{"apple_id" => apple_id})
+  def registered_user(apple_id \\ apple_id(), last_active \\ DateTime.utc_now()) do
+    {:ok, user} = Accounts.register_user_with_apple_id(%{"apple_id" => apple_id}, last_active)
     user
   end
 
   def onboarded_user(opts \\ []) do
-    user = registered_user(opts[:apple_id] || apple_id())
+    user =
+      registered_user(opts[:apple_id] || apple_id(), opts[:last_active] || DateTime.utc_now())
+
     {:ok, profile} = Accounts.onboard_profile(user.profile, onboarding_attrs(opts))
     %Accounts.User{user | profile: profile}
   end

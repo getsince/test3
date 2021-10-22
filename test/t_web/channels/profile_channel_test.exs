@@ -32,10 +32,9 @@ defmodule TWeb.ProfileChannelTest do
       {:ok, user: user, socket: connected_socket(user)}
     end
 
-    @tag skip: true
     test "with invalid user id", %{socket: socket} do
-      assert {:error, %{reason: "join crashed"}} =
-               subscribe_and_join(socket, "profile:" <> Ecto.UUID.generate(), %{})
+      assert {:error, %{"error" => "forbidden"}} =
+               join(socket, "profile:" <> Ecto.UUID.generate())
     end
 
     test "with partially filled profile", %{socket: socket, user: user} do

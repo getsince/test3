@@ -47,6 +47,7 @@ defmodule T.Matches do
     |> case do
       {:ok, %{match: match}} = success ->
         maybe_notify_match(match, by_user_id, user_id)
+        maybe_notify_liked_user(match, by_user_id, user_id)
         success
 
       {:error, _step, _reason, _changes} = failure ->
@@ -60,6 +61,18 @@ defmodule T.Matches do
   end
 
   defp maybe_notify_match(nil, _by_user_id, _user_id), do: :ok
+
+  defp maybe_notify_liked_user(%Match{id: _match_id}, _by_user_id, _user_id), do: :ok
+
+  defp maybe_notify_liked_user(nil, by_user_id, user_id) do
+    broadcast_from_for_user(user_id, {__MODULE__, :liked, %{by_user_id: by_user_id}})
+    schedule_liked_push(by_user_id, user_id)
+  end
+
+  defp schedule_liked_push(by_user_id, user_id) do
+    job = DispatchJob.new(%{"type" => "invite", "by_user_id" => by_user_id, "user_id" => user_id})
+    Oban.insert(job)
+  end
 
   defp match_if_mutual(multi, by_user_id, user_id) do
     multi
@@ -127,12 +140,30 @@ defmodule T.Matches do
     Multi.insert(multi, :like, changeset)
   end
 
+  @spec decline_like(Ecto.UUID.t(), Ecto.UUID.t()) ::
+          {:ok, %{}} | {:error, atom, term, map}
+  def decline_like(user_id, liker_id) do
+    changeset =
+      %Like{by_user_id: liker_id, user_id: user_id}
+      |> cast(%{declined: true}, [:declined])
+
+    Repo.update(changeset)
+    |> case do
+      {:ok, _like} = success ->
+        success
+
+      {:error, _step, _reason, _changes} = failure ->
+        failure
+    end
+  end
+
   # - Matches
 
   @spec list_matches(uuid) :: [%Match{}]
   def list_matches(user_id) do
     Match
     |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
+    |> order_by(desc: :inserted_at)
     |> Repo.all()
     |> preload_match_profiles(user_id)
     |> with_timeslots(user_id)
@@ -238,12 +269,16 @@ defmodule T.Matches do
 
     mates = Map.keys(mate_matches)
 
-    FeedProfile
-    |> where([p], p.user_id in ^mates)
-    |> Repo.all()
-    |> Enum.map(fn mate ->
-      match = Map.fetch!(mate_matches, mate.user_id)
-      %Match{match | profile: mate}
+    profiles =
+      FeedProfile
+      |> where([p], p.user_id in ^mates)
+      |> Repo.all()
+      |> Map.new(fn profile -> {profile.user_id, profile} end)
+
+    Enum.map(matches, fn match ->
+      [mate_id] = [match.user_id_1, match.user_id_2] -- [user_id]
+      profile = Map.fetch!(profiles, mate_id)
+      %Match{match | profile: profile}
     end)
   end
 

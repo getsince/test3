@@ -2,11 +2,14 @@ defmodule T.Calls do
   @moduledoc false
   import Ecto.Query
 
+  require Logger
+
   alias T.{Repo, Twilio, Accounts}
-  alias T.Calls.{Call, Invite}
-  alias T.Feeds.{FeedProfile, ActiveSession}
+  alias T.Calls.Call
+  alias T.Feeds.{FeedProfile}
   alias T.Matches.Match
   alias T.PushNotifications.APNS
+  alias T.Bot
 
   @spec ice_servers :: [map]
   def ice_servers do
@@ -32,25 +35,8 @@ defmodule T.Calls do
     end
   end
 
-  # TODO matched can forgo call_allowed? check
   def call_allowed?(caller_id, called_id) do
-    # call invites reference active sessions, so if it exists no need to check active session
-    invited?(called_id, caller_id) or
-      (active?(called_id) and missed?(called_id, caller_id)) or
-      matched?(caller_id, called_id)
-  end
-
-  defp active?(user_id) do
-    ActiveSession
-    |> where(user_id: ^user_id)
-    |> Repo.exists?()
-  end
-
-  defp invited?(inviter_id, invited_id) do
-    Invite
-    |> where(by_user_id: ^inviter_id)
-    |> where(user_id: ^invited_id)
-    |> Repo.exists?()
+    missed?(called_id, caller_id) or matched?(caller_id, called_id)
   end
 
   defp missed?(caller_id, called_id) do
@@ -109,6 +95,17 @@ defmodule T.Calls do
 
   @spec accept_call(Ecto.UUID.t(), DateTime.t()) :: :ok
   def accept_call(call_id, now \\ utc_now()) do
+    {caller, called} =
+      Call
+      |> where(id: ^call_id)
+      |> select([p], {p.caller_id, p.called_id})
+      |> Repo.one!()
+
+    m = "New call starts: #{fetch_name(caller)}(#{caller}) and #{fetch_name(called)}(#{called})"
+
+    Logger.warn(m)
+    Bot.async_post_message(m)
+
     {1, _} =
       Call
       |> where(id: ^call_id)
@@ -119,6 +116,11 @@ defmodule T.Calls do
 
   @spec end_call(Ecto.UUID.t(), Ecto.UUID.t(), DateTime.t()) :: :ok
   def end_call(user_id, call_id, now \\ utc_now()) do
+    m = "user #{fetch_name(user_id)}, id #{user_id} ended a call #{call_id}"
+
+    Logger.warn(m)
+    Bot.async_post_message(m)
+
     {1, _} =
       Call
       |> where(id: ^call_id)
@@ -134,14 +136,13 @@ defmodule T.Calls do
     |> Repo.one!()
   end
 
-  @spec list_missed_calls_with_profile_and_session(Ecto.UUID.t(), Keyword.t()) :: [
-          {%Call{}, %FeedProfile{}, %ActiveSession{} | nil}
+  @spec list_missed_calls_with_profile(Ecto.UUID.t(), Keyword.t()) :: [
+          {%Call{}, %FeedProfile{} | nil}
         ]
-  def list_missed_calls_with_profile_and_session(user_id, opts) do
+  def list_missed_calls_with_profile(user_id, opts) do
     missed_calls_q(user_id, opts)
     |> join(:inner, [c], p in FeedProfile, on: c.caller_id == p.user_id)
-    |> join(:left, [_c, p], s in ActiveSession, on: p.user_id == s.user_id)
-    |> select([c, p, s], {c, p, s})
+    |> select([c, p], {c, p})
     |> Repo.all()
   end
 

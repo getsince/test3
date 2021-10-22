@@ -35,43 +35,7 @@ defmodule TWeb.CallChannelTest do
 
       assert {:ok, reply, _socket} = join(socket, "call:#{call_id}")
 
-      assert reply == %{
-               ice_servers: [
-                 %{
-                   "url" => "stun:global.stun.twilio.com:3478?transport=udp",
-                   "urls" => "stun:global.stun.twilio.com:3478?transport=udp"
-                 },
-                 %{
-                   "credential" => "B2AhKtD3x/T0vATYL2FimHFlPMTIJAmAmHBRrqAHEKc=",
-                   "url" => "turn:global.turn.twilio.com:3478?transport=udp",
-                   "urls" => "turn:global.turn.twilio.com:3478?transport=udp",
-                   "username" =>
-                     "65d32d2326762b02b0133dadd624f74333dea32e5588ef495986d9b5e4b932d3"
-                 },
-                 %{
-                   "credential" => "B2AhKtD3x/T0vATYL2FimHFlPMTIJAmAmHBRrqAHEKc=",
-                   "url" => "turn:global.turn.twilio.com:3478?transport=tcp",
-                   "urls" => "turn:global.turn.twilio.com:3478?transport=tcp",
-                   "username" =>
-                     "65d32d2326762b02b0133dadd624f74333dea32e5588ef495986d9b5e4b932d3"
-                 },
-                 %{
-                   "credential" => "B2AhKtD3x/T0vATYL2FimHFlPMTIJAmAmHBRrqAHEKc=",
-                   "url" => "turn:global.turn.twilio.com:443?transport=tcp",
-                   "urls" => "turn:global.turn.twilio.com:443?transport=tcp",
-                   "username" =>
-                     "65d32d2326762b02b0133dadd624f74333dea32e5588ef495986d9b5e4b932d3"
-                 }
-               ]
-             }
-    end
-
-    test "as called" do
-      %{socket: socket, user: called} = make_user_socket()
-      caller = onboarded_user()
-      %Call{id: call_id} = insert(:call, called: called, caller: caller)
-
-      assert {:ok, reply, _socket} = join(socket, "call:#{call_id}")
+      call_topics = reply[:call_topics]
 
       assert reply == %{
                ice_servers: [
@@ -101,6 +65,48 @@ defmodule TWeb.CallChannelTest do
                      "65d32d2326762b02b0133dadd624f74333dea32e5588ef495986d9b5e4b932d3"
                  }
                ],
+               call_topics: call_topics
+             }
+    end
+
+    test "as called" do
+      %{socket: socket, user: called} = make_user_socket()
+      caller = onboarded_user()
+      %Call{id: call_id} = insert(:call, called: called, caller: caller)
+
+      assert {:ok, reply, _socket} = join(socket, "call:#{call_id}")
+
+      call_topics = reply[:call_topics]
+
+      assert reply == %{
+               ice_servers: [
+                 %{
+                   "url" => "stun:global.stun.twilio.com:3478?transport=udp",
+                   "urls" => "stun:global.stun.twilio.com:3478?transport=udp"
+                 },
+                 %{
+                   "credential" => "B2AhKtD3x/T0vATYL2FimHFlPMTIJAmAmHBRrqAHEKc=",
+                   "url" => "turn:global.turn.twilio.com:3478?transport=udp",
+                   "urls" => "turn:global.turn.twilio.com:3478?transport=udp",
+                   "username" =>
+                     "65d32d2326762b02b0133dadd624f74333dea32e5588ef495986d9b5e4b932d3"
+                 },
+                 %{
+                   "credential" => "B2AhKtD3x/T0vATYL2FimHFlPMTIJAmAmHBRrqAHEKc=",
+                   "url" => "turn:global.turn.twilio.com:3478?transport=tcp",
+                   "urls" => "turn:global.turn.twilio.com:3478?transport=tcp",
+                   "username" =>
+                     "65d32d2326762b02b0133dadd624f74333dea32e5588ef495986d9b5e4b932d3"
+                 },
+                 %{
+                   "credential" => "B2AhKtD3x/T0vATYL2FimHFlPMTIJAmAmHBRrqAHEKc=",
+                   "url" => "turn:global.turn.twilio.com:443?transport=tcp",
+                   "urls" => "turn:global.turn.twilio.com:443?transport=tcp",
+                   "username" =>
+                     "65d32d2326762b02b0133dadd624f74333dea32e5588ef495986d9b5e4b932d3"
+                 }
+               ],
+               call_topics: call_topics,
                caller: %{
                  name: "that",
                  user_id: caller.id,

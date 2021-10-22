@@ -79,7 +79,7 @@ defmodule T.PushNotifications.APNS do
 
   def build_alert_payload("invite" = type, data) do
     %{"user_id" => user_id, "name" => name} = data
-    alert = %{"title" => dgettext("apns", "%{name} invited you for a call", name: name)}
+    alert = %{"title" => dgettext("apns", "%{name} invited you to connect", name: name)}
     base_alert_payload(type, alert, %{"user_id" => user_id})
   end
 

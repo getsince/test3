@@ -213,7 +213,7 @@ if config_env() == :dev do
     static_bucket: System.fetch_env!("AWS_S3_BUCKET_STATIC"),
     static_cdn: System.fetch_env!("STATIC_CDN")
 
-  config :t, T.Media.Static, disabled?: true
+  config :t, T.Media.Static, disabled?: false
 end
 
 if config_env() == :test do
@@ -262,16 +262,15 @@ if config_env() == :test do
     token: "asdfasdfasdf",
     room_id: String.to_integer("-1234")
 
-  config :t, T.Feeds.ActiveSessionPruner, disabled?: true
-
   config :t, T.PushNotifications.APNS, default_topic: "app.topic"
+
+  config :t, T.Feeds.SeenPruner, disabled?: true
 end
 
 if config_env() == :bench do
   config :logger, level: :info
 
   config :t, T.Media.Static, disabled?: true
-  config :t, T.Feeds.ActiveSessionPruner, disabled?: true
   config :t, Oban, queues: false, plugins: false
 
   config :t, T.Repo,

@@ -72,9 +72,9 @@ msgid "Это новый мэтч!"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:90
-msgid "%{name} invited you for a call"
-msgstr "%{name} хочет поговорить"
+#: lib/t/push_notifications/apns.ex:89
+msgid "%{name} invited you to connect"
+msgstr "%{name} хочет познакомиться"
 
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:95

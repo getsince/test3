@@ -67,7 +67,6 @@ if config_env() == :prod do
     room_id: System.fetch_env!("TG_ROOM_ID") |> String.to_integer()
 
   config :t, APNS,
-    default_topic: System.fetch_env!("APNS_TOPIC"),
     keys: [
       %{
         key: System.fetch_env!("SANDBOX_APNS_KEY"),
@@ -84,6 +83,8 @@ if config_env() == :prod do
         env: :prod
       }
     ]
+
+  config :t, T.PushNotifications.APNS, default_topic: System.fetch_env!("APNS_TOPIC")
 
   config :t, run_migrations_on_start?: true
 
@@ -128,7 +129,6 @@ if config_env() == :dev do
   config :logger, T.PubSubLoggerBackend, level: :debug
 
   config :t, APNS,
-    default_topic: System.fetch_env!("APNS_TOPIC"),
     keys: [
       %{
         key: System.fetch_env!("SANDBOX_APNS_KEY"),
@@ -145,6 +145,8 @@ if config_env() == :dev do
         env: :prod
       }
     ]
+
+  config :t, T.PushNotifications.APNS, default_topic: System.fetch_env!("APNS_TOPIC")
 
   config :t, T.Twilio,
     account_sid: System.fetch_env!("TWILIO_ACCOUNT_SID"),

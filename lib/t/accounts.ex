@@ -180,7 +180,6 @@ defmodule T.Accounts do
     |> update([u], set: [blocked_at: fragment("now()")])
   end
 
-  # TODO test unmatch doesn't unhide blocked
   def block_user(user_id) do
     Multi.new()
     |> Multi.run(:block, fn repo, _changes ->

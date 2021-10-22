@@ -63,7 +63,7 @@ defmodule T.Accounts.BlockingTest do
 
     test "blocks the user", %{user: user} do
       refute Repo.get!(Accounts.User, user.id).blocked_at
-      assert :ok == Accounts.block_user(user.id)
+      assert {:ok, _changes} = Accounts.block_user(user.id)
       assert Repo.get!(Accounts.User, user.id).blocked_at
     end
 
@@ -76,7 +76,7 @@ defmodule T.Accounts.BlockingTest do
       Matches.subscribe_for_user(user.id)
       Matches.subscribe_for_user(other.id)
 
-      assert :ok == Accounts.block_user(user.id)
+      assert {:ok, _changes} = Accounts.block_user(user.id)
 
       assert_receive {Matches, :unmatched, ^match_id}
 
@@ -86,7 +86,7 @@ defmodule T.Accounts.BlockingTest do
 
     test "blocked user is hidden", %{user: user} do
       assert Repo.get!(Accounts.Profile, user.id).hidden? == false
-      assert :ok == Accounts.block_user(user.id)
+      assert {:ok, _changes} = Accounts.block_user(user.id)
       assert Repo.get!(Accounts.Profile, user.id).hidden? == true
     end
   end

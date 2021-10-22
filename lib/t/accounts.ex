@@ -44,6 +44,7 @@ defmodule T.Accounts do
   ## User registration
 
   @doc false
+  @spec register_user_with_apple_id(map) :: {:ok, %User{}} | {:error, Ecto.Changeset.t()}
   def register_user_with_apple_id(attrs) do
     Multi.new()
     |> Multi.insert(:user, User.apple_id_registration_changeset(%User{}, attrs))
@@ -96,7 +97,7 @@ defmodule T.Accounts do
 
   @spec login_or_register_user_with_apple_id(String.t()) ::
           {:ok, %User{profile: %Profile{}}}
-          | {:error, :invalid_key_id | :invalid_token | Ecto.Changeset.t()}
+          | {:error, :invalid_key_id | :invalid_token | :blocked | Ecto.Changeset.t()}
   def login_or_register_user_with_apple_id(id_token) do
     case AppleSignIn.fields_from_token(id_token) do
       {:ok, %{user_id: apple_id, email: email}} ->
@@ -108,22 +109,27 @@ defmodule T.Accounts do
   end
 
   # TODO in one transaction
+  @spec get_or_register_user_with_apple_id(String.t(), String.t()) ::
+          {:ok, %User{}} | {:error, :blocked | Ecto.Changeset.t()}
   defp get_or_register_user_with_apple_id(apple_id, email) do
-    if u = get_user_by_apple_id_updating_email(apple_id, email) do
-      {:ok, ensure_has_profile(u)}
-    else
-      register_user_with_apple_id(%{apple_id: apple_id, email: email})
+    case fetch_user_by_apple_id_updating_email(apple_id, email) do
+      {:ok, user} -> {:ok, ensure_has_profile(user)}
+      {:error, :not_found} -> register_user_with_apple_id(%{apple_id: apple_id, email: email})
+      {:error, :blocked} = blocked -> blocked
     end
   end
 
-  defp get_user_by_apple_id_updating_email(apple_id, email) do
+  @spec fetch_user_by_apple_id_updating_email(String.t(), String.t()) ::
+          {:ok, %User{}} | {:error, :blocked | :not_found}
+  defp fetch_user_by_apple_id_updating_email(apple_id, email) do
     User
     |> where(apple_id: ^apple_id)
     |> select([u], u)
     |> Repo.update_all(set: [email: email])
     |> case do
-      {1, [user]} -> Repo.preload(user, :profile)
-      {0, _} -> nil
+      {1, [%User{blocked_at: nil} = user]} -> {:ok, Repo.preload(user, :profile)}
+      {1, [%User{}]} -> {:error, :blocked}
+      {0, _} -> {:error, :not_found}
     end
   end
 
@@ -192,7 +198,12 @@ defmodule T.Accounts do
     |> update([u], set: [blocked_at: fragment("now()")])
   end
 
+  # TODO test
   def block_user(user_id) do
+    m = "deleted user #{user_id}"
+    Logger.warn(m)
+    Bot.async_post_silent_message(m)
+
     Multi.new()
     |> Multi.run(:block, fn repo, _changes ->
       user_id |> block_user_q() |> repo.update_all([])
@@ -211,11 +222,14 @@ defmodule T.Accounts do
       deactivated? = Feeds.deactivate_session(user_id)
       {:ok, deactivated?}
     end)
+    |> Multi.run(:session_tokens, fn _repo, _changes ->
+      {_count, tokens} =
+        UserToken |> where(user_id: ^user_id) |> select([ut], ut.token) |> Repo.delete_all()
+
+      {:ok, tokens}
+    end)
     |> unmatch_all(user_id)
     |> Repo.transaction()
-    |> case do
-      {:ok, _changes} -> :ok
-    end
   end
 
   defp unmatch_all(multi, user_id) do
@@ -233,7 +247,6 @@ defmodule T.Accounts do
     end)
   end
 
-  # TODO deactivate session
   def delete_user(user_id) do
     m = "deleted user #{user_id}"
     Logger.warn(m)

@@ -1,5 +1,6 @@
 defmodule TWeb.ProfileLive.Index do
   use TWeb, :live_view
+  alias T.Accounts
 
   @impl true
   def render(assigns) do
@@ -61,7 +62,13 @@ defmodule TWeb.ProfileLive.Index do
 
   @impl true
   def handle_event("block", %{"user-id" => user_id}, socket) do
-    :ok = T.Accounts.block_user(user_id)
+    {:ok, %{session_tokens: tokens}} = Accounts.block_user(user_id)
+
+    for token <- tokens do
+      encoded = Accounts.UserToken.encoded_token(token)
+      TWeb.Endpoint.broadcast("user_socket:#{encoded}", "disconnect", %{})
+    end
+
     {:noreply, fetch_profiles(socket)}
   end
 
@@ -69,8 +76,8 @@ defmodule TWeb.ProfileLive.Index do
     import Ecto.Query
 
     profiles =
-      T.Accounts.Profile
-      |> join(:inner, [p], u in T.Accounts.User, on: p.user_id == u.id)
+      Accounts.Profile
+      |> join(:inner, [p], u in Accounts.User, on: p.user_id == u.id)
       |> join(:left, [p, u], c in T.Calls.Call,
         on: c.caller_id == p.user_id or c.called_id == p.user_id
       )

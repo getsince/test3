@@ -667,7 +667,7 @@ defmodule TWeb.FeedChannelTest do
       # ABABABAB on prod -> fails!
       |> expect(:push, fn %{env: :prod} = n ->
         assert n.device_id == "ABABABAB"
-        assert n.topic == "app.topic.voip"
+        assert n.topic == "app.topic"
         assert n.push_type == "voip"
         assert n.payload["caller_id"] == me.id
         assert n.payload["caller_name"] == "that"
@@ -677,7 +677,7 @@ defmodule TWeb.FeedChannelTest do
       # BABABABABA on sandbox -> fails!
       |> expect(:push, fn %{env: :dev} = n ->
         assert n.device_id == "BABABABABA"
-        assert n.topic == "app.topic.voip"
+        assert n.topic == "app.topic"
         assert n.push_type == "voip"
         assert n.payload["caller_id"] == me.id
         assert n.payload["caller_name"] == "that"

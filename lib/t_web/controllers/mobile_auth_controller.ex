@@ -3,11 +3,13 @@ defmodule TWeb.MobileAuthController do
   alias TWeb.UserAuth
   alias T.Accounts
 
+  # TODO test blocked flow
   def verify_apple_id(conn, %{"token" => base64_id_token}) do
     id_token = Base.decode64!(base64_id_token)
 
     case Accounts.login_or_register_user_with_apple_id(id_token) do
       {:ok, %Accounts.User{} = user} -> verification_success_response(conn, user)
+      {:error, :blocked} -> send_resp(conn, 403, [])
       {:error, _reason} -> send_resp(conn, 400, [])
     end
   end

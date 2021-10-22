@@ -71,7 +71,7 @@ defmodule TWeb.ProfileLive.Index do
     profiles =
       T.Accounts.Profile
       |> join(:inner, [p], u in T.Accounts.User, on: p.user_id == u.id)
-      |> join(:inner, [p, u], c in T.Calls.Call,
+      |> join(:left, [p, u], c in T.Calls.Call,
         on: c.caller_id == p.user_id or c.called_id == p.user_id
       )
       |> order_by(desc: :last_active)

@@ -124,9 +124,12 @@ if config_env() == :prod do
   config :libcluster,
     topologies: [
       dns: [
-        node_basename: "t",
-        query: System.fetch_env!("CLUSTER_DNS_QUERY"),
-        resolver: fn query -> T.Cluster.resolve_route53_srv(query) end
+        strategy: Cluster.Strategy.DNSPoll,
+        config: [
+          node_basename: "t",
+          query: System.fetch_env!("CLUSTER_DNS_QUERY"),
+          resolver: fn query -> T.Cluster.resolve_route53_srv(query) end
+        ]
       ]
     ]
 end

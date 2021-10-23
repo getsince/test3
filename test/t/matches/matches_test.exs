@@ -40,7 +40,10 @@ defmodule T.MatchesTest do
       assert [%Match{id: ^match_id, profile: %FeedProfile{user_id: ^p1_id}}] =
                Matches.list_matches(p2_id)
 
+      parent = self()
+
       spawn(fn ->
+        Ecto.Adapters.SQL.Sandbox.allow(T.Repo, parent, self())
         assert true == Matches.unmatch_match(p1_id, match_id)
       end)
 
@@ -48,7 +51,6 @@ defmodule T.MatchesTest do
       assert_receive {Matches, :unmatched, ^match_id}
       # for p2
       assert_receive {Matches, :unmatched, ^match_id}
-      refute_receive _anything_else
 
       assert [] == Matches.list_matches(p1_id)
       assert [] == Matches.list_matches(p2_id)

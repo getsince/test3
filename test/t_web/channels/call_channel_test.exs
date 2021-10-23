@@ -1,5 +1,5 @@
 defmodule TWeb.CallChannelTest do
-  use TWeb.ChannelCase
+  use TWeb.ChannelCase, async: true
   alias T.Calls.Call
 
   describe "join" do
@@ -35,43 +35,7 @@ defmodule TWeb.CallChannelTest do
 
       assert {:ok, reply, _socket} = join(socket, "call:#{call_id}")
 
-      assert reply == %{
-               ice_servers: [
-                 %{
-                   "url" => "stun:global.stun.twilio.com:3478?transport=udp",
-                   "urls" => "stun:global.stun.twilio.com:3478?transport=udp"
-                 },
-                 %{
-                   "credential" => "B2AhKtD3x/T0vATYL2FimHFlPMTIJAmAmHBRrqAHEKc=",
-                   "url" => "turn:global.turn.twilio.com:3478?transport=udp",
-                   "urls" => "turn:global.turn.twilio.com:3478?transport=udp",
-                   "username" =>
-                     "65d32d2326762b02b0133dadd624f74333dea32e5588ef495986d9b5e4b932d3"
-                 },
-                 %{
-                   "credential" => "B2AhKtD3x/T0vATYL2FimHFlPMTIJAmAmHBRrqAHEKc=",
-                   "url" => "turn:global.turn.twilio.com:3478?transport=tcp",
-                   "urls" => "turn:global.turn.twilio.com:3478?transport=tcp",
-                   "username" =>
-                     "65d32d2326762b02b0133dadd624f74333dea32e5588ef495986d9b5e4b932d3"
-                 },
-                 %{
-                   "credential" => "B2AhKtD3x/T0vATYL2FimHFlPMTIJAmAmHBRrqAHEKc=",
-                   "url" => "turn:global.turn.twilio.com:443?transport=tcp",
-                   "urls" => "turn:global.turn.twilio.com:443?transport=tcp",
-                   "username" =>
-                     "65d32d2326762b02b0133dadd624f74333dea32e5588ef495986d9b5e4b932d3"
-                 }
-               ]
-             }
-    end
-
-    test "as called" do
-      %{socket: socket, user: called} = make_user_socket()
-      caller = onboarded_user()
-      %Call{id: call_id} = insert(:call, called: called, caller: caller)
-
-      assert {:ok, reply, _socket} = join(socket, "call:#{call_id}")
+      call_topics = reply[:call_topics]
 
       assert reply == %{
                ice_servers: [
@@ -101,6 +65,48 @@ defmodule TWeb.CallChannelTest do
                      "65d32d2326762b02b0133dadd624f74333dea32e5588ef495986d9b5e4b932d3"
                  }
                ],
+               call_topics: call_topics
+             }
+    end
+
+    test "as called" do
+      %{socket: socket, user: called} = make_user_socket()
+      caller = onboarded_user()
+      %Call{id: call_id} = insert(:call, called: called, caller: caller)
+
+      assert {:ok, reply, _socket} = join(socket, "call:#{call_id}")
+
+      call_topics = reply[:call_topics]
+
+      assert reply == %{
+               ice_servers: [
+                 %{
+                   "url" => "stun:global.stun.twilio.com:3478?transport=udp",
+                   "urls" => "stun:global.stun.twilio.com:3478?transport=udp"
+                 },
+                 %{
+                   "credential" => "B2AhKtD3x/T0vATYL2FimHFlPMTIJAmAmHBRrqAHEKc=",
+                   "url" => "turn:global.turn.twilio.com:3478?transport=udp",
+                   "urls" => "turn:global.turn.twilio.com:3478?transport=udp",
+                   "username" =>
+                     "65d32d2326762b02b0133dadd624f74333dea32e5588ef495986d9b5e4b932d3"
+                 },
+                 %{
+                   "credential" => "B2AhKtD3x/T0vATYL2FimHFlPMTIJAmAmHBRrqAHEKc=",
+                   "url" => "turn:global.turn.twilio.com:3478?transport=tcp",
+                   "urls" => "turn:global.turn.twilio.com:3478?transport=tcp",
+                   "username" =>
+                     "65d32d2326762b02b0133dadd624f74333dea32e5588ef495986d9b5e4b932d3"
+                 },
+                 %{
+                   "credential" => "B2AhKtD3x/T0vATYL2FimHFlPMTIJAmAmHBRrqAHEKc=",
+                   "url" => "turn:global.turn.twilio.com:443?transport=tcp",
+                   "urls" => "turn:global.turn.twilio.com:443?transport=tcp",
+                   "username" =>
+                     "65d32d2326762b02b0133dadd624f74333dea32e5588ef495986d9b5e4b932d3"
+                 }
+               ],
+               call_topics: call_topics,
                caller: %{
                  name: "that",
                  user_id: caller.id,
@@ -231,7 +237,10 @@ defmodule TWeb.CallChannelTest do
       assert leaves == %{}
       assert Map.keys(joins) == [me.id]
 
+      parent = self()
+
       spawn(fn ->
+        Ecto.Adapters.SQL.Sandbox.allow(Repo, parent, self())
         socket = connected_socket(caller)
         assert {:ok, _reply, socket} = subscribe_and_join(socket, "call:#{call.id}")
 
@@ -253,8 +262,6 @@ defmodule TWeb.CallChannelTest do
         assert leaves == %{}
         assert Map.keys(joins) == [caller.id]
 
-        refute_receive _anything_else
-
         # %{
         #   "0000017a-d3e0-3cd6-1e00-8a0e24450000" => %{
         #     metas: [%{phx_ref: "FpRzeFr6EBgFWQGi"}]
@@ -266,8 +273,6 @@ defmodule TWeb.CallChannelTest do
         assert socket |> TWeb.Presence.list() |> Map.keys() == [me.id, caller.id]
 
         leave(socket)
-
-        refute_receive _anything_else
       end)
 
       # presence_diff broadcast for everyone
@@ -289,8 +294,6 @@ defmodule TWeb.CallChannelTest do
       assert_push "presence_diff", %{joins: joins, leaves: leaves}
       assert joins == %{}
       assert Map.keys(leaves) == [caller.id]
-
-      refute_receive _anything_else
     end
   end
 

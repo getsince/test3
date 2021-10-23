@@ -59,14 +59,8 @@ defmodule T.MixProject do
       {:remote_ip, "~> 1.0.0"},
       {:mox, "~> 1.0", only: :test},
       {:ex_machina, "~> 2.4", only: :test},
-      {:assertions, "~> 0.18.1", only: :test},
+      {:assertions, "~> 0.19.0", only: :test},
       {:floki, ">= 0.0.0", only: :test},
-      # {:pigeon,
-      #  github: "ruslandoga/pigeon",
-      #  branch: "drop-httpoison-and-make-poison-optional",
-      #  runtime: Mix.env() in [:dev, :prod]},
-      {:pigeon, "~> 1.6", runtime: Mix.env() in [:dev, :prod]},
-      {:kadabra, "~> 0.4.4"},
       {:sentry, "~> 8.0"},
       {:bigflake, "0.5.0"},
       {:imgproxy, "~> 2.0"},
@@ -77,9 +71,10 @@ defmodule T.MixProject do
       # {:prom_ex, "~> 1.3"},
       {:esbuild, "~> 0.3", runtime: Mix.env() == :dev},
       # {:retry, "~> 0.14.1"},
-      {:cloud_watch, "~> 0.4"},
+      {:cloud_watch, github: "getsince/cloud_watch", branch: "drop-httpoison"},
       {:benchee, "~> 1.0", only: :bench},
-      {:dialyxir, "~> 1.1", only: :dev, runtime: false}
+      {:dialyxir, "~> 1.1", only: :dev, runtime: false},
+      {:jose, "~> 1.11"}
     ]
   end
 

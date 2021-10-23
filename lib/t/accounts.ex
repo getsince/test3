@@ -180,7 +180,6 @@ defmodule T.Accounts do
     |> update([u], set: [blocked_at: fragment("now()")])
   end
 
-  # TODO test unmatch doesn't unhide blocked
   def block_user(user_id) do
     Multi.new()
     |> Multi.run(:block, fn repo, _changes ->
@@ -247,7 +246,7 @@ defmodule T.Accounts do
   # apns
 
   defp default_apns_topic do
-    T.PushNotifications.APNS.topic()
+    T.PushNotifications.APNS.default_topic()
   end
 
   defp with_base16_encoded_apns_device_id(devices) when is_list(devices) do

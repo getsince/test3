@@ -116,7 +116,7 @@ defmodule T.Feeds do
 
   @spec get_mate_feed_profile(Ecto.UUID.t()) :: %FeedProfile{} | nil
   def get_mate_feed_profile(user_id) do
-    FeedProfile
+    not_hidden_profiles_q()
     |> where(user_id: ^user_id)
     |> Repo.one()
   end

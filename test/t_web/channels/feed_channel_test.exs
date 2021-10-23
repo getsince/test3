@@ -1,10 +1,9 @@
 defmodule TWeb.FeedChannelTest do
-  use TWeb.ChannelCase
+  use TWeb.ChannelCase, async: true
 
   alias T.{Accounts, Calls, Matches}
   alias Matches.{Timeslot, Match}
   alias Calls.Call
-  alias Pigeon.APNS.Notification
 
   import Mox
   setup :verify_on_exit!
@@ -93,7 +92,7 @@ defmodule TWeb.FeedChannelTest do
       :ok = Accounts.save_pushkit_device_id(me.id, token, Base.decode16!("ABABAB"), env: "prod")
 
       # prepare apns mock
-      expect(MockAPNS, :push, 3, fn [push], :prod -> [%{push | response: :success}] end)
+      expect(MockAPNS, :push, 3, fn _notification -> :ok end)
 
       match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
 
@@ -430,26 +429,24 @@ defmodule TWeb.FeedChannelTest do
 
       MockAPNS
       # ABABABAB on prod -> fails!
-      |> expect(:push, fn [%Notification{} = n], :prod ->
-        assert n.device_token == "ABABABAB"
-        assert n.topic == "app.topic.voip"
+      |> expect(:push, fn %{env: :prod} = n ->
+        assert n.device_id == "ABABABAB"
+        assert n.topic == "app.topic"
         assert n.push_type == "voip"
-        assert n.expiration == 0
         assert n.payload["caller_id"] == me.id
         assert n.payload["caller_name"] == "that"
         assert n.payload["call_id"]
-        [%Notification{n | response: :bad_device_token}]
+        {:error, :bad_device_token}
       end)
       # BABABABABA on sandbox -> fails!
-      |> expect(:push, fn [%Notification{} = n], :dev ->
-        assert n.device_token == "BABABABABA"
-        assert n.topic == "app.topic.voip"
+      |> expect(:push, fn %{env: :dev} = n ->
+        assert n.device_id == "BABABABABA"
+        assert n.topic == "app.topic"
         assert n.push_type == "voip"
-        assert n.expiration == 0
         assert n.payload["caller_id"] == me.id
         assert n.payload["caller_name"] == "that"
         assert n.payload["call_id"]
-        [%Notification{n | response: :bad_device_token}]
+        {:error, :bad_device_token}
       end)
 
       # call still can fail if apns requests fail
@@ -496,13 +493,9 @@ defmodule TWeb.FeedChannelTest do
       # these are the pushes sent to mate
       MockAPNS
       # ABABABAB on prod -> success!
-      |> expect(:push, fn [%Notification{} = n], :prod ->
-        [%Notification{n | response: :success}]
-      end)
+      |> expect(:push, fn %{env: :prod} -> :ok end)
       # BABABABABA on sandbox -> fails!
-      |> expect(:push, fn [%Notification{} = n], :dev ->
-        [%Notification{n | response: :bad_device_token}]
-      end)
+      |> expect(:push, fn %{env: :dev} -> {:error, :bad_device_token} end)
 
       ref = push(socket, "call", %{"user_id" => mate.id})
       assert_reply(ref, :ok, %{"call_id" => call_id})
@@ -664,7 +657,6 @@ defmodule TWeb.FeedChannelTest do
       # we get slots_offer
       assert_push("slots_offer", push)
       assert push == %{"match_id" => match.id, "slots" => slots}
-      refute_receive _anything_else
 
       {:ok, slots: slots}
     end
@@ -765,7 +757,6 @@ defmodule TWeb.FeedChannelTest do
       # we get slots_offer
       assert_push("slots_offer", push)
       assert push == %{"match_id" => match.id, "slots" => slots}
-      refute_receive _anything_else
 
       # we accept seocnd slot
       iso_slot = DateTime.to_iso8601(s2)
@@ -867,7 +858,6 @@ defmodule TWeb.FeedChannelTest do
         })
 
       assert_reply(ref, :ok, _reply)
-      refute_receive _anything_else
 
       assert %Accounts.UserReport{} =
                report = Repo.get_by(Accounts.UserReport, from_user_id: me.id, on_user_id: mate.id)

@@ -6,19 +6,26 @@ defmodule TWeb.CallChannel do
   alias T.Calls
 
   @impl true
-  def join("call:" <> call_id, _params, socket) do
+  def join("call:" <> call_id, params, socket) do
     %{current_user: current_user, screen_width: screen_width} = socket.assigns
     socket = assign(socket, call_id: call_id)
+    topics = Calls.Topics.topics_json_fragment(params["locale"])
 
     case Calls.get_call_role_and_peer(call_id, current_user.id) do
       {:ok, :caller = role, _peer} ->
         send(self(), :after_join)
-        reply = %{ice_servers: Calls.ice_servers()}
+        reply = %{ice_servers: Calls.ice_servers(), call_topics: topics}
         {:ok, reply, assign(socket, role: role)}
 
       {:ok, :called = role, peer} ->
         send(self(), :after_join)
-        reply = %{caller: render_peer(peer, screen_width), ice_servers: Calls.ice_servers()}
+
+        reply = %{
+          caller: render_peer(peer, screen_width),
+          ice_servers: Calls.ice_servers(),
+          call_topics: topics
+        }
+
         {:ok, reply, assign(socket, role: role)}
 
       {:error, :not_found} ->

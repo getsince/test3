@@ -13,7 +13,7 @@ defmodule T.Feeds do
   alias T.Accounts.{UserReport, GenderPreference}
   alias T.Matches.{Match, Like}
   # alias T.Calls
-  alias T.Feeds.{FeedProfile, SeenProfile}
+  alias T.Feeds.{FeedProfile, SeenProfile, FeededProfile}
   # alias T.PushNotifications.DispatchJob
 
   ### PubSub
@@ -97,11 +97,17 @@ defmodule T.Feeds do
         ) ::
           {[feed_profile], feed_cursor}
   def fetch_feed(user_id, location, gender, gender_preferences, count, feed_cursor) do
+    if feed_cursor == nil do
+      empty_feeded_profiles(user_id)
+    end
+
     feed_profiles =
       feed_profiles_q(user_id, gender, gender_preferences, feed_cursor)
       |> limit(^count)
       |> select([p], {p, distance_km(^location, p.location)})
       |> Repo.all()
+
+    mark_profiles_feeded(user_id, feed_profiles)
 
     feed_cursor =
       if last = List.last(feed_profiles) do
@@ -112,6 +118,23 @@ defmodule T.Feeds do
       end
 
     {feed_profiles, feed_cursor}
+  end
+
+  defp empty_feeded_profiles(user_id) do
+    FeededProfile |> where(for_user_id: ^user_id) |> Repo.delete_all()
+  end
+
+  defp mark_profiles_feeded(user_id, feed_profiles) do
+    for {p, _} <- feed_profiles do
+      feeded_changeset(p.user_id, user_id)
+      |> Repo.insert()
+    end
+  end
+
+  defp feeded_changeset(user_id, for_user_id) do
+    %FeededProfile{for_user_id: for_user_id, user_id: user_id}
+    |> change()
+    |> unique_constraint(:feeded, name: :feeded_profiles_pkey)
   end
 
   @spec get_mate_feed_profile(Ecto.UUID.t()) :: %FeedProfile{} | nil

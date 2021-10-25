@@ -101,23 +101,47 @@ defmodule T.Feeds do
       empty_feeded_profiles(user_id)
     end
 
-    feed_profiles =
-      feed_profiles_q(user_id, gender, gender_preferences, feed_cursor)
-      |> limit(^count)
-      |> select([p], {p, distance_km(^location, p.location)})
-      |> Repo.all()
+    feed_profiles = create_feed(user_id, location, gender, gender_preferences, count)
 
     mark_profiles_feeded(user_id, feed_profiles)
 
     feed_cursor =
-      if last = List.last(feed_profiles) do
-        {feed_profile, _distance} = last
-        feed_profile.last_active
+      if length(feed_profiles) > 0 do
+        "non-nil"
       else
         feed_cursor
       end
 
     {feed_profiles, feed_cursor}
+  end
+
+  defp create_feed(user_id, location, gender, gender_preferences, count) do
+    feeded = FeededProfile |> where(for_user_id: ^user_id) |> select([s], s.user_id)
+
+    most_liked_count = count - div(count, 2)
+
+    most_liked =
+      feed_profiles_q(user_id, gender, gender_preferences)
+      |> where([p], p.user_id not in subquery(feeded))
+      |> order_by(desc: :times_liked)
+      |> limit(^most_liked_count)
+      |> select([p], {p, distance_km(^location, p.location)})
+      |> Repo.all()
+
+    filter_out_ids = Enum.map(most_liked, fn {p, _} -> p.user_id end)
+
+    most_recent_count = count - most_liked_count
+
+    most_recent =
+      feed_profiles_q(user_id, gender, gender_preferences)
+      |> where([p], p.user_id not in subquery(feeded))
+      |> where([p], p.user_id not in ^filter_out_ids)
+      |> order_by(desc: :last_active)
+      |> limit(^most_recent_count)
+      |> select([p], {p, distance_km(^location, p.location)})
+      |> Repo.all()
+
+    most_liked ++ most_recent
   end
 
   defp empty_feeded_profiles(user_id) do
@@ -144,18 +168,12 @@ defmodule T.Feeds do
     |> Repo.one()
   end
 
-  defp feed_profiles_q(user_id, gender, gender_preference, nil) do
+  defp feed_profiles_q(user_id, gender, gender_preference) do
     treshold_date = DateTime.utc_now() |> DateTime.add(-30 * 24 * 60 * 60, :second)
 
     filtered_profiles_q(user_id, gender, gender_preference)
     |> where([p], p.user_id != ^user_id)
     |> where([p], p.last_active > ^treshold_date)
-    |> order_by(desc: :last_active)
-  end
-
-  defp feed_profiles_q(user_id, gender, gender_preference, last_date) do
-    feed_profiles_q(user_id, gender, gender_preference, nil)
-    |> where([p], p.last_active < ^last_date)
   end
 
   defp reported_user_ids_q(user_id) do

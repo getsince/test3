@@ -310,48 +310,16 @@ defmodule TWeb.FeedChannelTest do
     test "previously returned profiles are returned correctly", %{socket: socket} do
       now = DateTime.utc_now()
 
-      [_m1, _m2, _m3, _m4, _m5] = [
+      for i <- 1..5 do
         onboarded_user(
-          name: "mate-1",
-          location: apple_location(),
-          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
-          gender: "F",
-          accept_genders: ["M"],
-          last_active: DateTime.add(now, -1)
-        ),
-        onboarded_user(
-          name: "mate-2",
-          location: apple_location(),
-          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
-          gender: "N",
-          accept_genders: ["M"],
-          last_active: DateTime.add(now, -2)
-        ),
-        onboarded_user(
-          name: "mate-3",
+          name: "mate-#{i}",
           location: apple_location(),
           story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
           gender: "M",
           accept_genders: ["M"],
-          last_active: DateTime.add(now, -3)
-        ),
-        onboarded_user(
-          name: "mate-4",
-          location: apple_location(),
-          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
-          gender: "M",
-          accept_genders: ["M"],
-          last_active: DateTime.add(now, -4)
-        ),
-        onboarded_user(
-          name: "mate-5",
-          location: apple_location(),
-          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
-          gender: "M",
-          accept_genders: ["M"],
-          last_active: DateTime.add(now, -5)
+          last_active: DateTime.add(now, -i)
         )
-      ]
+      end
 
       ref = push(socket, "more", %{"count" => 3})
       assert_reply(ref, :ok, %{"cursor" => cursor, "feed" => feed0})

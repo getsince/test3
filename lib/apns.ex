@@ -1,5 +1,6 @@
 defmodule APNS do
   @moduledoc "Finch-based APNs client."
+  require Logger
 
   @type env :: :dev | :prod
   @type notification :: %{
@@ -29,9 +30,32 @@ defmodule APNS do
     |> build_request()
     |> Finch.request(finch_name)
     |> case do
-      {:ok, %Finch.Response{status: 200}} -> :ok
-      {:ok, %Finch.Response{body: body}} -> {:error, body |> Jason.decode!() |> error_reason()}
-      {:error, _reason} = error -> error
+      {:ok, %Finch.Response{status: 200}} ->
+        :ok
+
+      {:ok, %Finch.Response{body: body}} ->
+        {:error, body |> Jason.decode!() |> error_reason()}
+
+      # in prod env (api.push.apple.com):
+      # after connecting and before receiving response to the first request (stream)
+      # mint thinks conn.server.max_concurrent_streams is 1 and makes other concurrent requests fail.
+      # after receiving frame from the first stream that sets conn.servir.max_concurrent_streams = 1000
+      # this error doesn't happen again (unless more than 1000 concurrent requests are sent)
+      # https://gist.github.com/ruslandoga/8332cc8a2cf260c4c3a6d23386c8a06a
+
+      # in sandbox env (api.development.push.apple.com):
+      # conn.server.max_concurrent_streams = 1 always, so this error would happen whenever
+      # more than 1 concurrent request is sent
+
+      {:error, %Mint.HTTPError{module: Mint.HTTP2, reason: :too_many_concurrent_requests}} ->
+        Logger.warn("apns too_many_concurrent_requests for #{inspect(notification)}")
+        # the current workaround is an optimistic retry with a small delay of up to a second
+        # hoping that at some point the queue of concurrent requests would clear
+        :timer.sleep(round(:rand.uniform() * 1000))
+        push(notification, finch_name)
+
+      {:error, _reason} = error ->
+        error
     end
   end
 

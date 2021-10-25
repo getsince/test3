@@ -36,12 +36,12 @@ defmodule TWeb.LogLive.Index do
           " text-red-700 bg-red-100 border-red-500 dark:text-red-200 dark:bg-red-800 dark:border-red-600"
       end
 
-    {:safe, [@base_log_class | color]}
+    {:safe, [@base_log_class, color]}
   end
 
   defp log_text({_level, {_ymd, {h, m, s, ms}}, message}) do
     time = Time.new!(h, m, s, {ms * 1000, 3})
-    ~E[<%= time %>: <%= message %>]
+    [Time.to_iso8601(time), ": ", message]
   end
 
   @impl true

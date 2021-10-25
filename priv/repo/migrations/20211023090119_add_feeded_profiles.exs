@@ -8,7 +8,5 @@ defmodule T.Repo.Migrations.AddFeededProfiles do
       add :for_user_id, references(:users, @opts), primary_key: true, null: false
       add :user_id, references(:users, @opts), primary_key: true, null: false
     end
-
-    create index(:feeded_profiles, [:for_user_id, :user_id])
   end
 end

@@ -148,17 +148,13 @@ defmodule T.Feeds do
     FeededProfile |> where(for_user_id: ^user_id) |> Repo.delete_all()
   end
 
-  defp mark_profiles_feeded(user_id, feed_profiles) do
-    for {p, _} <- feed_profiles do
-      feeded_changeset(p.user_id, user_id)
-      |> Repo.insert()
-    end
-  end
+  defp mark_profiles_feeded(for_user_id, feed_profiles) do
+    data =
+      Enum.map(feed_profiles, fn {p, _} ->
+        %{for_user_id: for_user_id, user_id: p.user_id}
+      end)
 
-  defp feeded_changeset(user_id, for_user_id) do
-    %FeededProfile{for_user_id: for_user_id, user_id: user_id}
-    |> change()
-    |> unique_constraint(:feeded, name: :feeded_profiles_pkey)
+    Repo.insert_all(FeededProfile, data, on_conflict: :nothing)
   end
 
   @spec get_mate_feed_profile(Ecto.UUID.t()) :: %FeedProfile{} | nil

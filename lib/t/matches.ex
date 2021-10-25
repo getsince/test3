@@ -46,11 +46,11 @@ defmodule T.Matches do
 
     Multi.new()
     |> mark_liked(by_user_id, user_id)
+    |> bump_likes_count(user_id)
     |> match_if_mutual(by_user_id, user_id)
     |> Repo.transaction()
     |> case do
       {:ok, %{match: match}} = success ->
-        bump_likes_count(user_id)
         maybe_notify_match(match, by_user_id, user_id)
         maybe_notify_liked_user(match, by_user_id, user_id)
         success
@@ -60,10 +60,10 @@ defmodule T.Matches do
     end
   end
 
-  defp bump_likes_count(user_id) do
-    FeedProfile
-    |> where(user_id: ^user_id)
-    |> Repo.update_all(inc: [times_liked: 1])
+  defp bump_likes_count(multi, user_id) do
+    query = FeedProfile |> where(user_id: ^user_id)
+
+    Multi.update_all(multi, :feed_profile, query, inc: [times_liked: 1])
   end
 
   defp maybe_notify_match(%Match{id: match_id}, by_user_id, user_id) do

@@ -63,7 +63,7 @@ defmodule T.Matches do
   defp bump_likes_count(multi, user_id) do
     query = FeedProfile |> where(user_id: ^user_id)
 
-    Multi.update_all(multi, :feed_profile, query, inc: [times_liked: 1])
+    Multi.update_all(multi, :bump_likes_count, query, inc: [times_liked: 1])
   end
 
   defp maybe_notify_match(%Match{id: match_id}, by_user_id, user_id) do

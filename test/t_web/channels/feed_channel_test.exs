@@ -307,7 +307,7 @@ defmodule TWeb.FeedChannelTest do
       assert_reply(ref, :ok, %{"cursor" => ^cursor, "feed" => []})
     end
 
-    test "previously returned profiles are returned correctly", %{socket: socket} do
+    test "previously returned profiles are not returned, feed can be reset", %{socket: socket} do
       now = DateTime.utc_now()
 
       for i <- 1..5 do

@@ -101,7 +101,7 @@ defmodule T.Feeds do
       empty_feeded_profiles(user_id)
     end
 
-    feed_profiles = create_feed(user_id, location, gender, gender_preferences, count)
+    feed_profiles = continue_feed(user_id, location, gender, gender_preferences, count)
 
     mark_profiles_feeded(user_id, feed_profiles)
 
@@ -115,7 +115,7 @@ defmodule T.Feeds do
     {feed_profiles, feed_cursor}
   end
 
-  defp create_feed(user_id, location, gender, gender_preferences, count) do
+  defp continue_feed(user_id, location, gender, gender_preferences, count) do
     feeded = FeededProfile |> where(for_user_id: ^user_id) |> select([s], s.user_id)
 
     most_liked_count = count - div(count, 2)
@@ -130,7 +130,7 @@ defmodule T.Feeds do
 
     filter_out_ids = Enum.map(most_liked, fn {p, _} -> p.user_id end)
 
-    most_recent_count = count - most_liked_count
+    most_recent_count = count - length(most_liked)
 
     most_recent =
       feed_profiles_q(user_id, gender, gender_preferences)

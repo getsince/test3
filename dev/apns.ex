@@ -110,4 +110,67 @@ defmodule DevAPNS do
 
     push_call(payload)
   end
+
+  # too_many_concurrent_requests tracing
+  # https://gist.github.com/ruslandoga/8332cc8a2cf260c4c3a6d23386c8a06a
+
+  def notification do
+    %{
+      device_id: "2DAE2436E3D183F3683907FACD8EF8D515FAF541CA55A265A4144371C2A83137",
+      env: :prod,
+      payload: %{
+        "aps" => %{
+          "alert" => %{"body" => "Come look!", "title" => "That's a match!"},
+          "badge" => 1
+        },
+        "type" => "match"
+      },
+      push_type: "alert",
+      topic: "since.app.ios"
+    }
+  end
+
+  def retrace do
+    Rexbug.stop()
+
+    Rexbug.start(["Mint.HTTP2 :: return", "Mint.HTTP2.Frame :: return"],
+      time: 1_000_000,
+      msgs: 100_000
+    )
+  end
+
+  def mint_conn do
+    [{T.Finch.PIDPartition0, pid, :worker, [Registry.Partition]}] =
+      Supervisor.which_children(T.Finch)
+
+    pid
+    |> :sys.get_state()
+    |> :ets.tab2list()
+    |> Enum.find_value(fn
+      {conn_pid, {:https, "api.push.apple.com", 443}, _ref, _} -> conn_pid
+      _other -> nil
+    end)
+  end
+
+  def kill_conn do
+    Process.exit(mint_conn(), :killed)
+  end
+
+  # kill_conn()
+  # retrace()
+  # too_many_concurrent_requests()
+  def too_many_concurrent_requests do
+    task_supervisor = DevAPNS.TaskSupervisor
+    Task.Supervisor.start_link(name: task_supervisor)
+    n = notification()
+
+    task_supervisor
+    |> Task.Supervisor.async_stream(
+      1..3,
+      fn i -> {i, APNS.push(n, T.Finch)} end,
+      max_concurrency: 100,
+      ordered: false
+    )
+    |> Enum.into([])
+  end
 end

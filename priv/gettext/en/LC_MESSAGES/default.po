@@ -10,9 +10,3 @@ msgid ""
 msgstr ""
 "Language: en\n"
 "Plural-Forms: nplurals=2\n"
-
-#, elixir-format
-#: lib/t_web/live/active_session/index.html.heex:38
-#: lib/t_web/live/active_session/show.html.heex:38
-msgid "Session Form"
-msgstr ""

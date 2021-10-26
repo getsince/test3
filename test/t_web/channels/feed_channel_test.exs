@@ -211,7 +211,8 @@ defmodule TWeb.FeedChannelTest do
           story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
           gender: "F",
           accept_genders: ["M"],
-          last_active: DateTime.add(now, -1)
+          last_active: DateTime.add(now, -1),
+          times_liked: 3
         ),
         onboarded_user(
           name: "mate-2",
@@ -219,7 +220,8 @@ defmodule TWeb.FeedChannelTest do
           story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
           gender: "N",
           accept_genders: ["M"],
-          last_active: DateTime.add(now, -2)
+          last_active: DateTime.add(now, -2),
+          times_liked: 2
         ),
         onboarded_user(
           name: "mate-3",
@@ -233,7 +235,6 @@ defmodule TWeb.FeedChannelTest do
 
       ref = push(socket, "more", %{"count" => 2})
       assert_reply(ref, :ok, %{"cursor" => cursor, "feed" => feed})
-      assert %DateTime{} = cursor
 
       assert feed == [
                %{
@@ -305,6 +306,44 @@ defmodule TWeb.FeedChannelTest do
       ref = push(socket, "more", %{"cursor" => cursor})
       assert_reply(ref, :ok, %{"cursor" => ^cursor, "feed" => []})
     end
+
+    test "previously returned profiles are not returned, feed can be reset", %{socket: socket} do
+      now = DateTime.utc_now()
+
+      for i <- 1..5 do
+        onboarded_user(
+          name: "mate-#{i}",
+          location: apple_location(),
+          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
+          gender: "M",
+          accept_genders: ["M"],
+          last_active: DateTime.add(now, -i)
+        )
+      end
+
+      ref = push(socket, "more", %{"count" => 3})
+      assert_reply(ref, :ok, %{"cursor" => cursor, "feed" => feed0})
+
+      initial_feed_ids =
+        Enum.map(feed0, fn %{"profile" => profile} ->
+          profile.user_id
+        end)
+
+      # non-nil cursor
+      ref = push(socket, "more", %{"cursor" => cursor})
+
+      assert_reply(ref, :ok, %{"cursor" => _cursor, "feed" => feed1})
+
+      for {p, _} <- feed1 do
+        assert p.user_id not in initial_feed_ids
+      end
+
+      # nil cursor
+      ref = push(socket, "more", %{"cursor" => nil, "count" => 3})
+      assert_reply(ref, :ok, %{"cursor" => _cursor, "feed" => feed2})
+
+      assert feed0 == feed2
+    end
   end
 
   describe "like" do
@@ -327,8 +366,12 @@ defmodule TWeb.FeedChannelTest do
       assert_reply(ref, :ok, reply)
       assert reply == %{}
 
+      # assert bump_likes works
+      me_from_db = Repo.get!(T.Feeds.FeedProfile, me.id)
+      assert me_from_db.times_liked == 1
+
       # we got notified of like
-      assert_push "invite", invite
+      assert_push("invite", invite)
 
       assert invite == %{
                "distance" => 5,
@@ -362,7 +405,7 @@ defmodule TWeb.FeedChannelTest do
       assert_reply(ref, :ok, %{"match_id" => match_id})
       assert is_binary(match_id)
 
-      assert_push "matched", push
+      assert_push("matched", push)
 
       assert push == %{
                "match" => %{

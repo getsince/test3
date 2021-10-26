@@ -69,8 +69,8 @@ defmodule TWeb.FeedChannel do
   end
 
   # TODO possibly batch
-  def handle_in("seen", %{"user_id" => _user_id}, socket) do
-    # Feeds.mark_profile_seen(user_id, by: me_id(socket))
+  def handle_in("seen", %{"user_id" => user_id}, socket) do
+    Feeds.mark_profile_seen(user_id, by: me_id(socket))
     {:reply, :ok, socket}
   end
 

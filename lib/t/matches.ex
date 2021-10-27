@@ -561,7 +561,7 @@ defmodule T.Matches do
   end
 
   # ~U[2021-03-23 14:12:00Z] -> ~U[2021-03-23 14:00:00Z]
-  # ~U[2021-03-23 14:49:00Z] -> ~U[2021-03-23 14:45:00Z]
+  # ~U[2021-03-23 14:49:00Z] -> ~U[2021-03-23 14:30:00Z]
   defp prev_slot(%DateTime{minute: minutes} = dt) do
     %DateTime{dt | minute: div(minutes, 30) * 30, second: 0, microsecond: {0, 0}}
   end

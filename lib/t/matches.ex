@@ -563,11 +563,11 @@ defmodule T.Matches do
   # ~U[2021-03-23 14:12:00Z] -> ~U[2021-03-23 14:00:00Z]
   # ~U[2021-03-23 14:49:00Z] -> ~U[2021-03-23 14:45:00Z]
   defp prev_slot(%DateTime{minute: minutes} = dt) do
-    %DateTime{dt | minute: div(minutes, 15) * 15, second: 0, microsecond: {0, 0}}
+    %DateTime{dt | minute: div(minutes, 30) * 30, second: 0, microsecond: {0, 0}}
   end
 
   def schedule_timeslot_ended(match, timeslot) do
-    ended_at = DateTime.add(timeslot.selected_slot, 15 * 60, :second)
+    ended_at = DateTime.add(timeslot.selected_slot, 60 * 60, :second)
 
     job =
       DispatchJob.new(

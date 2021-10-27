@@ -274,13 +274,13 @@ defmodule T.Matches.TimeslotsTest do
       assert_receive {T.Matches, [:timeslot, :started], ^match_id}
 
       assert [
-               #  15 mins after slot
+               #  60 mins after slot
                %Oban.Job{
                  args: %{
                    "match_id" => ^match_id,
                    "type" => "timeslot_ended"
                  },
-                 scheduled_at: ~U[2021-03-23 14:30:00.000000Z]
+                 scheduled_at: ~U[2021-03-23 15:15:00.000000Z]
                } = ended
                | _rest
              ] = all_enqueued(worker: T.PushNotifications.DispatchJob)

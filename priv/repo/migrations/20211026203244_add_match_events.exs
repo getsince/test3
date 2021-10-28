@@ -9,14 +9,19 @@ defmodule T.Repo.Migrations.AddMatchEvents do
       add :match_id, :uuid, null: false
       add :event, :string, null: false
     end
+
     create index(:match_events, ["timestamp desc"])
 
     flush()
 
-        match_created_events = "matches" |> select([m], {m.id}) |> T.Repo.all() |> Enum.map(fn {match_id} ->
-          %{timestamp: DateTime.utc_now(), match_id: match_id, event: "created"}
-        end)
-        T.Repo.insert_all("match_events", match_created_events)
-  end
+    match_created_events =
+      "matches"
+      |> select([m], {m.id})
+      |> T.Repo.all()
+      |> Enum.map(fn {match_id} ->
+        %{timestamp: DateTime.utc_now(), match_id: match_id, event: "created"}
+      end)
 
+    T.Repo.insert_all("match_events", match_created_events)
+  end
 end

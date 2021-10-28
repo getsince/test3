@@ -4,7 +4,7 @@ defmodule T.Matches.MatchEvents do
 
   @primary_key false
   @foreign_key_type Ecto.Bigflake.UUID
-  schema "matche_events" do
+  schema "match_events" do
     field :timestamp, :utc_datetime
     field :match_id, Ecto.Bigflake.UUID, primary_key: true
     field :event, :string

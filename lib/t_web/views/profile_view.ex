@@ -12,7 +12,7 @@ defmodule TWeb.ProfileView do
         screen_width: screen_width
       }) do
     profile
-    |> render_profile([:user_id, :name, :gender], screen_width)
+    |> render_profile([:user_id, :name, :gender, :birthday], screen_width)
     |> Map.put(:latitude, lat(location))
     |> Map.put(:longitude, lon(location))
     |> Map.put(:gender_preference, genders(filters))

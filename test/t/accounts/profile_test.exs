@@ -3,7 +3,7 @@ defmodule T.Accounts.ProfileTest do
   alias T.Accounts.Profile
 
   describe "essential_info_changeset/2" do
-    test "gender and name are required" do
+    test "gender, name, birthdate, location and gender_preferences are required" do
       changeset = Profile.essential_info_changeset(%Profile{}, %{}, validate_required?: true)
 
       assert errors_on(changeset) == %{
@@ -49,6 +49,39 @@ defmodule T.Accounts.ProfileTest do
 
       changeset = Profile.essential_info_changeset(%Profile{}, %{gender: "fw"})
       assert errors_on(changeset).gender == ["is invalid"]
+    end
+
+    test "birthdate is required, birthdate is Date 18-100 years ago" do
+      changeset =
+        Profile.essential_info_changeset(%Profile{}, %{birthdate: ""}, validate_required?: true)
+
+      assert errors_on(changeset).birthdate == ["can't be blank"]
+
+      changeset = Profile.essential_info_changeset(%Profile{}, %{birthdate: "1998-10-28"})
+      refute errors_on(changeset)[:birthdate]
+
+      changeset = Profile.essential_info_changeset(%Profile{}, %{birthdate: "a"})
+      assert errors_on(changeset).birthdate == ["is invalid"]
+
+      changeset =
+        Profile.essential_info_changeset(%Profile{}, %{birthdate: "1998-10-28 13:57:36"})
+
+      refute errors_on(changeset)[:birthdate]
+
+      changeset =
+        Profile.essential_info_changeset(%Profile{}, %{
+          birthdate: Date.to_string(DateTime.utc_now())
+        })
+
+      assert errors_on(changeset).birthdate == ["too young"]
+
+      changeset = Profile.essential_info_changeset(%Profile{}, %{birthdate: "2003-10-30"})
+
+      assert errors_on(changeset).birthdate == ["too young"]
+
+      changeset = Profile.essential_info_changeset(%Profile{}, %{birthdate: "1898-10-28"})
+
+      assert errors_on(changeset).birthdate == ["too old"]
     end
   end
 

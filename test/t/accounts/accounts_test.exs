@@ -42,6 +42,7 @@ defmodule T.AccountsTest do
       assert %Profile{
                gender: "M",
                name: "that",
+               birthdate: ~D[1998-10-28],
                story: nil
              } = profile
 

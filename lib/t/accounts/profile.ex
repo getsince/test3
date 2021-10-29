@@ -44,6 +44,20 @@ defmodule T.Accounts.Profile do
     end)
     |> validate_inclusion(:gender, @known_genders)
     |> validate_length(:name, max: 100)
+    |> validate_change(:birthdate, fn :birthdate, birthdate ->
+      %{year: y, month: m, day: d} = DateTime.utc_now()
+      young = %Date{year: y - 18, month: m, day: d}
+      old = %Date{year: y - 100, month: m, day: d}
+
+      young_comp = Date.compare(young, birthdate)
+      old_comp = Date.compare(old, birthdate)
+
+      case {young_comp, old_comp} do
+        {:lt, _} -> [birthdate: "too young"]
+        {_, :gt} -> [birthdate: "too old"]
+        _ -> []
+      end
+    end)
     |> cast_embed(:filters,
       required: !!opts[:validate_required?],
       with: fn changeset, attrs ->

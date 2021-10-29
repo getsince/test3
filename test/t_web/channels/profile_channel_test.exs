@@ -191,7 +191,7 @@ defmodule TWeb.ProfileChannelTest do
                  ],
                  gender: "F",
                  name: "hey that's me CLARISA",
-                 birthdate: "1995-10-28"
+                 birthdate: ~D[1995-10-28]
                }
              }
 

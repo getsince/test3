@@ -28,7 +28,7 @@ defmodule T.AccountsTest do
                Accounts.onboard_profile(profile, %{
                  gender: "M",
                  name: "that",
-                 birthdate: "1998-10-28 13:57:36",
+                 birthdate: "1998-10-28",
                  latitude: 50,
                  longitude: 50
                })

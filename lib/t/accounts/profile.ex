@@ -25,7 +25,7 @@ defmodule T.Accounts.Profile do
     # general info
     field :name, :string
     field :gender, :string
-    field :birthdate, :utc_datetime
+    field :birthdate, :date
   end
 
   defp maybe_validate_required(changeset, opts, fun) when is_function(fun, 1) do

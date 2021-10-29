@@ -57,7 +57,7 @@ defmodule T.Accounts.ProfileTest do
       attrs = %{
         gender: "M",
         name: "Some Name",
-        birthdate: "1998-10-28 13:57:36",
+        birthdate: "1998-10-28",
         latitude: 50,
         longitude: 50,
         gender_preference: ["F"]

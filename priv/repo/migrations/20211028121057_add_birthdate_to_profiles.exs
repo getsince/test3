@@ -3,9 +3,9 @@ defmodule T.Repo.Migrations.AddBirthdateToProfiles do
 
   def change do
     alter table(:profiles) do
-      add :birthdate, :utc_datetime, default: nil
+      add :birthdate, :date
     end
 
-    create index(:profiles, [:birthdate])
+    create index(:profiles, [:birthdate], where: "birthdate is not null")
   end
 end

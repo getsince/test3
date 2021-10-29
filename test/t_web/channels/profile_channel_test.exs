@@ -145,7 +145,7 @@ defmodule TWeb.ProfileChannelTest do
           "profile" => %{
             "name" => "hey that's me CLARISA",
             "gender" => "F",
-            "birthdate" => "1995-10-28 13:57:36",
+            "birthdate" => "1995-10-28",
             "latitude" => 50,
             "longitude" => 50,
             # TODO validate photos are on s3
@@ -191,7 +191,7 @@ defmodule TWeb.ProfileChannelTest do
                  ],
                  gender: "F",
                  name: "hey that's me CLARISA",
-                 birthdate: ~U[1995-10-28 13:57:36Z]
+                 birthdate: "1995-10-28"
                }
              }
 

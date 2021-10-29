@@ -1,11 +1,11 @@
-defmodule T.Repo.Migrations.AddBirthdayToProfiles do
+defmodule T.Repo.Migrations.AddBirthdateToProfiles do
   use Ecto.Migration
 
   def change do
     alter table(:profiles) do
-      add :birthday, :utc_datetime, default: nil
+      add :birthdate, :utc_datetime, default: nil
     end
 
-    create index(:profiles, [:birthday])
+    create index(:profiles, [:birthdate])
   end
 end

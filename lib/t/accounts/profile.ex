@@ -25,7 +25,7 @@ defmodule T.Accounts.Profile do
     # general info
     field :name, :string
     field :gender, :string
-    field :birthday, :utc_datetime
+    field :birthdate, :utc_datetime
   end
 
   defp maybe_validate_required(changeset, opts, fun) when is_function(fun, 1) do
@@ -38,9 +38,9 @@ defmodule T.Accounts.Profile do
     attrs = attrs |> prepare_location() |> prepare_filters()
 
     profile
-    |> cast(attrs, [:name, :gender, :location, :birthday])
+    |> cast(attrs, [:name, :gender, :location, :birthdate])
     |> maybe_validate_required(opts, fn changeset ->
-      validate_required(changeset, [:name, :gender, :location, :birthday])
+      validate_required(changeset, [:name, :gender, :location, :birthdate])
     end)
     |> validate_inclusion(:gender, @known_genders)
     |> validate_length(:name, max: 100)

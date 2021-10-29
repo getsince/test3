@@ -15,7 +15,7 @@ defmodule T.Location do
 
       :not_found ->
         Logger.error("couldn't find location for ip address #{inspect(ip_address)}")
-        [55.755516, 37.615040]
+        nil
     end
   end
 end

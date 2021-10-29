@@ -9,6 +9,7 @@ defmodule T.Accounts.ProfileTest do
       assert errors_on(changeset) == %{
                gender: ["can't be blank"],
                name: ["can't be blank"],
+               birthdate: ["can't be blank"],
                location: ["can't be blank"],
                filters: ["can't be blank"]
              }
@@ -56,6 +57,7 @@ defmodule T.Accounts.ProfileTest do
       attrs = %{
         gender: "M",
         name: "Some Name",
+        birthdate: "1998-10-28 13:57:36",
         latitude: 50,
         longitude: 50,
         gender_preference: ["F"]

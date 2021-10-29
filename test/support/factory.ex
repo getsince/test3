@@ -95,6 +95,7 @@ defmodule T.Factory do
       story: opts[:story] || profile_story(),
       latitude: lat,
       longitude: lon,
+      birthdate: opts[:birthdate] || "1998-10-28 13:57:36",
       gender: gender,
       name: opts[:name] || "that",
       filters: %{genders: opts[:accept_genders] || ["F"]}

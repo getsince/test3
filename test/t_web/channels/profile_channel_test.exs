@@ -21,7 +21,8 @@ defmodule TWeb.ProfileChannelTest do
                gender_preference: nil,
                story: [],
                gender: nil,
-               name: nil
+               name: nil,
+               birthdate: nil
              }
     end
   end
@@ -102,6 +103,7 @@ defmodule TWeb.ProfileChannelTest do
                gender_preference: nil,
                latitude: nil,
                longitude: nil,
+               birthdate: nil,
                user_id: user.id
              }
     end
@@ -133,7 +135,8 @@ defmodule TWeb.ProfileChannelTest do
                profile: %{
                  gender: ["can't be blank"],
                  name: ["can't be blank"],
-                 location: ["can't be blank"]
+                 location: ["can't be blank"],
+                 birthdate: ["can't be blank"]
                }
              }
 
@@ -142,6 +145,7 @@ defmodule TWeb.ProfileChannelTest do
           "profile" => %{
             "name" => "hey that's me CLARISA",
             "gender" => "F",
+            "birthdate" => "1995-10-28",
             "latitude" => 50,
             "longitude" => 50,
             # TODO validate photos are on s3
@@ -186,7 +190,8 @@ defmodule TWeb.ProfileChannelTest do
                    }
                  ],
                  gender: "F",
-                 name: "hey that's me CLARISA"
+                 name: "hey that's me CLARISA",
+                 birthdate: ~D[1995-10-28]
                }
              }
 

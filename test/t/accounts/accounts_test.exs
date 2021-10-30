@@ -20,13 +20,15 @@ defmodule T.AccountsTest do
                # TODO
                #  gender: ["can't be blank"],
                name: ["can't be blank"],
-               location: ["can't be blank"]
+               location: ["can't be blank"],
+               birthdate: ["can't be blank"]
              }
 
       assert {:ok, profile} =
                Accounts.onboard_profile(profile, %{
                  gender: "M",
                  name: "that",
+                 birthdate: "1998-10-28",
                  latitude: 50,
                  longitude: 50
                })
@@ -40,6 +42,7 @@ defmodule T.AccountsTest do
       assert %Profile{
                gender: "M",
                name: "that",
+               birthdate: ~D[1998-10-28],
                story: nil
              } = profile
 

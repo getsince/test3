@@ -7,7 +7,7 @@ defmodule T.Matches do
   require Logger
 
   alias T.Repo
-  alias T.Matches.{Match, Like, Timeslot}
+  alias T.Matches.{Match, Like, Timeslot, MatchEvents}
   alias T.Feeds.FeedProfile
   alias T.Accounts.Profile
   alias T.PushNotifications.DispatchJob
@@ -592,5 +592,15 @@ defmodule T.Matches do
     for uid <- [uid1, uid2] do
       broadcast_for_user(uid, message)
     end
+  end
+
+  def match_check() do
+    match_id =
+      MatchEvents
+      |> where([m], m.timestamp > fragment("now() - INTERVAL '48 hours'"))
+      |> select([m], m.match_id)
+      |> T.Repo.all()
+
+    IO.puts(match_id)
   end
 end

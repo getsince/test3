@@ -16,10 +16,24 @@ defmodule T.Repo.Migrations.AddMatchEvents do
 
     match_created_events =
       "matches"
+      |> select([m], {m.id, m.inserted_at})
+      |> T.Repo.all()
+      |> Enum.map(fn {match_id, created_at} ->
+        %{
+          timestamp: DateTime.from_naive!(created_at, "Etc/UTC"),
+          match_id: match_id,
+          event: "created"
+        }
+      end)
+
+    T.Repo.insert_all("match_events", match_created_events)
+
+    match_created_events =
+      "matches"
       |> select([m], {m.id})
       |> T.Repo.all()
       |> Enum.map(fn {match_id} ->
-        %{timestamp: DateTime.utc_now(), match_id: match_id, event: "created"}
+        %{timestamp: DateTime.utc_now(), match_id: match_id, event: "keepalive"}
       end)
 
     T.Repo.insert_all("match_events", match_created_events)

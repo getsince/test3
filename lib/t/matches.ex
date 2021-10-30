@@ -600,7 +600,5 @@ defmodule T.Matches do
       |> where([m], m.timestamp > fragment("now() - INTERVAL '48 hours'"))
       |> select([m], m.match_id)
       |> T.Repo.all()
-
-    IO.puts(match_id)
   end
 end

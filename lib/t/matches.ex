@@ -613,7 +613,7 @@ defmodule T.Matches do
   end
 
   def match_timeslot_new_event(match_id, event) do
-    if match_id != [] do
+    if match_id != [] and match_id != nil and match_id != "" do
       Repo.insert(%MatchEvents{
         timestamp: DateTime.truncate(DateTime.utc_now(), :second),
         match_id: match_id,

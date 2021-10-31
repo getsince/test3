@@ -20,7 +20,7 @@ defmodule T.Matches.MatchesTimeCheck do
   end
 
   @impl true
-  def handle_info(:prune, %{check_interval: check_interval} = state) do
+  def handle_info(:prune, state) do
     prune()
     {:noreply, state}
   end

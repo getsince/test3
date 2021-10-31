@@ -357,6 +357,8 @@ defmodule T.Matches do
     m = "Saving slots offer for match: #{offerer_id} offered date  #{mate_id}"
     Bot.async_post_message(m)
 
+    match_timeslot_new_event(match_id, "saving slot")
+
     changeset =
       timeslot_changeset(
         %Timeslot{match_id: match_id, picker_id: mate_id},
@@ -414,6 +416,8 @@ defmodule T.Matches do
 
     m = "Accept slot for match: #{picker} with #{mate}"
     Bot.async_post_message(m)
+
+    match_timeslot_new_event(match_id, "accepting slot")
 
     {:ok, slot, 0} = DateTime.from_iso8601(slot)
     true = DateTime.compare(slot, prev_slot(reference)) in [:eq, :gt]
@@ -488,6 +492,8 @@ defmodule T.Matches do
 
     m = "Cancelled timeslot: #{by_user_id} cancelled date with #{mate_id}"
     Bot.async_post_message(m)
+
+    match_timeslot_new_event(match_id, "cancelling slot")
 
     {1, [%Timeslot{selected_slot: selected_slot} = timeslot]} =
       Timeslot
@@ -597,8 +603,22 @@ defmodule T.Matches do
   def match_check() do
     match_id =
       MatchEvents
+      |> distinct([m], m.match_id)
       |> where([m], m.timestamp > fragment("now() - INTERVAL '48 hours'"))
+      |> group_by([m], m.match_id)
       |> select([m], m.match_id)
       |> T.Repo.all()
+
+    IO.puts(match_id)
+  end
+
+  def match_timeslot_new_event(match_id, event) do
+    if match_id != [] do
+      Repo.insert(%MatchEvents{
+        timestamp: DateTime.truncate(DateTime.utc_now(), :second),
+        match_id: match_id,
+        event: event
+      })
+    end
   end
 end

@@ -106,6 +106,17 @@ defmodule T.Calls do
     Logger.warn(m)
     Bot.async_post_message(m)
 
+    match_id =
+      Match
+      |> where([m], m.user_id_1 == ^caller and m.user_id_2 == ^called)
+      |> or_where([m], m.user_id_1 == ^called and m.user_id_2 == ^caller)
+      |> order_by(desc: :inserted_at)
+      |> limit(1)
+      |> select([m], m.id)
+      |> Repo.all()
+
+    T.Matches.match_timeslot_new_event("#{match_id}", "call start")
+
     {1, _} =
       Call
       |> where(id: ^call_id)

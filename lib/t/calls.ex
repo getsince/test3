@@ -113,7 +113,7 @@ defmodule T.Calls do
       |> order_by(desc: :inserted_at)
       |> limit(1)
       |> select([m], m.id)
-      |> Repo.all()
+      |> Repo.one()
 
     T.Matches.match_timeslot_new_event(match_id, "call start")
 

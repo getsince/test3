@@ -115,7 +115,7 @@ defmodule T.Calls do
       |> select([m], m.id)
       |> Repo.all()
 
-    T.Matches.match_timeslot_new_event("#{match_id}", "call start")
+    T.Matches.match_timeslot_new_event(match_id, "call start")
 
     {1, _} =
       Call

@@ -601,15 +601,15 @@ defmodule T.Matches do
   end
 
   def match_check() do
-    match_id =
-      MatchEvents
-      |> distinct([m], m.match_id)
-      |> where([m], m.timestamp > fragment("now() - INTERVAL '48 hours'"))
-      |> group_by([m], m.match_id)
-      |> select([m], m.match_id)
-      |> T.Repo.all()
-
-    IO.puts(match_id)
+    MatchEvents
+    |> distinct([m], m.match_id)
+    |> join(:inner, [m], ma in Match, on: ma.id == m.match_id)
+    |> where([m], m.timestamp < fragment("now() - INTERVAL '48 hours'"))
+    |> select([m, ma], {m.match_id, ma.user_id_1})
+    |> T.Repo.all()
+    |> Enum.map(fn {match_id, user_id} ->
+      T.Matches.unmatch_match(user_id, match_id)
+    end)
   end
 
   def match_timeslot_new_event(match_id, event) do

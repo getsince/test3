@@ -80,3 +80,8 @@ msgstr ""
 #: lib/t/push_notifications/apns.ex:87
 msgid "Твоя сессия завершена"
 msgstr "Your session has expired"
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:111
+msgid "Заходи и звони сейчас 👉"
+msgstr "Come in and call now 👉"

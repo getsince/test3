@@ -27,7 +27,8 @@ defmodule T.PushNotifications.DispatchJob do
     end
   end
 
-  defp handle_type(type, args) when type in ["timeslot_offer", "timeslot_accepted"] do
+  defp handle_type(type, args)
+       when type in ["timeslot_offer", "timeslot_accepted", "timeslot_accepted_now"] do
     %{"match_id" => match_id, "receiver_id" => receiver_id} = args
 
     if alive_match(match_id) do

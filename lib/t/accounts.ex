@@ -277,7 +277,6 @@ defmodule T.Accounts do
         token_id: token_id,
         device_id: device_id,
         locale: extra[:locale],
-        version: extra[:version],
         env: extra[:env],
         topic: extra[:topic] || default_apns_topic()
       })
@@ -364,13 +363,25 @@ defmodule T.Accounts do
   Gets the user with the given signed token.
   """
   def get_user_by_session_token(token, context) do
+    get_user_by_session_token(token, nil, context)
+  end
+
+  def get_user_by_session_token(token, version, context) do
     {:ok, query} =
       case context do
         "session" -> UserToken.verify_session_token_query(token)
         "mobile" -> UserToken.verify_mobile_token_query(token)
       end
 
-    Repo.one(query)
+    case version do
+      nil ->
+        Repo.one(query)
+
+      _ ->
+        update = [set: [version: version]]
+        {1, users} = Repo.update_all(query, update)
+        Enum.at(users, 0)
+    end
   end
 
   @doc """

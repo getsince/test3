@@ -18,9 +18,8 @@ defmodule TWeb.UserSocketTest do
 
       assert {:ok, _socket} = connect(UserSocket, %{"token" => token}, %{})
 
-      token = Accounts.UserToken |> where(user_id: ^user.id) |> Repo.one()
-
-      %Accounts.UserToken{version: version} = token
+      %Accounts.UserToken{version: version} =
+        Accounts.UserToken |> where(user_id: ^user.id) |> Repo.one()
 
       assert version == nil
     end
@@ -33,9 +32,8 @@ defmodule TWeb.UserSocketTest do
 
       assert {:ok, _socket} = connect(UserSocket, %{"token" => token, "version" => "2.2.2"}, %{})
 
-      token = Accounts.UserToken |> where(user_id: ^user.id) |> Repo.one()
-
-      %Accounts.UserToken{version: version} = token
+      %Accounts.UserToken{version: version} =
+        Accounts.UserToken |> where(user_id: ^user.id) |> Repo.one()
 
       assert version == "ios/2.2.2"
     end

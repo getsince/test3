@@ -11,12 +11,12 @@ msgid ""
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:128
+#: lib/t/push_notifications/apns.ex:137
 msgid "Аудио-дэйт начинается"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:119
+#: lib/t/push_notifications/apns.ex:128
 msgid "Аудио-дэйт совсем скоро"
 msgstr ""
 
@@ -31,17 +31,17 @@ msgid "Заходи, чтобы ответить на приглашение �
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:111
+#: lib/t/push_notifications/apns.ex:120
 msgid "Попробуй предложить другое время 👉"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:120
+#: lib/t/push_notifications/apns.ex:129
 msgid "Приготовься, у тебя 15 минут 👋"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:129
+#: lib/t/push_notifications/apns.ex:138
 msgid "Скорее заходи и звони 🖤"
 msgstr ""
 
@@ -51,12 +51,12 @@ msgid "Скорее заходи!"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:101
+#: lib/t/push_notifications/apns.ex:101 lib/t/push_notifications/apns.ex:110
 msgid "Твое приглашение на дэйт принято"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:110
+#: lib/t/push_notifications/apns.ex:119
 msgid "Твой дэйт отменён"
 msgstr ""
 

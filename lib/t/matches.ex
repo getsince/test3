@@ -428,36 +428,38 @@ defmodule T.Matches do
 
     broadcast_for_user(mate, {__MODULE__, [:timeslot, :accepted], timeslot})
 
-    if DateTime.utc_now() > slot do
-      now_push =
-        DispatchJob.new(%{
-          "type" => "timeslot_accepted_now",
-          "match_id" => match_id,
-          "receiver_id" => mate
-        })
+    case DateTime.compare(slot, reference) do
+      :lt ->
+        now_push =
+          DispatchJob.new(%{
+            "type" => "timeslot_accepted_now",
+            "match_id" => match_id,
+            "receiver_id" => mate
+          })
 
-      Oban.insert(now_push)
-    else
-      accepted_push =
-        DispatchJob.new(%{
-          "type" => "timeslot_accepted",
-          "match_id" => match_id,
-          "receiver_id" => mate
-        })
+        Oban.insert(now_push)
 
-      reminder_push =
-        DispatchJob.new(
-          %{"type" => "timeslot_reminder", "match_id" => match_id, "slot" => slot},
-          scheduled_at: DateTime.add(slot, -15 * 60, :second)
-        )
+      _ ->
+        accepted_push =
+          DispatchJob.new(%{
+            "type" => "timeslot_accepted",
+            "match_id" => match_id,
+            "receiver_id" => mate
+          })
 
-      started_push =
-        DispatchJob.new(
-          %{"type" => "timeslot_started", "match_id" => match_id, "slot" => slot},
-          scheduled_at: slot
-        )
+        reminder_push =
+          DispatchJob.new(
+            %{"type" => "timeslot_reminder", "match_id" => match_id, "slot" => slot},
+            scheduled_at: DateTime.add(slot, -15 * 60, :second)
+          )
 
-      Oban.insert_all([accepted_push, reminder_push, started_push])
+        started_push =
+          DispatchJob.new(
+            %{"type" => "timeslot_started", "match_id" => match_id, "slot" => slot},
+            scheduled_at: slot
+          )
+
+        Oban.insert_all([accepted_push, reminder_push, started_push])
     end
 
     timeslot

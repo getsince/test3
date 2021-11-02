@@ -11,6 +11,7 @@ defmodule TWeb.DeviceController do
     :ok =
       Accounts.save_apns_device_id(user_id, user_token, device_token,
         locale: params["locale"],
+        version: params["version"] || "<2.3.0",
         env: env
       )
 

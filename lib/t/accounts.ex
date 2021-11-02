@@ -277,6 +277,7 @@ defmodule T.Accounts do
         token_id: token_id,
         device_id: device_id,
         locale: extra[:locale],
+        version: extra[:version],
         env: extra[:env],
         topic: extra[:topic] || default_apns_topic()
       })

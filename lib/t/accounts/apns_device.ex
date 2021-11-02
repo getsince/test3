@@ -11,6 +11,7 @@ defmodule T.Accounts.APNSDevice do
     field :locale, :string
     field :topic, :string
     field :env, :string
+    field :version, :string
     timestamps()
   end
 end

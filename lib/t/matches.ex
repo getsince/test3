@@ -324,6 +324,7 @@ defmodule T.Matches do
       end
     end)
     |> delete_likes()
+    |> insert_expired_match()
     |> Repo.transaction()
     |> case do
       {:ok, %{unmatch: %{id: match_id}}} ->
@@ -388,6 +389,7 @@ defmodule T.Matches do
       MatchEvent
       |> where([e], e.match_id not in subquery(successfull_calls))
       |> where([e], e.match_id in ^matches_ids)
+      |> order_by(desc: :timestamp)
       |> distinct([e], e.match_id)
       |> Repo.all()
       |> Map.new(fn %MatchEvent{match_id: match_id} = match_event -> {match_id, match_event} end)
@@ -404,7 +406,8 @@ defmodule T.Matches do
   end
 
   defp preload_expired_match_profiles(expired_matches) do
-    expired_matches_ids = Enum.map(expired_matches, fn expired_match -> expired_match.id end)
+    expired_matches_ids =
+      Enum.map(expired_matches, fn expired_match -> expired_match.with_user_id end)
 
     profiles =
       FeedProfile
@@ -433,6 +436,18 @@ defmodule T.Matches do
         |> Repo.delete_all()
 
       {:ok, count}
+    end)
+  end
+
+  defp insert_expired_match(multi) do
+    Multi.run(multi, :insert_expired_match, fn _repo, %{unmatch: unmatch} ->
+      %{id: match_id, users: [user_id_1, user_id_2]} = unmatch
+
+      Repo.insert(%ExpiredMatch{match_id: match_id, user_id: user_id_1, with_user_id: user_id_2})
+
+      Repo.insert(%ExpiredMatch{match_id: match_id, user_id: user_id_2, with_user_id: user_id_1})
+
+      {:ok, 1}
     end)
   end
 
@@ -722,6 +737,7 @@ defmodule T.Matches do
 
   def match_check() do
     MatchEvent
+    |> order_by(desc: :timestamp)
     |> distinct([m], m.match_id)
     |> join(:inner, [m], ma in Match, on: ma.id == m.match_id)
     |> where([m], m.timestamp < fragment("now() - INTERVAL '48 hours'"))
@@ -759,6 +775,7 @@ defmodule T.Matches do
     |> where([e], e.match_id not in subquery(successfull_calls))
     |> where(match_id: ^match_id)
     |> distinct([e], e.match_id)
+    |> order_by(desc: :timestamp)
     |> select([e], e.timestamp)
     |> Repo.one()
     # TODO TO ENV VARS
@@ -779,6 +796,7 @@ defmodule T.Matches do
     |> where([e], e.match_id not in subquery(successfull_calls))
     |> where(match_id: ^match_id)
     |> distinct([e], e.match_id)
+    |> order_by(desc: :timestamp)
     |> select([e], e.timestamp)
     |> Repo.one()
     # TODO TO ENV VARS

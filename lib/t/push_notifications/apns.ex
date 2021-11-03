@@ -77,6 +77,15 @@ defmodule T.PushNotifications.APNS do
     base_alert_payload(type, alert)
   end
 
+  def build_alert_payload("match_about_to_expire" = type, _data) do
+    alert = %{
+      "title" => dgettext("apns", "Match is about to expire!"),
+      "body" => dgettext("apns", "Jump in and act!")
+    }
+
+    base_alert_payload(type, alert)
+  end
+
   def build_alert_payload("invite" = type, data) do
     %{"user_id" => user_id, "name" => name} = data
     alert = %{"title" => dgettext("apns", "%{name} invited you to connect", name: name)}

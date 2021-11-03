@@ -313,12 +313,11 @@ defmodule TWeb.FeedChannel do
   defp render_expired_matches(expired_matches, screen_width) do
     Enum.map(expired_matches, fn expired_match ->
       %Matches.ExpiredMatch{
-        id: match_id,
-        profile: profile,
-        expiration_date: expiration_date
+        match_id: match_id,
+        profile: profile
       } = expired_match
 
-      render_match(match_id, profile, nil, expiration_date, screen_width)
+      render_match(match_id, profile, nil, nil, screen_width)
     end)
   end
 

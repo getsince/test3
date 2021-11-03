@@ -802,4 +802,9 @@ defmodule T.Matches do
     # TODO TO ENV VARS
     |> DateTime.add(2 * 24 * 60 * 60)
   end
+
+  # defp schedule_match_about_to_expire(match_id) do
+  #   job = DispatchJob.new(%{"type" => "match_about_to_expire", "match_id" => match_id})
+  #   Oban.insert(job)
+  # end
 end

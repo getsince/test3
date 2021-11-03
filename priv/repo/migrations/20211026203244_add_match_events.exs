@@ -28,15 +28,14 @@ defmodule T.Repo.Migrations.AddMatchEvents do
 
     T.Repo.insert_all("match_events", match_created_events)
 
-    # TODO uncomment
-    # match_created_events =
-    #   "matches"
-    #   |> select([m], {m.id})
-    #   |> T.Repo.all()
-    #   |> Enum.map(fn {id} ->
-    #     %{timestamp: DateTime.utc_now(), match_id: id, event: "keepalive"}
-    #   end)
+    match_created_events =
+      "matches"
+      |> select([m], {m.id})
+      |> T.Repo.all()
+      |> Enum.map(fn {id} ->
+        %{timestamp: DateTime.utc_now(), match_id: id, event: "keepalive"}
+      end)
 
-    # T.Repo.insert_all("match_events", match_created_events)
+    T.Repo.insert_all("match_events", match_created_events)
   end
 end

@@ -189,7 +189,7 @@ defmodule T.Matches do
     |> where([m], m.user_id == ^user_id)
     |> order_by(asc: :inserted_at)
     |> Repo.all()
-    |> preload_expired_match_profiles(user_id)
+    |> preload_expired_match_profiles()
   end
 
   @spec unmatch_match(uuid, uuid) :: boolean
@@ -289,8 +289,7 @@ defmodule T.Matches do
     Multi.new()
     |> Multi.run(:expire, fn _repo, _changes ->
       Match
-      |> where(user_id_1: ^user_id_1)
-      |> where(user_id_2: ^user_id_2)
+      |> where(id: ^match_id)
       |> select([m], %{id: m.id, users: [m.user_id_1, m.user_id_2]})
       |> Repo.delete_all()
       |> case do
@@ -301,7 +300,7 @@ defmodule T.Matches do
     |> delete_likes()
     |> Repo.transaction()
     |> case do
-      {:ok, %{expire: %{id: match_id, users: user_ids}}} ->
+      {:ok, %{expire: %{id: match_id}}} ->
         notify_expired(user_id_1, user_id_2, match_id)
         _expired? = true
 
@@ -377,7 +376,7 @@ defmodule T.Matches do
     end)
   end
 
-  defp preload_expired_match_profiles(expired_matches, user_id) do
+  defp preload_expired_match_profiles(expired_matches) do
     expired_matches_ids = Enum.map(expired_matches, fn expired_match -> expired_match.id end)
 
     profiles =

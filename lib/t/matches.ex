@@ -434,7 +434,8 @@ defmodule T.Matches do
           DispatchJob.new(%{
             "type" => "timeslot_accepted_now",
             "match_id" => match_id,
-            "receiver_id" => mate
+            "receiver_id" => mate,
+            "slot" => slot
           })
 
         Oban.insert(now_push)

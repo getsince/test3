@@ -690,9 +690,7 @@ defmodule TWeb.FeedChannelTest do
         # 15:30
         DateTime.new!(date, Time.new!(next_hour, 30, 0)),
         # 15:45
-        DateTime.new!(date, Time.new!(next_hour, 45, 0)),
-        # now
-        DateTime.utc_now() |> DateTime.truncate(:second)
+        DateTime.new!(date, Time.new!(next_hour, 45, 0))
       ]
 
       iso_slots = Enum.map(slots, &DateTime.to_iso8601/1)
@@ -708,7 +706,7 @@ defmodule TWeb.FeedChannelTest do
     end
 
     test "with match_id", %{
-      slots: [_s1, s2, _s3, _s4] = slots,
+      slots: [_s1, s2, _s3] = slots,
       match: match,
       socket: socket,
       me: me
@@ -728,7 +726,7 @@ defmodule TWeb.FeedChannelTest do
     end
 
     test "with user_id", %{
-      slots: [_s1, s2, _s3, _s4] = slots,
+      slots: [_s1, s2, _s3] = slots,
       match: match,
       mate: mate,
       socket: socket,
@@ -748,28 +746,7 @@ defmodule TWeb.FeedChannelTest do
       assert push == %{"match_id" => match.id, "selected_slot" => s2}
     end
 
-    test "now slot accepted", %{
-      slots: [_s1, _s2, _s3, s4] = slots,
-      match: match,
-      socket: socket,
-      me: me
-    } do
-      import Ecto.Query
-
-      iso_slot = DateTime.to_iso8601(s4)
-      ref = push(socket, "pick-slot", %{"match_id" => match.id, "slot" => iso_slot})
-      assert_reply(ref, :ok, _reply)
-
-      assert %Timeslot{} = timeslot = Repo.get_by(Timeslot, match_id: match.id)
-      assert timeslot.picker_id == me.id
-      assert timeslot.slots == slots
-      assert timeslot.selected_slot == s4
-
-      # mate gets a accepted_now push
-      # TODO
-    end
-
-    test "repick", %{slots: [s1, s2, _s3, _s4] = slots, match: match, socket: socket, me: me} do
+    test "repick", %{slots: [s1, s2, _s3] = slots, match: match, socket: socket, me: me} do
       iso_slot = DateTime.to_iso8601(s2)
       ref = push(socket, "pick-slot", %{"match_id" => match.id, "slot" => iso_slot})
       assert_reply(ref, :ok, _reply)

@@ -7,7 +7,7 @@ defmodule T.Matches do
   require Logger
 
   alias T.Repo
-  alias T.Matches.{Match, Like, Timeslot, MatchEvents}
+  alias T.Matches.{Match, Like, Timeslot, MatchEvents, ExpiredMatch}
   alias T.Feeds.FeedProfile
   alias T.Accounts.Profile
   alias T.PushNotifications.DispatchJob
@@ -180,6 +180,16 @@ defmodule T.Matches do
     |> Repo.all()
     |> preload_match_profiles(user_id)
     |> with_timeslots(user_id)
+    |> with_expiration_date()
+  end
+
+  @spec list_expired_matches(uuid) :: [%Match{}]
+  def list_expired_matches(user_id) do
+    ExpiredMatch
+    |> where([m], m.user_id == ^user_id)
+    |> order_by(asc: :inserted_at)
+    |> Repo.all()
+    |> preload_expired_match_profiles(user_id)
   end
 
   @spec unmatch_match(uuid, uuid) :: boolean
@@ -272,6 +282,39 @@ defmodule T.Matches do
     broadcast_from_for_user(by_user_id, {__MODULE__, :unmatched, match_id})
   end
 
+  @spec expire_match(uuid, uuid, uuid) :: boolean
+  def expire_match(match_id, user_id_1, user_id_2) do
+    Logger.warn("match between #{user_id_1} and #{user_id_2} expired")
+
+    Multi.new()
+    |> Multi.run(:expire, fn _repo, _changes ->
+      Match
+      |> where(user_id_1: ^user_id_1)
+      |> where(user_id_2: ^user_id_2)
+      |> select([m], %{id: m.id, users: [m.user_id_1, m.user_id_2]})
+      |> Repo.delete_all()
+      |> case do
+        {1, [match]} -> {:ok, match}
+        {0, _} -> {:error, :match_not_found}
+      end
+    end)
+    |> delete_likes()
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{expire: %{id: match_id, users: user_ids}}} ->
+        notify_expired(user_id_1, user_id_2, match_id)
+        _expired? = true
+
+      {:error, :expire, :match_not_found, _changes} ->
+        _expired? = false
+    end
+  end
+
+  defp notify_expired(user_id_1, user_id_2, match_id) do
+    broadcast_for_user(user_id_1, {__MODULE__, :expired, match_id})
+    broadcast_for_user(user_id_2, {__MODULE__, :expired, match_id})
+  end
+
   # TODO cleanup
   defp preload_match_profiles(matches, user_id) do
     mate_matches =
@@ -304,6 +347,48 @@ defmodule T.Matches do
 
     Enum.map(matches, fn match ->
       %Match{match | timeslot: slots[match.id]}
+    end)
+  end
+
+  defp with_expiration_date(matches) do
+    matches_ids = Enum.map(matches, fn match -> match.id end)
+
+    successfull_calls =
+      MatchEvents
+      |> where([e], e.match_id in ^matches_ids)
+      |> where(event: "call_success")
+      |> select([e], e.match_id)
+
+    expiring_matches_events =
+      MatchEvents
+      |> where([m], m.match_id not in subquery(successfull_calls))
+      |> distinct([m], m.match_id)
+      |> Repo.all()
+      |> Map.new(fn %MatchEvents{match_id: match_id} = match_event -> {match_id, match_event} end)
+
+    Enum.map(matches, fn match ->
+      # TODO to env variables
+      expiration_date =
+        if last_event = expiring_matches_events[match.id] do
+          DateTime.add(last_event.inserted_at, 2 * 24 * 60 * 60)
+        end
+
+      %Match{match | expiration_date: expiration_date}
+    end)
+  end
+
+  defp preload_expired_match_profiles(expired_matches, user_id) do
+    expired_matches_ids = Enum.map(expired_matches, fn expired_match -> expired_match.id end)
+
+    profiles =
+      FeedProfile
+      |> where([p], p.user_id in ^expired_matches_ids)
+      |> Repo.all()
+      |> Map.new(fn profile -> {profile.user_id, profile} end)
+
+    Enum.map(expired_matches, fn expired_match ->
+      profile = Map.fetch!(profiles, expired_match.with_user_id)
+      %ExpiredMatch{expired_match | profile: profile}
     end)
   end
 
@@ -605,10 +690,10 @@ defmodule T.Matches do
     |> distinct([m], m.match_id)
     |> join(:inner, [m], ma in Match, on: ma.id == m.match_id)
     |> where([m], m.timestamp < fragment("now() - INTERVAL '48 hours'"))
-    |> select([m, ma], {m.match_id, ma.user_id_1})
+    |> select([m, ma], {m.match_id, ma.user_id_1, ma.user_id_2})
     |> T.Repo.all()
-    |> Enum.map(fn {match_id, user_id} ->
-      T.Matches.unmatch_match(user_id, match_id)
+    |> Enum.map(fn {match_id, user_id_1, user_id_2} ->
+      T.Matches.expire_match(match_id, user_id_1, user_id_2)
     end)
   end
 
@@ -620,5 +705,12 @@ defmodule T.Matches do
         event: event
       })
     end
+  end
+
+  def mark_expired_match_seen(match_id, by_user_id) do
+    Repo.delete_all(%ExpiredMatch{
+      user_id: by_user_id,
+      id: match_id
+    })
   end
 end

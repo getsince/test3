@@ -80,7 +80,9 @@ defmodule TWeb.FeedChannelTest do
                    "distance" => 9510,
                    "profile" => %{name: "mate", story: [], user_id: mate.id, gender: "F"}
                  }
-               ]
+               ],
+               #  TODO FETCH EVN VAR
+               "match_expiration_duration" => 2 * 24 * 60 * 60
              }
     end
 
@@ -149,7 +151,9 @@ defmodule TWeb.FeedChannelTest do
                    "id" => match.id,
                    "profile" => %{gender: "F", name: "mate", story: [], user_id: mate.id}
                  }
-               ]
+               ],
+               #  TODO FETCH EVN VAR
+               "match_expiration_duration" => 2 * 24 * 60 * 60
              }
 
       # now with missed_calls_cursor
@@ -171,7 +175,9 @@ defmodule TWeb.FeedChannelTest do
                    "id" => match.id,
                    "profile" => %{gender: "F", name: "mate", story: [], user_id: mate.id}
                  }
-               ]
+               ],
+               #  TODO FETCH EVN VAR
+               "match_expiration_duration" => 2 * 24 * 60 * 60
              }
     end
   end

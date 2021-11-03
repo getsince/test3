@@ -97,6 +97,7 @@ defmodule T.Factory do
       longitude: lon,
       gender: gender,
       name: opts[:name] || "that",
+      times_liked: opts[:times_liked] || 0,
       filters: %{genders: opts[:accept_genders] || ["F"]}
     }
   end

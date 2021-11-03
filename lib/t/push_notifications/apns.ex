@@ -79,8 +79,8 @@ defmodule T.PushNotifications.APNS do
 
   def build_alert_payload("match_about_to_expire" = type, _data) do
     alert = %{
-      "title" => dgettext("apns", "Match is about to expire!"),
-      "body" => dgettext("apns", "Jump in and act!")
+      "title" => dgettext("apns", "Your match is about to expire 😢"),
+      "body" => dgettext("apns", "Invite your match to date if you want to keep it alive ✨")
     }
 
     base_alert_payload(type, alert)

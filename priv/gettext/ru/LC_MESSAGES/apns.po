@@ -83,10 +83,10 @@ msgstr ""
 
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:83
-msgid "Jump in and act!"
-msgstr "Заходи и действуй!"
+msgid "Invite your match to date if you want to keep it alive ✨"
+msgstr "Пригласи на дэйт мэтча, если хочешь его сохранить ✨"
 
-#, elixir-format
+#, elixir-format, fuzzy
 #: lib/t/push_notifications/apns.ex:82
-msgid "Match is about to expire!"
-msgstr "Мэтч скоро истечет"
+msgid "Your match is about to expire 😢"
+msgstr "Твой мэтч почти истек 😢"

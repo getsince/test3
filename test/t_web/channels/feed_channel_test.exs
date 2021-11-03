@@ -53,16 +53,19 @@ defmodule TWeb.FeedChannelTest do
                %{
                  "id" => m3.id,
                  "profile" => %{name: "mate-3", story: [], user_id: p3.id, gender: "M"},
-                 "timeslot" => %{"selected_slot" => s2}
+                 "timeslot" => %{"selected_slot" => s2},
+                 "expiration_date" => nil
                },
                %{
                  "id" => m2.id,
                  "profile" => %{name: "mate-2", story: [], user_id: p2.id, gender: "N"},
-                 "timeslot" => %{"picker" => me.id, "slots" => slots}
+                 "timeslot" => %{"picker" => me.id, "slots" => slots},
+                 "expiration_date" => nil
                },
                %{
                  "id" => m1.id,
-                 "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"}
+                 "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
+                 "expiration_date" => nil
                }
              ]
     end
@@ -149,7 +152,8 @@ defmodule TWeb.FeedChannelTest do
                "matches" => [
                  %{
                    "id" => match.id,
-                   "profile" => %{gender: "F", name: "mate", story: [], user_id: mate.id}
+                   "profile" => %{gender: "F", name: "mate", story: [], user_id: mate.id},
+                   "expiration_date" => nil
                  }
                ],
                #  TODO FETCH EVN VAR
@@ -173,7 +177,8 @@ defmodule TWeb.FeedChannelTest do
                "matches" => [
                  %{
                    "id" => match.id,
-                   "profile" => %{gender: "F", name: "mate", story: [], user_id: mate.id}
+                   "profile" => %{gender: "F", name: "mate", story: [], user_id: mate.id},
+                   "expiration_date" => nil
                  }
                ],
                #  TODO FETCH EVN VAR
@@ -416,7 +421,8 @@ defmodule TWeb.FeedChannelTest do
       assert push == %{
                "match" => %{
                  "id" => match_id,
-                 "profile" => %{name: "mate", story: [], user_id: mate.id, gender: "M"}
+                 "profile" => %{name: "mate", story: [], user_id: mate.id, gender: "M"},
+                 "expiration_date" => expiration_date()
                }
              }
     end
@@ -596,7 +602,12 @@ defmodule TWeb.FeedChannelTest do
 
       # mate received slots
       assert_push("slots_offer", push)
-      assert push == %{"match_id" => match.id, "slots" => slots}
+
+      assert push == %{
+               "match_id" => match.id,
+               "slots" => slots,
+               "expiration_date" => expiration_date()
+             }
     end
 
     test "with user_id", %{slots: slots, mate: mate, match: match, socket: socket} do
@@ -610,7 +621,12 @@ defmodule TWeb.FeedChannelTest do
 
       # mate received slots
       assert_push("slots_offer", push)
-      assert push == %{"match_id" => match.id, "slots" => slots}
+
+      assert push == %{
+               "match_id" => match.id,
+               "slots" => slots,
+               "expiration_date" => expiration_date()
+             }
     end
   end
 
@@ -706,7 +722,12 @@ defmodule TWeb.FeedChannelTest do
 
       # we get slots_offer
       assert_push("slots_offer", push)
-      assert push == %{"match_id" => match.id, "slots" => slots}
+
+      assert push == %{
+               "match_id" => match.id,
+               "slots" => slots,
+               "expiration_date" => expiration_date()
+             }
 
       {:ok, slots: slots}
     end
@@ -723,7 +744,12 @@ defmodule TWeb.FeedChannelTest do
 
       # mate gets a slot_accepted notification
       assert_push("slot_accepted", push)
-      assert push == %{"match_id" => match.id, "selected_slot" => s2}
+
+      assert push == %{
+               "match_id" => match.id,
+               "selected_slot" => s2,
+               "expiration_date" => expiration_date()
+             }
     end
 
     test "with user_id", %{
@@ -744,7 +770,12 @@ defmodule TWeb.FeedChannelTest do
 
       # mate gets a slot_accepted notification
       assert_push("slot_accepted", push)
-      assert push == %{"match_id" => match.id, "selected_slot" => s2}
+
+      assert push == %{
+               "match_id" => match.id,
+               "selected_slot" => s2,
+               "expiration_date" => expiration_date()
+             }
     end
 
     test "repick", %{slots: [s1, s2, _s3] = slots, match: match, socket: socket, me: me} do
@@ -754,7 +785,12 @@ defmodule TWeb.FeedChannelTest do
 
       # mate first gets second slot
       assert_push("slot_accepted", push)
-      assert push == %{"match_id" => match.id, "selected_slot" => s2}
+
+      assert push == %{
+               "match_id" => match.id,
+               "selected_slot" => s2,
+               "expiration_date" => expiration_date()
+             }
 
       iso_slot = DateTime.to_iso8601(s1)
       ref = push(socket, "pick-slot", %{"match_id" => match.id, "slot" => iso_slot})
@@ -762,7 +798,12 @@ defmodule TWeb.FeedChannelTest do
 
       # then mate gets first slot
       assert_push("slot_accepted", push)
-      assert push == %{"match_id" => match.id, "selected_slot" => s1}
+
+      assert push == %{
+               "match_id" => match.id,
+               "selected_slot" => s1,
+               "expiration_date" => expiration_date()
+             }
 
       assert %Timeslot{} = timeslot = Repo.get_by(Timeslot, match_id: match.id)
       assert timeslot.picker_id == me.id
@@ -806,7 +847,12 @@ defmodule TWeb.FeedChannelTest do
 
       # we get slots_offer
       assert_push("slots_offer", push)
-      assert push == %{"match_id" => match.id, "slots" => slots}
+
+      assert push == %{
+               "match_id" => match.id,
+               "slots" => slots,
+               "expiration_date" => expiration_date()
+             }
 
       # we accept seocnd slot
       iso_slot = DateTime.to_iso8601(s2)
@@ -815,7 +861,12 @@ defmodule TWeb.FeedChannelTest do
 
       # mate gets a slot_accepted notification
       assert_push("slot_accepted", push)
-      assert push == %{"match_id" => match.id, "selected_slot" => s2}
+
+      assert push == %{
+               "match_id" => match.id,
+               "selected_slot" => s2,
+               "expiration_date" => expiration_date()
+             }
 
       {:ok, slots: slots}
     end
@@ -826,7 +877,7 @@ defmodule TWeb.FeedChannelTest do
 
       # mate gets slot_cancelled notification
       assert_push("slot_cancelled", push)
-      assert push == %{"match_id" => match.id}
+      assert push == %{"match_id" => match.id, "expiration_date" => expiration_date()}
 
       # timeslot is reset
       refute Repo.get_by(Timeslot, match_id: match.id)
@@ -838,7 +889,7 @@ defmodule TWeb.FeedChannelTest do
 
       # mate gets slot_cancelled notification
       assert_push("slot_cancelled", push)
-      assert push == %{"match_id" => match.id}
+      assert push == %{"match_id" => match.id, "expiration_date" => expiration_date()}
 
       # timeslot is reset
       refute Repo.get_by(Timeslot, match_id: match.id)
@@ -961,5 +1012,10 @@ defmodule TWeb.FeedChannelTest do
     socket = connected_socket(mate)
     {:ok, _reply, socket} = join(socket, "feed:" <> mate.id)
     {:ok, mate_socket: socket}
+  end
+
+  defp expiration_date() do
+    # TODO TO ENV VARS
+    DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.add(2 * 24 * 60 * 60)
   end
 end

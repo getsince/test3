@@ -117,6 +117,8 @@ defmodule T.Calls do
 
     T.Matches.match_timeslot_new_event(match_id, "call start")
 
+    # TODO BROADCAST RESET EXPIRATION DATE
+
     {1, _} =
       Call
       |> where(id: ^call_id)

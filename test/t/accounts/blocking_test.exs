@@ -29,7 +29,7 @@ defmodule T.Accounts.BlockingTest do
 
       # notification for reporter
       assert_receive {Matches, :matched, match}
-      assert match == %{id: match_id, mate: reported.id}
+      assert match == %{id: match_id, mate: reported.id, expiration_date: expiration_date()}
 
       assert :ok == Accounts.report_user(reporter.id, reported.id, "he show dicky")
       assert_receive {Matches, :unmatched, ^match_id}
@@ -89,5 +89,10 @@ defmodule T.Accounts.BlockingTest do
       assert :ok == Accounts.block_user(user.id)
       assert Repo.get!(Accounts.Profile, user.id).hidden? == true
     end
+  end
+
+  defp expiration_date() do
+    # TODO TO ENV VARS
+    DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.add(2 * 24 * 60 * 60)
   end
 end

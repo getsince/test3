@@ -107,9 +107,14 @@ defmodule TWeb.FeedChannel do
 
     reply =
       case Matches.like_user(liker, liked) do
-        {:ok, %{match: _no_match = nil}} -> :ok
-        {:ok, %{match: %Matches.Match{id: match_id}}} -> {:ok, %{"match_id" => match_id}}
-        {:error, _step, _reason, _changes} -> :ok
+        {:ok, %{match: _no_match = nil}} ->
+          :ok
+
+        {:ok, %{match: %Matches.Match{id: match_id, expiration_date: expiration_date}}} ->
+          {:ok, %{"match_id" => match_id, "expiration_date" => expiration_date}}
+
+        {:error, _step, _reason, _changes} ->
+          :ok
       end
 
     {:reply, reply, socket}
@@ -137,7 +142,7 @@ defmodule TWeb.FeedChannel do
         %{"user_id" => user_id} -> Matches.save_slots_offer_for_user(me, user_id, slots)
       end
       |> case do
-        {:ok, _timeslot} -> :ok
+        {:ok, _timeslot, expiration_date} -> {:ok, %{"expiration_date" => expiration_date}}
         {:error, %Ecto.Changeset{} = changeset} -> {:error, render_changeset(changeset)}
       end
 
@@ -147,21 +152,33 @@ defmodule TWeb.FeedChannel do
   def handle_in("pick-slot", %{"slot" => slot} = params, socket) do
     me = me_id(socket)
 
-    case params do
-      %{"match_id" => match_id} -> Matches.accept_slot_for_match(me, match_id, slot)
-      %{"user_id" => user_id} -> Matches.accept_slot_for_matched_user(me, user_id, slot)
-    end
+    expiration_date =
+      case params do
+        %{"match_id" => match_id} ->
+          Matches.accept_slot_for_match(me, match_id, slot)
+          Matches.expiration_date(match_id)
 
-    {:reply, :ok, socket}
+        %{"user_id" => user_id} ->
+          Matches.accept_slot_for_matched_user(me, user_id, slot)
+          Matches.expiration_date(me, user_id)
+      end
+
+    {:reply, {:ok, %{"expiration_date" => expiration_date}}, socket}
   end
 
   def handle_in("cancel-slot", params, socket) do
-    case params do
-      %{"match_id" => match_id} -> Matches.cancel_slot_for_match(me_id(socket), match_id)
-      %{"user_id" => user_id} -> Matches.cancel_slot_for_matched_user(me_id(socket), user_id)
-    end
+    expiration_date =
+      case params do
+        %{"match_id" => match_id} ->
+          Matches.cancel_slot_for_match(me_id(socket), match_id)
+          Matches.expiration_date(match_id)
 
-    {:reply, :ok, socket}
+        %{"user_id" => user_id} ->
+          Matches.cancel_slot_for_matched_user(me_id(socket), user_id)
+          Matches.expiration_date(me_id(socket), user_id)
+      end
+
+    {:reply, {:ok, %{"expiration_date" => expiration_date}}, socket}
   end
 
   def handle_in("unmatch", params, socket) do
@@ -193,11 +210,9 @@ defmodule TWeb.FeedChannel do
 
   def handle_info({Matches, :matched, match}, socket) do
     %{screen_width: screen_width} = socket.assigns
-    %{id: match_id, mate: mate_id} = match
+    %{id: match_id, mate: mate_id, expiration_date: expiration_date} = match
 
     if profile = Feeds.get_mate_feed_profile(mate_id) do
-      # TO EVN VARS
-      expiration_date = DateTime.utc_now() |> DateTime.add(2 * 24 * 60 * 60)
       rendered = render_match(match_id, profile, _timeslot = nil, expiration_date, screen_width)
       push(socket, "matched", %{"match" => rendered})
     end
@@ -215,21 +230,35 @@ defmodule TWeb.FeedChannel do
     {:noreply, socket}
   end
 
-  def handle_info({Matches, [:timeslot, :offered], timeslot}, socket) do
+  def handle_info({Matches, [:timeslot, :offered], timeslot, expiration_date}, socket) do
     %Matches.Timeslot{slots: slots, match_id: match_id} = timeslot
-    push(socket, "slots_offer", %{"match_id" => match_id, "slots" => slots})
+
+    push(socket, "slots_offer", %{
+      "match_id" => match_id,
+      "slots" => slots,
+      "expiration_date" => expiration_date
+    })
+
     {:noreply, socket}
   end
 
-  def handle_info({Matches, [:timeslot, :accepted], timeslot}, socket) do
+  def handle_info({Matches, [:timeslot, :accepted], timeslot, expiration_date}, socket) do
     %Matches.Timeslot{selected_slot: slot, match_id: match_id} = timeslot
-    push(socket, "slot_accepted", %{"match_id" => match_id, "selected_slot" => slot})
+
+    push(socket, "slot_accepted", %{
+      "match_id" => match_id,
+      "selected_slot" => slot,
+      "expiration_date" => expiration_date
+    })
+
     {:noreply, socket}
   end
 
-  def handle_info({Matches, [:timeslot, :cancelled], timeslot}, socket) do
+  def handle_info({Matches, [:timeslot, :cancelled], timeslot, expiration_date}, socket) do
     %Matches.Timeslot{match_id: match_id} = timeslot
-    push(socket, "slot_cancelled", %{"match_id" => match_id})
+
+    push(socket, "slot_cancelled", %{"match_id" => match_id, "expiration_date" => expiration_date})
+
     {:noreply, socket}
   end
 

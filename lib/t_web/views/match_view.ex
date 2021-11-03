@@ -3,11 +3,35 @@ defmodule TWeb.MatchView do
   alias TWeb.FeedView
   alias T.Matches.Timeslot
 
+  def render(
+        "match.json",
+        %{id: match_id, timeslot: %Timeslot{} = timeslot, expiration_date: expiration_date} =
+          assigns
+      ) do
+    %{
+      "id" => match_id,
+      "profile" => render(FeedView, "feed_profile.json", assigns),
+      "timeslot" => render_timeslot(timeslot),
+      "expiration_date" => expiration_date
+    }
+  end
+
   def render("match.json", %{id: match_id, timeslot: %Timeslot{} = timeslot} = assigns) do
     %{
       "id" => match_id,
       "profile" => render(FeedView, "feed_profile.json", assigns),
       "timeslot" => render_timeslot(timeslot)
+    }
+  end
+
+  def render(
+        "match.json",
+        %{id: match_id, expiration_date: expiration_date} = assigns
+      ) do
+    %{
+      "id" => match_id,
+      "profile" => render(FeedView, "feed_profile.json", assigns),
+      "expiration_date" => expiration_date
     }
   end
 

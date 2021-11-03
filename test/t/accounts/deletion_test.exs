@@ -35,11 +35,16 @@ defmodule T.Accounts.DeletionTest do
       assert {:ok, %{match: %Match{id: match_id}}} = Matches.like_user(user.id, p2.user_id)
 
       assert_receive {Matches, :matched, match}
-      assert match == %{id: match_id, mate: user.id}
+      assert match == %{id: match_id, mate: user.id, expiration_date: expiration_date()}
 
       assert {:ok, %{delete_user: true, unmatch: [true]}} = Accounts.delete_user(user.id)
       assert_receive {Matches, :unmatched, ^match_id}
       assert [] == Matches.list_matches(p2.user_id)
     end
+  end
+
+  defp expiration_date() do
+    # TODO TO ENV VARS
+    DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.add(2 * 24 * 60 * 60)
   end
 end

@@ -363,13 +363,24 @@ defmodule T.Accounts do
   Gets the user with the given signed token.
   """
   def get_user_by_session_token(token, context) do
+    get_user_by_session_token_and_update_version(token, nil, context)
+  end
+
+  def get_user_by_session_token_and_update_version(token, version, context) do
     {:ok, query} =
       case context do
         "session" -> UserToken.verify_session_token_query(token)
         "mobile" -> UserToken.verify_mobile_token_query(token)
       end
 
-    Repo.one(query)
+    if version do
+      case Repo.update_all(query, set: [version: version]) do
+        {1, [user]} -> user
+        {0, _} -> nil
+      end
+    else
+      Repo.one(query)
+    end
   end
 
   @doc """

@@ -3,18 +3,39 @@ defmodule TWeb.UserSocketTest do
   alias TWeb.UserSocket
   alias T.Accounts
 
+  import Ecto.Query
+
   setup do
     {:ok, user: insert(:user)}
   end
 
   describe "connect" do
-    test "with valid token", %{user: user} do
+    test "with valid token and no version", %{user: user} do
       token =
         user
         |> Accounts.generate_user_session_token("mobile")
         |> Accounts.UserToken.encoded_token()
 
       assert {:ok, _socket} = connect(UserSocket, %{"token" => token}, %{})
+
+      %Accounts.UserToken{version: version} =
+        Accounts.UserToken |> where(user_id: ^user.id) |> Repo.one()
+
+      assert version == nil
+    end
+
+    test "with valid token and version", %{user: user} do
+      token =
+        user
+        |> Accounts.generate_user_session_token("mobile")
+        |> Accounts.UserToken.encoded_token()
+
+      assert {:ok, _socket} = connect(UserSocket, %{"token" => token, "version" => "2.2.2"}, %{})
+
+      %Accounts.UserToken{version: version} =
+        Accounts.UserToken |> where(user_id: ^user.id) |> Repo.one()
+
+      assert version == "ios/2.2.2"
     end
 
     test "without token" do

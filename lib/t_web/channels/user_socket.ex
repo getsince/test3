@@ -19,7 +19,9 @@ defmodule TWeb.UserSocket do
       Logger.metadata(remote_ip: remote_ip)
     end
 
-    if user = Accounts.get_user_by_session_token(token, "mobile") do
+    version = if version = params["version"], do: "ios/" <> version
+
+    if user = Accounts.get_user_by_session_token_and_update_version(token, version, "mobile") do
       Logger.metadata(user_id: user.id)
       Logger.warn("user online #{user.id}")
       Accounts.update_last_active(user.id)

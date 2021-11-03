@@ -428,11 +428,14 @@ defmodule T.Matches do
 
     broadcast_for_user(mate, {__MODULE__, [:timeslot, :accepted], timeslot})
 
-    pushes =
-      if DateTime.compare(slot, reference) in [:lt, :eq] do
-        [uid1, uid2] = Enum.sort([picker, mate])
-        notify_timeslot_started(%Match{id: match_id, user_id_1: uid1, user_id_2: uid2})
+    now_timeslot? = DateTime.compare(slot, reference) in [:lt, :eq]
 
+    if now_timeslot? do
+      notify_timeslot_started(match_id, [picker, mate])
+    end
+
+    pushes =
+      if now_timeslot? do
         _now_push =
           DispatchJob.new(%{
             "type" => "timeslot_accepted_now",
@@ -596,6 +599,14 @@ defmodule T.Matches do
 
   def notify_timeslot_ended(%Match{id: match_id, user_id_1: uid1, user_id_2: uid2}) do
     message = {__MODULE__, [:timeslot, :ended], match_id}
+
+    for uid <- [uid1, uid2] do
+      broadcast_for_user(uid, message)
+    end
+  end
+
+  def notify_timeslot_started(match_id, [uid1, uid2]) do
+    message = {__MODULE__, [:timeslot, :started], match_id}
 
     for uid <- [uid1, uid2] do
       broadcast_for_user(uid, message)

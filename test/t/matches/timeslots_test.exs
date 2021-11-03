@@ -232,7 +232,7 @@ defmodule T.Matches.TimeslotsTest do
       assert timeslot.selected_slot == ~U[2021-03-23 14:15:00Z]
     end
 
-    test "push notification are scheduled", %{
+    test "push notifications are scheduled", %{
       match: %{id: match_id},
       profiles: [%{user_id: u1}, %{user_id: u2}]
     } do
@@ -319,7 +319,7 @@ defmodule T.Matches.TimeslotsTest do
       assert timeslot.selected_slot == ~U[2021-03-23 14:15:00Z]
     end
 
-    test "push notification are scheduled", %{
+    test "push notifications are scheduled", %{
       match: %{id: match_id},
       profiles: [%{user_id: u1}, %{user_id: u2}]
     } do

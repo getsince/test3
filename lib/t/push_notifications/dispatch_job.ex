@@ -27,8 +27,7 @@ defmodule T.PushNotifications.DispatchJob do
     end
   end
 
-  defp handle_type(type, args)
-       when type in ["timeslot_offer", "timeslot_accepted"] do
+  defp handle_type(type, args) when type in ["timeslot_offer", "timeslot_accepted"] do
     %{"match_id" => match_id, "receiver_id" => receiver_id} = args
 
     if alive_match(match_id) do
@@ -42,8 +41,7 @@ defmodule T.PushNotifications.DispatchJob do
     end
   end
 
-  defp handle_type(type, args)
-       when type in ["timeslot_accepted_now"] do
+  defp handle_type("timeslot_accepted_now" = type, args) do
     %{"match_id" => match_id, "receiver_id" => receiver_id, "slot" => slot} = args
 
     if match = alive_match(match_id) do
@@ -51,7 +49,6 @@ defmodule T.PushNotifications.DispatchJob do
         Matches.Timeslot |> where(match_id: ^match_id, selected_slot: ^slot) |> Repo.one()
 
       if timeslot do
-        Matches.notify_timeslot_started(match)
         Matches.schedule_timeslot_ended(match, timeslot)
 
         receiver_id

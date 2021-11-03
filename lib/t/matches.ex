@@ -428,19 +428,18 @@ defmodule T.Matches do
 
     broadcast_for_user(mate, {__MODULE__, [:timeslot, :accepted], timeslot})
 
-    case DateTime.compare(slot, reference) do
-      :lt ->
-        now_push =
+    pushes =
+      if DateTime.compare(slot, reference) in [:lt, :eq] do
+        notify_timeslot_started(%Match{id: match_id, user_id_1: picker, user_id_2: mate})
+
+        _now_push =
           DispatchJob.new(%{
             "type" => "timeslot_accepted_now",
             "match_id" => match_id,
             "receiver_id" => mate,
             "slot" => slot
           })
-
-        Oban.insert(now_push)
-
-      _ ->
+      else
         accepted_push =
           DispatchJob.new(%{
             "type" => "timeslot_accepted",
@@ -460,8 +459,10 @@ defmodule T.Matches do
             scheduled_at: slot
           )
 
-        Oban.insert_all([accepted_push, reminder_push, started_push])
-    end
+        [accepted_push, reminder_push, started_push]
+      end
+
+    pushes |> List.wrap() |> Oban.insert_all()
 
     timeslot
   end

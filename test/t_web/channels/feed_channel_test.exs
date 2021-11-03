@@ -705,12 +705,7 @@ defmodule TWeb.FeedChannelTest do
       {:ok, slots: slots}
     end
 
-    test "with match_id", %{
-      slots: [_s1, s2, _s3] = slots,
-      match: match,
-      socket: socket,
-      me: me
-    } do
+    test "with match_id", %{slots: [_s1, s2, _s3] = slots, match: match, socket: socket, me: me} do
       iso_slot = DateTime.to_iso8601(s2)
       ref = push(socket, "pick-slot", %{"match_id" => match.id, "slot" => iso_slot})
       assert_reply(ref, :ok, _reply)

@@ -428,14 +428,14 @@ defmodule T.Matches do
 
     broadcast_for_user(mate, {__MODULE__, [:timeslot, :accepted], timeslot})
 
-    now_timeslot? = DateTime.compare(slot, reference) in [:lt, :eq]
+    timeslot_started? = DateTime.compare(slot, reference) in [:lt, :eq]
 
-    if now_timeslot? do
+    if timeslot_started? do
       notify_timeslot_started(match_id, [picker, mate])
     end
 
     pushes =
-      if now_timeslot? do
+      if timeslot_started? do
         _now_push =
           DispatchJob.new(%{
             "type" => "timeslot_accepted_now",
@@ -605,10 +605,10 @@ defmodule T.Matches do
     end
   end
 
-  def notify_timeslot_started(match_id, [uid1, uid2]) do
+  def notify_timeslot_started(match_id, user_ids) do
     message = {__MODULE__, [:timeslot, :started], match_id}
 
-    for uid <- [uid1, uid2] do
+    for uid <- user_ids do
       broadcast_for_user(uid, message)
     end
   end

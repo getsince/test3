@@ -430,7 +430,8 @@ defmodule T.Matches do
 
     pushes =
       if DateTime.compare(slot, reference) in [:lt, :eq] do
-        notify_timeslot_started(%Match{id: match_id, user_id_1: picker, user_id_2: mate})
+        [uid1, uid2] = Enum.sort([picker, mate])
+        notify_timeslot_started(%Match{id: match_id, user_id_1: uid1, user_id_2: uid2})
 
         _now_push =
           DispatchJob.new(%{

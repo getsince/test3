@@ -756,6 +756,7 @@ defmodule T.Matches do
       |> select([e], e.match_id)
 
     MatchEvent
+    |> where([e], e.match_id not in subquery(successfull_calls))
     |> order_by(desc: :timestamp)
     |> distinct([m], m.match_id)
     |> join(:inner, [m], ma in Match, on: ma.id == m.match_id)

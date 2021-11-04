@@ -84,8 +84,7 @@ defmodule T.Matches do
 
   defp maybe_notify_match(nil, _by_user_id, _user_id), do: :ok
 
-  defp maybe_notify_liked_user(%Match{id: _match_id}, _by_user_id, _user_id),
-    do: :ok
+  defp maybe_notify_liked_user(%Match{id: _match_id}, _by_user_id, _user_id), do: :ok
 
   defp maybe_notify_liked_user(nil, by_user_id, user_id) do
     broadcast_from_for_user(user_id, {__MODULE__, :liked, %{by_user_id: by_user_id}})
@@ -305,7 +304,9 @@ defmodule T.Matches do
 
   @spec expire_match(uuid, uuid) :: boolean
   def expire_match(user_id_1, user_id_2) do
-    Logger.warn("match between #{user_id_1} and #{user_id_2} expired")
+    m = "match between #{user_id_1} and #{user_id_2} expired"
+    Logger.warn(m)
+    Bot.async_post_message(m)
 
     Multi.new()
     |> Multi.run(:unmatch, fn _repo, _changes ->
@@ -324,7 +325,7 @@ defmodule T.Matches do
     |> Repo.transaction()
     |> case do
       {:ok, %{unmatch: %{id: match_id}}} ->
-        notify_expired(user_id_1, user_id_2, match_id)
+        notify_expired([user_id_1, user_id_2], match_id)
         _expired? = true
 
       {:error, :unmatch, :match_not_found, _changes} ->
@@ -332,9 +333,10 @@ defmodule T.Matches do
     end
   end
 
-  defp notify_expired(user_id_1, user_id_2, match_id) do
-    broadcast_for_user(user_id_1, {__MODULE__, :expired, match_id})
-    broadcast_for_user(user_id_2, {__MODULE__, :expired, match_id})
+  defp notify_expired(users, match_id) do
+    for user_id <- users do
+      broadcast_for_user(user_id, {__MODULE__, :expired, match_id})
+    end
   end
 
   # TODO cleanup
@@ -372,18 +374,23 @@ defmodule T.Matches do
     end)
   end
 
+  defp successfull_calls_matches_ids_q() do
+    MatchEvent
+    |> where(event: "call start")
+    |> distinct([e], e.match_id)
+    |> select([e], e.match_id)
+  end
+
+  defp not_successfull_calls_q(query) do
+    where(query, [p], p.match_id not in subquery(successfull_calls_matches_ids_q()))
+  end
+
   defp with_expiration_date(matches) do
     matches_ids = Enum.map(matches, fn match -> match.id end)
 
-    successfull_calls =
-      MatchEvent
-      |> where([e], e.match_id in ^matches_ids)
-      |> where(event: "call start")
-      |> select([e], e.match_id)
-
     expiring_matches_events =
       MatchEvent
-      |> where([e], e.match_id not in subquery(successfull_calls))
+      |> not_successfull_calls_q
       |> where([e], e.match_id in ^matches_ids)
       |> order_by(desc: :timestamp)
       |> distinct([e], e.match_id)
@@ -740,14 +747,8 @@ defmodule T.Matches do
   end
 
   def match_soon_to_expire_check() do
-    successfull_calls =
-      MatchEvent
-      |> distinct([e], e.match_id)
-      |> where(event: "call start")
-      |> select([e], e.match_id)
-
     MatchEvent
-    |> where([e], e.match_id not in subquery(successfull_calls))
+    |> not_successfull_calls_q
     |> order_by(desc: :timestamp)
     |> distinct([m], m.match_id)
     |> join(:inner, [m], ma in Match, on: ma.id == m.match_id)
@@ -761,14 +762,8 @@ defmodule T.Matches do
   end
 
   def match_expired_check() do
-    successfull_calls =
-      MatchEvent
-      |> distinct([e], e.match_id)
-      |> where(event: "call start")
-      |> select([e], e.match_id)
-
     MatchEvent
-    |> where([e], e.match_id not in subquery(successfull_calls))
+    |> not_successfull_calls_q
     |> order_by(desc: :timestamp)
     |> distinct([m], m.match_id)
     |> join(:inner, [m], ma in Match, on: ma.id == m.match_id)
@@ -797,15 +792,9 @@ defmodule T.Matches do
   end
 
   def expiration_date(match_id) do
-    successfull_calls =
-      MatchEvent
-      |> where(match_id: ^match_id)
-      |> where(event: "call start")
-      |> select([e], e.match_id)
-
     last_event_date =
       MatchEvent
-      |> where([e], e.match_id not in subquery(successfull_calls))
+      |> not_successfull_calls_q
       |> where(match_id: ^match_id)
       |> distinct([e], e.match_id)
       |> order_by(desc: :timestamp)
@@ -823,14 +812,8 @@ defmodule T.Matches do
     [uid1, uid2] = Enum.sort([user_id_1, user_id_2])
     match_id = T.Matches.get_match_id_for_users!(uid1, uid2)
 
-    successfull_calls =
-      MatchEvent
-      |> where(match_id: ^match_id)
-      |> where(event: "call start")
-      |> select([e], e.match_id)
-
     MatchEvent
-    |> where([e], e.match_id not in subquery(successfull_calls))
+    |> not_successfull_calls_q
     |> where(match_id: ^match_id)
     |> distinct([e], e.match_id)
     |> order_by(desc: :timestamp)

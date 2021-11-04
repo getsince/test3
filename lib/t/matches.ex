@@ -50,7 +50,7 @@ defmodule T.Matches do
     |> match_if_mutual(by_user_id, user_id)
     |> Repo.transaction()
     |> case do
-      {:ok, %{created: match}} = success ->
+      {:ok, %{match: match}} = success ->
         maybe_notify_match(match, by_user_id, user_id)
         maybe_notify_liked_user(match, by_user_id, user_id)
         success
@@ -101,7 +101,6 @@ defmodule T.Matches do
     multi
     |> with_mutual_liker(by_user_id, user_id)
     |> maybe_create_match([by_user_id, user_id])
-    |> maybe_insert_match_created_event()
     |> maybe_schedule_match_push()
   end
 
@@ -138,16 +137,8 @@ defmodule T.Matches do
         [user_id_1, user_id_2] = Enum.sort(user_ids)
         m = "New match: #{user_id_1} and #{user_id_2}"
         Bot.async_post_message(m)
-        Repo.insert(%Match{user_id_1: user_id_1, user_id_2: user_id_2})
-      else
-        {:ok, nil}
-      end
-    end)
-  end
+        {:ok, match} = Repo.insert(%Match{user_id_1: user_id_1, user_id_2: user_id_2})
 
-  defp maybe_insert_match_created_event(multi) do
-    Multi.run(multi, :created, fn _repo, %{match: match} ->
-      if match do
         Repo.insert(%MatchEvent{
           timestamp: DateTime.utc_now() |> DateTime.truncate(:second),
           match_id: match.id,

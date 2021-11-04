@@ -2,7 +2,7 @@ defmodule TWeb.FeedChannelTest do
   use TWeb.ChannelCase, async: true
 
   alias T.{Accounts, Calls, Matches}
-  alias Matches.{Timeslot, Match}
+  alias Matches.{Timeslot, Match, MatchEvent}
   alias Calls.Call
 
   import Mox
@@ -53,19 +53,16 @@ defmodule TWeb.FeedChannelTest do
                %{
                  "id" => m3.id,
                  "profile" => %{name: "mate-3", story: [], user_id: p3.id, gender: "M"},
-                 "timeslot" => %{"selected_slot" => s2},
-                 "expiration_date" => nil
+                 "timeslot" => %{"selected_slot" => s2}
                },
                %{
                  "id" => m2.id,
                  "profile" => %{name: "mate-2", story: [], user_id: p2.id, gender: "N"},
-                 "timeslot" => %{"picker" => me.id, "slots" => slots},
-                 "expiration_date" => nil
+                 "timeslot" => %{"picker" => me.id, "slots" => slots}
                },
                %{
                  "id" => m1.id,
-                 "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
-                 "expiration_date" => nil
+                 "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"}
                }
              ]
     end
@@ -87,6 +84,28 @@ defmodule TWeb.FeedChannelTest do
                #  TODO FETCH EVN VAR
                "match_expiration_duration" => 2 * 24 * 60 * 60
              }
+    end
+
+    test "with expired matches", %{socket: socket, me: me} do
+      p = onboarded_user(story: [], name: "mate", location: apple_location(), gender: "F")
+
+      m =
+        insert(:expired_match,
+          match_id: Ecto.Bigflake.UUID.generate(),
+          user_id: me.id,
+          with_user_id: p.id,
+          inserted_at: ~N[2021-09-30 12:16:05]
+        )
+
+      assert {:ok, %{"expired_matches" => expired_matches}, _socket} =
+               join(socket, "feed:" <> me.id)
+
+      assert expired_matches == [
+               %{
+                 "id" => m.match_id,
+                 "profile" => %{name: "mate", story: [], user_id: p.id, gender: "F"}
+               }
+             ]
     end
 
     test "with missed calls", %{socket: socket, me: me} do
@@ -152,8 +171,7 @@ defmodule TWeb.FeedChannelTest do
                "matches" => [
                  %{
                    "id" => match.id,
-                   "profile" => %{gender: "F", name: "mate", story: [], user_id: mate.id},
-                   "expiration_date" => nil
+                   "profile" => %{gender: "F", name: "mate", story: [], user_id: mate.id}
                  }
                ],
                #  TODO FETCH EVN VAR
@@ -177,8 +195,7 @@ defmodule TWeb.FeedChannelTest do
                "matches" => [
                  %{
                    "id" => match.id,
-                   "profile" => %{gender: "F", name: "mate", story: [], user_id: mate.id},
-                   "expiration_date" => nil
+                   "profile" => %{gender: "F", name: "mate", story: [], user_id: mate.id}
                  }
                ],
                #  TODO FETCH EVN VAR
@@ -355,6 +372,47 @@ defmodule TWeb.FeedChannelTest do
 
       assert feed0 == feed2
     end
+
+    test "not-seen expired match is not returned in feed", %{socket: socket, me: me} do
+      mate =
+        onboarded_user(
+          name: "mate",
+          location: apple_location(),
+          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
+          gender: "M",
+          accept_genders: ["M"]
+        )
+
+      T.Repo.insert(%T.Matches.ExpiredMatch{
+        match_id: Ecto.Bigflake.UUID.generate(),
+        user_id: me.id,
+        with_user_id: mate.id
+      })
+
+      ref = push(socket, "more", %{"count" => 5})
+      assert_reply(ref, :ok, %{"cursor" => _cursor, "feed" => []})
+    end
+
+    test "seen expired match is returned in feed", %{socket: socket, me: me} do
+      mate =
+        onboarded_user(
+          name: "mate",
+          location: apple_location(),
+          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
+          gender: "M",
+          accept_genders: ["M"]
+        )
+
+      T.Repo.insert(%T.Matches.ExpiredMatch{
+        match_id: Ecto.Bigflake.UUID.generate(),
+        user_id: mate.id,
+        with_user_id: me.id
+      })
+
+      ref = push(socket, "more", %{"count" => 5})
+      assert_reply(ref, :ok, %{"cursor" => _cursor, "feed" => feed})
+      assert length(feed) == 1
+    end
   end
 
   describe "like" do
@@ -394,10 +452,20 @@ defmodule TWeb.FeedChannelTest do
                }
              }
 
+      now = DateTime.utc_now() |> DateTime.truncate(:second)
+      exp_date = expiration_date()
+
       # now it's our turn
       ref = push(socket, "like", %{"user_id" => mate.id})
-      assert_reply(ref, :ok, %{"match_id" => match_id})
+      assert_reply(ref, :ok, %{"match_id" => match_id, "expiration_date" => ed})
+      assert ed == exp_date
       assert is_binary(match_id)
+
+      import Ecto.Query
+
+      event = MatchEvent |> where(match_id: ^match_id) |> T.Repo.one()
+
+      assert %MatchEvent{match_id: ^match_id, event: "created", timestamp: ^now} = event
     end
 
     test "when not yet liked by mate", %{
@@ -598,6 +666,8 @@ defmodule TWeb.FeedChannelTest do
           "slots" => Enum.map(slots, &DateTime.to_iso8601/1)
         })
 
+      exp_date = expiration_date()
+
       assert_reply(ref, :ok, %{})
 
       # mate received slots
@@ -606,7 +676,7 @@ defmodule TWeb.FeedChannelTest do
       assert push == %{
                "match_id" => match.id,
                "slots" => slots,
-               "expiration_date" => expiration_date()
+               "expiration_date" => exp_date
              }
     end
 
@@ -761,6 +831,8 @@ defmodule TWeb.FeedChannelTest do
       socket: socket,
       me: me
     } do
+      exp_date = expiration_date()
+
       iso_slot = DateTime.to_iso8601(s2)
       ref = push(socket, "pick-slot", %{"user_id" => mate.id, "slot" => iso_slot})
       assert_reply(ref, :ok, _reply)
@@ -776,7 +848,7 @@ defmodule TWeb.FeedChannelTest do
       assert push == %{
                "match_id" => match.id,
                "selected_slot" => s2,
-               "expiration_date" => expiration_date()
+               "expiration_date" => exp_date
              }
     end
 
@@ -858,6 +930,8 @@ defmodule TWeb.FeedChannelTest do
                "expiration_date" => expiration_date()
              }
 
+      exp_date = expiration_date()
+
       # we accept seocnd slot
       iso_slot = DateTime.to_iso8601(s2)
       ref = push(socket, "pick-slot", %{"user_id" => mate.id, "slot" => iso_slot})
@@ -869,7 +943,7 @@ defmodule TWeb.FeedChannelTest do
       assert push == %{
                "match_id" => match.id,
                "selected_slot" => s2,
-               "expiration_date" => expiration_date()
+               "expiration_date" => exp_date
              }
 
       {:ok, slots: slots}

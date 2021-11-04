@@ -5,8 +5,11 @@ defmodule TWeb.MatchView do
 
   def render(
         "match.json",
-        %{id: match_id, timeslot: %Timeslot{} = timeslot, expiration_date: expiration_date} =
-          assigns
+        %{
+          id: match_id,
+          timeslot: %Timeslot{} = timeslot,
+          expiration_date: %DateTime{} = expiration_date
+        } = assigns
       ) do
     %{
       "id" => match_id,
@@ -26,7 +29,7 @@ defmodule TWeb.MatchView do
 
   def render(
         "match.json",
-        %{id: match_id, expiration_date: expiration_date} = assigns
+        %{id: match_id, expiration_date: %DateTime{} = expiration_date} = assigns
       ) do
     %{
       "id" => match_id,

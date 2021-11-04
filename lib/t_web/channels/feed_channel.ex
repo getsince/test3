@@ -230,6 +230,11 @@ defmodule TWeb.FeedChannel do
     {:noreply, socket}
   end
 
+  def handle_info({Matches, :expiration_reset, match_id}, socket) when is_binary(match_id) do
+    push(socket, "match_expiration_reset", %{"match_id" => match_id})
+    {:noreply, socket}
+  end
+
   def handle_info({Matches, [:timeslot, :offered], timeslot, expiration_date}, socket) do
     %Matches.Timeslot{slots: slots, match_id: match_id} = timeslot
 

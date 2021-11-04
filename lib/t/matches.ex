@@ -50,7 +50,7 @@ defmodule T.Matches do
     |> match_if_mutual(by_user_id, user_id)
     |> Repo.transaction()
     |> case do
-      {:ok, %{match: match}} = success ->
+      {:ok, %{created: match}} = success ->
         maybe_notify_match(match, by_user_id, user_id)
         maybe_notify_liked_user(match, by_user_id, user_id)
         success
@@ -66,9 +66,11 @@ defmodule T.Matches do
     Multi.update_all(multi, :bump_likes_count, query, inc: [times_liked: 1])
   end
 
-  defp maybe_notify_match(%Match{id: match_id}, by_user_id, user_id) do
-    expiration_date = expiration_date(match_id)
-
+  defp maybe_notify_match(
+         %Match{id: match_id, expiration_date: expiration_date},
+         by_user_id,
+         user_id
+       ) do
     broadcast_from_for_user(
       by_user_id,
       {__MODULE__, :matched, %{id: match_id, mate: user_id, expiration_date: expiration_date}}
@@ -151,6 +153,9 @@ defmodule T.Matches do
           match_id: match.id,
           event: "created"
         })
+
+        expiration_date = expiration_date(match.id)
+        {:ok, %Match{match | expiration_date: expiration_date}}
       else
         {:ok, nil}
       end
@@ -158,12 +163,12 @@ defmodule T.Matches do
   end
 
   defp maybe_schedule_match_push(multi) do
-    Multi.run(multi, :push, fn _repo, %{created: match_event} ->
-      if match_event, do: schedule_match_push(match_event), else: {:ok, nil}
+    Multi.run(multi, :push, fn _repo, %{match: match} ->
+      if match, do: schedule_match_push(match), else: {:ok, nil}
     end)
   end
 
-  defp schedule_match_push(%MatchEvent{match_id: match_id}) do
+  defp schedule_match_push(%Match{id: match_id}) do
     job = DispatchJob.new(%{"type" => "match", "match_id" => match_id})
     Oban.insert(job)
   end
@@ -735,6 +740,14 @@ defmodule T.Matches do
     end
   end
 
+  def notify_match_expiration_reset(match_id, user_ids) do
+    message = {__MODULE__, :expiration_reset, match_id}
+
+    for uid <- user_ids do
+      broadcast_for_user(uid, message)
+    end
+  end
+
   def match_check() do
     MatchEvent
     |> order_by(desc: :timestamp)
@@ -771,15 +784,20 @@ defmodule T.Matches do
       |> where(event: "call start")
       |> select([e], e.match_id)
 
-    MatchEvent
-    |> where([e], e.match_id not in subquery(successfull_calls))
-    |> where(match_id: ^match_id)
-    |> distinct([e], e.match_id)
-    |> order_by(desc: :timestamp)
-    |> select([e], e.timestamp)
-    |> Repo.one()
-    # TODO TO ENV VARS
-    |> DateTime.add(2 * 24 * 60 * 60)
+    last_event_date =
+      MatchEvent
+      |> where([e], e.match_id not in subquery(successfull_calls))
+      |> where(match_id: ^match_id)
+      |> distinct([e], e.match_id)
+      |> order_by(desc: :timestamp)
+      |> select([e], e.timestamp)
+      |> Repo.one()
+
+    case last_event_date do
+      nil -> nil
+      # TODO TO ENV VARS
+      _ -> last_event_date |> DateTime.add(2 * 24 * 60 * 60)
+    end
   end
 
   def expiration_date(user_id_1, user_id_2) do

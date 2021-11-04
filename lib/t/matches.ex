@@ -748,16 +748,30 @@ defmodule T.Matches do
     end
   end
 
-  def match_check() do
+  def match_soon_to_expire_check() do
+    MatchEvent
+    |> order_by(desc: :timestamp)
+    |> distinct([m], m.match_id)
+    |> join(:inner, [m], ma in Match, on: ma.id == m.match_id)
+    |> where([m], m.timestamp < fragment("now() - INTERVAL '46:1 HOURS:MINUTES'"))
+    |> where([m], m.timestamp > fragment("now() - INTERVAL '46 hours'"))
+    |> select([m, ma], m.match_id)
+    |> T.Repo.all()
+    |> Enum.map(fn match_id ->
+      schedule_match_about_to_expire(match_id)
+    end)
+  end
+
+  def match_expired_check() do
     MatchEvent
     |> order_by(desc: :timestamp)
     |> distinct([m], m.match_id)
     |> join(:inner, [m], ma in Match, on: ma.id == m.match_id)
     |> where([m], m.timestamp < fragment("now() - INTERVAL '48 hours'"))
-    |> select([m, ma], {m.match_id, ma.user_id_1, ma.user_id_2})
+    |> select([m, ma], {ma.user_id_1, ma.user_id_2})
     |> T.Repo.all()
-    |> Enum.map(fn {_match_id, user_id_1, user_id_2} ->
-      T.Matches.expire_match(user_id_1, user_id_2)
+    |> Enum.map(fn {user_id_1, user_id_2} ->
+      expire_match(user_id_1, user_id_2)
     end)
   end
 
@@ -821,8 +835,8 @@ defmodule T.Matches do
     |> DateTime.add(2 * 24 * 60 * 60)
   end
 
-  # defp schedule_match_about_to_expire(match_id) do
-  #   job = DispatchJob.new(%{"type" => "match_about_to_expire", "match_id" => match_id})
-  #   Oban.insert(job)
-  # end
+  defp schedule_match_about_to_expire(match_id) do
+    job = DispatchJob.new(%{"type" => "match_about_to_expire", "match_id" => match_id})
+    Oban.insert(job)
+  end
 end

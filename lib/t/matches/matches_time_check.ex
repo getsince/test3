@@ -16,7 +16,8 @@ defmodule T.Matches.MatchesTimeCheck do
   end
 
   def prune() do
-    T.Matches.match_check()
+    T.Matches.match_soon_to_expire_check()
+    T.Matches.match_expired_check()
   end
 
   @impl true

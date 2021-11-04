@@ -1,4 +1,4 @@
-defmodule T.Matches.MatchEvents do
+defmodule T.Matches.MatchEvent do
   @moduledoc false
   use Ecto.Schema
 

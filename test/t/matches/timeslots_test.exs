@@ -72,7 +72,7 @@ defmodule T.Matches.TimeslotsTest do
         "2021-03-23 14:30:00Z"
       ]
 
-      assert {:ok, %Timeslot{} = timeslot} =
+      assert {:ok, %Timeslot{} = timeslot, _expiration_date} =
                Matches.save_slots_offer_for_match(
                  p1.user_id,
                  match.id,
@@ -116,7 +116,7 @@ defmodule T.Matches.TimeslotsTest do
     end
 
     test "offer is broadcast via pubsub to mate", %{profiles: [_p1, %{user_id: receiver_id}]} do
-      assert_receive {Matches, [:timeslot, :offered], %Timeslot{} = timeslot}
+      assert_receive {Matches, [:timeslot, :offered], %Timeslot{} = timeslot, _expiration_date}
 
       assert timeslot.slots == [
                ~U[2021-03-23 14:00:00Z],
@@ -220,7 +220,7 @@ defmodule T.Matches.TimeslotsTest do
     end
 
     test "accept broadcasted via pubsub to mate" do
-      assert_receive {Matches, [:timeslot, :accepted], %Timeslot{} = timeslot}
+      assert_receive {Matches, [:timeslot, :accepted], %Timeslot{} = timeslot, _expiration_date}
 
       assert timeslot.slots == [
                ~U[2021-03-23 14:00:00Z],
@@ -304,7 +304,8 @@ defmodule T.Matches.TimeslotsTest do
                  picker: p2.user
                )
 
-      assert {:ok, %Timeslot{slots: [~U[2021-03-23 14:30:00Z], ~U[2021-03-23 14:45:00Z]]}} =
+      assert {:ok, %Timeslot{slots: [~U[2021-03-23 14:30:00Z], ~U[2021-03-23 14:45:00Z]]},
+              _expiration_date} =
                Matches.save_slots_offer_for_match(
                  p2.user_id,
                  match.id,
@@ -330,7 +331,8 @@ defmodule T.Matches.TimeslotsTest do
                 slots: [~U[2021-03-23 14:30:00Z], ~U[2021-03-23 14:45:00Z]],
                 picker_id: ^new_picker,
                 selected_slot: nil
-              }} =
+              },
+              _expiration_date} =
                Matches.save_slots_offer_for_match(
                  p2.user_id,
                  match.id,
@@ -357,7 +359,7 @@ defmodule T.Matches.TimeslotsTest do
       "2021-03-23 14:30:00Z"
     ]
 
-    assert {:ok, %Timeslot{} = timeslot} =
+    assert {:ok, %Timeslot{} = timeslot, expiration_date} =
              Matches.save_slots_offer_for_match(
                p1.user_id,
                match.id,
@@ -365,6 +367,6 @@ defmodule T.Matches.TimeslotsTest do
                _reference = ~U[2021-03-23 14:12:00Z]
              )
 
-    {:ok, timeslot: timeslot}
+    {:ok, timeslot: timeslot, expiration_date: expiration_date}
   end
 end

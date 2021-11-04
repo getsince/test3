@@ -117,6 +117,8 @@ defmodule T.Calls do
 
     T.Matches.match_timeslot_new_event(match_id, "call start")
 
+    T.Matches.notify_match_expiration_reset(match_id, [caller, called])
+
     {1, _} =
       Call
       |> where(id: ^call_id)

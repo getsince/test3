@@ -17,22 +17,15 @@ defmodule T.Matches.ExpiredMatchTest do
       m = insert(:match, user_id_1: me.id, user_id_2: not_me.id, inserted_at: long_ago)
       insert(:match_event, match_id: m.id, event: "created", timestamp: long_ago)
 
-      matches =
-        Matches.Match
-        |> T.Repo.all()
-
+      matches = Matches.Match |> T.Repo.all()
       assert length(matches) == 1
 
       Matches.match_expired_check()
 
-      matches_after =
-        Matches.Match
-        |> T.Repo.all()
-
+      matches_after = Matches.Match |> T.Repo.all()
       assert length(matches_after) == 0
 
       expired_matches = Matches.ExpiredMatch |> T.Repo.all()
-
       assert length(expired_matches) == 2
     end
   end

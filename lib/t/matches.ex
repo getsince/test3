@@ -20,6 +20,8 @@ defmodule T.Matches do
   @pubsub T.PubSub
   @topic "__m"
 
+  @match_expiration_duration 172_800
+
   defp pubsub_user_topic(user_id) when is_binary(user_id) do
     @topic <> ":u:" <> String.downcase(user_id)
   end
@@ -374,34 +376,19 @@ defmodule T.Matches do
     end)
   end
 
-  defp successfull_calls_matches_ids_q() do
-    MatchEvent
-    |> where(event: "call start")
-    |> distinct([e], e.match_id)
-    |> select([e], e.match_id)
-  end
-
-  defp not_successfull_calls_q(query) do
-    where(query, [p], p.match_id not in subquery(successfull_calls_matches_ids_q()))
-  end
-
   defp with_expiration_date(matches) do
     matches_ids = Enum.map(matches, fn match -> match.id end)
 
     expiring_matches_events =
-      MatchEvent
-      |> not_successfull_calls_q
+      expired_matches_q()
       |> where([e], e.match_id in ^matches_ids)
-      |> order_by(desc: :timestamp)
-      |> distinct([e], e.match_id)
       |> Repo.all()
       |> Map.new(fn %MatchEvent{match_id: match_id} = match_event -> {match_id, match_event} end)
 
     Enum.map(matches, fn match ->
-      # TODO to env variables
       expiration_date =
         if last_event = expiring_matches_events[match.id] do
-          DateTime.add(last_event.timestamp, 2 * 24 * 60 * 60)
+          DateTime.add(last_event.timestamp, @match_expiration_duration)
         end
 
       %Match{match | expiration_date: expiration_date}
@@ -446,11 +433,28 @@ defmodule T.Matches do
     Multi.run(multi, :insert_expired_match, fn _repo, %{unmatch: unmatch} ->
       %{id: match_id, users: [user_id_1, user_id_2]} = unmatch
 
-      Repo.insert(%ExpiredMatch{match_id: match_id, user_id: user_id_1, with_user_id: user_id_2})
+      timestamp = DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.to_naive()
 
-      Repo.insert(%ExpiredMatch{match_id: match_id, user_id: user_id_2, with_user_id: user_id_1})
+      {count, _} =
+        Repo.insert_all(
+          ExpiredMatch,
+          [
+            %{
+              match_id: match_id,
+              user_id: user_id_1,
+              with_user_id: user_id_2,
+              inserted_at: timestamp
+            },
+            %{
+              match_id: match_id,
+              user_id: user_id_2,
+              with_user_id: user_id_1,
+              inserted_at: timestamp
+            }
+          ]
+        )
 
-      {:ok, 1}
+      {:ok, count}
     end)
   end
 
@@ -746,34 +750,7 @@ defmodule T.Matches do
     end
   end
 
-  def match_soon_to_expire_check() do
-    MatchEvent
-    |> not_successfull_calls_q
-    |> order_by(desc: :timestamp)
-    |> distinct([m], m.match_id)
-    |> join(:inner, [m], ma in Match, on: ma.id == m.match_id)
-    |> where([m], m.timestamp < fragment("now() - INTERVAL '46:1 HOURS:MINUTES'"))
-    |> where([m], m.timestamp > fragment("now() - INTERVAL '46 hours'"))
-    |> select([m, ma], m.match_id)
-    |> T.Repo.all()
-    |> Enum.map(fn match_id ->
-      schedule_match_about_to_expire(match_id)
-    end)
-  end
-
-  def match_expired_check() do
-    MatchEvent
-    |> not_successfull_calls_q
-    |> order_by(desc: :timestamp)
-    |> distinct([m], m.match_id)
-    |> join(:inner, [m], ma in Match, on: ma.id == m.match_id)
-    |> where([m], m.timestamp < fragment("now() - INTERVAL '48 hours'"))
-    |> select([m, ma], {ma.user_id_1, ma.user_id_2})
-    |> T.Repo.all()
-    |> Enum.map(fn {user_id_1, user_id_2} ->
-      expire_match(user_id_1, user_id_2)
-    end)
-  end
+  # Expired Matches
 
   def match_timeslot_new_event(match_id, event) do
     if match_id != [] and match_id != nil and match_id != "" do
@@ -785,6 +762,34 @@ defmodule T.Matches do
     end
   end
 
+  def match_expired_check() do
+    expired_matches_q()
+    |> join(:inner, [m], ma in Match, on: ma.id == m.match_id)
+    |> where([m], m.timestamp < fragment("now() - INTERVAL '48 hours'"))
+    |> select([m, ma], {ma.user_id_1, ma.user_id_2})
+    |> T.Repo.all()
+    |> Enum.map(fn {user_id_1, user_id_2} ->
+      expire_match(user_id_1, user_id_2)
+    end)
+  end
+
+  def match_soon_to_expire_check() do
+    expired_matches_q()
+    |> join(:inner, [m], ma in Match, on: ma.id == m.match_id)
+    |> where([m], m.timestamp < fragment("now() - INTERVAL '46:1 HOURS:MINUTES'"))
+    |> where([m], m.timestamp > fragment("now() - INTERVAL '46 hours'"))
+    |> select([m, ma], m.match_id)
+    |> T.Repo.all()
+    |> Enum.map(fn match_id ->
+      schedule_match_about_to_expire(match_id)
+    end)
+  end
+
+  defp schedule_match_about_to_expire(match_id) do
+    job = DispatchJob.new(%{"type" => "match_about_to_expire", "match_id" => match_id})
+    Oban.insert(job)
+  end
+
   def mark_expired_match_seen(match_id, by_user_id) do
     ExpiredMatch
     |> where(match_id: ^match_id, user_id: ^by_user_id)
@@ -793,18 +798,14 @@ defmodule T.Matches do
 
   def expiration_date(match_id) do
     last_event_date =
-      MatchEvent
-      |> not_successfull_calls_q
+      expired_matches_q()
       |> where(match_id: ^match_id)
-      |> distinct([e], e.match_id)
-      |> order_by(desc: :timestamp)
       |> select([e], e.timestamp)
       |> Repo.one()
 
     case last_event_date do
       nil -> nil
-      # TODO TO ENV VARS
-      _ -> last_event_date |> DateTime.add(2 * 24 * 60 * 60)
+      _ -> last_event_date |> DateTime.add(@match_expiration_duration)
     end
   end
 
@@ -812,19 +813,24 @@ defmodule T.Matches do
     [uid1, uid2] = Enum.sort([user_id_1, user_id_2])
     match_id = T.Matches.get_match_id_for_users!(uid1, uid2)
 
-    MatchEvent
-    |> not_successfull_calls_q
-    |> where(match_id: ^match_id)
-    |> distinct([e], e.match_id)
-    |> order_by(desc: :timestamp)
-    |> select([e], e.timestamp)
-    |> Repo.one()
-    # TODO TO ENV VARS
-    |> DateTime.add(2 * 24 * 60 * 60)
+    expiration_date(match_id)
   end
 
-  defp schedule_match_about_to_expire(match_id) do
-    job = DispatchJob.new(%{"type" => "match_about_to_expire", "match_id" => match_id})
-    Oban.insert(job)
+  defp successfull_calls_matches_ids_q() do
+    MatchEvent
+    |> where(event: "call start")
+    |> distinct([e], e.match_id)
+    |> select([e], e.match_id)
+  end
+
+  defp not_successfull_calls_q(query) do
+    where(query, [p], p.match_id not in subquery(successfull_calls_matches_ids_q()))
+  end
+
+  defp expired_matches_q() do
+    MatchEvent
+    |> not_successfull_calls_q
+    |> order_by(desc: :timestamp)
+    |> distinct([m], m.match_id)
   end
 end

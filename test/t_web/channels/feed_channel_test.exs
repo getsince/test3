@@ -8,6 +8,8 @@ defmodule TWeb.FeedChannelTest do
   import Mox
   setup :verify_on_exit!
 
+  @match_expiration_duration 172_800
+
   setup do
     me = onboarded_user(location: moscow_location(), accept_genders: ["F", "N", "M"])
     {:ok, me: me, socket: connected_socket(me)}
@@ -81,8 +83,7 @@ defmodule TWeb.FeedChannelTest do
                    "profile" => %{name: "mate", story: [], user_id: mate.id, gender: "F"}
                  }
                ],
-               #  TODO FETCH EVN VAR
-               "match_expiration_duration" => 2 * 24 * 60 * 60
+               "match_expiration_duration" => @match_expiration_duration
              }
     end
 
@@ -174,8 +175,7 @@ defmodule TWeb.FeedChannelTest do
                    "profile" => %{gender: "F", name: "mate", story: [], user_id: mate.id}
                  }
                ],
-               #  TODO FETCH EVN VAR
-               "match_expiration_duration" => 2 * 24 * 60 * 60
+               "match_expiration_duration" => @match_expiration_duration
              }
 
       # now with missed_calls_cursor
@@ -198,8 +198,7 @@ defmodule TWeb.FeedChannelTest do
                    "profile" => %{gender: "F", name: "mate", story: [], user_id: mate.id}
                  }
                ],
-               #  TODO FETCH EVN VAR
-               "match_expiration_duration" => 2 * 24 * 60 * 60
+               "match_expiration_duration" => @match_expiration_duration
              }
     end
   end
@@ -479,6 +478,8 @@ defmodule TWeb.FeedChannelTest do
       assert_reply(ref, :ok, reply)
       assert reply == %{}
 
+      exp_date = expiration_date()
+
       # now mate likes us
       ref = push(mate_socket, "like", %{"user_id" => me.id})
       assert_reply(ref, :ok, %{"match_id" => match_id})
@@ -490,7 +491,7 @@ defmodule TWeb.FeedChannelTest do
                "match" => %{
                  "id" => match_id,
                  "profile" => %{name: "mate", story: [], user_id: mate.id, gender: "M"},
-                 "expiration_date" => expiration_date()
+                 "expiration_date" => exp_date
                }
              }
     end
@@ -789,6 +790,8 @@ defmodule TWeb.FeedChannelTest do
 
       iso_slots = Enum.map(slots, &DateTime.to_iso8601/1)
 
+      exp_date = expiration_date()
+
       ref = push(mate_socket, "offer-slots", %{"match_id" => match.id, "slots" => iso_slots})
       assert_reply(ref, :ok, _reply)
 
@@ -798,7 +801,7 @@ defmodule TWeb.FeedChannelTest do
       assert push == %{
                "match_id" => match.id,
                "slots" => slots,
-               "expiration_date" => expiration_date()
+               "expiration_date" => exp_date
              }
 
       {:ok, slots: slots}
@@ -806,6 +809,7 @@ defmodule TWeb.FeedChannelTest do
 
     test "with match_id", %{slots: [_s1, s2, _s3] = slots, match: match, socket: socket, me: me} do
       iso_slot = DateTime.to_iso8601(s2)
+      exp_date = expiration_date()
       ref = push(socket, "pick-slot", %{"match_id" => match.id, "slot" => iso_slot})
       assert_reply(ref, :ok, _reply)
 
@@ -820,7 +824,7 @@ defmodule TWeb.FeedChannelTest do
       assert push == %{
                "match_id" => match.id,
                "selected_slot" => s2,
-               "expiration_date" => expiration_date()
+               "expiration_date" => exp_date
              }
     end
 
@@ -917,6 +921,7 @@ defmodule TWeb.FeedChannelTest do
         ]
 
       iso_slots = Enum.map(slots, &DateTime.to_iso8601/1)
+      exp_date = expiration_date()
 
       ref = push(mate_socket, "offer-slots", %{"match_id" => match.id, "slots" => iso_slots})
       assert_reply(ref, :ok, _reply)
@@ -927,7 +932,7 @@ defmodule TWeb.FeedChannelTest do
       assert push == %{
                "match_id" => match.id,
                "slots" => slots,
-               "expiration_date" => expiration_date()
+               "expiration_date" => exp_date
              }
 
       exp_date = expiration_date()
@@ -950,24 +955,26 @@ defmodule TWeb.FeedChannelTest do
     end
 
     test "with match_id", %{socket: socket, match: match} do
+      exp_date = expiration_date()
       ref = push(socket, "cancel-slot", %{"match_id" => match.id})
       assert_reply(ref, :ok, _reply)
 
       # mate gets slot_cancelled notification
       assert_push("slot_cancelled", push)
-      assert push == %{"match_id" => match.id, "expiration_date" => expiration_date()}
+      assert push == %{"match_id" => match.id, "expiration_date" => exp_date}
 
       # timeslot is reset
       refute Repo.get_by(Timeslot, match_id: match.id)
     end
 
     test "with user_id", %{socket: socket, match: match, mate: mate} do
+      exp_date = expiration_date()
       ref = push(socket, "cancel-slot", %{"user_id" => mate.id})
       assert_reply(ref, :ok, _reply)
 
       # mate gets slot_cancelled notification
       assert_push("slot_cancelled", push)
-      assert push == %{"match_id" => match.id, "expiration_date" => expiration_date()}
+      assert push == %{"match_id" => match.id, "expiration_date" => exp_date}
 
       # timeslot is reset
       refute Repo.get_by(Timeslot, match_id: match.id)
@@ -1093,7 +1100,6 @@ defmodule TWeb.FeedChannelTest do
   end
 
   defp expiration_date() do
-    # TODO TO ENV VARS
-    DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.add(2 * 24 * 60 * 60)
+    DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.add(@match_expiration_duration)
   end
 end

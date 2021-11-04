@@ -5,6 +5,8 @@ defmodule T.Accounts.DeletionTest do
   alias T.{Accounts, Matches}
   alias Matches.Match
 
+  @match_expiration_duration 172_800
+
   describe "delete_user/1" do
     setup do
       %{profile: profile} = user = onboarded_user()
@@ -34,8 +36,10 @@ defmodule T.Accounts.DeletionTest do
       assert {:ok, %{match: nil}} = Matches.like_user(p2.user_id, user.id)
       assert {:ok, %{match: %Match{id: match_id}}} = Matches.like_user(user.id, p2.user_id)
 
+      exp_date = expiration_date()
+
       assert_receive {Matches, :matched, match}
-      assert match == %{id: match_id, mate: user.id, expiration_date: expiration_date()}
+      assert match == %{id: match_id, mate: user.id, expiration_date: exp_date}
 
       assert {:ok, %{delete_user: true, unmatch: [true]}} = Accounts.delete_user(user.id)
       assert_receive {Matches, :unmatched, ^match_id}
@@ -44,7 +48,6 @@ defmodule T.Accounts.DeletionTest do
   end
 
   defp expiration_date() do
-    # TODO TO ENV VARS
-    DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.add(2 * 24 * 60 * 60)
+    DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.add(@match_expiration_duration)
   end
 end

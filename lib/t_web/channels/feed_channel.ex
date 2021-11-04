@@ -6,6 +6,8 @@ defmodule TWeb.FeedChannel do
   alias T.Feeds.{FeedProfile}
   alias T.{Feeds, Calls, Matches, Accounts}
 
+  @match_expiration_duration 172_800
+
   @impl true
   def join("feed:" <> user_id, params, socket) do
     if ChannelHelpers.valid_user_topic?(socket, user_id) do
@@ -39,8 +41,7 @@ defmodule TWeb.FeedChannel do
 
       reply =
         %{}
-        # TODO to env variable
-        |> Map.put("match_expiration_duration", 2 * 24 * 60 * 60)
+        |> Map.put("match_expiration_duration", @match_expiration_duration)
         |> maybe_put("missed_calls", missed_calls)
         |> maybe_put("likes", likes)
         |> maybe_put("matches", matches)
@@ -152,31 +153,25 @@ defmodule TWeb.FeedChannel do
   def handle_in("pick-slot", %{"slot" => slot} = params, socket) do
     me = me_id(socket)
 
-    expiration_date =
-      case params do
-        %{"match_id" => match_id} ->
-          Matches.accept_slot_for_match(me, match_id, slot)
-          Matches.expiration_date(match_id)
+    case params do
+      %{"match_id" => match_id} -> Matches.accept_slot_for_match(me, match_id, slot)
+      %{"user_id" => user_id} -> Matches.accept_slot_for_matched_user(me, user_id, slot)
+    end
 
-        %{"user_id" => user_id} ->
-          Matches.accept_slot_for_matched_user(me, user_id, slot)
-          Matches.expiration_date(me, user_id)
-      end
+    expiration_date = expiration_date_from_params(params, me)
 
     {:reply, {:ok, %{"expiration_date" => expiration_date}}, socket}
   end
 
   def handle_in("cancel-slot", params, socket) do
-    expiration_date =
-      case params do
-        %{"match_id" => match_id} ->
-          Matches.cancel_slot_for_match(me_id(socket), match_id)
-          Matches.expiration_date(match_id)
+    me = me_id(socket)
 
-        %{"user_id" => user_id} ->
-          Matches.cancel_slot_for_matched_user(me_id(socket), user_id)
-          Matches.expiration_date(me_id(socket), user_id)
-      end
+    case params do
+      %{"match_id" => match_id} -> Matches.cancel_slot_for_match(me, match_id)
+      %{"user_id" => user_id} -> Matches.cancel_slot_for_matched_user(me, user_id)
+    end
+
+    expiration_date = expiration_date_from_params(params, me)
 
     {:reply, {:ok, %{"expiration_date" => expiration_date}}, socket}
   end
@@ -340,5 +335,15 @@ defmodule TWeb.FeedChannel do
       profile: mate_feed_profile,
       screen_width: screen_width
     )
+  end
+
+  defp expiration_date_from_params(params, me) do
+    case params do
+      %{"match_id" => match_id} ->
+        Matches.expiration_date(match_id)
+
+      %{"user_id" => user_id} ->
+        Matches.expiration_date(me, user_id)
+    end
   end
 end

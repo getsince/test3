@@ -202,7 +202,7 @@ defmodule T.Matches.TimeslotsTest do
     end
   end
 
-  describe "accept_slot/2 when slot in future side-effects" do
+  describe "accept_slot/2 side-effects when slot in future" do
     setup [:with_profiles, :with_match, :with_offer]
 
     setup %{profiles: [p1, p2], match: match} do
@@ -293,7 +293,7 @@ defmodule T.Matches.TimeslotsTest do
     test "timeslot_reminder not scheduled for slots within 15 minutes from now"
   end
 
-  describe "accept_slot/2 when slot is now side-effects" do
+  describe "accept_slot/2 side-effects when slot has started" do
     setup [:with_profiles, :with_match, :with_offer]
 
     setup %{profiles: [p1, p2], match: match} do

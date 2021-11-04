@@ -749,6 +749,12 @@ defmodule T.Matches do
   end
 
   def match_soon_to_expire_check() do
+    successfull_calls =
+      MatchEvent
+      |> distinct([e], e.match_id)
+      |> where(event: "call start")
+      |> select([e], e.match_id)
+
     MatchEvent
     |> order_by(desc: :timestamp)
     |> distinct([m], m.match_id)
@@ -763,7 +769,14 @@ defmodule T.Matches do
   end
 
   def match_expired_check() do
+    successfull_calls =
+      MatchEvent
+      |> distinct([e], e.match_id)
+      |> where(event: "call start")
+      |> select([e], e.match_id)
+
     MatchEvent
+    |> where([e], e.match_id not in subquery(successfull_calls))
     |> order_by(desc: :timestamp)
     |> distinct([m], m.match_id)
     |> join(:inner, [m], ma in Match, on: ma.id == m.match_id)

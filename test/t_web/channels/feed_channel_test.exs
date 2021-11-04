@@ -611,6 +611,8 @@ defmodule TWeb.FeedChannelTest do
     end
 
     test "with user_id", %{slots: slots, mate: mate, match: match, socket: socket} do
+      exp_date = expiration_date()
+
       ref =
         push(socket, "offer-slots", %{
           "user_id" => mate.id,
@@ -625,7 +627,7 @@ defmodule TWeb.FeedChannelTest do
       assert push == %{
                "match_id" => match.id,
                "slots" => slots,
-               "expiration_date" => expiration_date()
+               "expiration_date" => exp_date
              }
     end
   end
@@ -779,6 +781,8 @@ defmodule TWeb.FeedChannelTest do
     end
 
     test "repick", %{slots: [s1, s2, _s3] = slots, match: match, socket: socket, me: me} do
+      exp_date = expiration_date()
+
       iso_slot = DateTime.to_iso8601(s2)
       ref = push(socket, "pick-slot", %{"match_id" => match.id, "slot" => iso_slot})
       assert_reply(ref, :ok, _reply)
@@ -789,7 +793,7 @@ defmodule TWeb.FeedChannelTest do
       assert push == %{
                "match_id" => match.id,
                "selected_slot" => s2,
-               "expiration_date" => expiration_date()
+               "expiration_date" => exp_date
              }
 
       iso_slot = DateTime.to_iso8601(s1)
@@ -802,7 +806,7 @@ defmodule TWeb.FeedChannelTest do
       assert push == %{
                "match_id" => match.id,
                "selected_slot" => s1,
-               "expiration_date" => expiration_date()
+               "expiration_date" => exp_date
              }
 
       assert %Timeslot{} = timeslot = Repo.get_by(Timeslot, match_id: match.id)

@@ -428,26 +428,45 @@ defmodule T.Matches do
 
     broadcast_for_user(mate, {__MODULE__, [:timeslot, :accepted], timeslot})
 
-    accepted_push =
-      DispatchJob.new(%{
-        "type" => "timeslot_accepted",
-        "match_id" => match_id,
-        "receiver_id" => mate
-      })
+    timeslot_started? = DateTime.compare(slot, reference) in [:lt, :eq]
 
-    reminder_push =
-      DispatchJob.new(
-        %{"type" => "timeslot_reminder", "match_id" => match_id, "slot" => slot},
-        scheduled_at: DateTime.add(slot, -15 * 60, :second)
-      )
+    if timeslot_started? do
+      notify_timeslot_started(match_id, [picker, mate])
+    end
 
-    started_push =
-      DispatchJob.new(
-        %{"type" => "timeslot_started", "match_id" => match_id, "slot" => slot},
-        scheduled_at: slot
-      )
+    pushes =
+      if timeslot_started? do
+        _now_push =
+          DispatchJob.new(%{
+            "type" => "timeslot_accepted_now",
+            "match_id" => match_id,
+            "receiver_id" => mate,
+            "slot" => slot
+          })
+      else
+        accepted_push =
+          DispatchJob.new(%{
+            "type" => "timeslot_accepted",
+            "match_id" => match_id,
+            "receiver_id" => mate
+          })
 
-    Oban.insert_all([accepted_push, reminder_push, started_push])
+        reminder_push =
+          DispatchJob.new(
+            %{"type" => "timeslot_reminder", "match_id" => match_id, "slot" => slot},
+            scheduled_at: DateTime.add(slot, -15 * 60, :second)
+          )
+
+        started_push =
+          DispatchJob.new(
+            %{"type" => "timeslot_started", "match_id" => match_id, "slot" => slot},
+            scheduled_at: slot
+          )
+
+        [accepted_push, reminder_push, started_push]
+      end
+
+    pushes |> List.wrap() |> Oban.insert_all()
 
     timeslot
   end
@@ -582,6 +601,14 @@ defmodule T.Matches do
     message = {__MODULE__, [:timeslot, :ended], match_id}
 
     for uid <- [uid1, uid2] do
+      broadcast_for_user(uid, message)
+    end
+  end
+
+  def notify_timeslot_started(match_id, user_ids) do
+    message = {__MODULE__, [:timeslot, :started], match_id}
+
+    for uid <- user_ids do
       broadcast_for_user(uid, message)
     end
   end

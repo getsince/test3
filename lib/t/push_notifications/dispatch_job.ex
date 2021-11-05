@@ -41,6 +41,25 @@ defmodule T.PushNotifications.DispatchJob do
     end
   end
 
+  defp handle_type("timeslot_accepted_now" = type, args) do
+    %{"match_id" => match_id, "receiver_id" => receiver_id, "slot" => slot} = args
+
+    if match = alive_match(match_id) do
+      timeslot =
+        Matches.Timeslot |> where(match_id: ^match_id, selected_slot: ^slot) |> Repo.one()
+
+      if timeslot do
+        Matches.schedule_timeslot_ended(match, timeslot)
+
+        receiver_id
+        |> Accounts.list_apns_devices()
+        |> schedule_apns(type, %{"match_id" => match_id})
+
+        :ok
+      end
+    end || :discard
+  end
+
   defp handle_type(type, args) when type in ["timeslot_reminder", "timeslot_started"] do
     %{"match_id" => match_id, "slot" => slot} = args
 

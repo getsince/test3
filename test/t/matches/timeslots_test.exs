@@ -202,7 +202,7 @@ defmodule T.Matches.TimeslotsTest do
     end
   end
 
-  describe "accept_slot/2 side-effects" do
+  describe "accept_slot/2 side-effects when slot in future" do
     setup [:with_profiles, :with_match, :with_offer]
 
     setup %{profiles: [p1, p2], match: match} do
@@ -232,7 +232,7 @@ defmodule T.Matches.TimeslotsTest do
       assert timeslot.selected_slot == ~U[2021-03-23 14:15:00Z]
     end
 
-    test "push notification are scheduled", %{
+    test "push notifications are scheduled", %{
       match: %{id: match_id},
       profiles: [%{user_id: u1}, %{user_id: u2}]
     } do
@@ -291,6 +291,67 @@ defmodule T.Matches.TimeslotsTest do
 
     @tag skip: true
     test "timeslot_reminder not scheduled for slots within 15 minutes from now"
+  end
+
+  describe "accept_slot/2 side-effects when slot has started" do
+    setup [:with_profiles, :with_match, :with_offer]
+
+    setup %{profiles: [p1, p2], match: match} do
+      :ok = Matches.subscribe_for_user(p1.user_id)
+
+      %Timeslot{} =
+        Matches.accept_slot_for_match(
+          p2.user_id,
+          match.id,
+          _slot = "2021-03-23 14:00:00Z",
+          _reference = ~U[2021-03-23 14:12:00Z]
+        )
+
+      :ok
+    end
+
+    test "start broadcasted via pubsub to mate", %{match: %{id: match_id}} do
+      assert_receive {T.Matches, [:timeslot, :started], ^match_id}
+    end
+
+    test "push notifications are scheduled", %{
+      match: %{id: match_id},
+      profiles: [%{user_id: u1}, %{user_id: u2}]
+    } do
+      assert [
+               %Oban.Job{
+                 args: %{
+                   "match_id" => ^match_id,
+                   "receiver_id" => ^u1,
+                   "type" => "timeslot_accepted_now"
+                 }
+               } = accepted_now,
+               %Oban.Job{
+                 args: %{
+                   "match_id" => ^match_id,
+                   "receiver_id" => ^u2,
+                   "type" => "timeslot_offer"
+                 }
+               }
+             ] = all_enqueued(worker: T.PushNotifications.DispatchJob)
+
+      assert :ok == T.PushNotifications.DispatchJob.perform(accepted_now)
+
+      assert [
+               #  60 mins after slot
+               %Oban.Job{
+                 args: %{
+                   "match_id" => ^match_id,
+                   "type" => "timeslot_ended"
+                 },
+                 scheduled_at: ~U[2021-03-23 15:00:00.000000Z]
+               } = ended
+               | _rest
+             ] = all_enqueued(worker: T.PushNotifications.DispatchJob)
+
+      assert :ok == T.PushNotifications.DispatchJob.perform(ended)
+      assert_receive {T.Matches, [:timeslot, :ended], ^match_id}
+    end
   end
 
   describe "counter-offer" do

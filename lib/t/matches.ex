@@ -572,26 +572,45 @@ defmodule T.Matches do
     expiration_date = expiration_date(match_id)
     broadcast_for_user(mate, {__MODULE__, [:timeslot, :accepted], timeslot, expiration_date})
 
-    accepted_push =
-      DispatchJob.new(%{
-        "type" => "timeslot_accepted",
-        "match_id" => match_id,
-        "receiver_id" => mate
-      })
+    timeslot_started? = DateTime.compare(slot, reference) in [:lt, :eq]
 
-    reminder_push =
-      DispatchJob.new(
-        %{"type" => "timeslot_reminder", "match_id" => match_id, "slot" => slot},
-        scheduled_at: DateTime.add(slot, -15 * 60, :second)
-      )
+    if timeslot_started? do
+      notify_timeslot_started(match_id, [picker, mate])
+    end
 
-    started_push =
-      DispatchJob.new(
-        %{"type" => "timeslot_started", "match_id" => match_id, "slot" => slot},
-        scheduled_at: slot
-      )
+    pushes =
+      if timeslot_started? do
+        _now_push =
+          DispatchJob.new(%{
+            "type" => "timeslot_accepted_now",
+            "match_id" => match_id,
+            "receiver_id" => mate,
+            "slot" => slot
+          })
+      else
+        accepted_push =
+          DispatchJob.new(%{
+            "type" => "timeslot_accepted",
+            "match_id" => match_id,
+            "receiver_id" => mate
+          })
 
-    Oban.insert_all([accepted_push, reminder_push, started_push])
+        reminder_push =
+          DispatchJob.new(
+            %{"type" => "timeslot_reminder", "match_id" => match_id, "slot" => slot},
+            scheduled_at: DateTime.add(slot, -15 * 60, :second)
+          )
+
+        started_push =
+          DispatchJob.new(
+            %{"type" => "timeslot_started", "match_id" => match_id, "slot" => slot},
+            scheduled_at: slot
+          )
+
+        [accepted_push, reminder_push, started_push]
+      end
+
+    pushes |> List.wrap() |> Oban.insert_all()
 
     timeslot
   end
@@ -709,13 +728,13 @@ defmodule T.Matches do
   end
 
   # ~U[2021-03-23 14:12:00Z] -> ~U[2021-03-23 14:00:00Z]
-  # ~U[2021-03-23 14:49:00Z] -> ~U[2021-03-23 14:45:00Z]
+  # ~U[2021-03-23 14:49:00Z] -> ~U[2021-03-23 14:30:00Z]
   defp prev_slot(%DateTime{minute: minutes} = dt) do
-    %DateTime{dt | minute: div(minutes, 15) * 15, second: 0, microsecond: {0, 0}}
+    %DateTime{dt | minute: div(minutes, 30) * 30, second: 0, microsecond: {0, 0}}
   end
 
   def schedule_timeslot_ended(match, timeslot) do
-    ended_at = DateTime.add(timeslot.selected_slot, 15 * 60, :second)
+    ended_at = DateTime.add(timeslot.selected_slot, 60 * 60, :second)
 
     job =
       DispatchJob.new(
@@ -730,6 +749,14 @@ defmodule T.Matches do
     message = {__MODULE__, [:timeslot, :ended], match_id}
 
     for uid <- [uid1, uid2] do
+      broadcast_for_user(uid, message)
+    end
+  end
+
+  def notify_timeslot_started(match_id, user_ids) do
+    message = {__MODULE__, [:timeslot, :started], match_id}
+
+    for uid <- user_ids do
       broadcast_for_user(uid, message)
     end
   end

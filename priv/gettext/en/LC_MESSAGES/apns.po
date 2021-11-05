@@ -52,7 +52,7 @@ msgid "Скорее заходи!"
 msgstr "Come look!"
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:110
+#: lib/t/push_notifications/apns.ex:101 lib/t/push_notifications/apns.ex:110
 msgid "Твое приглашение на дэйт принято"
 msgstr "Your invitation has been accepted"
 
@@ -90,3 +90,8 @@ msgstr ""
 #: lib/t/push_notifications/apns.ex:82
 msgid "Your match is about to expire 😢"
 msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:111
+msgid "Заходи и звони сейчас 👉"
+msgstr "Come in and call now 👉"

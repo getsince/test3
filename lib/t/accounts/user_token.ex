@@ -13,6 +13,7 @@ defmodule T.Accounts.UserToken do
     field :context, :string
     field :sent_to, :string
     belongs_to :user, Accounts.User
+    field :version, :string
 
     timestamps(updated_at: false)
   end

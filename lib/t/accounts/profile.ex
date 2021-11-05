@@ -25,6 +25,7 @@ defmodule T.Accounts.Profile do
     # general info
     field :name, :string
     field :gender, :string
+    field :birthdate, :date
   end
 
   defp maybe_validate_required(changeset, opts, fun) when is_function(fun, 1) do
@@ -37,12 +38,26 @@ defmodule T.Accounts.Profile do
     attrs = attrs |> prepare_location() |> prepare_filters()
 
     profile
-    |> cast(attrs, [:name, :gender, :location])
+    |> cast(attrs, [:name, :gender, :location, :birthdate])
     |> maybe_validate_required(opts, fn changeset ->
-      validate_required(changeset, [:name, :gender, :location])
+      validate_required(changeset, [:name, :gender, :location, :birthdate])
     end)
     |> validate_inclusion(:gender, @known_genders)
     |> validate_length(:name, max: 100)
+    |> validate_change(:birthdate, fn :birthdate, birthdate ->
+      %{year: y, month: m, day: d} = DateTime.utc_now()
+      young = %Date{year: y - 18, month: m, day: d}
+      old = %Date{year: y - 100, month: m, day: d}
+
+      young_comp = Date.compare(young, birthdate)
+      old_comp = Date.compare(old, birthdate)
+
+      case {young_comp, old_comp} do
+        {:lt, _} -> [birthdate: "too young"]
+        {_, :gt} -> [birthdate: "too old"]
+        _ -> []
+      end
+    end)
     |> cast_embed(:filters,
       required: !!opts[:validate_required?],
       with: fn changeset, attrs ->

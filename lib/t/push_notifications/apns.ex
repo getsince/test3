@@ -114,6 +114,15 @@ defmodule T.PushNotifications.APNS do
     base_alert_payload(type, alert, data)
   end
 
+  def build_alert_payload("timeslot_accepted_now" = type, data) do
+    alert = %{
+      "title" => dgettext("apns", "Твое приглашение на дэйт принято"),
+      "body" => dgettext("apns", "Заходи и звони сейчас 👉")
+    }
+
+    base_alert_payload(type, alert, data)
+  end
+
   def build_alert_payload("timeslot_cancelled" = type, data) do
     alert = %{
       "title" => dgettext("apns", "Твой дэйт отменён"),

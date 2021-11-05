@@ -212,6 +212,19 @@ defmodule T.Matches.TimeslotsTest do
 
       assert length(match_event) == 2
     end
+
+    test "decline", %{profiles: [_p1, p2], match: match} do
+
+      match_event = Matches.MatchEvent |> T.Repo.all()
+
+      assert length(match_event) == 1
+
+      Matches.cancel_slot_for_match(p2.user_id, match.id)
+
+      match_event_after = Matches.MatchEvent |> T.Repo.all()
+
+      assert length(match_event_after) == 2
+    end
   end
 
   describe "accept_slot/2 side-effects when slot in future" do

@@ -212,7 +212,7 @@ defmodule T.Feeds do
     ExpiredMatch |> where(user_id: ^user_id) |> select([s], s.with_user_id)
   end
 
-  defp not_expired_match_profiles_q(query, user_id) do
+  defp not_expired_match_with_q(query, user_id) do
     where(query, [p], p.user_id not in subquery(expired_match_user_ids_q(user_id)))
   end
 
@@ -234,7 +234,7 @@ defmodule T.Feeds do
     |> not_liked_profiles_q(user_id)
     |> not_liker_profiles_q(user_id)
     |> not_seen_profiles_q(user_id)
-    |> not_expired_match_profiles_q(user_id)
+    |> not_expired_match_with_q(user_id)
     |> profiles_that_accept_gender_q(gender)
     |> maybe_gender_preferenced_q(gender_preference)
   end

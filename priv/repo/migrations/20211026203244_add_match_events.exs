@@ -11,7 +11,7 @@ defmodule T.Repo.Migrations.AddMatchEvents do
     end
 
     create index(:match_events, [:match_id, "timestamp desc"])
-    create index(:match_events, ["event"], where: "event = 'call_accepted'")
+    create index(:match_events, ["event"], where: "event = 'call_start'")
 
     flush()
 

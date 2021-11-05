@@ -147,6 +147,13 @@ defmodule TWeb.CallChannelTest do
     test "is broadcasted" do
       %{socket: socket, user: called} = make_user_socket()
       caller = onboarded_user()
+
+      insert(:match,
+        user_id_1: called.id,
+        user_id_2: caller.id,
+        inserted_at: ~N[2021-09-30 12:16:05]
+      )
+
       %Call{id: call_id} = insert(:call, called: called, caller: caller)
 
       assert {:ok, _reply, socket} = subscribe_and_join(socket, "call:#{call_id}")

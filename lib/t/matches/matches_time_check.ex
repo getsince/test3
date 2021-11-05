@@ -1,4 +1,4 @@
-defmodule T.Matches.MatchesTimeCheck do
+defmodule T.Matches.MatchExpirer do
   use GenServer
 
   @doc """

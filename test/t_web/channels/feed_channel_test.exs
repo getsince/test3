@@ -8,7 +8,7 @@ defmodule TWeb.FeedChannelTest do
   import Mox
   setup :verify_on_exit!
 
-  @match_expiration_duration 172_800
+  @match_ttl 172_800
 
   setup do
     me = onboarded_user(location: moscow_location(), accept_genders: ["F", "N", "M"])
@@ -83,7 +83,7 @@ defmodule TWeb.FeedChannelTest do
                    "profile" => %{name: "mate", story: [], user_id: mate.id, gender: "F"}
                  }
                ],
-               "match_expiration_duration" => @match_expiration_duration
+               "match_expiration_duration" => @match_ttl
              }
     end
 
@@ -175,7 +175,7 @@ defmodule TWeb.FeedChannelTest do
                    "profile" => %{gender: "F", name: "mate", story: [], user_id: mate.id}
                  }
                ],
-               "match_expiration_duration" => @match_expiration_duration
+               "match_expiration_duration" => @match_ttl
              }
 
       # now with missed_calls_cursor
@@ -198,7 +198,7 @@ defmodule TWeb.FeedChannelTest do
                    "profile" => %{gender: "F", name: "mate", story: [], user_id: mate.id}
                  }
                ],
-               "match_expiration_duration" => @match_expiration_duration
+               "match_expiration_duration" => @match_ttl
              }
     end
   end
@@ -372,7 +372,7 @@ defmodule TWeb.FeedChannelTest do
       assert feed0 == feed2
     end
 
-    test "not-seen expired match is not returned in feed", %{socket: socket, me: me} do
+    test "non-seen expired match is not returned in feed", %{socket: socket, me: me} do
       mate =
         onboarded_user(
           name: "mate",
@@ -1100,6 +1100,6 @@ defmodule TWeb.FeedChannelTest do
   end
 
   defp expiration_date() do
-    DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.add(@match_expiration_duration)
+    DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.add(@match_ttl)
   end
 end

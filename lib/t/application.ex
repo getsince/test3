@@ -26,7 +26,7 @@ defmodule T.Application do
         TWeb.UserSocket.Monitor,
         T.Repo,
         unless_disabled(T.Feeds.SeenPruner),
-        unless_disabled(T.Matches.MatchesTimeCheck),
+        unless_disabled(T.Matches.MatchExpirer),
         TWeb.Endpoint,
         TWeb.Telemetry,
         maybe_migrator(),

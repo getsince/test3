@@ -4,8 +4,6 @@ defmodule T.Accounts.BlockingTest do
   alias T.Accounts.UserReport
   alias T.Matches.Match
 
-  @match_expiration_duration 172_800
-
   # TODO move to reporting test
   describe "report_user/3" do
     setup do
@@ -29,11 +27,9 @@ defmodule T.Accounts.BlockingTest do
       assert {:ok, %{match: nil}} = Matches.like_user(reporter.id, reported.id)
       assert {:ok, %{match: %Match{id: match_id}}} = Matches.like_user(reported.id, reporter.id)
 
-      exp_date = expiration_date()
-
       # notification for reporter
       assert_receive {Matches, :matched, match}
-      assert match == %{id: match_id, mate: reported.id, expiration_date: exp_date}
+      assert match == %{id: match_id, mate: reported.id}
 
       assert :ok == Accounts.report_user(reporter.id, reported.id, "he show dicky")
       assert_receive {Matches, :unmatched, ^match_id}
@@ -93,9 +89,5 @@ defmodule T.Accounts.BlockingTest do
       assert :ok == Accounts.block_user(user.id)
       assert Repo.get!(Accounts.Profile, user.id).hidden? == true
     end
-  end
-
-  defp expiration_date() do
-    DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.add(@match_expiration_duration)
   end
 end

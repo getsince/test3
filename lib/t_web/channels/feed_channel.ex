@@ -6,7 +6,7 @@ defmodule TWeb.FeedChannel do
   alias T.Feeds.{FeedProfile}
   alias T.{Feeds, Calls, Matches, Accounts}
 
-  @match_expiration_duration 172_800
+  @match_ttl 172_800
 
   @impl true
   def join("feed:" <> user_id, params, socket) do
@@ -41,7 +41,7 @@ defmodule TWeb.FeedChannel do
 
       reply =
         %{}
-        |> Map.put("match_expiration_duration", @match_expiration_duration)
+        |> Map.put("match_expiration_duration", @match_ttl)
         |> maybe_put("missed_calls", missed_calls)
         |> maybe_put("likes", likes)
         |> maybe_put("matches", matches)
@@ -85,7 +85,7 @@ defmodule TWeb.FeedChannel do
 
   def handle_in("seen", %{"expired_match_id" => match_id}, socket) do
     by_user_id = me_id(socket)
-    Matches.mark_expired_match_seen(match_id, by_user_id)
+    Matches.delete_expired_match(match_id, by_user_id)
     {:reply, :ok, socket}
   end
 
@@ -111,7 +111,7 @@ defmodule TWeb.FeedChannel do
         {:ok, %{match: _no_match = nil}} ->
           :ok
 
-        {:ok, %{match: %Matches.Match{id: match_id, expiration_date: expiration_date}}} ->
+        {:ok, %{match: %{id: match_id, expiration_date: expiration_date}}} ->
           {:ok, %{"match_id" => match_id, "expiration_date" => expiration_date}}
 
         {:error, _step, _reason, _changes} ->
@@ -205,10 +205,10 @@ defmodule TWeb.FeedChannel do
 
   def handle_info({Matches, :matched, match}, socket) do
     %{screen_width: screen_width} = socket.assigns
-    %{id: match_id, mate: mate_id, expiration_date: expiration_date} = match
+    %{id: match_id, mate: mate_id} = match
 
     if profile = Feeds.get_mate_feed_profile(mate_id) do
-      rendered = render_match(match_id, profile, _timeslot = nil, expiration_date, screen_width)
+      rendered = render_match(match_id, profile, _timeslot = nil, screen_width)
       push(socket, "matched", %{"match" => rendered})
     end
 
@@ -302,11 +302,10 @@ defmodule TWeb.FeedChannel do
       %Matches.Match{
         id: match_id,
         profile: profile,
-        timeslot: timeslot,
-        expiration_date: expiration_date
+        timeslot: timeslot
       } = match
 
-      render_match(match_id, profile, timeslot, expiration_date, screen_width)
+      render_match(match_id, profile, timeslot, screen_width)
     end)
   end
 
@@ -317,7 +316,7 @@ defmodule TWeb.FeedChannel do
         profile: profile
       } = expired_match
 
-      render_match(match_id, profile, nil, nil, screen_width)
+      render_match(match_id, profile, nil, screen_width)
     end)
   end
 
@@ -325,13 +324,11 @@ defmodule TWeb.FeedChannel do
          match_id,
          mate_feed_profile,
          maybe_timeslot,
-         maybe_expiration_date,
          screen_width
        ) do
     render(MatchView, "match.json",
       id: match_id,
       timeslot: maybe_timeslot,
-      expiration_date: maybe_expiration_date,
       profile: mate_feed_profile,
       screen_width: screen_width
     )

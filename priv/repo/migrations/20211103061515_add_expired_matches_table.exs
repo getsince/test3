@@ -12,6 +12,6 @@ defmodule T.Repo.Migrations.AddExpiredMatchesTable do
       timestamps(updated_at: false)
     end
 
-    create unique_index(:expired_matches, [:match_id, :user_id])
+    create unique_index(:expired_matches, [:user_id, :match_id])
   end
 end

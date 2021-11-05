@@ -106,7 +106,7 @@ defmodule T.Matches.ExpiredMatchTest do
 
       m = insert(:match, user_id_1: me.id, user_id_2: not_me.id, inserted_at: long_ago)
       insert(:match_event, match_id: m.id, event: "saving slot", timestamp: long_ago)
-      insert(:match_event, match_id: m.id, event: "call start", timestamp: longer_ago)
+      insert(:match_event, match_id: m.id, event: "call_start", timestamp: longer_ago)
 
       matches = Matches.Match |> T.Repo.all()
       assert length(matches) == 1

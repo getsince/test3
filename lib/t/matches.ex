@@ -790,10 +790,11 @@ defmodule T.Matches do
   end
 
   def match_expired_check() do
-    expired_matches_q()
-    |> join(:inner, [m], ma in Match, on: ma.id == m.match_id)
-    |> where([m], m.timestamp < fragment("now() - INTERVAL '48 hours'"))
-    |> select([m, ma], {ma.user_id_1, ma.user_id_2})
+    expiration_date = DateTime.add(DateTime.utc_now(), -48 * 60 * 60)
+
+    expiring_matches_q()
+    |> where([m, e, c], e.timestamp < ^expiration_date)
+    |> select([m, e, c], {m.user_id_1, m.user_id_2})
     |> T.Repo.all()
     |> Enum.map(fn {user_id_1, user_id_2} ->
       expire_match(user_id_1, user_id_2)
@@ -801,11 +802,13 @@ defmodule T.Matches do
   end
 
   def match_soon_to_expire_check() do
-    expired_matches_q()
-    |> join(:inner, [m], ma in Match, on: ma.id == m.match_id)
-    |> where([m], m.timestamp < fragment("now() - INTERVAL '46:1 HOURS:MINUTES'"))
-    |> where([m], m.timestamp > fragment("now() - INTERVAL '46 hours'"))
-    |> select([m, ma], m.match_id)
+    start_date = DateTime.add(DateTime.utc_now(), -46 * 60 * 60)
+    finish_date = DateTime.add(DateTime.utc_now(), -46 * 60 * 60 - 60)
+
+    expiring_matches_q()
+    |> where([m, e, c], e.timestamp < ^start_date)
+    |> where([m, e, c], e.timestamp > ^finish_date)
+    |> select([m, e, c], m.id)
     |> T.Repo.all()
     |> Enum.map(fn match_id ->
       schedule_match_about_to_expire(match_id)
@@ -859,5 +862,33 @@ defmodule T.Matches do
     |> not_successfull_calls_q
     |> order_by(desc: :timestamp)
     |> distinct([m], m.match_id)
+  end
+
+  defp expiring_matches_q() do
+    Match
+    |> join(
+      :inner_lateral,
+      [m],
+      e in fragment(
+        "SELECT e.timestamp
+        FROM match_events e
+        WHERE e.match_id = ?
+        ORDER BY e.timestamp DESC
+        LIMIT 1",
+        m.id
+      )
+    )
+    |> join(
+      :left_lateral,
+      [m, e],
+      c in fragment(
+        "SELECT c.timestamp
+        FROM match_events c
+        WHERE c.match_id = ? AND c.event = 'call start'
+        LIMIT 1",
+        m.id
+      )
+    )
+    |> where([m, e, c], is_nil(c.timestamp))
   end
 end

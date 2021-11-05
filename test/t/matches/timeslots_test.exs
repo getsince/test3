@@ -31,6 +31,10 @@ defmodule T.Matches.TimeslotsTest do
       assert_raise Ecto.NoResultsError, fn ->
         Matches.save_slots_offer_for_match(p3.user_id, match.id, @slots, @reference)
       end
+
+      match_event = Matches.MatchEvent |> T.Repo.all()
+
+      assert length(match_event) == 0
     end
   end
 
@@ -60,6 +64,10 @@ defmodule T.Matches.TimeslotsTest do
                )
 
       assert errors_on(changeset) == %{slots: ["should have at least 1 item(s)"]}
+
+      match_event = Matches.MatchEvent |> T.Repo.all()
+
+      assert length(match_event) == 0
     end
 
     test "slots in the past are filtered", %{profiles: [p1, p2], match: match} do
@@ -199,6 +207,10 @@ defmodule T.Matches.TimeslotsTest do
                )
 
       assert timeslot.selected_slot == ~U[2021-03-23 14:15:00Z]
+
+      match_event = Matches.MatchEvent |> T.Repo.all()
+
+      assert length(match_event) == 2
     end
   end
 

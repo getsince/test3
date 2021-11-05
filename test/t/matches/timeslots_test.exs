@@ -214,7 +214,6 @@ defmodule T.Matches.TimeslotsTest do
     end
 
     test "decline", %{profiles: [_p1, p2], match: match} do
-
       match_event = Matches.MatchEvent |> T.Repo.all()
 
       assert length(match_event) == 1

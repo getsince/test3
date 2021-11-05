@@ -97,5 +97,27 @@ defmodule T.Matches.ExpiredMatchTest do
                }
              ] = all_enqueued(worker: T.PushNotifications.DispatchJob)
     end
+
+    test "call is not the latest event" do
+      me = insert(:user)
+      not_me = insert(:user)
+      long_ago = DateTime.add(DateTime.utc_now(), -3 * 24 * 60 * 60)
+      longer_ago = DateTime.add(DateTime.utc_now(), -5 * 24 * 60 * 60)
+
+      m = insert(:match, user_id_1: me.id, user_id_2: not_me.id, inserted_at: long_ago)
+      insert(:match_event, match_id: m.id, event: "saving slot", timestamp: long_ago)
+      insert(:match_event, match_id: m.id, event: "call start", timestamp: longer_ago)
+
+      matches = Matches.Match |> T.Repo.all()
+      assert length(matches) == 1
+
+      Matches.match_expired_check()
+
+      matches_after = Matches.Match |> T.Repo.all()
+      assert length(matches_after) == 1
+
+      expired_matches = Matches.ExpiredMatch |> T.Repo.all()
+      assert length(expired_matches) == 0
+    end
   end
 end

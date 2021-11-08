@@ -169,7 +169,7 @@ defmodule T.PushNotifications.DispatchJob do
   end
 
   @spec schedule_apns([%Accounts.APNSDevice{}], String.t(), map) :: [Oban.Job.t()]
-  def schedule_apns(apns_devices, template, data) do
+  defp schedule_apns(apns_devices, template, data) do
     apns_devices
     |> Enum.map(fn device ->
       %Accounts.APNSDevice{device_id: device_id, locale: locale, env: env, topic: topic} = device

@@ -766,7 +766,7 @@ defmodule T.Matches do
     finish_date = DateTime.add(DateTime.utc_now(), -46 * 60 * 60 - 60)
 
     expiring_matches_q()
-    |> where([m, e, c], e.timestamp < ^start_date)
+    |> where([m, e, c], e.timestamp <= ^start_date)
     |> where([m, e, c], e.timestamp > ^finish_date)
     |> select([m, e, c], m.id)
     |> T.Repo.all()

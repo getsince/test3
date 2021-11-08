@@ -82,7 +82,7 @@ msgstr ""
 
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:83
-msgid "Invite your match to date if you want to keep it alive ✨"
+msgid "Invite your match to a date if you want to keep it alive ✨"
 msgstr ""
 
 #, elixir-format

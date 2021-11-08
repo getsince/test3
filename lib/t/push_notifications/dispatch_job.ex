@@ -125,12 +125,9 @@ defmodule T.PushNotifications.DispatchJob do
   defp handle_type("timeslot_ended", args) do
     %{"match_id" => match_id} = args
 
-    match =
-      Matches.Match
-      |> where(id: ^match_id)
-      |> Repo.one()
-
-    Matches.notify_timeslot_ended(match)
+    if match = alive_match(match_id) do
+      Matches.notify_timeslot_ended(match)
+    end
 
     :ok
   end

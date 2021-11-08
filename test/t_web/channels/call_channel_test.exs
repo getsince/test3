@@ -167,6 +167,8 @@ defmodule TWeb.CallChannelTest do
 
       %Call{} = call = Repo.get(Call, call_id)
       assert call.accepted_at
+
+      assert [%{event: "call_start"}] = T.Matches.MatchEvent |> Repo.all()
     end
 
     test "can only be done by called" do

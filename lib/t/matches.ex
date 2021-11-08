@@ -92,6 +92,7 @@ defmodule T.Matches do
     multi
     |> with_mutual_liker(by_user_id, user_id)
     |> maybe_create_match([by_user_id, user_id])
+    |> maybe_create_match_event()
     |> maybe_schedule_match_push()
   end
 
@@ -129,21 +130,21 @@ defmodule T.Matches do
         m = "New match: #{user_id_1} and #{user_id_2}"
         Bot.async_post_message(m)
 
-        Multi.new()
-        |> Multi.insert(:match, %Match{user_id_1: user_id_1, user_id_2: user_id_2})
-        |> Multi.insert(:match_event, fn %{match: match} ->
-          %MatchEvent{
-            timestamp: DateTime.utc_now() |> DateTime.truncate(:second),
-            match_id: match.id,
-            event: "created"
-          }
-        end)
-        |> Repo.transaction()
-        |> case do
-          {:ok, %{match: match}} ->
-            expiration_date = expiration_date(match.id)
-            {:ok, %Match{match | expiration_date: expiration_date}}
-        end
+        Repo.insert(%Match{user_id_1: user_id_1, user_id_2: user_id_2})
+      else
+        {:ok, nil}
+      end
+    end)
+  end
+
+  defp maybe_create_match_event(multi) do
+    Multi.run(multi, :event, fn _repo, %{match: match} ->
+      if match do
+        Repo.insert(%MatchEvent{
+          timestamp: DateTime.utc_now() |> DateTime.truncate(:second),
+          match_id: match.id,
+          event: "created"
+        })
       else
         {:ok, nil}
       end

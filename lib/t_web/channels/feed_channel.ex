@@ -111,7 +111,8 @@ defmodule TWeb.FeedChannel do
         {:ok, %{match: _no_match = nil}} ->
           :ok
 
-        {:ok, %{match: %{id: match_id, expiration_date: expiration_date}}} ->
+        {:ok, %{match: %{id: match_id}, event: %{timestamp: timestamp}}} ->
+          expiration_date = timestamp |> DateTime.add(@match_ttl)
           {:ok, %{"match_id" => match_id, "expiration_date" => expiration_date}}
 
         {:error, _step, _reason, _changes} ->

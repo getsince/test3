@@ -121,11 +121,22 @@ defmodule T.Calls do
     end)
   end
 
+  defp insert_call_start_event(multi) do
+    Multi.insert(multi, :event, fn %{match_id: match_id} ->
+      %T.Matches.MatchEvent{
+        timestamp: DateTime.truncate(DateTime.utc_now(), :second),
+        match_id: match_id,
+        event: "call_start"
+      }
+    end)
+  end
+
   @spec accept_call(Ecto.UUID.t(), DateTime.t()) :: :ok
   def accept_call(call_id, now \\ utc_now()) do
     Multi.new()
     |> set_call_accepted_at(call_id, now)
     |> get_match_id()
+    |> insert_call_start_event()
     |> Repo.transaction()
     |> case do
       {:ok, %{call: {caller, called}, match_id: match_id}} = success ->
@@ -135,7 +146,6 @@ defmodule T.Calls do
         Logger.warn(m)
         Bot.async_post_message(m)
 
-        T.Matches.insert_match_event(match_id, "call_start")
         T.Matches.notify_match_expiration_reset(match_id, [caller, called])
         success
 

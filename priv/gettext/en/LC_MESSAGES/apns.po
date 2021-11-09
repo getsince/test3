@@ -62,9 +62,9 @@ msgid "Твой дэйт отменён"
 msgstr "Your date has been cancelled"
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:101
-msgid "Тебя пригласили на свидание!"
-msgstr "You've been asked out on a date!"
+#: lib/t/push_notifications/apns.ex:103
+msgid "%{name} пригласил(а) тебя на свидание!"
+msgstr "You've been asked out on a date by %{name}!"
 
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:73
@@ -88,7 +88,7 @@ msgstr ""
 
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:82
-msgid "Your match is about to expire 😢"
+msgid "Your match with %{name} is about to expire 😢"
 msgstr ""
 
 #, elixir-format

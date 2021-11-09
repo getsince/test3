@@ -79,9 +79,11 @@ defmodule T.PushNotifications.APNS do
 
   def build_alert_payload("match_about_to_expire" = type, data) do
     %{"name" => name} = data
+
     alert = %{
       "title" => dgettext("apns", "Your match with %{name} is about to expire 😢", name: name),
-      "body" => dgettext("apns", "Invite your match %{name} to a date if you want to keep it alive ✨")
+      "body" =>
+        dgettext("apns", "Invite your match %{name} to a date if you want to keep it alive ✨")
     }
 
     base_alert_payload(type, alert)
@@ -99,6 +101,7 @@ defmodule T.PushNotifications.APNS do
 
   def build_alert_payload("timeslot_offer" = type, data) do
     %{"name" => name} = data
+
     alert = %{
       "title" => dgettext("apns", "%{name} пригласил(а) тебя на свидание!", name: name),
       "body" => dgettext("apns", "Заходи, чтобы ответить на приглашение 👀")

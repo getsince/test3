@@ -60,6 +60,7 @@ defmodule TWeb.FeedChannel do
         location,
         gender,
         gender_preferences,
+        params["ages"],
         params["distance"],
         params["count"] || 10,
         params["cursor"]

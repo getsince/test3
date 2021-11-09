@@ -17,6 +17,7 @@ defmodule T.FeedsTest do
                  me.profile.location,
                  _gender = "M",
                  _gender_preference = ["F"],
+                 _ages = nil,
                  _distance = nil,
                  _count = 10,
                  _cursor = nil
@@ -32,6 +33,7 @@ defmodule T.FeedsTest do
                  me.profile.location,
                  _gender = "M",
                  _gender_preference = ["F"],
+                 _ages = nil,
                  _distance = nil,
                  _count = 10,
                  _cursor = nil
@@ -47,6 +49,7 @@ defmodule T.FeedsTest do
                  me.profile.location,
                  _gender = "M",
                  _gender_preference = ["F"],
+                 _ages = nil,
                  _distance = nil,
                  _count = 10,
                  _cursor = nil
@@ -66,6 +69,7 @@ defmodule T.FeedsTest do
                  me.profile.location,
                  _gender = "M",
                  _gender_preference = ["F"],
+                 _ages = nil,
                  _distance = nil,
                  _count = 10,
                  _cursor = nil

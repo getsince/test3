@@ -92,17 +92,28 @@ defmodule T.Feeds do
           Geo.Point.t(),
           String.t(),
           [String.t()],
+          [String.t()],
           pos_integer,
           pos_integer,
           feed_cursor | nil
         ) ::
           {[feed_profile], feed_cursor}
-  def fetch_feed(user_id, location, gender, gender_preferences, distance, count, feed_cursor) do
+  def fetch_feed(
+        user_id,
+        location,
+        gender,
+        gender_preferences,
+        ages,
+        distance,
+        count,
+        feed_cursor
+      ) do
     if feed_cursor == nil do
       empty_feeded_profiles(user_id)
     end
 
-    feed_profiles = continue_feed(user_id, location, gender, gender_preferences, distance, count)
+    feed_profiles =
+      continue_feed(user_id, location, gender, gender_preferences, ages, distance, count)
 
     mark_profiles_feeded(user_id, feed_profiles)
 
@@ -116,13 +127,15 @@ defmodule T.Feeds do
     {feed_profiles, feed_cursor}
   end
 
-  defp continue_feed(user_id, _location, gender, gender_preferences, nil, count) do
+  defp continue_feed(user_id, location, gender, gender_preferences, ages, distance, count) do
     feeded = FeededProfile |> where(for_user_id: ^user_id) |> select([s], s.user_id)
 
     most_liked_count = count - div(count, 2)
 
     most_liked =
       most_liked_q(user_id, gender, gender_preferences, feeded)
+      |> maybe_apply_age_filter(ages)
+      |> maybe_apply_distance_filter(location, distance)
       |> limit(^most_liked_count)
       |> Repo.all()
 
@@ -132,30 +145,8 @@ defmodule T.Feeds do
 
     most_recent =
       most_recent_q(user_id, gender, gender_preferences, feeded, filter_out_ids)
-      |> limit(^most_recent_count)
-      |> Repo.all()
-
-    most_liked ++ most_recent
-  end
-
-  defp continue_feed(user_id, location, gender, gender_preferences, distance, count) do
-    feeded = FeededProfile |> where(for_user_id: ^user_id) |> select([s], s.user_id)
-
-    most_liked_count = count - div(count, 2)
-
-    most_liked =
-      most_liked_q(user_id, gender, gender_preferences, feeded)
-      |> where([p], distance_km(^location, p.location) <= ^distance)
-      |> limit(^most_liked_count)
-      |> Repo.all()
-
-    filter_out_ids = Enum.map(most_liked, fn p -> p.user_id end)
-
-    most_recent_count = count - length(most_liked)
-
-    most_recent =
-      most_recent_q(user_id, gender, gender_preferences, feeded, filter_out_ids)
-      |> where([p], distance_km(^location, p.location) <= ^distance)
+      |> maybe_apply_age_filter(ages)
+      |> maybe_apply_distance_filter(location, distance)
       |> limit(^most_recent_count)
       |> Repo.all()
 
@@ -173,6 +164,33 @@ defmodule T.Feeds do
     |> where([p], p.user_id not in subquery(feeded))
     |> where([p], p.user_id not in ^filter_out_ids)
     |> order_by(desc: :last_active)
+  end
+
+  defp maybe_apply_age_filter(query, ages) do
+    if ages do
+      case String.split(ages, ":") do
+        [min_age, max_age] ->
+          %{year: y, month: m, day: d} = DateTime.utc_now()
+          youngest = %Date{year: y - String.to_integer(min_age), month: m, day: d}
+          oldest = %Date{year: y - String.to_integer(max_age), month: m, day: d}
+
+          where(query, [p], p.birthdate <= ^youngest)
+          |> where([p], p.birthdate >= ^oldest)
+
+        _ ->
+          query
+      end
+    else
+      query
+    end
+  end
+
+  defp maybe_apply_distance_filter(query, location, distance) do
+    if distance do
+      where(query, [p], distance_km(^location, p.location) <= ^distance)
+    else
+      query
+    end
   end
 
   defp empty_feeded_profiles(user_id) do

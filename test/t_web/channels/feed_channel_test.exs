@@ -460,11 +460,10 @@ defmodule TWeb.FeedChannelTest do
       assert ed == exp_date
       assert is_binary(match_id)
 
-      import Ecto.Query
+      assert_push "matched", _payload
 
-      event = MatchEvent |> where(match_id: ^match_id) |> T.Repo.one()
-
-      assert %MatchEvent{match_id: ^match_id, event: "created", timestamp: ^now} = event
+      assert %MatchEvent{match_id: ^match_id, event: "created", timestamp: ^now} =
+               Repo.get_by!(MatchEvent, match_id: match_id)
     end
 
     test "when not yet liked by mate", %{

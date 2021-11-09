@@ -5,27 +5,30 @@ defmodule T.Accounts.Profile do
   @primary_key false
   @foreign_key_type Ecto.Bigflake.UUID
   schema "profiles" do
-    belongs_to :user, T.Accounts.User, primary_key: true
+    belongs_to(:user, T.Accounts.User, primary_key: true)
 
-    field :story, {:array, :map}
-    field :location, Geo.PostGIS.Geometry
+    field(:story, {:array, :map})
+    field(:location, Geo.PostGIS.Geometry)
 
     # TODO remove
     embeds_one :filters, Filters, primary_key: false, on_replace: :delete do
       # ["F"] or ["F", "M"], etc.
-      field :genders, {:array, :string}
+      field(:genders, {:array, :string})
+      field(:min_age, :integer)
+      field(:max_age, :integer)
+      field(:distance, :integer)
     end
 
     # TODO move to users
-    field :last_active, :utc_datetime
+    field(:last_active, :utc_datetime)
 
     # matched? not yet onboarded? deleted!? BLOCKED?
-    field :hidden?, :boolean
+    field(:hidden?, :boolean)
 
     # general info
-    field :name, :string
-    field :gender, :string
-    field :birthdate, :date
+    field(:name, :string)
+    field(:gender, :string)
+    field(:birthdate, :date)
   end
 
   defp maybe_validate_required(changeset, opts, fun) when is_function(fun, 1) do
@@ -85,12 +88,32 @@ defmodule T.Accounts.Profile do
     %Geo.Point{coordinates: {lon, lat}, srid: 4326}
   end
 
-  defp prepare_filters(%{"gender_preference" => genders} = attrs) do
-    Map.put(attrs, "filters", %{"genders" => genders})
+  defp prepare_filters(
+         %{
+           "gender_preference" => genders,
+           "distance" => distance,
+           "min_age" => min_age,
+           "max_age" => max_age
+         } = attrs
+       ) do
+    Map.put(attrs, "filters", %{
+      "genders" => genders,
+      "distance" => distance,
+      "min_age" => min_age,
+      "max_age" => max_age
+    })
   end
 
-  defp prepare_filters(%{gender_preference: genders} = attrs) do
-    Map.put(attrs, :filters, %{genders: genders})
+  defp prepare_filters(
+         %{gender_preference: genders, distance: distance, min_age: min_age, max_age: max_age} =
+           attrs
+       ) do
+    Map.put(attrs, :filters, %{
+      genders: genders,
+      distance: distance,
+      min_age: min_age,
+      max_age: max_age
+    })
   end
 
   defp prepare_filters(attrs), do: attrs

@@ -19,6 +19,8 @@ defmodule T.Accounts do
     APNSDevice,
     PushKitDevice,
     GenderPreference,
+    AgePreference,
+    DistancePreference,
     AppleSignIn
   }
 
@@ -443,6 +445,8 @@ defmodule T.Accounts do
       Profile.changeset(profile, attrs, validate_required?: true)
     end)
     |> update_profile_gender_preferences(profile)
+    |> update_profile_distance_preferences(profile)
+    |> update_profile_age_preferences(profile)
     |> Multi.run(:mark_onboarded, fn repo, %{user: user} ->
       {1, nil} =
         User
@@ -545,6 +549,28 @@ defmodule T.Accounts do
     |> where(user_id: ^user_id)
     |> select([p], p.gender)
     |> Repo.all()
+  end
+
+  defp update_profile_distance_preferences(multi, %Profile{user_id: user_id}) do
+    Multi.insert_or_update(multi, :update_profile_distance_preferences, fn %{profile: new_profile} ->
+      %Profile{filters: %Profile.Filters{distance: new_distance}} = new_profile
+
+      Ecto.Changeset.change(%DistancePreference{user_id: user_id, distance: new_distance},
+        distance: new_distance
+      )
+    end)
+  end
+
+  defp update_profile_age_preferences(multi, %Profile{user_id: user_id}) do
+    Multi.insert_or_update(multi, :update_profile_age_preferences, fn %{profile: new_profile} ->
+      %Profile{filters: %Profile.Filters{min_age: new_min_age, max_age: new_max_age}} =
+        new_profile
+
+      Ecto.Changeset.change(
+        %AgePreference{user_id: user_id, min_age: new_min_age, max_age: new_max_age},
+        %{min_age: new_min_age, max_age: new_max_age}
+      )
+    end)
   end
 
   defp maybe_unhide_profile_with_story(user_id) when is_binary(user_id) do

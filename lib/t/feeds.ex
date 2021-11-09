@@ -92,7 +92,8 @@ defmodule T.Feeds do
           Geo.Point.t(),
           String.t(),
           [String.t()],
-          [String.t()],
+          pos_integer,
+          pos_integer,
           pos_integer,
           pos_integer,
           feed_cursor | nil
@@ -103,7 +104,8 @@ defmodule T.Feeds do
         location,
         gender,
         gender_preferences,
-        ages,
+        min_age,
+        max_age,
         distance,
         count,
         feed_cursor
@@ -113,7 +115,16 @@ defmodule T.Feeds do
     end
 
     feed_profiles =
-      continue_feed(user_id, location, gender, gender_preferences, ages, distance, count)
+      continue_feed(
+        user_id,
+        location,
+        gender,
+        gender_preferences,
+        min_age,
+        max_age,
+        distance,
+        count
+      )
 
     mark_profiles_feeded(user_id, feed_profiles)
 
@@ -127,14 +138,23 @@ defmodule T.Feeds do
     {feed_profiles, feed_cursor}
   end
 
-  defp continue_feed(user_id, location, gender, gender_preferences, ages, distance, count) do
+  defp continue_feed(
+         user_id,
+         location,
+         gender,
+         gender_preferences,
+         min_age,
+         max_age,
+         distance,
+         count
+       ) do
     feeded = FeededProfile |> where(for_user_id: ^user_id) |> select([s], s.user_id)
 
     most_liked_count = count - div(count, 2)
 
     most_liked =
       most_liked_q(user_id, gender, gender_preferences, feeded)
-      |> maybe_apply_age_filter(ages)
+      |> maybe_apply_age_filters(min_age, max_age)
       |> maybe_apply_distance_filter(location, distance)
       |> limit(^most_liked_count)
       |> Repo.all()
@@ -145,7 +165,7 @@ defmodule T.Feeds do
 
     most_recent =
       most_recent_q(user_id, gender, gender_preferences, feeded, filter_out_ids)
-      |> maybe_apply_age_filter(ages)
+      |> maybe_apply_age_filters(min_age, max_age)
       |> maybe_apply_distance_filter(location, distance)
       |> limit(^most_recent_count)
       |> Repo.all()
@@ -166,20 +186,29 @@ defmodule T.Feeds do
     |> order_by(desc: :last_active)
   end
 
-  defp maybe_apply_age_filter(query, ages) do
-    if ages do
-      case String.split(ages, ":") do
-        [min_age, max_age] ->
-          %{year: y, month: m, day: d} = DateTime.utc_now()
-          youngest = %Date{year: y - String.to_integer(min_age), month: m, day: d}
-          oldest = %Date{year: y - String.to_integer(max_age), month: m, day: d}
+  defp maybe_apply_age_filters(query, min_age, max_age) do
+    query
+    |> maybe_apply_min_age_filer(min_age)
+    |> maybe_apply_max_age_filer(max_age)
+  end
 
-          where(query, [p], p.birthdate <= ^youngest)
-          |> where([p], p.birthdate >= ^oldest)
+  defp maybe_apply_min_age_filer(query, min_age) do
+    if min_age do
+      %{year: y, month: m, day: d} = DateTime.utc_now()
+      youngest = %Date{year: y - String.to_integer(min_age), month: m, day: d}
 
-        _ ->
-          query
-      end
+      where(query, [p], p.birthdate <= ^youngest)
+    else
+      query
+    end
+  end
+
+  defp maybe_apply_max_age_filer(query, max_age) do
+    if max_age do
+      %{year: y, month: m, day: d} = DateTime.utc_now()
+      oldest = %Date{year: y - String.to_integer(max_age), month: m, day: d}
+
+      where(query, [p], p.birthdate >= ^oldest)
     else
       query
     end

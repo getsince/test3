@@ -129,7 +129,7 @@ defmodule TWeb.ProfileChannelTest do
       refute user.onboarded_at
 
       ref = push(socket, "submit", %{"profile" => %{}})
-      assert_reply ref, :error, reply, 1000
+      assert_reply(ref, :error, reply, 1000)
 
       assert reply == %{
                profile: %{
@@ -150,11 +150,14 @@ defmodule TWeb.ProfileChannelTest do
             "longitude" => 50,
             # TODO validate photos are on s3
             "story" => profile_story(),
-            "gender_preference" => ["F", "M"]
+            "gender_preference" => ["F", "M"],
+            "distance" => 10,
+            "min_age" => 18,
+            "max_age" => 40
           }
         })
 
-      assert_reply ref, :ok, reply, 1000
+      assert_reply(ref, :ok, reply, 1000)
 
       assert reply == %{
                profile: %{
@@ -202,7 +205,7 @@ defmodule TWeb.ProfileChannelTest do
 
     test "profile-editor-tutorial", %{socket: socket} do
       ref = push(socket, "profile-editor-tutorial", %{})
-      assert_reply ref, :ok, reply, 1000
+      assert_reply(ref, :ok, reply, 1000)
 
       assert reply == %{
                story: [
@@ -275,7 +278,7 @@ defmodule TWeb.ProfileChannelTest do
 
     test "it works", %{socket: socket} do
       ref = push(socket, "upload-preflight", %{"media" => %{"content-type" => "image/jpeg"}})
-      assert_reply ref, :ok, reply, 1000
+      assert_reply(ref, :ok, reply, 1000)
 
       # TODO use forms
       # assert %{

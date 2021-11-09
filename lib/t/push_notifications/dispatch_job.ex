@@ -27,6 +27,22 @@ defmodule T.PushNotifications.DispatchJob do
     end
   end
 
+  defp handle_type("match_about_to_expire", args) do
+    %{"match_id" => match_id} = args
+
+    if match = alive_match(match_id) do
+      %Matches.Match{user_id_1: uid1, user_id_2: uid2} = match
+
+      data = %{"match_id" => match_id}
+      uid1 |> Accounts.list_apns_devices() |> schedule_apns("match_about_to_expire", data)
+      uid2 |> Accounts.list_apns_devices() |> schedule_apns("match_about_to_expire", data)
+
+      :ok
+    else
+      :discard
+    end
+  end
+
   defp handle_type(type, args) when type in ["timeslot_offer", "timeslot_accepted"] do
     %{"match_id" => match_id, "receiver_id" => receiver_id} = args
 
@@ -109,12 +125,9 @@ defmodule T.PushNotifications.DispatchJob do
   defp handle_type("timeslot_ended", args) do
     %{"match_id" => match_id} = args
 
-    match =
-      Matches.Match
-      |> where(id: ^match_id)
-      |> Repo.one()
-
-    Matches.notify_timeslot_ended(match)
+    if match = alive_match(match_id) do
+      Matches.notify_timeslot_ended(match)
+    end
 
     :ok
   end

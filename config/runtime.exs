@@ -136,13 +136,6 @@ if config_env() == :dev do
         team_id: System.fetch_env!("APNS_TEAM_ID"),
         topic: System.fetch_env!("APNS_TOPIC"),
         env: :dev
-      },
-      %{
-        key: System.fetch_env!("PROD_APNS_KEY"),
-        key_id: System.fetch_env!("PROD_APNS_KEY_ID"),
-        team_id: System.fetch_env!("APNS_TEAM_ID"),
-        topic: System.fetch_env!("APNS_TOPIC"),
-        env: :prod
       }
     ]
 

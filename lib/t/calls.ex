@@ -131,6 +131,7 @@ defmodule T.Calls do
     end)
   end
 
+  # TODO not ignore errors (currently always :ok)
   @spec accept_call(Ecto.UUID.t(), DateTime.t()) :: :ok
   def accept_call(call_id, now \\ utc_now()) do
     Multi.new()

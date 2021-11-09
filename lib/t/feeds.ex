@@ -51,8 +51,8 @@ defmodule T.Feeds do
   end
 
   # TODO accept cursor
-  @spec list_received_likes(Ecto.UUID.t(), Geo.Point.t()) :: [feed_profile]
-  def list_received_likes(user_id, location) do
+  @spec list_received_likes(Ecto.UUID.t()) :: [feed_profile]
+  def list_received_likes(user_id) do
     profiles_q = not_reported_profiles_q(user_id)
 
     Like
@@ -62,7 +62,7 @@ defmodule T.Feeds do
     |> not_match2_profiles_q(user_id)
     |> order_by(desc: :inserted_at)
     |> join(:inner, [l], p in subquery(profiles_q), on: p.user_id == l.by_user_id)
-    |> select([l, p], {p, distance_km(^location, p.location)})
+    |> select([l, p], p)
     |> Repo.all()
   end
 
@@ -85,7 +85,7 @@ defmodule T.Feeds do
   ### Feed
 
   @type feed_cursor :: DateTime.t()
-  @type feed_profile :: {%FeedProfile{}, distance_km :: non_neg_integer}
+  @type feed_profile :: %FeedProfile{}
 
   @spec fetch_feed(
           Ecto.UUID.t(),
@@ -93,15 +93,16 @@ defmodule T.Feeds do
           String.t(),
           [String.t()],
           pos_integer,
+          pos_integer,
           feed_cursor | nil
         ) ::
           {[feed_profile], feed_cursor}
-  def fetch_feed(user_id, location, gender, gender_preferences, count, feed_cursor) do
+  def fetch_feed(user_id, location, gender, gender_preferences, distance, count, feed_cursor) do
     if feed_cursor == nil do
       empty_feeded_profiles(user_id)
     end
 
-    feed_profiles = continue_feed(user_id, location, gender, gender_preferences, count)
+    feed_profiles = continue_feed(user_id, location, gender, gender_preferences, distance, count)
 
     mark_profiles_feeded(user_id, feed_profiles)
 
@@ -115,33 +116,63 @@ defmodule T.Feeds do
     {feed_profiles, feed_cursor}
   end
 
-  defp continue_feed(user_id, location, gender, gender_preferences, count) do
+  defp continue_feed(user_id, _location, gender, gender_preferences, nil, count) do
     feeded = FeededProfile |> where(for_user_id: ^user_id) |> select([s], s.user_id)
 
     most_liked_count = count - div(count, 2)
 
     most_liked =
-      feed_profiles_q(user_id, gender, gender_preferences)
-      |> where([p], p.user_id not in subquery(feeded))
-      |> order_by(desc: :times_liked)
+      most_liked_q(user_id, gender, gender_preferences, feeded)
       |> limit(^most_liked_count)
-      |> select([p], {p, distance_km(^location, p.location)})
       |> Repo.all()
 
-    filter_out_ids = Enum.map(most_liked, fn {p, _} -> p.user_id end)
+    filter_out_ids = Enum.map(most_liked, fn p -> p.user_id end)
 
     most_recent_count = count - length(most_liked)
 
     most_recent =
-      feed_profiles_q(user_id, gender, gender_preferences)
-      |> where([p], p.user_id not in subquery(feeded))
-      |> where([p], p.user_id not in ^filter_out_ids)
-      |> order_by(desc: :last_active)
+      most_recent_q(user_id, gender, gender_preferences, feeded, filter_out_ids)
       |> limit(^most_recent_count)
-      |> select([p], {p, distance_km(^location, p.location)})
       |> Repo.all()
 
     most_liked ++ most_recent
+  end
+
+  defp continue_feed(user_id, location, gender, gender_preferences, distance, count) do
+    feeded = FeededProfile |> where(for_user_id: ^user_id) |> select([s], s.user_id)
+
+    most_liked_count = count - div(count, 2)
+
+    most_liked =
+      most_liked_q(user_id, gender, gender_preferences, feeded)
+      |> where([p], distance_km(^location, p.location) <= ^distance)
+      |> limit(^most_liked_count)
+      |> Repo.all()
+
+    filter_out_ids = Enum.map(most_liked, fn p -> p.user_id end)
+
+    most_recent_count = count - length(most_liked)
+
+    most_recent =
+      most_recent_q(user_id, gender, gender_preferences, feeded, filter_out_ids)
+      |> where([p], distance_km(^location, p.location) <= ^distance)
+      |> limit(^most_recent_count)
+      |> Repo.all()
+
+    most_liked ++ most_recent
+  end
+
+  defp most_liked_q(user_id, gender, gender_preferences, feeded) do
+    feed_profiles_q(user_id, gender, gender_preferences)
+    |> where([p], p.user_id not in subquery(feeded))
+    |> order_by(desc: :times_liked)
+  end
+
+  defp most_recent_q(user_id, gender, gender_preferences, feeded, filter_out_ids) do
+    feed_profiles_q(user_id, gender, gender_preferences)
+    |> where([p], p.user_id not in subquery(feeded))
+    |> where([p], p.user_id not in ^filter_out_ids)
+    |> order_by(desc: :last_active)
   end
 
   defp empty_feeded_profiles(user_id) do
@@ -150,7 +181,7 @@ defmodule T.Feeds do
 
   defp mark_profiles_feeded(for_user_id, feed_profiles) do
     data =
-      Enum.map(feed_profiles, fn {p, _} ->
+      Enum.map(feed_profiles, fn p ->
         %{for_user_id: for_user_id, user_id: p.user_id}
       end)
 

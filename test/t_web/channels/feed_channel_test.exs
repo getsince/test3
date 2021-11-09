@@ -77,8 +77,10 @@ defmodule TWeb.FeedChannelTest do
       assert reply == %{
                "likes" => [
                  %{
-                   "distance" => 9510,
-                   "profile" => %{name: "mate", story: [], user_id: mate.id, gender: "F"}
+                   name: "mate",
+                   story: [],
+                   user_id: mate.id,
+                   gender: "F"
                  }
                ]
              }
@@ -238,40 +240,34 @@ defmodule TWeb.FeedChannelTest do
 
       assert feed == [
                %{
-                 "distance" => 9510,
-                 "profile" => %{
-                   user_id: m1.id,
-                   name: "mate-1",
-                   gender: "F",
-                   story: [
-                     %{
-                       "background" => %{
-                         "proxy" =>
-                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
-                         "s3_key" => "test"
-                       },
-                       "labels" => []
-                     }
-                   ]
-                 }
+                 user_id: m1.id,
+                 name: "mate-1",
+                 gender: "F",
+                 story: [
+                   %{
+                     "background" => %{
+                       "proxy" =>
+                         "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
+                       "s3_key" => "test"
+                     },
+                     "labels" => []
+                   }
+                 ]
                },
                %{
-                 "distance" => 9510,
-                 "profile" => %{
-                   user_id: m2.id,
-                   name: "mate-2",
-                   gender: "N",
-                   story: [
-                     %{
-                       "background" => %{
-                         "proxy" =>
-                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
-                         "s3_key" => "test"
-                       },
-                       "labels" => []
-                     }
-                   ]
-                 }
+                 user_id: m2.id,
+                 name: "mate-2",
+                 gender: "N",
+                 story: [
+                   %{
+                     "background" => %{
+                       "proxy" =>
+                         "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
+                       "s3_key" => "test"
+                     },
+                     "labels" => []
+                   }
+                 ]
                }
              ]
 
@@ -284,22 +280,19 @@ defmodule TWeb.FeedChannelTest do
 
       assert feed == [
                %{
-                 "distance" => 9510,
-                 "profile" => %{
-                   user_id: m3.id,
-                   name: "mate-3",
-                   gender: "M",
-                   story: [
-                     %{
-                       "background" => %{
-                         "proxy" =>
-                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
-                         "s3_key" => "test"
-                       },
-                       "labels" => []
-                     }
-                   ]
-                 }
+                 user_id: m3.id,
+                 name: "mate-3",
+                 gender: "M",
+                 story: [
+                   %{
+                     "background" => %{
+                       "proxy" =>
+                         "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
+                       "s3_key" => "test"
+                     },
+                     "labels" => []
+                   }
+                 ]
                }
              ]
 
@@ -325,7 +318,7 @@ defmodule TWeb.FeedChannelTest do
       assert_reply(ref, :ok, %{"cursor" => cursor, "feed" => feed0})
 
       initial_feed_ids =
-        Enum.map(feed0, fn %{"profile" => profile} ->
+        Enum.map(feed0, fn profile ->
           profile.user_id
         end)
 
@@ -374,13 +367,10 @@ defmodule TWeb.FeedChannelTest do
       assert_push("invite", invite)
 
       assert invite == %{
-               "distance" => 5,
-               "profile" => %{
-                 gender: "M",
-                 name: "mate",
-                 story: [],
-                 user_id: mate.id
-               }
+               gender: "M",
+               name: "mate",
+               story: [],
+               user_id: mate.id
              }
 
       # now it's our turn

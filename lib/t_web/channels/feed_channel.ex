@@ -3,7 +3,6 @@ defmodule TWeb.FeedChannel do
   import TWeb.ChannelHelpers
 
   alias TWeb.{FeedView, MatchView, ErrorView}
-  alias T.Feeds.{FeedProfile}
   alias T.{Feeds, Calls, Matches, Accounts}
 
   @impl true
@@ -24,7 +23,7 @@ defmodule TWeb.FeedChannel do
 
       likes =
         user_id
-        |> Feeds.list_received_likes(location)
+        |> Feeds.list_received_likes()
         |> render_feed(screen_width)
 
       matches =
@@ -61,6 +60,7 @@ defmodule TWeb.FeedChannel do
         location,
         gender,
         gender_preferences,
+        params["distance"],
         params["count"] || 10,
         params["cursor"]
       )
@@ -69,8 +69,8 @@ defmodule TWeb.FeedChannel do
   end
 
   # TODO possibly batch
-  def handle_in("seen", %{"user_id" => user_id}, socket) do
-    Feeds.mark_profile_seen(user_id, by: me_id(socket))
+  def handle_in("seen", %{"user_id" => _user_id}, socket) do
+    # Feeds.mark_profile_seen(user_id, by: me_id(socket))
     {:reply, :ok, socket}
   end
 
@@ -170,7 +170,7 @@ defmodule TWeb.FeedChannel do
     %{by_user_id: by_user_id} = like
 
     if profile = Feeds.get_mate_feed_profile(by_user_id) do
-      rendered = render_feed_item({profile, 5}, screen_width)
+      rendered = render_feed_profile(profile, screen_width)
       push(socket, "invite", rendered)
     end
 
@@ -222,15 +222,13 @@ defmodule TWeb.FeedChannel do
     {:noreply, socket}
   end
 
-  # TODO refactor
-  defp render_feed_item(feed_item, screen_width) do
-    {%FeedProfile{} = profile, distance} = feed_item
-    assigns = [profile: profile, screen_width: screen_width, distance: distance]
-    render(FeedView, "feed_item.json", assigns)
+  defp render_feed_profile(profile, screen_width) do
+    assigns = [profile: profile, screen_width: screen_width]
+    render(FeedView, "feed_profile.json", assigns)
   end
 
   defp render_feed(feed, screen_width) do
-    Enum.map(feed, fn feed_item -> render_feed_item(feed_item, screen_width) end)
+    Enum.map(feed, fn feed_profile -> render_feed_profile(feed_profile, screen_width) end)
   end
 
   defp render_changeset(changeset) do

@@ -17,6 +17,7 @@ defmodule T.Feeds.SeenTest do
                  me.profile.location,
                  _gender = "M",
                  _gender_preference = ["F"],
+                 _distance = nil,
                  _count = 10,
                  _cursor = nil
                )
@@ -41,6 +42,7 @@ defmodule T.Feeds.SeenTest do
                  me.profile.location,
                  _gender = "M",
                  _gender_preference = ["F"],
+                 _distance = nil,
                  _count = 10,
                  _cursor = nil
                )
@@ -50,7 +52,7 @@ defmodule T.Feeds.SeenTest do
       # then I "see" some profiles (test broadcast)
       to_be_seen = Enum.take(not_seen, 3)
 
-      Enum.each(to_be_seen, fn {p, _} ->
+      Enum.each(to_be_seen, fn p ->
         # TODO verify broadcast
         assert {:ok, %Feeds.SeenProfile{}} = Feeds.mark_profile_seen(p.user_id, by: me.id)
       end)
@@ -62,6 +64,7 @@ defmodule T.Feeds.SeenTest do
                  me.profile.location,
                  _gender = "M",
                  _gender_preference = ["F"],
+                 _distance = nil,
                  _count = 10,
                  _cursor = nil
                )

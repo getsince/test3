@@ -5,30 +5,27 @@ defmodule T.Accounts.Profile do
   @primary_key false
   @foreign_key_type Ecto.Bigflake.UUID
   schema "profiles" do
-    belongs_to(:user, T.Accounts.User, primary_key: true)
+    belongs_to :user, T.Accounts.User, primary_key: true
 
-    field(:story, {:array, :map})
-    field(:location, Geo.PostGIS.Geometry)
+    field :story, {:array, :map}
+    field :location, Geo.PostGIS.Geometry
 
-    # TODO remove
-    embeds_one :filters, Filters, primary_key: false, on_replace: :delete do
-      # ["F"] or ["F", "M"], etc.
-      field(:genders, {:array, :string})
-      field(:min_age, :integer)
-      field(:max_age, :integer)
-      field(:distance, :integer)
-    end
+    # filters
+    field :gender_preference, :map, virtual: true
+    field :min_age_preference, :map, virtual: true
+    field :max_age_preference, :map, virtual: true
+    field :distance_preference, :map, virtual: true
 
     # TODO move to users
-    field(:last_active, :utc_datetime)
+    field :last_active, :utc_datetime
 
     # matched? not yet onboarded? deleted!? BLOCKED?
-    field(:hidden?, :boolean)
+    field :hidden?, :boolean
 
     # general info
-    field(:name, :string)
-    field(:gender, :string)
-    field(:birthdate, :date)
+    field :name, :string
+    field :gender, :string
+    field :birthdate, :date
   end
 
   defp maybe_validate_required(changeset, opts, fun) when is_function(fun, 1) do
@@ -38,7 +35,7 @@ defmodule T.Accounts.Profile do
   @known_genders ["M", "F", "N"]
 
   def essential_info_changeset(profile, attrs, opts \\ []) do
-    attrs = attrs |> prepare_location() |> prepare_filters()
+    attrs = attrs |> prepare_location()
 
     profile
     |> cast(attrs, [:name, :gender, :location, :birthdate])
@@ -61,17 +58,6 @@ defmodule T.Accounts.Profile do
         _ -> []
       end
     end)
-    |> cast_embed(:filters,
-      required: !!opts[:validate_required?],
-      with: fn changeset, attrs ->
-        changeset
-        |> cast(attrs, [:genders])
-        |> validate_subset(:genders, @known_genders)
-        |> maybe_validate_required(opts, fn changeset ->
-          validate_required(changeset, [:genders])
-        end)
-      end
-    )
   end
 
   defp prepare_location(%{"latitude" => lat, "longitude" => lon} = attrs) do
@@ -87,36 +73,6 @@ defmodule T.Accounts.Profile do
   defp point(lat, lon) do
     %Geo.Point{coordinates: {lon, lat}, srid: 4326}
   end
-
-  defp prepare_filters(
-         %{
-           "gender_preference" => genders,
-           "distance" => distance,
-           "min_age" => min_age,
-           "max_age" => max_age
-         } = attrs
-       ) do
-    Map.put(attrs, "filters", %{
-      "genders" => genders,
-      "distance" => distance,
-      "min_age" => min_age,
-      "max_age" => max_age
-    })
-  end
-
-  defp prepare_filters(
-         %{gender_preference: genders, distance: distance, min_age: min_age, max_age: max_age} =
-           attrs
-       ) do
-    Map.put(attrs, :filters, %{
-      genders: genders,
-      distance: distance,
-      min_age: min_age,
-      max_age: max_age
-    })
-  end
-
-  defp prepare_filters(attrs), do: attrs
 
   def story_changeset(profile, attrs) do
     profile

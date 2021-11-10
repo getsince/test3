@@ -98,7 +98,10 @@ defmodule T.Factory do
       birthdate: opts[:birthdate] || "1998-10-28",
       gender: gender,
       name: opts[:name] || "that",
-      filters: %{genders: opts[:accept_genders] || ["F"]}
+      gender_preference: opts[:accept_genders] || ["F"],
+      distance: nil,
+      max_age: nil,
+      min_age: nil
     }
   end
 

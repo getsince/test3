@@ -13,7 +13,7 @@ defmodule T.Feeds do
   alias T.Accounts.{UserReport, GenderPreference}
   alias T.Matches.{Match, Like}
   # alias T.Calls
-  alias T.Feeds.{FeedProfile, SeenProfile, FeededProfile}
+  alias T.Feeds.{FeedProfile, SeenProfile, FeededProfile, FeedFilter}
   # alias T.PushNotifications.DispatchJob
 
   ### PubSub
@@ -51,7 +51,7 @@ defmodule T.Feeds do
   end
 
   # TODO accept cursor
-  @spec list_received_likes(Ecto.UUID.t()) :: [feed_profile]
+  @spec list_received_likes(Ecto.UUID.t()) :: [%FeedProfile{}]
   def list_received_likes(user_id) do
     profiles_q = not_reported_profiles_q(user_id)
 
@@ -85,46 +85,22 @@ defmodule T.Feeds do
   ### Feed
 
   @type feed_cursor :: DateTime.t()
-  @type feed_profile :: %FeedProfile{}
 
   @spec fetch_feed(
           Ecto.UUID.t(),
           Geo.Point.t(),
           String.t(),
-          [String.t()],
-          pos_integer,
-          pos_integer,
-          pos_integer,
+          %FeedFilter{},
           pos_integer,
           feed_cursor | nil
         ) ::
-          {[feed_profile], feed_cursor}
-  def fetch_feed(
-        user_id,
-        location,
-        gender,
-        gender_preferences,
-        min_age,
-        max_age,
-        distance,
-        count,
-        feed_cursor
-      ) do
+          {[%FeedProfile{}], feed_cursor}
+  def fetch_feed(user_id, location, gender, feed_filter, count, feed_cursor) do
     if feed_cursor == nil do
       empty_feeded_profiles(user_id)
     end
 
-    feed_profiles =
-      continue_feed(
-        user_id,
-        location,
-        gender,
-        gender_preferences,
-        min_age,
-        max_age,
-        distance,
-        count
-      )
+    feed_profiles = continue_feed(user_id, location, gender, feed_filter, count)
 
     mark_profiles_feeded(user_id, feed_profiles)
 
@@ -138,16 +114,10 @@ defmodule T.Feeds do
     {feed_profiles, feed_cursor}
   end
 
-  defp continue_feed(
-         user_id,
-         location,
-         gender,
-         gender_preferences,
-         min_age,
-         max_age,
-         distance,
-         count
-       ) do
+  defp continue_feed(user_id, location, gender, feed_filter, count) do
+    %{genders: gender_preferences, min_age: min_age, max_age: max_age, distance: distance} =
+      feed_filter
+
     feeded = FeededProfile |> where(for_user_id: ^user_id) |> select([s], s.user_id)
 
     most_liked_count = count - div(count, 2)

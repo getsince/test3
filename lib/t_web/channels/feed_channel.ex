@@ -11,7 +11,7 @@ defmodule TWeb.FeedChannel do
       user_id = String.downcase(user_id)
       %{screen_width: screen_width} = socket.assigns
 
-      gender_preferences = Accounts.list_gender_preferences(user_id)
+      feed_filter = Accounts.get_feed_filter(user_id)
       {location, gender} = Accounts.get_location_and_gender!(user_id)
 
       :ok = Matches.subscribe_for_user(user_id)
@@ -37,8 +37,7 @@ defmodule TWeb.FeedChannel do
         |> maybe_put("likes", likes)
         |> maybe_put("matches", matches)
 
-      {:ok, reply,
-       assign(socket, gender_preferences: gender_preferences, location: location, gender: gender)}
+      {:ok, reply, assign(socket, feed_filter: feed_filter, location: location, gender: gender)}
     else
       {:error, %{"error" => "forbidden"}}
     end
@@ -49,7 +48,7 @@ defmodule TWeb.FeedChannel do
     %{
       current_user: user,
       screen_width: screen_width,
-      gender_preferences: gender_preferences,
+      feed_filter: feed_filter,
       gender: gender,
       location: location
     } = socket.assigns
@@ -59,10 +58,7 @@ defmodule TWeb.FeedChannel do
         user.id,
         location,
         gender,
-        gender_preferences,
-        params["min_age"],
-        params["max_age"],
-        params["distance"],
+        feed_filter,
         params["count"] || 10,
         params["cursor"]
       )

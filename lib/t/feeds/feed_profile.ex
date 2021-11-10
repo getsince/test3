@@ -4,15 +4,15 @@ defmodule T.Feeds.FeedProfile do
   @primary_key false
   @foreign_key_type Ecto.Bigflake.UUID
   schema "profiles" do
-    belongs_to(:user, T.Accounts.User, primary_key: true)
-    field(:name, :string)
-    field(:story, {:array, :map})
-    field(:hidden?, :boolean)
-    field(:last_active, :utc_datetime)
-    field(:location, Geo.PostGIS.Geometry)
+    belongs_to :user, T.Accounts.User, primary_key: true
+    field :name, :string
+    field :story, {:array, :map}
+    field :hidden?, :boolean
+    field :last_active, :utc_datetime
+    field :location, Geo.PostGIS.Geometry
     # F | M | N
-    field(:gender, :string)
-    field(:birthdate, :date)
-    field(:times_liked, :integer)
+    field :gender, :string
+    field :birthdate, :date
+    field :times_liked, :integer
   end
 end

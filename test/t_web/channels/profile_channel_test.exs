@@ -19,6 +19,9 @@ defmodule TWeb.ProfileChannelTest do
                latitude: nil,
                longitude: nil,
                gender_preference: nil,
+               distance: nil,
+               max_age: nil,
+               min_age: nil,
                story: [],
                gender: nil,
                name: nil,
@@ -101,6 +104,9 @@ defmodule TWeb.ProfileChannelTest do
                ],
                gender: nil,
                gender_preference: nil,
+               distance: nil,
+               max_age: nil,
+               min_age: nil,
                latitude: nil,
                longitude: nil,
                birthdate: nil,
@@ -165,6 +171,9 @@ defmodule TWeb.ProfileChannelTest do
                  latitude: 50,
                  longitude: 50,
                  gender_preference: ["F", "M"],
+                 distance: 10,
+                 min_age: 18,
+                 max_age: 40,
                  story: [
                    %{
                      "background" => %{

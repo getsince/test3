@@ -16,10 +16,7 @@ defmodule T.FeedsTest do
                  me.id,
                  me.profile.location,
                  _gender = "M",
-                 _gender_preference = ["F"],
-                 _min_age = nil,
-                 _max_age = nil,
-                 _distance = nil,
+                 _feed_filter = %{genders: ["F"], min_age: nil, max_age: nil, distance: nil},
                  _count = 10,
                  _cursor = nil
                )
@@ -33,10 +30,7 @@ defmodule T.FeedsTest do
                  me.id,
                  me.profile.location,
                  _gender = "M",
-                 _gender_preference = ["F"],
-                 _min_age = nil,
-                 _max_age = nil,
-                 _distance = nil,
+                 _feed_filter = %{genders: ["F"], min_age: nil, max_age: nil, distance: nil},
                  _count = 10,
                  _cursor = nil
                )
@@ -50,10 +44,7 @@ defmodule T.FeedsTest do
                  me.id,
                  me.profile.location,
                  _gender = "M",
-                 _gender_preference = ["F"],
-                 _min_age = nil,
-                 _max_age = nil,
-                 _distance = nil,
+                 _feed_filter = %{genders: ["F"], min_age: nil, max_age: nil, distance: nil},
                  _count = 10,
                  _cursor = nil
                )
@@ -71,10 +62,7 @@ defmodule T.FeedsTest do
                  me.id,
                  me.profile.location,
                  _gender = "M",
-                 _gender_preference = ["F"],
-                 _min_age = nil,
-                 _max_age = nil,
-                 _distance = nil,
+                 _feed_filter = %{genders: ["F"], min_age: nil, max_age: nil, distance: nil},
                  _count = 10,
                  _cursor = nil
                )

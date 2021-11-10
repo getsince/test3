@@ -10,8 +10,7 @@ defmodule T.Accounts.ProfileTest do
                gender: ["can't be blank"],
                name: ["can't be blank"],
                birthdate: ["can't be blank"],
-               location: ["can't be blank"],
-               filters: ["can't be blank"]
+               location: ["can't be blank"]
              }
     end
 

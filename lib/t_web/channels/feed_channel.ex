@@ -5,6 +5,8 @@ defmodule TWeb.FeedChannel do
   alias TWeb.{FeedView, MatchView, ErrorView}
   alias T.{Feeds, Calls, Matches, Accounts}
 
+  @match_ttl 172_800
+
   @impl true
   def join("feed:" <> user_id, params, socket) do
     if ChannelHelpers.valid_user_topic?(socket, user_id) do
@@ -31,11 +33,18 @@ defmodule TWeb.FeedChannel do
         |> Matches.list_matches()
         |> render_matches(screen_width)
 
+      expired_matches =
+        user_id
+        |> Matches.list_expired_matches()
+        |> render_expired_matches(screen_width)
+
       reply =
         %{}
+        |> Map.put("match_expiration_duration", @match_ttl)
         |> maybe_put("missed_calls", missed_calls)
         |> maybe_put("likes", likes)
         |> maybe_put("matches", matches)
+        |> maybe_put("expired_matches", expired_matches)
 
       {:ok, reply, assign(socket, feed_filter: feed_filter, location: location, gender: gender)}
     else
@@ -72,6 +81,12 @@ defmodule TWeb.FeedChannel do
     {:reply, :ok, socket}
   end
 
+  def handle_in("seen", %{"expired_match_id" => match_id}, socket) do
+    by_user_id = me_id(socket)
+    Matches.delete_expired_match(match_id, by_user_id)
+    {:reply, :ok, socket}
+  end
+
   def handle_in("call", %{"user_id" => called}, socket) do
     caller = me_id(socket)
 
@@ -91,9 +106,15 @@ defmodule TWeb.FeedChannel do
 
     reply =
       case Matches.like_user(liker, liked) do
-        {:ok, %{match: _no_match = nil}} -> :ok
-        {:ok, %{match: %Matches.Match{id: match_id}}} -> {:ok, %{"match_id" => match_id}}
-        {:error, _step, _reason, _changes} -> :ok
+        {:ok, %{match: _no_match = nil}} ->
+          :ok
+
+        {:ok, %{match: %{id: match_id}, event: %{timestamp: timestamp}}} ->
+          expiration_date = timestamp |> DateTime.add(@match_ttl)
+          {:ok, %{"match_id" => match_id, "expiration_date" => expiration_date}}
+
+        {:error, _step, _reason, _changes} ->
+          :ok
       end
 
     {:reply, reply, socket}
@@ -121,7 +142,7 @@ defmodule TWeb.FeedChannel do
         %{"user_id" => user_id} -> Matches.save_slots_offer_for_user(me, user_id, slots)
       end
       |> case do
-        {:ok, _timeslot} -> :ok
+        {:ok, _timeslot, expiration_date} -> {:ok, %{"expiration_date" => expiration_date}}
         {:error, %Ecto.Changeset{} = changeset} -> {:error, render_changeset(changeset)}
       end
 
@@ -136,16 +157,22 @@ defmodule TWeb.FeedChannel do
       %{"user_id" => user_id} -> Matches.accept_slot_for_matched_user(me, user_id, slot)
     end
 
-    {:reply, :ok, socket}
+    expiration_date = expiration_date_from_params(params, me)
+
+    {:reply, {:ok, %{"expiration_date" => expiration_date}}, socket}
   end
 
   def handle_in("cancel-slot", params, socket) do
+    me = me_id(socket)
+
     case params do
-      %{"match_id" => match_id} -> Matches.cancel_slot_for_match(me_id(socket), match_id)
-      %{"user_id" => user_id} -> Matches.cancel_slot_for_matched_user(me_id(socket), user_id)
+      %{"match_id" => match_id} -> Matches.cancel_slot_for_match(me, match_id)
+      %{"user_id" => user_id} -> Matches.cancel_slot_for_matched_user(me, user_id)
     end
 
-    {:reply, :ok, socket}
+    expiration_date = expiration_date_from_params(params, me)
+
+    {:reply, {:ok, %{"expiration_date" => expiration_date}}, socket}
   end
 
   def handle_in("unmatch", params, socket) do
@@ -192,21 +219,45 @@ defmodule TWeb.FeedChannel do
     {:noreply, socket}
   end
 
-  def handle_info({Matches, [:timeslot, :offered], timeslot}, socket) do
+  def handle_info({Matches, :expired, match_id}, socket) when is_binary(match_id) do
+    push(socket, "match_expired", %{"match_id" => match_id})
+    {:noreply, socket}
+  end
+
+  def handle_info({Matches, :expiration_reset, match_id}, socket) when is_binary(match_id) do
+    push(socket, "match_expiration_reset", %{"match_id" => match_id})
+    {:noreply, socket}
+  end
+
+  def handle_info({Matches, [:timeslot, :offered], timeslot, expiration_date}, socket) do
     %Matches.Timeslot{slots: slots, match_id: match_id} = timeslot
-    push(socket, "slots_offer", %{"match_id" => match_id, "slots" => slots})
+
+    push(socket, "slots_offer", %{
+      "match_id" => match_id,
+      "slots" => slots,
+      "expiration_date" => expiration_date
+    })
+
     {:noreply, socket}
   end
 
-  def handle_info({Matches, [:timeslot, :accepted], timeslot}, socket) do
+  def handle_info({Matches, [:timeslot, :accepted], timeslot, expiration_date}, socket) do
     %Matches.Timeslot{selected_slot: slot, match_id: match_id} = timeslot
-    push(socket, "slot_accepted", %{"match_id" => match_id, "selected_slot" => slot})
+
+    push(socket, "slot_accepted", %{
+      "match_id" => match_id,
+      "selected_slot" => slot,
+      "expiration_date" => expiration_date
+    })
+
     {:noreply, socket}
   end
 
-  def handle_info({Matches, [:timeslot, :cancelled], timeslot}, socket) do
+  def handle_info({Matches, [:timeslot, :cancelled], timeslot, expiration_date}, socket) do
     %Matches.Timeslot{match_id: match_id} = timeslot
-    push(socket, "slot_cancelled", %{"match_id" => match_id})
+
+    push(socket, "slot_cancelled", %{"match_id" => match_id, "expiration_date" => expiration_date})
+
     {:noreply, socket}
   end
 
@@ -245,17 +296,48 @@ defmodule TWeb.FeedChannel do
 
   defp render_matches(matches, screen_width) do
     Enum.map(matches, fn match ->
-      %Matches.Match{id: match_id, profile: profile, timeslot: timeslot} = match
+      %Matches.Match{
+        id: match_id,
+        profile: profile,
+        timeslot: timeslot
+      } = match
+
       render_match(match_id, profile, timeslot, screen_width)
     end)
   end
 
-  defp render_match(match_id, mate_feed_profile, maybe_timeslot, screen_width) do
+  defp render_expired_matches(expired_matches, screen_width) do
+    Enum.map(expired_matches, fn expired_match ->
+      %Matches.ExpiredMatch{
+        match_id: match_id,
+        profile: profile
+      } = expired_match
+
+      render_match(match_id, profile, nil, screen_width)
+    end)
+  end
+
+  defp render_match(
+         match_id,
+         mate_feed_profile,
+         maybe_timeslot,
+         screen_width
+       ) do
     render(MatchView, "match.json",
       id: match_id,
       timeslot: maybe_timeslot,
       profile: mate_feed_profile,
       screen_width: screen_width
     )
+  end
+
+  defp expiration_date_from_params(params, me) do
+    case params do
+      %{"match_id" => match_id} ->
+        Matches.expiration_date(match_id)
+
+      %{"user_id" => user_id} ->
+        Matches.expiration_date(me, user_id)
+    end
   end
 end

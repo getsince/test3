@@ -1,6 +1,7 @@
 defmodule T.Calls do
   @moduledoc false
   import Ecto.Query
+  alias Ecto.Multi
 
   require Logger
 
@@ -93,23 +94,65 @@ defmodule T.Calls do
     DateTime.truncate(DateTime.utc_now(), :second)
   end
 
+  defp set_call_accepted_at(multi, call_id, now) do
+    Multi.run(multi, :call, fn _repo, _changes ->
+      {1, [call]} =
+        Call
+        |> where(id: ^call_id)
+        |> select([p], {p.caller_id, p.called_id})
+        |> Repo.update_all(set: [accepted_at: now])
+
+      {:ok, call}
+    end)
+  end
+
+  defp get_match_id(multi) do
+    Multi.run(multi, :match_id, fn _repo, %{call: {caller, called}} ->
+      match_id =
+        Match
+        |> where([m], m.user_id_1 == ^caller and m.user_id_2 == ^called)
+        |> or_where([m], m.user_id_1 == ^called and m.user_id_2 == ^caller)
+        |> order_by(desc: :inserted_at)
+        |> limit(1)
+        |> select([m], m.id)
+        |> Repo.one!()
+
+      {:ok, match_id}
+    end)
+  end
+
+  defp insert_call_start_event(multi) do
+    Multi.insert(multi, :event, fn %{match_id: match_id} ->
+      %T.Matches.MatchEvent{
+        timestamp: DateTime.truncate(DateTime.utc_now(), :second),
+        match_id: match_id,
+        event: "call_start"
+      }
+    end)
+  end
+
+  # TODO not ignore errors (currently always :ok)
   @spec accept_call(Ecto.UUID.t(), DateTime.t()) :: :ok
   def accept_call(call_id, now \\ utc_now()) do
-    {caller, called} =
-      Call
-      |> where(id: ^call_id)
-      |> select([p], {p.caller_id, p.called_id})
-      |> Repo.one!()
+    Multi.new()
+    |> set_call_accepted_at(call_id, now)
+    |> get_match_id()
+    |> insert_call_start_event()
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{call: {caller, called}, match_id: match_id}} = success ->
+        m =
+          "New call starts: #{fetch_name(caller)}(#{caller}) and #{fetch_name(called)}(#{called})"
 
-    m = "New call starts: #{fetch_name(caller)}(#{caller}) and #{fetch_name(called)}(#{called})"
+        Logger.warn(m)
+        Bot.async_post_message(m)
 
-    Logger.warn(m)
-    Bot.async_post_message(m)
+        T.Matches.notify_match_expiration_reset(match_id, [caller, called])
+        success
 
-    {1, _} =
-      Call
-      |> where(id: ^call_id)
-      |> Repo.update_all(set: [accepted_at: now])
+      {:error, _step, _reason, _changes} = failure ->
+        failure
+    end
 
     :ok
   end

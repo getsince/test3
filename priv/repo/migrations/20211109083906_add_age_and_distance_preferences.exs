@@ -25,11 +25,19 @@ defmodule T.Repo.Migrations.AddAgeAndDistancePreferences do
 
     user_ids = "users" |> select([u], u.id) |> T.Repo.all()
 
-    T.Repo.insert_all("min_age_preferences", user_ids |> Enum.map(fn id -> %{user_id: id, age: 18} end))
+    T.Repo.insert_all(
+      "min_age_preferences",
+      user_ids |> Enum.map(fn id -> %{user_id: id, age: 18} end)
+    )
 
-    T.Repo.insert_all("max_age_preferences", user_ids |> Enum.map(fn id -> %{user_id: id, age: 100} end))
+    T.Repo.insert_all(
+      "max_age_preferences",
+      user_ids |> Enum.map(fn id -> %{user_id: id, age: 100} end)
+    )
 
-    T.Repo.insert_all("distance_preferences", user_ids |> Enum.map(fn id -> %{user_id: id, distance: 20000} end))
-
+    T.Repo.insert_all(
+      "distance_preferences",
+      user_ids |> Enum.map(fn id -> %{user_id: id, distance: 20000} end)
+    )
   end
 end

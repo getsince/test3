@@ -430,18 +430,19 @@ defmodule T.Accounts do
   end
 
   def get_profile!(user_id) when is_binary(user_id) do
-    {profile, min_age_preference, max_age_preference, distance_preference} =
+    {profile, min_age, max_age, distance} =
       Profile
       |> where([p], p.user_id == ^user_id)
       |> join(:left, [p], min in MinAgePreference, on: p.user_id == min.user_id)
       |> join(:left, [p, min], max in MaxAgePreference, on: p.user_id == max.user_id)
       |> join(:left, [p, min, max], d in DistancePreference, on: p.user_id == d.user_id)
-      |> select([p, min, max, d], {p, min, max, d})
+      |> select([p, min, max, d], {p, min.age, max.age, d.distance})
       |> Repo.one()
 
     gender_preference =
       case GenderPreference
            |> where([g], g.user_id == ^user_id)
+           |> select([g], g.gender)
            |> Repo.all() do
         [] -> nil
         some -> some
@@ -450,9 +451,9 @@ defmodule T.Accounts do
     %Profile{
       profile
       | gender_preference: gender_preference,
-        min_age_preference: min_age_preference,
-        max_age_preference: max_age_preference,
-        distance_preference: distance_preference
+        min_age: min_age,
+        max_age: max_age,
+        distance: distance
     }
   end
 
@@ -470,10 +471,10 @@ defmodule T.Accounts do
     |> Multi.update(:profile, fn %{user: %{profile: profile}} ->
       Profile.changeset(profile, attrs, validate_required?: true)
     end)
-    |> update_profile_gender_preferences(profile, attrs)
-    |> update_profile_min_age_preferences(profile, attrs)
-    |> update_profile_max_age_preferences(profile, attrs)
-    |> update_profile_distance_preferences(profile, attrs)
+    |> update_profile_gender_preference(profile, attrs)
+    |> update_profile_min_age(profile, attrs)
+    |> update_profile_max_age(profile, attrs)
+    |> update_profile_distance(profile, attrs)
     |> Multi.run(:mark_onboarded, fn repo, %{user: user} ->
       {1, nil} =
         User
@@ -493,10 +494,10 @@ defmodule T.Accounts do
        %{
          user: user,
          profile: %Profile{} = profile,
-         update_profile_gender_preferences: genders,
-         update_profile_min_age_preferences: min_age,
-         update_profile_max_age_preferences: max_age,
-         update_profile_distance_preferences: distance
+         update_profile_gender_preference: genders,
+         update_profile_min_age: %{age: min_age},
+         update_profile_max_age: %{age: max_age},
+         update_profile_distance: %{distance: distance}
        }} ->
         m = "user registered #{user.id}, user name is #{profile.name}"
         Logger.warn(m)
@@ -506,9 +507,9 @@ defmodule T.Accounts do
          %Profile{
            profile
            | gender_preference: genders,
-             min_age_preference: min_age,
-             max_age_preference: max_age,
-             distance_preference: distance,
+             min_age: min_age,
+             max_age: max_age,
+             distance: distance,
              hidden?: false
          }}
 
@@ -527,10 +528,10 @@ defmodule T.Accounts do
 
     Multi.new()
     |> Multi.update(:profile, Profile.changeset(profile, attrs, opts), returning: true)
-    |> update_profile_gender_preferences(profile, attrs)
-    |> update_profile_min_age_preferences(profile, attrs)
-    |> update_profile_max_age_preferences(profile, attrs)
-    |> update_profile_distance_preferences(profile, attrs)
+    |> update_profile_gender_preference(profile, attrs)
+    |> update_profile_min_age(profile, attrs)
+    |> update_profile_max_age(profile, attrs)
+    |> update_profile_distance(profile, attrs)
     |> Multi.run(:maybe_unhide, fn _repo, %{profile: profile} ->
       has_story? = !!profile.story
       hidden? = profile.hidden?
@@ -542,18 +543,18 @@ defmodule T.Accounts do
       {:ok,
        %{
          profile: profile,
-         update_profile_gender_preferences: genders,
-         update_profile_min_age_preferences: min_age,
-         update_profile_max_age_preferences: max_age,
-         update_profile_distance_preferences: distance
+         update_profile_gender_preference: genders,
+         update_profile_min_age: %{age: min_age},
+         update_profile_max_age: %{age: max_age},
+         update_profile_distance: %{distance: distance}
        }} ->
         {:ok,
          %Profile{
            profile
            | gender_preference: genders,
-             min_age_preference: min_age,
-             max_age_preference: max_age,
-             distance_preference: distance,
+             min_age: min_age,
+             max_age: max_age,
+             distance: distance,
              hidden?: false
          }}
 
@@ -562,42 +563,43 @@ defmodule T.Accounts do
     end
   end
 
-  defp update_profile_gender_preferences(multi, profile, %{
+  defp update_profile_gender_preference(multi, profile, %{
          "gender_preference" => gender_preference
        }) do
-    update_profile_gender_preferences(multi, profile, gender_preference)
+    update_profile_gender_preference(multi, profile, gender_preference)
   end
 
-  defp update_profile_gender_preferences(multi, profile, %{
+  defp update_profile_gender_preference(multi, profile, %{
          gender_preference: gender_preference
        }) do
-    update_profile_gender_preferences(multi, profile, gender_preference)
+    update_profile_gender_preference(multi, profile, gender_preference)
   end
 
   # TODO test
-  defp update_profile_gender_preferences(
+  defp update_profile_gender_preference(
          multi,
          %Profile{user_id: user_id},
          gender_preference
        )
        when is_list(gender_preference) do
-    Multi.run(multi, :update_profile_gender_preferences, fn _repo, _changes ->
+    Multi.run(multi, :update_profile_gender_preference, fn _repo, _changes ->
       # TODO not delete the actual ones
       GenderPreference
       |> where(user_id: ^user_id)
       |> Repo.delete_all()
 
-      {_, genders} = insert_all_gender_preferences(gender_preference, user_id)
+      insert_all_gender_preferences(gender_preference, user_id)
 
-      {:ok, genders}
+      {:ok, gender_preference}
     end)
   end
 
-  defp update_profile_gender_preferences(multi, %Profile{user_id: user_id}, _atrs) do
-    Multi.run(multi, :update_profile_gender_preferences, fn _repo, _changes ->
+  defp update_profile_gender_preference(multi, %Profile{user_id: user_id}, _atrs) do
+    Multi.run(multi, :update_profile_gender_preference, fn _repo, _changes ->
       genders =
         GenderPreference
         |> where(user_id: ^user_id)
+        |> select([g], g.gender)
         |> Repo.all()
 
       {:ok, genders}
@@ -662,81 +664,108 @@ defmodule T.Accounts do
     %FeedFilter{genders: genders, min_age: min_age, max_age: max_age, distance: distance}
   end
 
-  defp update_profile_distance_preferences(multi, profile, %{"distance" => distance}) do
-    update_profile_distance_preferences(multi, profile, distance)
+  defp update_profile_distance(multi, profile, %{"distance" => distance}) do
+    update_profile_distance(multi, profile, distance)
   end
 
-  defp update_profile_distance_preferences(multi, profile, %{distance: distance}) do
-    update_profile_distance_preferences(multi, profile, distance)
+  defp update_profile_distance(multi, profile, %{distance: distance}) do
+    update_profile_distance(multi, profile, distance)
   end
 
-  defp update_profile_distance_preferences(multi, %Profile{user_id: user_id}, distance)
+  defp update_profile_distance(multi, %Profile{user_id: user_id}, distance)
        when is_integer(distance) do
     Multi.insert(
       multi,
-      :update_profile_distance_preferences,
+      :update_profile_distance,
       %DistancePreference{user_id: user_id, distance: distance},
       on_conflict: :replace_all,
       conflict_target: :user_id
     )
   end
 
-  defp update_profile_distance_preferences(multi, %Profile{user_id: user_id}, _atrs) do
-    Multi.run(multi, :update_profile_distance_preferences, fn _repo, _changes ->
+  defp update_profile_distance(multi, %Profile{user_id: user_id}, _atrs) do
+    Multi.run(multi, :update_profile_distance, fn _repo, _changes ->
       distance = DistancePreference |> where(user_id: ^user_id) |> Repo.one()
-      {:ok, distance}
+
+      # TODO remove after transitionary period to new app (needed for onboarding using old app)
+      case distance do
+        nil ->
+          d = Repo.insert(DistancePreference, %{user_id: user_id, distance: 20000})
+          {:ok, d}
+
+        _ ->
+          {:ok, distance}
+      end
     end)
   end
 
-  defp update_profile_min_age_preferences(multi, profile, %{"min_age" => min_age}) do
-    update_profile_min_age_preferences(multi, profile, min_age)
+  defp update_profile_min_age(multi, profile, %{"min_age" => min_age}) do
+    update_profile_min_age(multi, profile, min_age)
   end
 
-  defp update_profile_min_age_preferences(multi, profile, %{min_age: min_age}) do
-    update_profile_min_age_preferences(multi, profile, min_age)
+  defp update_profile_min_age(multi, profile, %{min_age: min_age}) do
+    update_profile_min_age(multi, profile, min_age)
   end
 
-  defp update_profile_min_age_preferences(multi, %Profile{user_id: user_id}, min_age)
+  defp update_profile_min_age(multi, %Profile{user_id: user_id}, min_age)
        when is_integer(min_age) do
     Multi.insert(
       multi,
-      :update_profile_min_age_preferences,
+      :update_profile_min_age,
       %MinAgePreference{user_id: user_id, age: min_age},
       on_conflict: :replace_all,
       conflict_target: :user_id
     )
   end
 
-  defp update_profile_min_age_preferences(multi, %Profile{user_id: user_id}, _atrs) do
-    Multi.run(multi, :update_profile_min_age_preferences, fn _repo, _changes ->
+  defp update_profile_min_age(multi, %Profile{user_id: user_id}, _atrs) do
+    Multi.run(multi, :update_profile_min_age, fn _repo, _changes ->
       age = MinAgePreference |> where(user_id: ^user_id) |> Repo.one()
-      {:ok, age}
+
+      # TODO remove after transitionary period to new app (needed for onboarding using old app)
+      case age do
+        nil ->
+          a = Repo.insert(MinAgePreference, %{user_id: user_id, age: 18})
+          {:ok, a}
+
+        _ ->
+          {:ok, age}
+      end
     end)
   end
 
-  defp update_profile_max_age_preferences(multi, profile, %{"max_age" => max_age}) do
-    update_profile_max_age_preferences(multi, profile, max_age)
+  defp update_profile_max_age(multi, profile, %{"max_age" => max_age}) do
+    update_profile_max_age(multi, profile, max_age)
   end
 
-  defp update_profile_max_age_preferences(multi, profile, %{max_age: max_age}) do
-    update_profile_max_age_preferences(multi, profile, max_age)
+  defp update_profile_max_age(multi, profile, %{max_age: max_age}) do
+    update_profile_max_age(multi, profile, max_age)
   end
 
-  defp update_profile_max_age_preferences(multi, %Profile{user_id: user_id}, max_age)
+  defp update_profile_max_age(multi, %Profile{user_id: user_id}, max_age)
        when is_integer(max_age) do
     Multi.insert(
       multi,
-      :update_profile_max_age_preferences,
+      :update_profile_max_age,
       %MaxAgePreference{user_id: user_id, age: max_age},
       on_conflict: :replace_all,
       conflict_target: :user_id
     )
   end
 
-  defp update_profile_max_age_preferences(multi, %Profile{user_id: user_id}, _atrs) do
-    Multi.run(multi, :update_profile_max_age_preferences, fn _repo, _changes ->
+  defp update_profile_max_age(multi, %Profile{user_id: user_id}, _atrs) do
+    Multi.run(multi, :update_profile_max_age, fn _repo, _changes ->
       age = MaxAgePreference |> where(user_id: ^user_id) |> Repo.one()
-      {:ok, age}
+
+      # TODO remove after transitionary period to new app (needed for onboarding using old app)
+      case age do
+        nil ->
+          a = Repo.insert(MaxAgePreference, %{user_id: user_id, age: 100})
+          {:ok, a}
+
+        _ ->
+          {:ok, age}
+      end
     end)
   end
 

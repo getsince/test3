@@ -30,7 +30,11 @@ defmodule T.AccountsTest do
                  name: "that",
                  birthdate: "1998-10-28",
                  latitude: 50,
-                 longitude: 50
+                 longitude: 50,
+                 gender_preference: ["F", "M", "N"],
+                 min_age: 18,
+                 max_age: 100,
+                 distance: 20000
                })
 
       profile = Profile |> Repo.get!(profile.user_id) |> Repo.preload(:user)

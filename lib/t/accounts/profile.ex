@@ -11,10 +11,10 @@ defmodule T.Accounts.Profile do
     field :location, Geo.PostGIS.Geometry
 
     # filters
-    field :gender_preference, :map, virtual: true
-    field :min_age_preference, :map, virtual: true
-    field :max_age_preference, :map, virtual: true
-    field :distance_preference, :map, virtual: true
+    field :gender_preference, {:array, :map}, virtual: true
+    field :min_age, :integer, virtual: true
+    field :max_age, :integer, virtual: true
+    field :distance, :integer, virtual: true
 
     # TODO move to users
     field :last_active, :utc_datetime

@@ -41,15 +41,6 @@ defmodule T.Feeds do
 
   ### Likes
 
-  defmacrop distance_km(location1, location2) do
-    quote do
-      fragment(
-        "round(? / 1000)::int",
-        st_distance_in_meters(unquote(location1), unquote(location2))
-      )
-    end
-  end
-
   # TODO accept cursor
   @spec list_received_likes(Ecto.UUID.t()) :: [%FeedProfile{}]
   def list_received_likes(user_id) do
@@ -165,7 +156,7 @@ defmodule T.Feeds do
   defp maybe_apply_min_age_filer(query, min_age) do
     if min_age do
       %{year: y, month: m, day: d} = DateTime.utc_now()
-      youngest = %Date{year: y - String.to_integer(min_age), month: m, day: d}
+      youngest = %Date{year: y - min_age, month: m, day: d}
 
       where(query, [p], p.birthdate <= ^youngest)
     else
@@ -176,7 +167,7 @@ defmodule T.Feeds do
   defp maybe_apply_max_age_filer(query, max_age) do
     if max_age do
       %{year: y, month: m, day: d} = DateTime.utc_now()
-      oldest = %Date{year: y - String.to_integer(max_age), month: m, day: d}
+      oldest = %Date{year: y - max_age, month: m, day: d}
 
       where(query, [p], p.birthdate >= ^oldest)
     else
@@ -186,7 +177,8 @@ defmodule T.Feeds do
 
   defp maybe_apply_distance_filter(query, location, distance) do
     if distance do
-      where(query, [p], distance_km(^location, p.location) <= ^distance)
+      meters = distance * 1000
+      where(query, [p], st_dwithin_in_meters(^location, p.location, ^meters) == true)
     else
       query
     end

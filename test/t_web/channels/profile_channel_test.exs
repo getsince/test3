@@ -32,7 +32,7 @@ defmodule TWeb.ProfileChannelTest do
 
   describe "join with onboarded profile" do
     setup do
-      user = registered_user()
+      user = onboarded_user()
       {:ok, user: user, socket: connected_socket(user)}
     end
 
@@ -102,14 +102,14 @@ defmodule TWeb.ProfileChannelTest do
                    ]
                  }
                ],
-               gender: nil,
-               gender_preference: nil,
-               distance: nil,
-               max_age: nil,
-               min_age: nil,
-               latitude: nil,
-               longitude: nil,
-               birthdate: nil,
+               gender: "M",
+               gender_preference: ["F"],
+               distance: 20000,
+               max_age: 100,
+               min_age: 18,
+               latitude: 55.755833,
+               longitude: 37.617222,
+               birthdate: ~D[1998-10-28],
                user_id: user.id
              }
     end

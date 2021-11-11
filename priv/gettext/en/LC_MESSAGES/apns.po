@@ -62,8 +62,8 @@ msgid "Твой дэйт отменён"
 msgstr "Your date has been cancelled"
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:103
-msgid "%{name} пригласил(а) тебя на свидание!"
+#: lib/t/push_notifications/apns.ex:114
+msgid "%{name} пригласил%{gender_a} тебя на свидание!"
 msgstr "You've been asked out on a date by %{name}!"
 
 #, elixir-format

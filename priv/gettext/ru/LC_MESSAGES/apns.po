@@ -62,8 +62,8 @@ msgid "Твой дэйт отменён"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:102
-msgid "%{name} пригласил(а) тебя на свидание!"
+#: lib/t/push_notifications/apns.ex:114
+msgid "%{name} пригласил%{gender_a} тебя на свидание!"
 msgstr ""
 
 #, elixir-format
@@ -84,7 +84,7 @@ msgstr ""
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:83
 msgid "Invite your match %{name} to a date if you want to keep it alive ✨"
-msgstr "Пригласи на дэйт мэтча %{name}, если хочешь его сохранить ✨"
+msgstr "Пригласи на дэйт мэтча, если хочешь его сохранить ✨"
 
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:82

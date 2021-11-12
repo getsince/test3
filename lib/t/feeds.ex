@@ -154,33 +154,48 @@ defmodule T.Feeds do
   end
 
   defp maybe_apply_min_age_filer(query, min_age) do
-    if min_age do
-      %{year: y, month: m, day: d} = DateTime.utc_now()
-      youngest = %Date{year: y - min_age, month: m, day: d}
+    case min_age do
+      nil ->
+        query
 
-      where(query, [p], p.birthdate <= ^youngest)
-    else
-      query
+      18 ->
+        query
+
+      _ ->
+        %{year: y, month: m, day: d} = DateTime.utc_now()
+        youngest = %Date{year: y - min_age, month: m, day: d}
+
+        where(query, [p], p.birthdate <= ^youngest)
     end
   end
 
   defp maybe_apply_max_age_filer(query, max_age) do
-    if max_age do
-      %{year: y, month: m, day: d} = DateTime.utc_now()
-      oldest = %Date{year: y - max_age, month: m, day: d}
+    case max_age do
+      nil ->
+        query
 
-      where(query, [p], p.birthdate >= ^oldest)
-    else
-      query
+      100 ->
+        query
+
+      _ ->
+        %{year: y, month: m, day: d} = DateTime.utc_now()
+        oldest = %Date{year: y - max_age, month: m, day: d}
+
+        where(query, [p], p.birthdate >= ^oldest)
     end
   end
 
   defp maybe_apply_distance_filter(query, location, distance) do
-    if distance do
-      meters = distance * 1000
-      where(query, [p], st_dwithin_in_meters(^location, p.location, ^meters) == true)
-    else
-      query
+    case distance do
+      nil ->
+        query
+
+      20000 ->
+        query
+
+      _ ->
+        meters = distance * 1000
+        where(query, [p], st_dwithin_in_meters(^location, p.location, ^meters) == true)
     end
   end
 

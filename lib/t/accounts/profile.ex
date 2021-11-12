@@ -12,9 +12,9 @@ defmodule T.Accounts.Profile do
 
     # filters
     field :gender_preference, {:array, :map}, virtual: true
-    field :min_age, :integer, virtual: true
-    field :max_age, :integer, virtual: true
-    field :distance, :integer, virtual: true
+    field :min_age, :integer
+    field :max_age, :integer
+    field :distance, :integer
 
     # TODO move to users
     field :last_active, :utc_datetime
@@ -38,7 +38,7 @@ defmodule T.Accounts.Profile do
     attrs = attrs |> prepare_location()
 
     profile
-    |> cast(attrs, [:name, :gender, :location, :birthdate])
+    |> cast(attrs, [:name, :gender, :location, :birthdate, :min_age, :max_age, :distance])
     |> maybe_validate_required(opts, fn changeset ->
       validate_required(changeset, [:name, :gender, :location, :birthdate])
     end)

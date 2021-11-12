@@ -335,6 +335,71 @@ defmodule TWeb.FeedChannelTest do
       assert_reply(ref, :ok, %{"cursor" => ^cursor, "feed" => []})
     end
 
+    test "with age filter" do
+      me =
+        onboarded_user(
+          location: moscow_location(),
+          accept_genders: ["F"],
+          min_age: 20,
+          max_age: 40
+        )
+
+      socket = connected_socket(me)
+      assert {:ok, _reply, socket} = subscribe_and_join(socket, "feed:" <> me.id)
+
+      now = DateTime.utc_now()
+
+      [_m1, m2, _m3] = [
+        onboarded_user(
+          name: "mate-1",
+          location: apple_location(),
+          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
+          gender: "F",
+          accept_genders: ["M"],
+          birthdate: Date.add(now, -19 * 365)
+        ),
+        onboarded_user(
+          name: "mate-2",
+          location: apple_location(),
+          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
+          gender: "F",
+          accept_genders: ["M"],
+          birthdate: Date.add(now, -30 * 365)
+        ),
+        onboarded_user(
+          name: "mate-3",
+          location: apple_location(),
+          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
+          gender: "F",
+          accept_genders: ["M"],
+          birthdate: Date.add(now, -50 * 365)
+        )
+      ]
+
+      ref = push(socket, "more", %{"count" => 2})
+      assert_reply(ref, :ok, %{"feed" => feed})
+
+      assert feed == [
+               %{
+                 "profile" => %{
+                   user_id: m2.id,
+                   name: "mate-2",
+                   gender: "F",
+                   story: [
+                     %{
+                       "background" => %{
+                         "proxy" =>
+                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
+                         "s3_key" => "test"
+                       },
+                       "labels" => []
+                     }
+                   ]
+                 }
+               }
+             ]
+    end
+
     test "previously returned profiles are not returned, feed can be reset", %{socket: socket} do
       now = DateTime.utc_now()
 

@@ -3,9 +3,9 @@ defmodule T.Repo.Migrations.AddAgesAndDistance do
 
   def change do
     alter table(:profiles) do
-      add :min_age, :integer, null: false
-      add :max_age, :integer, null: false
-      add :distance, :integer, null: false
+      add :min_age, :integer
+      add :max_age, :integer
+      add :distance, :integer
       remove :filters
     end
 

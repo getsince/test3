@@ -3,6 +3,7 @@ defmodule T.Feeds.SeenTest do
   use Oban.Testing, repo: T.Repo
 
   alias T.Feeds
+  alias T.Feeds.{FeedFilter, SeenProfile}
 
   describe "feed" do
     setup do
@@ -16,7 +17,12 @@ defmodule T.Feeds.SeenTest do
                  me.id,
                  me.profile.location,
                  _gender = "M",
-                 _feed_filter = %{genders: ["F"], min_age: nil, max_age: nil, distance: nil},
+                 _feed_filter = %FeedFilter{
+                   genders: ["F"],
+                   min_age: nil,
+                   max_age: nil,
+                   distance: nil
+                 },
                  _count = 10,
                  _cursor = nil
                )
@@ -40,7 +46,12 @@ defmodule T.Feeds.SeenTest do
                  me.id,
                  me.profile.location,
                  _gender = "M",
-                 _feed_filter = %{genders: ["F"], min_age: nil, max_age: nil, distance: nil},
+                 _feed_filter = %FeedFilter{
+                   genders: ["F"],
+                   min_age: nil,
+                   max_age: nil,
+                   distance: nil
+                 },
                  _count = 10,
                  _cursor = nil
                )
@@ -52,7 +63,7 @@ defmodule T.Feeds.SeenTest do
 
       Enum.each(to_be_seen, fn p ->
         # TODO verify broadcast
-        assert {:ok, %Feeds.SeenProfile{}} = Feeds.mark_profile_seen(p.user_id, by: me.id)
+        assert {:ok, %SeenProfile{}} = Feeds.mark_profile_seen(p.user_id, by: me.id)
       end)
 
       # then I get feed again, and those profiles I've seen are marked as "seen"
@@ -61,7 +72,12 @@ defmodule T.Feeds.SeenTest do
                  me.id,
                  me.profile.location,
                  _gender = "M",
-                 _feed_filter = %{genders: ["F"], min_age: nil, max_age: nil, distance: nil},
+                 _feed_filter = %FeedFilter{
+                   genders: ["F"],
+                   min_age: nil,
+                   max_age: nil,
+                   distance: nil
+                 },
                  _count = 10,
                  _cursor = nil
                )
@@ -75,7 +91,7 @@ defmodule T.Feeds.SeenTest do
       me = insert(:user)
       not_me = insert(:user)
 
-      assert {:ok, %Feeds.SeenProfile{}} = Feeds.mark_profile_seen(not_me.id, by: me.id)
+      assert {:ok, %SeenProfile{}} = Feeds.mark_profile_seen(not_me.id, by: me.id)
 
       assert {:error, %Ecto.Changeset{valid?: false} = changeset} =
                Feeds.mark_profile_seen(not_me.id, by: me.id)
@@ -91,7 +107,7 @@ defmodule T.Feeds.SeenTest do
       insert(:seen_profile, by_user: me, user: not_me, inserted_at: long_ago)
 
       seen_profiles =
-        Feeds.SeenProfile
+        SeenProfile
         |> T.Repo.all()
 
       assert length(seen_profiles) == 1
@@ -99,7 +115,7 @@ defmodule T.Feeds.SeenTest do
       Feeds.prune_seen_profiles(5)
 
       seen_profiles_after =
-        Feeds.SeenProfile
+        SeenProfile
         |> T.Repo.all()
 
       assert length(seen_profiles_after) == 0

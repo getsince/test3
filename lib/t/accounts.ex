@@ -22,8 +22,6 @@ defmodule T.Accounts do
     AppleSignIn
   }
 
-  alias T.Feeds.FeedFilter
-
   # def subscribe_to_new_users do
   #   Phoenix.PubSub.subscribe(T.PubSub, "new_users")
   # end
@@ -433,13 +431,10 @@ defmodule T.Accounts do
       |> Repo.one!()
 
     gender_preference =
-      case GenderPreference
-           |> where([g], g.user_id == ^user_id)
-           |> select([g], g.gender)
-           |> Repo.all() do
-        [] -> nil
-        some -> some
-      end
+      GenderPreference
+      |> where([g], g.user_id == ^user_id)
+      |> select([g], g.gender)
+      |> Repo.all()
 
     %Profile{profile | gender_preference: gender_preference}
   end
@@ -458,7 +453,7 @@ defmodule T.Accounts do
     |> Multi.update(:profile, fn %{user: %{profile: profile}} ->
       Profile.changeset(profile, attrs, validate_required?: true)
     end)
-    |> update_profile_gender_preference(profile, attrs)
+    |> maybe_update_profile_gender_preferences(profile, attrs)
     |> Multi.run(:mark_onboarded, fn repo, %{user: user} ->
       {1, nil} =
         User
@@ -474,22 +469,17 @@ defmodule T.Accounts do
     end)
     |> Repo.transaction()
     |> case do
-      {:ok,
-       %{
-         user: user,
-         profile: %Profile{} = profile,
-         update_profile_gender_preference: genders
-       }} ->
-        m = "user registered #{user.id}, user name is #{profile.name}"
-        Logger.warn(m)
-        Bot.async_post_message(m)
+      {:ok, changes} ->
+        case changes do
+          %{user: user, profile: %Profile{} = profile, gender_preferences: genders} ->
+            m = "user registered #{user.id}, user name is #{profile.name}"
+            Logger.warn(m)
+            Bot.async_post_message(m)
+            {:ok, %Profile{profile | gender_preference: genders, hidden?: false}}
 
-        {:ok,
-         %Profile{
-           profile
-           | gender_preference: genders,
-             hidden?: false
-         }}
+          %{profile: profile} ->
+            {:ok, %Profile{profile | hidden?: false}}
+        end
 
       {:error, :user, :already_onboarded, _changes} ->
         {:error, :already_onboarded}
@@ -506,7 +496,7 @@ defmodule T.Accounts do
 
     Multi.new()
     |> Multi.update(:profile, Profile.changeset(profile, attrs, opts), returning: true)
-    |> update_profile_gender_preference(profile, attrs)
+    |> maybe_update_profile_gender_preferences(profile, attrs)
     |> Multi.run(:maybe_unhide, fn _repo, %{profile: profile} ->
       has_story? = !!profile.story
       hidden? = profile.hidden?
@@ -515,65 +505,53 @@ defmodule T.Accounts do
     end)
     |> Repo.transaction()
     |> case do
-      {:ok,
-       %{
-         profile: profile,
-         update_profile_gender_preference: genders
-       }} ->
-        {:ok,
-         %Profile{
-           profile
-           | gender_preference: genders,
-             hidden?: false
-         }}
+      {:ok, changes} ->
+        case changes do
+          %{profile: profile, gender_preferences: genders} ->
+            {:ok, %Profile{profile | gender_preference: genders, hidden?: false}}
+
+          %{profile: profile} ->
+            {:ok, %Profile{profile | hidden?: false}}
+        end
 
       {:error, :profile, %Ecto.Changeset{} = changeset, _changes} ->
         {:error, changeset}
     end
   end
 
-  defp update_profile_gender_preference(multi, profile, %{
-         "gender_preference" => gender_preference
-       }) do
-    update_profile_gender_preference(multi, profile, gender_preference)
-  end
-
-  defp update_profile_gender_preference(multi, profile, %{
-         gender_preference: gender_preference
-       }) do
-    update_profile_gender_preference(multi, profile, gender_preference)
+  defp maybe_update_profile_gender_preferences(multi, profile, attrs) when is_map(attrs) do
+    maybe_update_profile_gender_preferences(
+      multi,
+      profile,
+      attrs[:gender_preference] || attrs["gender_preference"]
+    )
   end
 
   # TODO test
-  defp update_profile_gender_preference(
+  defp maybe_update_profile_gender_preferences(
          multi,
-         %Profile{user_id: user_id},
-         gender_preference
+         %Profile{user_id: user_id, gender_preference: old_genders},
+         new_genders
        )
-       when is_list(gender_preference) do
-    Multi.run(multi, :update_profile_gender_preference, fn _repo, _changes ->
-      # TODO not delete the actual ones
+       when is_list(new_genders) do
+    Multi.run(multi, :gender_preferences, fn _repo, _changes ->
+      old_genders = old_genders || []
+      to_add = new_genders -- old_genders
+      to_remove = old_genders -- new_genders
+
       GenderPreference
       |> where(user_id: ^user_id)
+      |> where([p], p.gender in ^to_remove)
       |> Repo.delete_all()
 
-      insert_all_gender_preferences(gender_preference, user_id)
+      insert_all_gender_preferences(to_add, user_id)
 
-      {:ok, gender_preference}
+      {:ok, new_genders}
     end)
   end
 
-  defp update_profile_gender_preference(multi, %Profile{user_id: user_id}, _atrs) do
-    Multi.run(multi, :update_profile_gender_preference, fn _repo, _changes ->
-      genders =
-        GenderPreference
-        |> where(user_id: ^user_id)
-        |> select([g], g.gender)
-        |> Repo.all()
-
-      {:ok, genders}
-    end)
-  end
+  defp maybe_update_profile_gender_preferences(multi, %Profile{user_id: _user_id}, _atrs),
+    do: multi
 
   defp insert_all_gender_preferences(genders, user_id) when is_list(genders) do
     Repo.insert_all(
@@ -595,18 +573,6 @@ defmodule T.Accounts do
     |> where(user_id: ^user_id)
     |> select([p], p.gender)
     |> Repo.all()
-  end
-
-  def get_feed_filter(user_id) do
-    genders = list_gender_preferences(user_id)
-
-    {min_age, max_age, distance} =
-      Profile
-      |> where(user_id: ^user_id)
-      |> select([p], {p.min_age, p.max_age, p.distance})
-      |> Repo.one()
-
-    %FeedFilter{genders: genders, min_age: min_age, max_age: max_age, distance: distance}
   end
 
   defp maybe_unhide_profile_with_story(user_id) when is_binary(user_id) do

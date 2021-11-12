@@ -13,7 +13,7 @@ defmodule TWeb.FeedChannel do
       user_id = String.downcase(user_id)
       %{screen_width: screen_width} = socket.assigns
 
-      feed_filter = Accounts.get_feed_filter(user_id)
+      feed_filter = Feeds.get_feed_filter(user_id)
       {location, gender} = Accounts.get_location_and_gender!(user_id)
 
       :ok = Matches.subscribe_for_user(user_id)

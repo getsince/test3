@@ -11,7 +11,7 @@ defmodule T.Accounts.Profile do
     field :location, Geo.PostGIS.Geometry
 
     # filters
-    field :gender_preference, {:array, :map}, virtual: true
+    field :gender_preference, {:array, :string}, virtual: true
     field :min_age, :integer
     field :max_age, :integer
     field :distance, :integer
@@ -57,6 +57,11 @@ defmodule T.Accounts.Profile do
         {_, :gt} -> [birthdate: "too old"]
         _ -> []
       end
+    end)
+    |> cast(attrs, [:gender_preference])
+    |> validate_subset(:gender_preference, @known_genders)
+    |> maybe_validate_required(opts, fn changeset ->
+      validate_required(changeset, [:gender_preference])
     end)
   end
 

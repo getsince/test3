@@ -18,7 +18,7 @@ defmodule TWeb.ProfileChannelTest do
                user_id: user.id,
                latitude: nil,
                longitude: nil,
-               gender_preference: nil,
+               gender_preference: [],
                distance: 20000,
                max_age: 100,
                min_age: 18,
@@ -142,7 +142,8 @@ defmodule TWeb.ProfileChannelTest do
                  gender: ["can't be blank"],
                  name: ["can't be blank"],
                  location: ["can't be blank"],
-                 birthdate: ["can't be blank"]
+                 birthdate: ["can't be blank"],
+                 gender_preference: ["can't be blank"]
                }
              }
 

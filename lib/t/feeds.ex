@@ -10,7 +10,7 @@ defmodule T.Feeds do
   alias T.Repo
   # alias T.Bot
   # alias T.Accounts
-  alias T.Accounts.{UserReport, GenderPreference}
+  alias T.Accounts.{Profile, UserReport, GenderPreference}
   alias T.Matches.{Match, Like, ExpiredMatch}
   # alias T.Calls
   alias T.Feeds.{FeedProfile, SeenProfile, FeededProfile, FeedFilter}
@@ -106,8 +106,12 @@ defmodule T.Feeds do
   end
 
   defp continue_feed(user_id, location, gender, feed_filter, count) do
-    %{genders: gender_preferences, min_age: min_age, max_age: max_age, distance: distance} =
-      feed_filter
+    %FeedFilter{
+      genders: gender_preferences,
+      min_age: min_age,
+      max_age: max_age,
+      distance: distance
+    } = feed_filter
 
     feeded = FeededProfile |> where(for_user_id: ^user_id) |> select([s], s.user_id)
 
@@ -210,6 +214,18 @@ defmodule T.Feeds do
       end)
 
     Repo.insert_all(FeededProfile, data, on_conflict: :nothing)
+  end
+
+  def get_feed_filter(user_id) do
+    genders = T.Accounts.list_gender_preferences(user_id)
+
+    {min_age, max_age, distance} =
+      Profile
+      |> where(user_id: ^user_id)
+      |> select([p], {p.min_age, p.max_age, p.distance})
+      |> Repo.one()
+
+    %FeedFilter{genders: genders, min_age: min_age, max_age: max_age, distance: distance}
   end
 
   @spec get_mate_feed_profile(Ecto.UUID.t()) :: %FeedProfile{} | nil

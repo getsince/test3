@@ -430,7 +430,7 @@ defmodule T.Accounts do
     profile =
       Profile
       |> where([p], p.user_id == ^user_id)
-      |> Repo.one()
+      |> Repo.one!()
 
     gender_preference =
       case GenderPreference

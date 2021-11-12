@@ -196,7 +196,7 @@ defmodule TWeb.FeedChannel do
     %{by_user_id: by_user_id} = like
 
     if profile = Feeds.get_mate_feed_profile(by_user_id) do
-      rendered = render_feed_profile(profile, screen_width)
+      rendered = render_feed_item(profile, screen_width)
       push(socket, "invite", rendered)
     end
 
@@ -272,13 +272,13 @@ defmodule TWeb.FeedChannel do
     {:noreply, socket}
   end
 
-  defp render_feed_profile(profile, screen_width) do
+  defp render_feed_item(profile, screen_width) do
     assigns = [profile: profile, screen_width: screen_width]
-    render(FeedView, "feed_profile.json", assigns)
+    render(FeedView, "feed_item.json", assigns)
   end
 
   defp render_feed(feed, screen_width) do
-    Enum.map(feed, fn feed_profile -> render_feed_profile(feed_profile, screen_width) end)
+    Enum.map(feed, fn feed_item -> render_feed_item(feed_item, screen_width) end)
   end
 
   defp render_changeset(changeset) do

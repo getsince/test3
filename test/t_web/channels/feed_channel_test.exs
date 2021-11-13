@@ -400,6 +400,108 @@ defmodule TWeb.FeedChannelTest do
              ]
     end
 
+    test "with distance filter" do
+      me =
+        onboarded_user(
+          location: moscow_location(),
+          accept_genders: ["F"],
+          distance: 10
+        )
+
+      socket = connected_socket(me)
+      assert {:ok, _reply, socket} = subscribe_and_join(socket, "feed:" <> me.id)
+
+      [m1, m2] = [
+        onboarded_user(
+          name: "mate-1",
+          location: apple_location(),
+          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
+          gender: "F",
+          accept_genders: ["M"]
+        ),
+        onboarded_user(
+          name: "mate-2",
+          location: moscow_location(),
+          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
+          gender: "F",
+          accept_genders: ["M"]
+        )
+      ]
+
+      ref = push(socket, "more", %{"count" => 2})
+      assert_reply(ref, :ok, %{"feed" => feed})
+
+      assert feed == [
+               %{
+                 "profile" => %{
+                   user_id: m2.id,
+                   name: "mate-2",
+                   gender: "F",
+                   story: [
+                     %{
+                       "background" => %{
+                         "proxy" =>
+                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
+                         "s3_key" => "test"
+                       },
+                       "labels" => []
+                     }
+                   ]
+                 }
+               }
+             ]
+
+      me =
+        onboarded_user(
+          location: moscow_location(),
+          accept_genders: ["F"],
+          distance: 10000
+        )
+
+      socket = connected_socket(me)
+      assert {:ok, _reply, socket} = subscribe_and_join(socket, "feed:" <> me.id)
+
+      ref = push(socket, "more", %{"count" => 3})
+      assert_reply(ref, :ok, %{"feed" => feed})
+
+      assert feed == [
+               %{
+                 "profile" => %{
+                   user_id: m1.id,
+                   name: "mate-1",
+                   gender: "F",
+                   story: [
+                     %{
+                       "background" => %{
+                         "proxy" =>
+                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
+                         "s3_key" => "test"
+                       },
+                       "labels" => []
+                     }
+                   ]
+                 }
+               },
+               %{
+                 "profile" => %{
+                   user_id: m2.id,
+                   name: "mate-2",
+                   gender: "F",
+                   story: [
+                     %{
+                       "background" => %{
+                         "proxy" =>
+                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
+                         "s3_key" => "test"
+                       },
+                       "labels" => []
+                     }
+                   ]
+                 }
+               }
+             ]
+    end
+
     test "previously returned profiles are not returned, feed can be reset", %{socket: socket} do
       now = DateTime.utc_now()
 

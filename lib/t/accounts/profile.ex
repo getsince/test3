@@ -38,9 +38,18 @@ defmodule T.Accounts.Profile do
     attrs = attrs |> prepare_location()
 
     profile
-    |> cast(attrs, [:name, :gender, :location, :birthdate, :min_age, :max_age, :distance])
+    |> cast(attrs, [
+      :name,
+      :gender,
+      :location,
+      :birthdate,
+      :min_age,
+      :max_age,
+      :distance,
+      :gender_preference
+    ])
     |> maybe_validate_required(opts, fn changeset ->
-      validate_required(changeset, [:name, :gender, :location, :birthdate])
+      validate_required(changeset, [:name, :gender, :location, :birthdate, :gender_preference])
     end)
     |> validate_inclusion(:gender, @known_genders)
     |> validate_length(:name, max: 100)
@@ -58,11 +67,7 @@ defmodule T.Accounts.Profile do
         _ -> []
       end
     end)
-    |> cast(attrs, [:gender_preference])
     |> validate_subset(:gender_preference, @known_genders)
-    |> maybe_validate_required(opts, fn changeset ->
-      validate_required(changeset, [:gender_preference])
-    end)
   end
 
   defp prepare_location(%{"latitude" => lat, "longitude" => lon} = attrs) do

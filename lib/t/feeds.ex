@@ -182,7 +182,7 @@ defmodule T.Feeds do
   defp maybe_apply_distance_filter(query, location, distance) do
     if distance do
       meters = distance * 1000
-      where(query, [p], st_dwithin_in_meters(^location, p.location, ^meters) == true)
+      where(query, [p], st_dwithin_in_meters(^location, p.location, ^meters))
     else
       query
     end
@@ -208,7 +208,7 @@ defmodule T.Feeds do
       Profile
       |> where(user_id: ^user_id)
       |> select([p], {p.min_age, p.max_age, p.distance})
-      |> Repo.one()
+      |> Repo.one!()
 
     %FeedFilter{genders: genders, min_age: min_age, max_age: max_age, distance: distance}
   end

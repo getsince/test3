@@ -9,8 +9,8 @@ defmodule T.Repo.Migrations.AddAgesAndDistance do
       remove :filters
     end
 
-    create index(:profiles, [:min_age])
-    create index(:profiles, [:max_age])
-    create index(:profiles, [:distance])
+    create index(:profiles, [:min_age], where: "min_age is not null")
+    create index(:profiles, [:max_age], where: "max_age is not null")
+    create index(:profiles, [:distance], where: "distance is not null")
   end
 end

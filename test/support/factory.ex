@@ -108,9 +108,9 @@ defmodule T.Factory do
       name: opts[:name] || "that",
       times_liked: opts[:times_liked] || 0,
       gender_preference: opts[:accept_genders] || ["F"],
-      distance: opts[:distance] || 20000,
-      max_age: opts[:max_age] || 100,
-      min_age: opts[:min_age] || 18
+      distance: opts[:distance],
+      max_age: opts[:max_age],
+      min_age: opts[:min_age]
     }
   end
 

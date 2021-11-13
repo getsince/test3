@@ -508,10 +508,10 @@ defmodule T.Accounts do
       {:ok, changes} ->
         case changes do
           %{profile: profile, gender_preferences: genders} ->
-            {:ok, %Profile{profile | gender_preference: genders, hidden?: false}}
+            {:ok, %Profile{profile | gender_preference: genders}}
 
           %{profile: profile} ->
-            {:ok, %Profile{profile | hidden?: false}}
+            {:ok, profile}
         end
 
       {:error, :profile, %Ecto.Changeset{} = changeset, _changes} ->

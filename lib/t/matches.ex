@@ -43,9 +43,6 @@ defmodule T.Matches do
   @spec like_user(Ecto.UUID.t(), Ecto.UUID.t()) ::
           {:ok, %{match: %Match{} | nil, event: %MatchEvent{} | nil}} | {:error, atom, term, map}
   def like_user(by_user_id, user_id) do
-    m = "New like: #{by_user_id} liked #{user_id}"
-    Bot.async_post_message(m)
-
     Multi.new()
     |> mark_liked(by_user_id, user_id)
     |> bump_likes_count(user_id)

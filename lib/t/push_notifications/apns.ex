@@ -121,8 +121,10 @@ defmodule T.PushNotifications.APNS do
   end
 
   def build_alert_payload("timeslot_accepted" = type, data) do
+    %{"name" => name} = data
+
     alert = %{
-      "title" => dgettext("apns", "Твое приглашение на дэйт принято"),
+      "title" => dgettext("apns", "Твое приглашение на дэйт c %{name} принято", name: name),
       "body" => dgettext("apns", "Добавь аудио-дэйт в календарь, чтобы не пропустить 🙌")
     }
 

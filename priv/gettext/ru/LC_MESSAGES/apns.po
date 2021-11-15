@@ -52,8 +52,8 @@ msgid "Скорее заходи!"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:110 lib/t/push_notifications/apns.ex:119
-msgid "Твое приглашение на дэйт принято"
+#: lib/t/push_notifications/apns.ex:110 lib/t/push_notifications/apns.ex:126
+msgid "Твое приглашение на дэйт c %{name} принято"
 msgstr ""
 
 #, elixir-format

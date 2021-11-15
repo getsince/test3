@@ -11,7 +11,7 @@ defmodule T.Accounts.ProfileTest do
                name: ["can't be blank"],
                birthdate: ["can't be blank"],
                location: ["can't be blank"],
-               filters: ["can't be blank"]
+               gender_preference: ["can't be blank"]
              }
     end
 
@@ -97,7 +97,10 @@ defmodule T.Accounts.ProfileTest do
         birthdate: "1998-10-28",
         latitude: 50,
         longitude: 50,
-        gender_preference: ["F"]
+        gender_preference: ["F"],
+        distance: nil,
+        min_age: nil,
+        max_age: nil
       }
 
       assert %Ecto.Changeset{valid?: true} =

@@ -21,7 +21,8 @@ defmodule T.AccountsTest do
                #  gender: ["can't be blank"],
                name: ["can't be blank"],
                location: ["can't be blank"],
-               birthdate: ["can't be blank"]
+               birthdate: ["can't be blank"],
+               gender_preference: ["can't be blank"]
              }
 
       assert {:ok, profile} =
@@ -30,7 +31,11 @@ defmodule T.AccountsTest do
                  name: "that",
                  birthdate: "1998-10-28",
                  latitude: 50,
-                 longitude: 50
+                 longitude: 50,
+                 gender_preference: ["F", "M", "N"],
+                 min_age: 18,
+                 max_age: 100,
+                 distance: 20000
                })
 
       profile = Profile |> Repo.get!(profile.user_id) |> Repo.preload(:user)
@@ -91,6 +96,18 @@ defmodule T.AccountsTest do
 
       insert(:gender_preference, gender: "M", user_id: user.id)
       assert Accounts.list_gender_preferences(user.id) == ["F", "M"]
+    end
+  end
+
+  describe "get_profile/1" do
+    test "with gender preferences" do
+      {:ok, %{profile: %Profile{user_id: user_id}}} =
+        Accounts.register_user_with_apple_id(%{"apple_id" => apple_id()})
+
+      insert(:gender_preference, gender: "F", user_id: user_id)
+      insert(:gender_preference, gender: "N", user_id: user_id)
+
+      assert ["F", "N"] == Accounts.get_profile!(user_id).gender_preference
     end
   end
 end

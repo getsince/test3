@@ -1257,12 +1257,14 @@ defmodule TWeb.FeedChannelTest do
   describe "feed filter" do
     setup :joined
 
-    test "is refetched when profile is updated", %{me: me} do
+    test "is refetched when profile is updated", %{me: me, socket: socket} do
+      %{feed_filter: initial_filter} = socket.assigns
       user_id = me.id
       Accounts.subscribe_for_user(user_id)
       profile = Accounts.get_profile!(user_id)
       Accounts.update_profile(profile, %{"min_age" => 31})
-      assert_receive {Accounts, :feed_filter_updated, ^user_id}
+      new_filter = %T.Feeds.FeedFilter{initial_filter | min_age: 31}
+      assert_receive {Accounts, :feed_filter_updated, ^new_filter}
     end
   end
 

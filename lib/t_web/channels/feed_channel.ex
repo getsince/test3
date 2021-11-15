@@ -272,8 +272,7 @@ defmodule TWeb.FeedChannel do
     {:noreply, socket}
   end
 
-  def handle_info({Accounts, :feed_filter_updated, user_id}, socket) do
-    feed_filter = Feeds.get_feed_filter(user_id)
+  def handle_info({Accounts, :feed_filter_updated, feed_filter}, socket) do
     {:noreply, assign(socket, :feed_filter, feed_filter)}
   end
 

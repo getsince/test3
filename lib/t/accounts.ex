@@ -520,7 +520,13 @@ defmodule T.Accounts do
 
         broadcast_for_user(
           profile.user_id,
-          {__MODULE__, :feed_filter_updated, profile.user_id}
+          {__MODULE__, :feed_filter_updated,
+           %T.Feeds.FeedFilter{
+             genders: genders,
+             min_age: profile.min_age,
+             max_age: profile.max_age,
+             distance: profile.distance
+           }}
         )
 
         {:ok, %Profile{profile | gender_preference: genders}}

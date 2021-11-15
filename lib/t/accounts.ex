@@ -22,6 +22,21 @@ defmodule T.Accounts do
     AppleSignIn
   }
 
+  @pubsub T.PubSub
+  @topic "__a"
+
+  defp pubsub_user_topic(user_id) when is_binary(user_id) do
+    @topic <> ":u:" <> String.downcase(user_id)
+  end
+
+  def subscribe_for_user(user_id) do
+    Phoenix.PubSub.subscribe(@pubsub, pubsub_user_topic(user_id))
+  end
+
+  defp broadcast_for_user(user_id, message) do
+    Phoenix.PubSub.broadcast(@pubsub, pubsub_user_topic(user_id), message)
+  end
+
   # def subscribe_to_new_users do
   #   Phoenix.PubSub.subscribe(T.PubSub, "new_users")
   # end
@@ -470,16 +485,11 @@ defmodule T.Accounts do
     |> Repo.transaction()
     |> case do
       {:ok, changes} ->
-        case changes do
-          %{user: user, profile: %Profile{} = profile, gender_preferences: genders} ->
-            m = "user registered #{user.id}, user name is #{profile.name}"
-            Logger.warn(m)
-            Bot.async_post_message(m)
-            {:ok, %Profile{profile | gender_preference: genders, hidden?: false}}
-
-          %{profile: profile} ->
-            {:ok, %Profile{profile | hidden?: false}}
-        end
+        %{user: user, profile: %Profile{} = profile, gender_preferences: genders} = changes
+        m = "user registered #{user.id}, user name is #{profile.name}"
+        Logger.warn(m)
+        Bot.async_post_message(m)
+        {:ok, %Profile{profile | gender_preference: genders, hidden?: false}}
 
       {:error, :user, :already_onboarded, _changes} ->
         {:error, :already_onboarded}
@@ -506,13 +516,14 @@ defmodule T.Accounts do
     |> Repo.transaction()
     |> case do
       {:ok, changes} ->
-        case changes do
-          %{profile: profile, gender_preferences: genders} ->
-            {:ok, %Profile{profile | gender_preference: genders}}
+        %{profile: profile, gender_preferences: genders} = changes
 
-          %{profile: profile} ->
-            {:ok, profile}
-        end
+        broadcast_for_user(
+          profile.user_id,
+          {__MODULE__, :feed_filter_updated, profile.user_id}
+        )
+
+        {:ok, %Profile{profile | gender_preference: genders}}
 
       {:error, :profile, %Ecto.Changeset{} = changeset, _changes} ->
         {:error, changeset}
@@ -550,8 +561,9 @@ defmodule T.Accounts do
     end)
   end
 
-  defp maybe_update_profile_gender_preferences(multi, %Profile{user_id: _user_id}, _atrs),
-    do: multi
+  defp maybe_update_profile_gender_preferences(multi, %Profile{gender_preference: genders}, _atrs) do
+    Multi.run(multi, :gender_preferences, fn _repo, _changes -> {:ok, genders} end)
+  end
 
   defp insert_all_gender_preferences(genders, user_id) when is_list(genders) do
     Repo.insert_all(

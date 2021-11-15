@@ -157,10 +157,19 @@ defmodule T.Feeds do
     |> maybe_apply_max_age_filer(max_age)
   end
 
+  defp date_years_from_now(years) do
+    %{year: y, month: m, day: d} = DateTime.utc_now()
+
+    case Date.new(y - years, m, d) do
+      {:ok, date} -> date
+      # leap year
+      {:error, :invalid_date} -> %Date{year: y - years, month: m, day: d - 1}
+    end
+  end
+
   defp maybe_apply_min_age_filer(query, min_age) do
     if min_age do
-      %{year: y, month: m, day: d} = DateTime.utc_now()
-      youngest = %Date{year: y - min_age, month: m, day: d}
+      youngest = date_years_from_now(min_age)
 
       where(query, [p], p.birthdate <= ^youngest)
     else
@@ -170,8 +179,7 @@ defmodule T.Feeds do
 
   defp maybe_apply_max_age_filer(query, max_age) do
     if max_age do
-      %{year: y, month: m, day: d} = DateTime.utc_now()
-      oldest = %Date{year: y - max_age, month: m, day: d}
+      oldest = date_years_from_now(max_age)
 
       where(query, [p], p.birthdate >= ^oldest)
     else

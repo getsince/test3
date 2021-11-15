@@ -17,6 +17,7 @@ defmodule TWeb.FeedChannel do
       {location, gender} = Accounts.get_location_and_gender!(user_id)
 
       :ok = Matches.subscribe_for_user(user_id)
+      :ok = Accounts.subscribe_for_user(user_id)
 
       missed_calls =
         user_id
@@ -269,6 +270,11 @@ defmodule TWeb.FeedChannel do
   def handle_info({Matches, [:timeslot, :ended], match_id}, socket) do
     push(socket, "timeslot_ended", %{"match_id" => match_id})
     {:noreply, socket}
+  end
+
+  def handle_info({Accounts, :feed_filter_updated, user_id}, socket) do
+    feed_filter = Feeds.get_feed_filter(user_id)
+    {:noreply, assign(socket, :feed_filter, feed_filter)}
   end
 
   defp render_feed_item(profile, screen_width) do

@@ -81,7 +81,6 @@ defmodule DevAPNS do
     templates = [
       "match",
       {"invite", %{"user_id" => "asdf", "name" => "inviter name"}},
-      "session_expired",
       "timeslot_offer",
       "timeslot_accepted",
       "timeslot_cancelled",

@@ -22,6 +22,8 @@ defmodule T.Accounts do
     AppleSignIn
   }
 
+  alias T.PushNotifications.DispatchJob
+
   @pubsub T.PubSub
   @topic "__a"
 
@@ -681,5 +683,25 @@ defmodule T.Accounts do
     Profile
     |> order_by(desc: :last_active)
     |> Repo.all()
+  end
+
+  def push_users_to_complete_onboarding do
+    start_date = DateTime.add(DateTime.utc_now(), -24 * 60 * 60)
+    finish_date = DateTime.add(DateTime.utc_now(), -24 * 60 * 60 - 60)
+
+    Profile
+    |> where([p], is_nil(p.story))
+    |> where([p], p.last_active <= ^start_date)
+    |> where([p], p.last_active >= ^finish_date)
+    |> select([p], p.user_id)
+    |> Repo.all()
+    |> Enum.map(fn user_id ->
+      schedule_complete_onboarding_push(user_id)
+    end)
+  end
+
+  defp schedule_complete_onboarding_push(user_id) do
+    job = DispatchJob.new(%{"type" => "complete_onboarding", "user_id" => user_id})
+    Oban.insert(job)
   end
 end

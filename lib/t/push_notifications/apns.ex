@@ -92,10 +92,6 @@ defmodule T.PushNotifications.APNS do
     base_alert_payload(type, alert, %{"user_id" => user_id})
   end
 
-  def build_alert_payload("session_expired" = type, _data) do
-    base_alert_payload(type, %{"title" => dgettext("apns", "Твоя сессия завершена")})
-  end
-
   def build_alert_payload("timeslot_offer" = type, data) do
     alert = %{
       "title" => dgettext("apns", "Тебя пригласили на свидание!"),
@@ -148,5 +144,14 @@ defmodule T.PushNotifications.APNS do
     }
 
     base_alert_payload(type, alert, data)
+  end
+
+  def build_alert_payload("complete_onboarding" = type, _data) do
+    alert = %{
+      "title" => dgettext("apns", "Hey, create your own cool profile ✨"),
+      "body" => dgettext("apns", "Meet interesting people ✌️")
+    }
+
+    base_alert_payload(type, alert)
   end
 end

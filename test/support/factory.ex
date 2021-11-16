@@ -99,8 +99,15 @@ defmodule T.Factory do
     gender = opts[:gender] || "M"
     %{lat: lat, lon: lon} = Map.new(opts[:location] || [lat: 55.755833, lon: 37.617222])
 
+    story =
+      if Keyword.has_key?(opts, :story) do
+        opts[:story]
+      else
+        profile_story()
+      end
+
     %{
-      story: opts[:story] || profile_story(),
+      story: story,
       latitude: lat,
       longitude: lon,
       birthdate: opts[:birthdate] || "1998-10-28",

@@ -141,7 +141,7 @@ defmodule T.Feeds do
   defp most_liked_q(user_id, gender, gender_preferences, feeded) do
     feed_profiles_q(user_id, gender, gender_preferences)
     |> where([p], p.user_id not in subquery(feeded))
-    |> order_by(desc: :times_liked)
+    |> order_by(desc: :like_ratio)
   end
 
   defp most_recent_q(user_id, gender, gender_preferences, feeded, filter_out_ids) do
@@ -295,12 +295,29 @@ defmodule T.Feeds do
 
     seen_changeset(by_user_id, user_id)
     |> Repo.insert()
+    |> maybe_bump_shown_count(user_id)
   end
 
   defp seen_changeset(by_user_id, user_id) do
     %SeenProfile{by_user_id: by_user_id, user_id: user_id}
     |> change()
     |> unique_constraint(:seen, name: :seen_profiles_pkey)
+  end
+
+  defp maybe_bump_shown_count(repo, user_id) do
+    case repo do
+      {:ok, _} = result ->
+        FeedProfile
+        |> where(user_id: ^user_id)
+        |> update(inc: [times_shown: 1])
+        |> update(set: [like_ratio: fragment("times_liked / (times_shown + 1)")])
+        |> Repo.update_all([])
+
+        result
+
+      {:error, _} = error ->
+        error
+    end
   end
 
   def prune_seen_profiles(ttl_days) do

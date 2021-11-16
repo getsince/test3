@@ -243,7 +243,7 @@ defmodule TWeb.FeedChannelTest do
           gender: "F",
           accept_genders: ["M"],
           last_active: DateTime.add(now, -1),
-          times_liked: 3
+          like_ratio: 1.0
         ),
         onboarded_user(
           name: "mate-2",
@@ -252,7 +252,7 @@ defmodule TWeb.FeedChannelTest do
           gender: "N",
           accept_genders: ["M"],
           last_active: DateTime.add(now, -2),
-          times_liked: 2
+          like_ratio: 0.5
         ),
         onboarded_user(
           name: "mate-3",
@@ -604,7 +604,7 @@ defmodule TWeb.FeedChannelTest do
 
       # assert bump_likes works
       me_from_db = Repo.get!(T.Feeds.FeedProfile, me.id)
-      assert me_from_db.times_liked == 1
+      assert me_from_db.like_ratio == 1.0
 
       # we got notified of like
       assert_push("invite", invite)

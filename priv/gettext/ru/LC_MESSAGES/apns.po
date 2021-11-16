@@ -12,13 +12,13 @@ msgstr ""
 "Plural-Forms: nplurals=3\n"
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:146
-msgid "Аудио-дэйт начинается"
+#: lib/t/push_notifications/apns.ex:171
+msgid "Аудио-дэйт с %{name} начинается"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:137
-msgid "Аудио-дэйт совсем скоро"
+#: lib/t/push_notifications/apns.ex:160
+msgid "Аудио-дэйт с %{name} совсем скоро"
 msgstr ""
 
 #, elixir-format
@@ -57,8 +57,8 @@ msgid "Твое приглашение на дэйт c %{name} принято"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:128
-msgid "Твой дэйт отменён"
+#: lib/t/push_notifications/apns.ex:149
+msgid "Твой дэйт с %{name} отменён"
 msgstr ""
 
 #, elixir-format
@@ -88,8 +88,8 @@ msgstr "Пригласи на дэйт мэтча, если хочешь его 
 
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:82
-msgid "Your match is about to expire 😢"
-msgstr "Твой мэтч почти истек 😢"
+msgid "Your match with %{name} is about to expire 😢"
+msgstr "Твой мэтч c %{name} почти истек 😢"
 
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:120

@@ -132,8 +132,10 @@ defmodule T.PushNotifications.APNS do
   end
 
   def build_alert_payload("timeslot_accepted_now" = type, data) do
+    %{"name" => name} = data
+
     alert = %{
-      "title" => dgettext("apns", "Твое приглашение на дэйт принято"),
+      "title" => dgettext("apns", "Твое приглашение на дэйт c %{name} принято", name: name),
       "body" => dgettext("apns", "Заходи и звони сейчас 👉")
     }
 
@@ -141,8 +143,10 @@ defmodule T.PushNotifications.APNS do
   end
 
   def build_alert_payload("timeslot_cancelled" = type, data) do
+    %{"name" => name} = data
+
     alert = %{
-      "title" => dgettext("apns", "Твой дэйт отменён"),
+      "title" => dgettext("apns", "Твой дэйт с %{name} отменён", name: name),
       "body" => dgettext("apns", "Попробуй предложить другое время 👉")
     }
 
@@ -150,8 +154,10 @@ defmodule T.PushNotifications.APNS do
   end
 
   def build_alert_payload("timeslot_reminder" = type, data) do
+    %{"name" => name} = data
+
     alert = %{
-      "title" => dgettext("apns", "Аудио-дэйт совсем скоро"),
+      "title" => dgettext("apns", "Аудио-дэйт с %{name} совсем скоро", name: name),
       "body" => dgettext("apns", "Приготовься, у тебя 15 минут 👋")
     }
 
@@ -159,8 +165,10 @@ defmodule T.PushNotifications.APNS do
   end
 
   def build_alert_payload("timeslot_started" = type, data) do
+    %{"name" => name} = data
+
     alert = %{
-      "title" => dgettext("apns", "Аудио-дэйт начинается"),
+      "title" => dgettext("apns", "Аудио-дэйт с %{name} начинается", name: name),
       "body" => dgettext("apns", "Скорее заходи и звони 🖤")
     }
 

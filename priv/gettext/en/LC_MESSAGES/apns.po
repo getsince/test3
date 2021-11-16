@@ -12,14 +12,14 @@ msgstr ""
 "Plural-Forms: nplurals=2\n"
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:146
-msgid "Аудио-дэйт начинается"
-msgstr "Audio date is about to start"
+#: lib/t/push_notifications/apns.ex:171
+msgid "Аудио-дэйт с %{name} начинается"
+msgstr "Audio date with %{name} is about to start"
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:137
-msgid "Аудио-дэйт совсем скоро"
-msgstr "Audio date coming soon"
+#: lib/t/push_notifications/apns.ex:160
+msgid "Аудио-дэйт с %{name} совсем скоро"
+msgstr "Audio date with %{name} coming soon"
 
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:111
@@ -52,14 +52,14 @@ msgid "Скорее заходи!"
 msgstr "Come look!"
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:110 lib/t/push_notifications/apns.ex:126
+#: lib/t/push_notifications/apns.ex:118 lib/t/push_notifications/apns.ex:127
 msgid "Твое приглашение на дэйт c %{name} принято"
-msgstr "Your invitation has been accepted"
+msgstr "Your invitation has been accepted by %{name}"
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:128
-msgid "Твой дэйт отменён"
-msgstr "Your date has been cancelled"
+#: lib/t/push_notifications/apns.ex:149
+msgid "Твой дэйт с %{name} отменён"
+msgstr "Your date with %{name} has been cancelled"
 
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:114

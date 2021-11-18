@@ -110,7 +110,7 @@ defmodule T.PushNotifications.APNS do
 
     alert = %{
       "title" =>
-        dgettext("apns", "%{name} пригласил%{gender_a} тебя на свидание!",
+        dgettext("apns", "%{name} пригласил%{gender_a} тебя на дэйт!",
           name: name,
           gender_a: gender_a
         ),

@@ -190,6 +190,7 @@ defmodule T.PushNotifications.DispatchJob do
   defp profile_info(user_id) do
     Accounts.Profile
     |> where(user_id: ^user_id)
+    |> select([p], {p.name, p.gender})
     |> Repo.one()
   end
 

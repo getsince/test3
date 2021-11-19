@@ -145,12 +145,10 @@ defmodule T.PushNotifications.DispatchJob do
     :ok
   end
 
-  defp handle_type("session_expired" = type, args) do
+  defp handle_type("complete_onboarding" = type, args) do
     %{"user_id" => user_id} = args
 
-    user_id
-    |> Accounts.list_apns_devices()
-    |> schedule_apns(type, _data = %{})
+    user_id |> Accounts.list_apns_devices() |> schedule_apns(type, args)
 
     :ok
   end

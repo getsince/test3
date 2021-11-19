@@ -15,6 +15,9 @@ defmodule TWeb.ProfileLive.Index do
             <button phx-click="block" phx-value-user-id={profile.user_id} class="bg-red-200 dark:bg-red-500 px-2 rounded border border-red-500 dark:border-red-700 font-semibold hover:bg-red-300 dark:hover:bg-red-600 transition" data-confirm={"Are you sure you want to block #{profile.name}?"}>Block</button>
           <% end %>
         </div>
+        <div class="flex space-x-2 items-center">
+          <p class="text-gray-500 dark:text-gray-400 font-normal"><%= profile.user.email %></p>
+        </div>
         <div class="mt-2 flex space-x-2 items-start overflow-y-auto">
           <div class="mt-1 text-sm text-gray-500">
             <p class="text-gray-500 dark:text-gray-400 font-semibold tracking-wider">Stats</p>

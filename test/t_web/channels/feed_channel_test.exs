@@ -216,8 +216,8 @@ defmodule TWeb.FeedChannelTest do
       assert reply == %{"cursor" => nil, "feed" => []}
     end
 
-    test "with no active users", %{socket: socket} do
-      long_ago = DateTime.add(DateTime.utc_now(), -32 * 24 * 60 * 60)
+    test "with users who haven't been online for a while", %{socket: socket} do
+      long_ago = DateTime.add(DateTime.utc_now(), -62 * 24 * 60 * 60)
 
       for _ <- 1..3 do
         onboarded_user(
@@ -260,7 +260,8 @@ defmodule TWeb.FeedChannelTest do
           story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
           gender: "M",
           accept_genders: ["M"],
-          last_active: DateTime.add(now, -3)
+          last_active: DateTime.add(now, -3),
+          like_ratio: 0
         )
       ]
 

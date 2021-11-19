@@ -67,7 +67,6 @@ defmodule T.Matches do
       FeedProfile
       |> where(user_id: ^user_id)
       |> update(inc: [times_liked: 1])
-      |> update(inc: [times_shown: 1])
       |> update(
         set: [like_ratio: fragment("(times_liked::decimal + 1) / (times_shown::decimal + 1)")]
       )

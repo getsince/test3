@@ -15,7 +15,7 @@ defmodule T.Repo.Migrations.AddTimesShownAndLikeRatio do
     flush()
 
     T.Feeds.FeedProfile
-    |> update(set: [like_ratio: fragment("times_liked::decimal / (times_shown::decimal + 1)")])
+    |> update(set: [times_liked: 0])
     |> T.Repo.update_all([])
   end
 end

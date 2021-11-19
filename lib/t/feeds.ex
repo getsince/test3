@@ -215,7 +215,7 @@ defmodule T.Feeds do
   end
 
   defp feed_profiles_q(user_id, gender, gender_preference) do
-    treshold_date = DateTime.utc_now() |> DateTime.add(-30 * 24 * 60 * 60, :second)
+    treshold_date = DateTime.utc_now() |> DateTime.add(-60 * 24 * 60 * 60, :second)
 
     filtered_profiles_q(user_id, gender, gender_preference)
     |> where([p], p.user_id != ^user_id)
@@ -310,7 +310,9 @@ defmodule T.Feeds do
         FeedProfile
         |> where(user_id: ^user_id)
         |> update(inc: [times_shown: 1])
-        |> update(set: [like_ratio: fragment("times_liked / (times_shown + 1)")])
+        |> update(
+          set: [like_ratio: fragment("times_liked::decimal / (times_shown::decimal + 1)")]
+        )
         |> Repo.update_all([])
 
         result

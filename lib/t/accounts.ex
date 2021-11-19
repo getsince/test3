@@ -686,13 +686,10 @@ defmodule T.Accounts do
   end
 
   def push_users_to_complete_onboarding do
-    start_date = DateTime.add(DateTime.utc_now(), -24 * 60 * 60)
-    finish_date = DateTime.add(DateTime.utc_now(), -24 * 60 * 60 - 60)
-
     Profile
     |> where([p], is_nil(p.story))
-    |> where([p], p.last_active <= ^start_date)
-    |> where([p], p.last_active >= ^finish_date)
+    |> where([p], p.last_active <= fragment("now() - interval '1 day'"))
+    |> where([p], p.last_active >= fragment("now() - interval '1 day 1 minute'"))
     |> select([p], p.user_id)
     |> Repo.all()
     |> Enum.map(fn user_id ->

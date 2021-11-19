@@ -762,12 +762,9 @@ defmodule T.Matches do
   end
 
   def match_soon_to_expire_check() do
-    start_date = DateTime.add(DateTime.utc_now(), -46 * 60 * 60)
-    finish_date = DateTime.add(DateTime.utc_now(), -46 * 60 * 60 - 60)
-
     expiring_matches_q()
-    |> where([m, e, c], e.timestamp <= ^start_date)
-    |> where([m, e, c], e.timestamp > ^finish_date)
+    |> where([m, e, c], e.timestamp <= fragment("now() - interval '46 hours'"))
+    |> where([m, e, c], e.timestamp > fragment("now() - interval '46 hours 1 minute'"))
     |> select([m, e, c], m.id)
     |> T.Repo.all()
     |> Enum.map(fn match_id ->

@@ -3,20 +3,12 @@ defmodule TWeb.FeedView do
   alias TWeb.{ViewHelpers, CallView}
   alias T.Feeds.{FeedProfile}
 
-  def render("feed_profile.json", %{profile: profile, screen_width: screen_width}) do
-    render_profile(profile, [:user_id, :name, :gender, :story], screen_width)
+  def render("feed_item.json", %{profile: profile, screen_width: screen_width}) do
+    %{"profile" => render_profile(profile, [:user_id, :name, :gender, :story], screen_width)}
   end
 
-  def render("feed_item.json", %{
-        profile: profile,
-        screen_width: screen_width,
-        distance: distance
-      })
-      when not is_nil(distance) do
-    %{
-      "profile" => render_profile(profile, [:user_id, :name, :gender, :story], screen_width),
-      "distance" => distance
-    }
+  def render("feed_profile.json", %{profile: profile, screen_width: screen_width}) do
+    render_profile(profile, [:user_id, :name, :gender, :story], screen_width)
   end
 
   def render("missed_call.json", %{profile: profile, call: call, screen_width: screen_width}) do

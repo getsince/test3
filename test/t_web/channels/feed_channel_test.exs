@@ -79,8 +79,12 @@ defmodule TWeb.FeedChannelTest do
       assert reply == %{
                "likes" => [
                  %{
-                   "distance" => 9510,
-                   "profile" => %{name: "mate", story: [], user_id: mate.id, gender: "F"}
+                   "profile" => %{
+                     name: "mate",
+                     story: [],
+                     user_id: mate.id,
+                     gender: "F"
+                   }
                  }
                ],
                "match_expiration_duration" => @match_ttl
@@ -265,7 +269,6 @@ defmodule TWeb.FeedChannelTest do
 
       assert feed == [
                %{
-                 "distance" => 9510,
                  "profile" => %{
                    user_id: m1.id,
                    name: "mate-1",
@@ -283,7 +286,6 @@ defmodule TWeb.FeedChannelTest do
                  }
                },
                %{
-                 "distance" => 9510,
                  "profile" => %{
                    user_id: m2.id,
                    name: "mate-2",
@@ -311,7 +313,6 @@ defmodule TWeb.FeedChannelTest do
 
       assert feed == [
                %{
-                 "distance" => 9510,
                  "profile" => %{
                    user_id: m3.id,
                    name: "mate-3",
@@ -332,6 +333,173 @@ defmodule TWeb.FeedChannelTest do
 
       ref = push(socket, "more", %{"cursor" => cursor})
       assert_reply(ref, :ok, %{"cursor" => ^cursor, "feed" => []})
+    end
+
+    test "with age filter" do
+      me =
+        onboarded_user(
+          location: moscow_location(),
+          accept_genders: ["F"],
+          min_age: 20,
+          max_age: 40
+        )
+
+      socket = connected_socket(me)
+      assert {:ok, _reply, socket} = subscribe_and_join(socket, "feed:" <> me.id)
+
+      now = DateTime.utc_now()
+
+      [_m1, m2, _m3] = [
+        onboarded_user(
+          name: "mate-1",
+          location: apple_location(),
+          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
+          gender: "F",
+          accept_genders: ["M"],
+          birthdate: Date.add(now, -19 * 365)
+        ),
+        onboarded_user(
+          name: "mate-2",
+          location: apple_location(),
+          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
+          gender: "F",
+          accept_genders: ["M"],
+          birthdate: Date.add(now, -30 * 365)
+        ),
+        onboarded_user(
+          name: "mate-3",
+          location: apple_location(),
+          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
+          gender: "F",
+          accept_genders: ["M"],
+          birthdate: Date.add(now, -50 * 365)
+        )
+      ]
+
+      ref = push(socket, "more", %{"count" => 2})
+      assert_reply(ref, :ok, %{"feed" => feed})
+
+      assert feed == [
+               %{
+                 "profile" => %{
+                   user_id: m2.id,
+                   name: "mate-2",
+                   gender: "F",
+                   story: [
+                     %{
+                       "background" => %{
+                         "proxy" =>
+                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
+                         "s3_key" => "test"
+                       },
+                       "labels" => []
+                     }
+                   ]
+                 }
+               }
+             ]
+    end
+
+    test "with distance filter" do
+      me =
+        onboarded_user(
+          location: moscow_location(),
+          accept_genders: ["F"],
+          distance: 10
+        )
+
+      socket = connected_socket(me)
+      assert {:ok, _reply, socket} = subscribe_and_join(socket, "feed:" <> me.id)
+
+      [m1, m2] = [
+        onboarded_user(
+          name: "mate-1",
+          location: apple_location(),
+          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
+          gender: "F",
+          accept_genders: ["M"]
+        ),
+        onboarded_user(
+          name: "mate-2",
+          location: moscow_location(),
+          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
+          gender: "F",
+          accept_genders: ["M"]
+        )
+      ]
+
+      ref = push(socket, "more", %{"count" => 2})
+      assert_reply(ref, :ok, %{"feed" => feed})
+
+      assert feed == [
+               %{
+                 "profile" => %{
+                   user_id: m2.id,
+                   name: "mate-2",
+                   gender: "F",
+                   story: [
+                     %{
+                       "background" => %{
+                         "proxy" =>
+                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
+                         "s3_key" => "test"
+                       },
+                       "labels" => []
+                     }
+                   ]
+                 }
+               }
+             ]
+
+      me =
+        onboarded_user(
+          location: moscow_location(),
+          accept_genders: ["F"],
+          distance: 10000
+        )
+
+      socket = connected_socket(me)
+      assert {:ok, _reply, socket} = subscribe_and_join(socket, "feed:" <> me.id)
+
+      ref = push(socket, "more", %{"count" => 3})
+      assert_reply(ref, :ok, %{"feed" => feed})
+
+      assert feed == [
+               %{
+                 "profile" => %{
+                   user_id: m1.id,
+                   name: "mate-1",
+                   gender: "F",
+                   story: [
+                     %{
+                       "background" => %{
+                         "proxy" =>
+                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
+                         "s3_key" => "test"
+                       },
+                       "labels" => []
+                     }
+                   ]
+                 }
+               },
+               %{
+                 "profile" => %{
+                   user_id: m2.id,
+                   name: "mate-2",
+                   gender: "F",
+                   story: [
+                     %{
+                       "background" => %{
+                         "proxy" =>
+                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
+                         "s3_key" => "test"
+                       },
+                       "labels" => []
+                     }
+                   ]
+                 }
+               }
+             ]
     end
 
     test "previously returned profiles are not returned, feed can be reset", %{socket: socket} do
@@ -442,7 +610,6 @@ defmodule TWeb.FeedChannelTest do
       assert_push("invite", invite)
 
       assert invite == %{
-               "distance" => 5,
                "profile" => %{
                  gender: "M",
                  name: "mate",
@@ -1084,6 +1251,20 @@ defmodule TWeb.FeedChannelTest do
                report = Repo.get_by(Accounts.UserReport, from_user_id: me.id, on_user_id: mate.id)
 
       assert report.reason == "he don't believe in jesus"
+    end
+  end
+
+  describe "feed filter" do
+    setup :joined
+
+    test "is refetched when profile is updated", %{me: me, socket: socket} do
+      %{feed_filter: initial_filter} = socket.assigns
+      user_id = me.id
+      Accounts.subscribe_for_user(user_id)
+      profile = Accounts.get_profile!(user_id)
+      Accounts.update_profile(profile, %{"min_age" => 31})
+      new_filter = %T.Feeds.FeedFilter{initial_filter | min_age: 31}
+      assert_receive {Accounts, :feed_filter_updated, ^new_filter}
     end
   end
 

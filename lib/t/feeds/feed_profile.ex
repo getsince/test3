@@ -12,6 +12,7 @@ defmodule T.Feeds.FeedProfile do
     field :location, Geo.PostGIS.Geometry
     # F | M | N
     field :gender, :string
+    field :birthdate, :date
     field :times_liked, :integer
   end
 end

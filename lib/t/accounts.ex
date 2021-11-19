@@ -689,7 +689,7 @@ defmodule T.Accounts do
     Profile
     |> where([p], is_nil(p.story))
     |> where([p], p.last_active <= fragment("now() - interval '1 day'"))
-    |> where([p], p.last_active >= fragment("now() - interval '1 day 1 minute'"))
+    |> where([p], p.last_active > fragment("now() - interval '1 day 1 minute'"))
     |> select([p], p.user_id)
     |> Repo.all()
     |> Enum.map(fn user_id ->

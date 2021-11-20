@@ -33,9 +33,17 @@ defmodule T.PushNotifications.DispatchJob do
     if match = alive_match(match_id) do
       %Matches.Match{user_id_1: uid1, user_id_2: uid2} = match
 
-      data = %{"match_id" => match_id}
-      uid1 |> Accounts.list_apns_devices() |> schedule_apns("match_about_to_expire", data)
-      uid2 |> Accounts.list_apns_devices() |> schedule_apns("match_about_to_expire", data)
+      if profile1 = profile_info(uid1) do
+        {name1, _gender} = profile1
+        data1 = %{"match_id" => match_id, "name" => name1}
+        uid1 |> Accounts.list_apns_devices() |> schedule_apns("match_about_to_expire", data1)
+      end
+
+      if profile2 = profile_info(uid2) do
+        {name2, _gender} = profile2
+        data2 = %{"match_id" => match_id, "name" => name2}
+        uid2 |> Accounts.list_apns_devices() |> schedule_apns("match_about_to_expire", data2)
+      end
 
       :ok
     else
@@ -47,11 +55,15 @@ defmodule T.PushNotifications.DispatchJob do
     %{"match_id" => match_id, "receiver_id" => receiver_id} = args
 
     if alive_match(match_id) do
-      receiver_id
-      |> Accounts.list_apns_devices()
-      |> schedule_apns(type, %{"match_id" => match_id})
+      if profile = profile_info(receiver_id) do
+        {name, gender} = profile
 
-      :ok
+        receiver_id
+        |> Accounts.list_apns_devices()
+        |> schedule_apns(type, %{"match_id" => match_id, "name" => name, "gender" => gender})
+
+        :ok
+      end
     else
       :discard
     end
@@ -91,9 +103,17 @@ defmodule T.PushNotifications.DispatchJob do
           Matches.schedule_timeslot_ended(match, timeslot)
         end
 
-        data = %{"match_id" => match_id}
-        uid1 |> Accounts.list_apns_devices() |> schedule_apns(type, data)
-        uid2 |> Accounts.list_apns_devices() |> schedule_apns(type, data)
+        if profile1 = profile_info(uid1) do
+          {name1, _gender} = profile1
+          data1 = %{"match_id" => match_id, "name" => name1}
+          uid1 |> Accounts.list_apns_devices() |> schedule_apns(type, data1)
+        end
+
+        if profile2 = profile_info(uid2) do
+          {name2, _gender} = profile2
+          data2 = %{"match_id" => match_id, "name" => name2}
+          uid2 |> Accounts.list_apns_devices() |> schedule_apns(type, data2)
+        end
 
         :ok
       end
@@ -113,9 +133,17 @@ defmodule T.PushNotifications.DispatchJob do
       unless timeslot do
         %Matches.Match{user_id_1: uid1, user_id_2: uid2} = match
 
-        data = %{"match_id" => match_id}
-        uid1 |> Accounts.list_apns_devices() |> schedule_apns(type, data)
-        uid2 |> Accounts.list_apns_devices() |> schedule_apns(type, data)
+        if profile1 = profile_info(uid1) do
+          {name1, _gender} = profile1
+          data1 = %{"match_id" => match_id, "name" => name1}
+          uid1 |> Accounts.list_apns_devices() |> schedule_apns(type, data1)
+        end
+
+        if profile2 = profile_info(uid2) do
+          {name2, _gender} = profile2
+          data2 = %{"match_id" => match_id, "name" => name2}
+          uid2 |> Accounts.list_apns_devices() |> schedule_apns(type, data2)
+        end
 
         :ok
       end
@@ -135,12 +163,16 @@ defmodule T.PushNotifications.DispatchJob do
   defp handle_type("invite" = type, args) do
     %{"by_user_id" => by_user_id, "user_id" => user_id} = args
 
-    data = %{
-      "user_id" => by_user_id,
-      "name" => profile_name(by_user_id)
-    }
+    if profile = profile_info(by_user_id) do
+      {name, _gender} = profile
 
-    user_id |> Accounts.list_apns_devices() |> schedule_apns(type, data)
+      data = %{
+        "user_id" => by_user_id,
+        "name" => name
+      }
+
+      user_id |> Accounts.list_apns_devices() |> schedule_apns(type, data)
+    end
 
     :ok
   end
@@ -153,10 +185,10 @@ defmodule T.PushNotifications.DispatchJob do
     :ok
   end
 
-  defp profile_name(user_id) do
+  defp profile_info(user_id) do
     Accounts.Profile
     |> where(user_id: ^user_id)
-    |> select([p], p.name)
+    |> select([p], {p.name, p.gender})
     |> Repo.one()
   end
 

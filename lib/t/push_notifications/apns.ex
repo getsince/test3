@@ -77,9 +77,11 @@ defmodule T.PushNotifications.APNS do
     base_alert_payload(type, alert)
   end
 
-  def build_alert_payload("match_about_to_expire" = type, _data) do
+  def build_alert_payload("match_about_to_expire" = type, data) do
+    %{"name" => name} = data
+
     alert = %{
-      "title" => dgettext("apns", "Your match is about to expire 😢"),
+      "title" => dgettext("apns", "Your match with %{name} is about to expire 😢", name: name),
       "body" => dgettext("apns", "Invite your match to a date if you want to keep it alive ✨")
     }
 
@@ -93,8 +95,21 @@ defmodule T.PushNotifications.APNS do
   end
 
   def build_alert_payload("timeslot_offer" = type, data) do
+    %{"name" => name, "gender" => gender} = data
+
+    gender_a =
+      if(gender == "F") do
+        "a"
+      else
+        ""
+      end
+
     alert = %{
-      "title" => dgettext("apns", "Тебя пригласили на свидание!"),
+      "title" =>
+        dgettext("apns", "%{name} пригласил%{gender_a} тебя на дэйт!",
+          name: name,
+          gender_a: gender_a
+        ),
       "body" => dgettext("apns", "Заходи, чтобы ответить на приглашение 👀")
     }
 
@@ -102,8 +117,10 @@ defmodule T.PushNotifications.APNS do
   end
 
   def build_alert_payload("timeslot_accepted" = type, data) do
+    %{"name" => name} = data
+
     alert = %{
-      "title" => dgettext("apns", "Твое приглашение на дэйт принято"),
+      "title" => dgettext("apns", "Твое приглашение на дэйт c %{name} принято", name: name),
       "body" => dgettext("apns", "Добавь аудио-дэйт в календарь, чтобы не пропустить 🙌")
     }
 
@@ -111,8 +128,10 @@ defmodule T.PushNotifications.APNS do
   end
 
   def build_alert_payload("timeslot_accepted_now" = type, data) do
+    %{"name" => name} = data
+
     alert = %{
-      "title" => dgettext("apns", "Твое приглашение на дэйт принято"),
+      "title" => dgettext("apns", "Твое приглашение на дэйт c %{name} принято", name: name),
       "body" => dgettext("apns", "Заходи и звони сейчас 👉")
     }
 
@@ -120,8 +139,10 @@ defmodule T.PushNotifications.APNS do
   end
 
   def build_alert_payload("timeslot_cancelled" = type, data) do
+    %{"name" => name} = data
+
     alert = %{
-      "title" => dgettext("apns", "Твой дэйт отменён"),
+      "title" => dgettext("apns", "Твой дэйт с %{name} отменён", name: name),
       "body" => dgettext("apns", "Попробуй предложить другое время 👉")
     }
 
@@ -129,8 +150,10 @@ defmodule T.PushNotifications.APNS do
   end
 
   def build_alert_payload("timeslot_reminder" = type, data) do
+    %{"name" => name} = data
+
     alert = %{
-      "title" => dgettext("apns", "Аудио-дэйт совсем скоро"),
+      "title" => dgettext("apns", "Аудио-дэйт с %{name} совсем скоро", name: name),
       "body" => dgettext("apns", "Приготовься, у тебя 15 минут 👋")
     }
 
@@ -138,8 +161,10 @@ defmodule T.PushNotifications.APNS do
   end
 
   def build_alert_payload("timeslot_started" = type, data) do
+    %{"name" => name} = data
+
     alert = %{
-      "title" => dgettext("apns", "Аудио-дэйт начинается"),
+      "title" => dgettext("apns", "Аудио-дэйт с %{name} начинается", name: name),
       "body" => dgettext("apns", "Скорее заходи и звони 🖤")
     }
 

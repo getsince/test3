@@ -42,6 +42,21 @@ msgid "Скорее заходи!"
 msgstr "Come look!"
 
 #, elixir-format
+#: lib/t/push_notifications/apns.ex:110 lib/t/push_notifications/apns.ex:119
+msgid "Твое приглашение на дэйт принято"
+msgstr "Your invitation has been accepted"
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:128
+msgid "Твой дэйт отменён"
+msgstr "Your date has been cancelled"
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:101
+msgid "Тебя пригласили на свидание!"
+msgstr "You've been asked out on a date!"
+
+#, elixir-format
 #: lib/t/push_notifications/apns.ex:73
 msgid "Это новый мэтч!"
 msgstr "That's a match!"
@@ -52,12 +67,7 @@ msgid "%{name} invited you to connect"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:98
-msgid "Твоя сессия завершена"
-msgstr "Your session has expired"
-
-#, elixir-format
-#: lib/t/push_notifications/apns.ex:85
+#: lib/t/push_notifications/apns.ex:83
 msgid "Invite your match to a date if you want to keep it alive ✨"
 msgstr ""
 
@@ -95,3 +105,13 @@ msgstr "Your invitation has been accepted by %{name}"
 #: lib/t/push_notifications/apns.ex:149
 msgid "Твой дэйт с %{name} отменён"
 msgstr "Your date with %{name} has been cancelled"
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:151
+msgid "Hey, create your own cool profile ✨"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:152
+msgid "Meet interesting people ✌️"
+msgstr ""

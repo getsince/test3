@@ -3,7 +3,7 @@ defmodule T.FeedsTest do
   use Oban.Testing, repo: T.Repo
 
   alias T.Feeds
-  alias T.Feeds.{FeedFilter}
+  alias T.Feeds.{FeedProfile, FeedFilter, SeenProfile}
 
   describe "fetch_feed/3" do
     setup do
@@ -87,6 +87,46 @@ defmodule T.FeedsTest do
                  _count = 10,
                  _cursor = nil
                )
+    end
+  end
+
+  describe "mark_profile_seen/2" do
+    setup do
+      me = onboarded_user(location: moscow_location())
+      {:ok, me: me}
+    end
+
+    test "with unseen profile", %{me: me} do
+      mate = onboarded_user()
+
+      Feeds.mark_profile_seen(mate.id, by: me.id)
+
+      mate_id = mate.id
+      me_id = me.id
+
+      assert [%{user_id: ^mate_id, by_user_id: ^me_id}] = SeenProfile |> Repo.all()
+
+      assert FeedProfile
+             |> where(user_id: ^mate_id)
+             |> select([p], {p.times_shown, p.like_ratio})
+             |> Repo.one!() ==
+               {1, 0.0}
+    end
+
+    test "with seen profile", %{me: me} do
+      mate = onboarded_user()
+
+      Repo.insert(%SeenProfile{user_id: mate.id, by_user_id: me.id})
+
+      Feeds.mark_profile_seen(mate.id, by: me.id)
+
+      mate_id = mate.id
+
+      assert FeedProfile
+             |> where(user_id: ^mate_id)
+             |> select([p], {p.times_shown, p.like_ratio})
+             |> Repo.one!() ==
+               {0, 0.0}
     end
   end
 end

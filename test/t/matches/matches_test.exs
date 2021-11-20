@@ -4,7 +4,7 @@ defmodule T.MatchesTest do
 
   import Assertions
 
-  alias T.{Matches, Feeds.FeedProfile, PushNotifications.DispatchJob}
+  alias T.{Matches, Feeds, Feeds.FeedProfile, PushNotifications.DispatchJob}
   alias Matches.{Match, Like}
 
   describe "unmatch" do
@@ -66,6 +66,43 @@ defmodule T.MatchesTest do
       actual = Enum.map(all_enqueued(worker: DispatchJob), fn job -> job.args end)
 
       assert_lists_equal(expected, actual)
+    end
+  end
+
+  describe "like/2" do
+    test "bump like count, like ratio" do
+      [%{user_id: liked}, %{user_id: liker1}, %{user_id: liker2}, %{user_id: liker3}] =
+        insert_list(4, :profile, hidden?: false)
+
+      Matches.like_user(liker1, liked)
+
+      assert FeedProfile
+             |> where(user_id: ^liked)
+             |> select([p], {p.times_liked, p.like_ratio})
+             |> Repo.one!() == {1, 1.0}
+
+      Feeds.mark_profile_seen(liked, by: liker1)
+
+      Feeds.mark_profile_seen(liked, by: liker2)
+
+      assert FeedProfile
+             |> where(user_id: ^liked)
+             |> select([p], {p.times_liked, p.like_ratio})
+             |> Repo.one!() == {1, 0.5}
+
+      Matches.like_user(liker3, liked)
+
+      assert FeedProfile
+             |> where(user_id: ^liked)
+             |> select([p], {p.times_liked, p.like_ratio})
+             |> Repo.one!() == {2, 0.6666666666666666}
+
+      Feeds.mark_profile_seen(liked, by: liker2)
+
+      assert FeedProfile
+             |> where(user_id: ^liked)
+             |> select([p], {p.times_liked, p.like_ratio})
+             |> Repo.one!() == {2, 0.6666666666666666}
     end
   end
 

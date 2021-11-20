@@ -51,8 +51,8 @@ msgid "%{name} invited you to connect"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:98
-msgid "Твоя сессия завершена"
+#: lib/t/push_notifications/apns.ex:101
+msgid "Тебя пригласили на свидание!"
 msgstr ""
 
 #, elixir-format
@@ -93,4 +93,14 @@ msgstr ""
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:149
 msgid "Твой дэйт с %{name} отменён"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:151
+msgid "Hey, create your own cool profile ✨"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:152
+msgid "Meet interesting people ✌️"
 msgstr ""

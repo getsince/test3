@@ -60,9 +60,15 @@ defmodule T.Matches do
   end
 
   defp bump_likes_count(multi, user_id) do
-    query = FeedProfile |> where(user_id: ^user_id)
+    query =
+      FeedProfile
+      |> where(user_id: ^user_id)
+      |> update(inc: [times_liked: 1])
+      |> update(
+        set: [like_ratio: fragment("(times_liked::decimal + 1) / (times_shown::decimal + 1)")]
+      )
 
-    Multi.update_all(multi, :bump_likes_count, query, inc: [times_liked: 1])
+    Multi.update_all(multi, :bump_likes_count, query, [])
   end
 
   defp maybe_notify_match(%Match{id: match_id}, by_user_id, user_id) do
@@ -759,12 +765,9 @@ defmodule T.Matches do
   end
 
   def match_soon_to_expire_check() do
-    start_date = DateTime.add(DateTime.utc_now(), -46 * 60 * 60)
-    finish_date = DateTime.add(DateTime.utc_now(), -46 * 60 * 60 - 60)
-
     expiring_matches_q()
-    |> where([m, e, c], e.timestamp <= ^start_date)
-    |> where([m, e, c], e.timestamp > ^finish_date)
+    |> where([m, e, c], e.timestamp <= fragment("now() - interval '46 hours'"))
+    |> where([m, e, c], e.timestamp > fragment("now() - interval '46 hours 1 minute'"))
     |> select([m, e, c], m.id)
     |> T.Repo.all()
     |> Enum.map(fn match_id ->

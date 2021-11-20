@@ -14,5 +14,7 @@ defmodule T.Feeds.FeedProfile do
     field :gender, :string
     field :birthdate, :date
     field :times_liked, :integer
+    field :times_shown, :integer
+    field :like_ratio, :float
   end
 end

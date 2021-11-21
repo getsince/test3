@@ -67,7 +67,7 @@ msgstr ""
 
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:84
-msgid "Your match with %{name} is about to expire 😢"
+msgid "Match with %{name} is about to expire"
 msgstr ""
 
 #, elixir-format
@@ -82,7 +82,7 @@ msgstr ""
 
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:123 lib/t/push_notifications/apns.ex:134
-msgid "Твое приглашение на дэйт c %{name} принято"
+msgid "Приглашение на дэйт c %{name} принято"
 msgstr ""
 
 #, elixir-format

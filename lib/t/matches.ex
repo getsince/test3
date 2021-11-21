@@ -550,6 +550,7 @@ defmodule T.Matches do
             "type" => "timeslot_accepted_now",
             "match_id" => match_id,
             "receiver_id" => mate,
+            "picker_id" => picker,
             "slot" => slot
           })
       else
@@ -557,7 +558,8 @@ defmodule T.Matches do
           DispatchJob.new(%{
             "type" => "timeslot_accepted",
             "match_id" => match_id,
-            "receiver_id" => mate
+            "receiver_id" => mate,
+            "picker_id" => picker
           })
 
         reminder_push =

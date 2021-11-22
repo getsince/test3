@@ -64,7 +64,7 @@ msgstr "Come in and call now 👉"
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:109
 msgid "%{name} пригласил%{gender_a} тебя на дэйт!"
-msgstr "You've been asked out on a date by %{name}!"
+msgstr "%{name} invites you on a date!"
 
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:84

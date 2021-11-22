@@ -463,7 +463,8 @@ defmodule T.Matches do
       DispatchJob.new(%{
         "type" => "timeslot_offer",
         "match_id" => match_id,
-        "receiver_id" => mate_id
+        "receiver_id" => mate_id,
+        "picker_id" => offerer_id
       })
 
     # conflict_opts = [

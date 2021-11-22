@@ -16,6 +16,9 @@ defmodule TWeb.ProfileLive.Index do
           <% end %>
         </div>
         <div class="flex space-x-2 items-center">
+          <p class="text-gray-500 dark:text-gray-400 font-normal"><%= profile.user_id %></p>
+        </div>
+        <div class="flex space-x-2 items-center">
           <p class="text-gray-500 dark:text-gray-400 font-normal"><%= profile.user.email %></p>
         </div>
         <div class="mt-2 flex space-x-2 items-start overflow-y-auto">
@@ -100,8 +103,18 @@ defmodule TWeb.ProfileLive.Index do
   defp labels(%{"labels" => labels}) do
     labels
     |> Enum.map(fn
-      %{"value" => value} -> value
-      _other -> nil
+      %{"value" => value} ->
+        value
+
+      %{"url" => url} ->
+        String.split(url, "/")
+        |> Enum.at(-1)
+        |> String.split("?")
+        |> Enum.at(0)
+        |> URI.decode()
+
+      _other ->
+        nil
     end)
     |> Enum.reject(&is_nil/1)
   end

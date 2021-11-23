@@ -81,7 +81,7 @@ defmodule T.PushNotifications.APNS do
     %{"name" => name} = data
 
     alert = %{
-      "title" => dgettext("apns", "Your match with %{name} is about to expire 😢", name: name),
+      "title" => dgettext("apns", "Match with %{name} is about to expire", name: name),
       "body" => dgettext("apns", "Invite your match to a date if you want to keep it alive ✨")
     }
 
@@ -120,7 +120,7 @@ defmodule T.PushNotifications.APNS do
     %{"name" => name} = data
 
     alert = %{
-      "title" => dgettext("apns", "Твое приглашение на дэйт c %{name} принято", name: name),
+      "title" => dgettext("apns", "Приглашение на дэйт c %{name} принято", name: name),
       "body" => dgettext("apns", "Добавь аудио-дэйт в календарь, чтобы не пропустить 🙌")
     }
 
@@ -131,7 +131,7 @@ defmodule T.PushNotifications.APNS do
     %{"name" => name} = data
 
     alert = %{
-      "title" => dgettext("apns", "Твое приглашение на дэйт c %{name} принято", name: name),
+      "title" => dgettext("apns", "Приглашение на дэйт c %{name} принято", name: name),
       "body" => dgettext("apns", "Заходи и звони сейчас 👉")
     }
 

@@ -34,15 +34,14 @@ defmodule T.PushNotifications.DispatchJob do
       %Matches.Match{user_id_1: uid1, user_id_2: uid2} = match
 
       if profile1 = profile_info(uid1) do
-        {name1, _gender} = profile1
-        data1 = %{"match_id" => match_id, "name" => name1}
-        uid1 |> Accounts.list_apns_devices() |> schedule_apns("match_about_to_expire", data1)
-      end
-
-      if profile2 = profile_info(uid2) do
-        {name2, _gender} = profile2
-        data2 = %{"match_id" => match_id, "name" => name2}
-        uid2 |> Accounts.list_apns_devices() |> schedule_apns("match_about_to_expire", data2)
+        if profile2 = profile_info(uid2) do
+          {name1, _gender} = profile1
+          {name2, _gender} = profile2
+          data1 = %{"match_id" => match_id, "name" => name2}
+          data2 = %{"match_id" => match_id, "name" => name1}
+          uid1 |> Accounts.list_apns_devices() |> schedule_apns("match_about_to_expire", data1)
+          uid2 |> Accounts.list_apns_devices() |> schedule_apns("match_about_to_expire", data2)
+        end
       end
 
       :ok
@@ -52,10 +51,10 @@ defmodule T.PushNotifications.DispatchJob do
   end
 
   defp handle_type(type, args) when type in ["timeslot_offer", "timeslot_accepted"] do
-    %{"match_id" => match_id, "receiver_id" => receiver_id} = args
+    %{"match_id" => match_id, "receiver_id" => receiver_id, "picker_id" => picker_id} = args
 
     if alive_match(match_id) do
-      if profile = profile_info(receiver_id) do
+      if profile = profile_info(picker_id) do
         {name, gender} = profile
 
         receiver_id
@@ -70,7 +69,12 @@ defmodule T.PushNotifications.DispatchJob do
   end
 
   defp handle_type("timeslot_accepted_now" = type, args) do
-    %{"match_id" => match_id, "receiver_id" => receiver_id, "slot" => slot} = args
+    %{
+      "match_id" => match_id,
+      "receiver_id" => receiver_id,
+      "picker_id" => picker_id,
+      "slot" => slot
+    } = args
 
     if match = alive_match(match_id) do
       timeslot =
@@ -79,9 +83,13 @@ defmodule T.PushNotifications.DispatchJob do
       if timeslot do
         Matches.schedule_timeslot_ended(match, timeslot)
 
-        receiver_id
-        |> Accounts.list_apns_devices()
-        |> schedule_apns(type, %{"match_id" => match_id})
+        if profile = profile_info(picker_id) do
+          {name, _gender} = profile
+
+          receiver_id
+          |> Accounts.list_apns_devices()
+          |> schedule_apns(type, %{"match_id" => match_id, "name" => name})
+        end
 
         :ok
       end
@@ -104,15 +112,14 @@ defmodule T.PushNotifications.DispatchJob do
         end
 
         if profile1 = profile_info(uid1) do
-          {name1, _gender} = profile1
-          data1 = %{"match_id" => match_id, "name" => name1}
-          uid1 |> Accounts.list_apns_devices() |> schedule_apns(type, data1)
-        end
-
-        if profile2 = profile_info(uid2) do
-          {name2, _gender} = profile2
-          data2 = %{"match_id" => match_id, "name" => name2}
-          uid2 |> Accounts.list_apns_devices() |> schedule_apns(type, data2)
+          if profile2 = profile_info(uid2) do
+            {name1, _gender} = profile1
+            {name2, _gender} = profile2
+            data1 = %{"match_id" => match_id, "name" => name2}
+            data2 = %{"match_id" => match_id, "name" => name1}
+            uid1 |> Accounts.list_apns_devices() |> schedule_apns(type, data1)
+            uid2 |> Accounts.list_apns_devices() |> schedule_apns(type, data2)
+          end
         end
 
         :ok
@@ -134,15 +141,14 @@ defmodule T.PushNotifications.DispatchJob do
         %Matches.Match{user_id_1: uid1, user_id_2: uid2} = match
 
         if profile1 = profile_info(uid1) do
-          {name1, _gender} = profile1
-          data1 = %{"match_id" => match_id, "name" => name1}
-          uid1 |> Accounts.list_apns_devices() |> schedule_apns(type, data1)
-        end
-
-        if profile2 = profile_info(uid2) do
-          {name2, _gender} = profile2
-          data2 = %{"match_id" => match_id, "name" => name2}
-          uid2 |> Accounts.list_apns_devices() |> schedule_apns(type, data2)
+          if profile2 = profile_info(uid2) do
+            {name1, _gender} = profile1
+            {name2, _gender} = profile2
+            data1 = %{"match_id" => match_id, "name" => name2}
+            data2 = %{"match_id" => match_id, "name" => name1}
+            uid1 |> Accounts.list_apns_devices() |> schedule_apns(type, data1)
+            uid2 |> Accounts.list_apns_devices() |> schedule_apns(type, data2)
+          end
         end
 
         :ok

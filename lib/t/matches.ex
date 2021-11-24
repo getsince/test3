@@ -640,7 +640,8 @@ defmodule T.Matches do
           "type" => "timeslot_cancelled",
           "match_id" => match_id,
           "receiver_id" => mate_id,
-          "canceller_id" => by_user_id
+          "canceller_id" => by_user_id,
+          "slot" => selected_slot
         })
 
       Oban.insert_all([push])

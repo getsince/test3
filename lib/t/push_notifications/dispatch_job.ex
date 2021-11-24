@@ -128,9 +128,9 @@ defmodule T.PushNotifications.DispatchJob do
   end
 
   defp handle_type("timeslot_cancelled" = type, args) do
-    %{"match_id" => match_id} = args
+    %{"match_id" => match_id, "receiver_id" => receiver_id, "canceller_id" => canceller_id} = args
 
-    if match = alive_match(match_id) do
+    if alive_match(match_id) do
       timeslot =
         Matches.Timeslot
         |> where(match_id: ^match_id)
@@ -138,17 +138,10 @@ defmodule T.PushNotifications.DispatchJob do
         |> Repo.one()
 
       unless timeslot do
-        %Matches.Match{user_id_1: uid1, user_id_2: uid2} = match
-
-        if profile1 = profile_info(uid1) do
-          if profile2 = profile_info(uid2) do
-            {name1, _gender} = profile1
-            {name2, _gender} = profile2
-            data1 = %{"match_id" => match_id, "name" => name2}
-            data2 = %{"match_id" => match_id, "name" => name1}
-            uid1 |> Accounts.list_apns_devices() |> schedule_apns(type, data1)
-            uid2 |> Accounts.list_apns_devices() |> schedule_apns(type, data2)
-          end
+        if canceller_info = profile_info(canceller_id) do
+          {name, _gender} = canceller_info
+          data = %{"match_id" => match_id, "name" => name}
+          receiver_id |> Accounts.list_apns_devices() |> schedule_apns(type, data)
         end
 
         :ok

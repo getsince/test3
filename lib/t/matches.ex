@@ -560,7 +560,8 @@ defmodule T.Matches do
             "type" => "timeslot_accepted",
             "match_id" => match_id,
             "receiver_id" => mate,
-            "picker_id" => picker
+            "picker_id" => picker,
+            "slot" => slot
           })
 
         reminder_push =
@@ -637,7 +638,9 @@ defmodule T.Matches do
       push =
         DispatchJob.new(%{
           "type" => "timeslot_cancelled",
-          "match_id" => match_id
+          "match_id" => match_id,
+          "receiver_id" => mate_id,
+          "canceller_id" => by_user_id
         })
 
       Oban.insert_all([push])

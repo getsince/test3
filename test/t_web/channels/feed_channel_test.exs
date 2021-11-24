@@ -418,14 +418,16 @@ defmodule TWeb.FeedChannelTest do
           location: apple_location(),
           story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
           gender: "F",
-          accept_genders: ["M"]
+          accept_genders: ["M"],
+          like_ratio: 1.0
         ),
         onboarded_user(
           name: "mate-2",
           location: moscow_location(),
           story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
           gender: "F",
-          accept_genders: ["M"]
+          accept_genders: ["M"],
+          like_ratio: 0.5
         )
       ]
 

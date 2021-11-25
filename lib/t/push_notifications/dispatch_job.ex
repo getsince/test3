@@ -80,9 +80,18 @@ defmodule T.PushNotifications.DispatchJob do
       if profile = profile_info(picker_id) do
         {name, gender} = profile
 
-        receiver_id
-        |> Accounts.list_apns_devices()
+        apns_devices = receiver_id |> Accounts.list_apns_devices()
+
+        apns_devices
         |> schedule_apns(type, %{
+          "match_id" => match_id,
+          "name" => name,
+          "gender" => gender,
+          "slot" => slot
+        })
+
+        apns_devices
+        |> schedule_background_apns(type, %{
           "match_id" => match_id,
           "name" => name,
           "gender" => gender,
@@ -115,10 +124,16 @@ defmodule T.PushNotifications.DispatchJob do
           {name, _gender} = profile
 
           apns_devices = receiver_id |> Accounts.list_apns_devices()
-          apns_devices |> schedule_apns(type, %{"match_id" => match_id, "name" => name, "slot" => slot})
 
           apns_devices
-          |> schedule_background_apns(type, %{"match_id" => match_id, "name" => name, "slot" => slot})
+          |> schedule_apns(type, %{"match_id" => match_id, "name" => name, "slot" => slot})
+
+          apns_devices
+          |> schedule_background_apns(type, %{
+            "match_id" => match_id,
+            "name" => name,
+            "slot" => slot
+          })
         end
 
         :ok
@@ -176,7 +191,11 @@ defmodule T.PushNotifications.DispatchJob do
         if canceller_info = profile_info(canceller_id) do
           {name, _gender} = canceller_info
           data = %{"match_id" => match_id, "name" => name, "slot" => slot}
-          receiver_id |> Accounts.list_apns_devices() |> schedule_apns(type, data)
+          apns_devices = receiver_id |> Accounts.list_apns_devices()
+          apns_devices |> schedule_apns(type, data)
+
+          apns_devices
+          |> schedule_background_apns(type, data)
         end
 
         :ok

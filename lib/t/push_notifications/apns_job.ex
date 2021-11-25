@@ -14,9 +14,13 @@ defmodule T.PushNotifications.APNSJob do
     priority = args["priority"]
 
     payload =
-      Gettext.with_locale(args["locale"] || "en", fn ->
-        T.PushNotifications.APNS.build_alert_payload(template, data)
-      end)
+      if push_type == "background" do
+        T.PushNotifications.APNS.background_notification_payload(template, data)
+      else
+        Gettext.with_locale(args["locale"] || "en", fn ->
+          T.PushNotifications.APNS.build_alert_payload(template, data)
+        end)
+      end
 
     env = T.PushNotifications.APNS.apns_env(args["env"])
 

@@ -182,7 +182,7 @@ defmodule T.PushNotifications.APNS do
 
   # backround notifications
 
-  def background_notification_payload(data) do
-    Map.merge(data, %{"aps" => %{"content-available" => 1}})
+  def background_notification_payload(type, data) do
+    Map.merge(data, %{"type" => type, "aps" => %{"content-available" => 1}})
   end
 end

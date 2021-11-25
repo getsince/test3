@@ -101,6 +101,7 @@ defmodule APNS do
 
   @spec maybe_add_expiration(String.t(), Finch.Request.headers()) :: Finch.Request.headers()
   defp maybe_add_expiration("alert", headers), do: headers
+  defp maybe_add_expiration("background", headers), do: headers
   defp maybe_add_expiration("voip", headers), do: [{"apns-expiration", "0"} | headers]
 
   @spec maybe_voip_topic(String.t(), String.t()) :: String.t()

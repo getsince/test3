@@ -86,9 +86,11 @@ defmodule T.PushNotifications.DispatchJob do
         if profile = profile_info(picker_id) do
           {name, _gender} = profile
 
-          receiver_id
-          |> Accounts.list_apns_devices()
-          |> schedule_apns(type, %{"match_id" => match_id, "name" => name})
+          apns_devices = receiver_id |> Accounts.list_apns_devices()
+          apns_devices |> schedule_apns(type, %{"match_id" => match_id, "name" => name})
+
+          apns_devices
+          |> schedule_background_apns(type, %{"match_id" => match_id, "name" => name})
         end
 
         :ok
@@ -210,6 +212,26 @@ defmodule T.PushNotifications.DispatchJob do
         "data" => data,
         "env" => env,
         "topic" => topic
+      })
+    end)
+    |> Oban.insert_all()
+  end
+
+  @spec schedule_background_apns([%Accounts.APNSDevice{}], String.t(), map) :: [Oban.Job.t()]
+  defp schedule_background_apns(apns_devices, template, data) do
+    apns_devices
+    |> Enum.map(fn device ->
+      %Accounts.APNSDevice{device_id: device_id, locale: locale, env: env, topic: topic} = device
+
+      PushNotifications.APNSJob.new(%{
+        "template" => template,
+        "device_id" => device_id,
+        "locale" => locale,
+        "data" => data,
+        "env" => env,
+        "topic" => topic,
+        "push_type" => "background",
+        "priority" => 5
       })
     end)
     |> Oban.insert_all()

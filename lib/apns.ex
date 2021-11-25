@@ -105,6 +105,7 @@ defmodule APNS do
 
   @spec maybe_voip_topic(String.t(), String.t()) :: String.t()
   defp maybe_voip_topic("alert", topic), do: topic
+  defp maybe_voip_topic("background", topic), do: topic
   defp maybe_voip_topic("voip", topic), do: topic <> ".voip"
 
   defp error_reason(%{"reason" => reason}) do

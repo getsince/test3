@@ -12,11 +12,6 @@ msgstr ""
 "Plural-Forms: nplurals=3\n"
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:124
-msgid "Добавь аудио-дэйт в календарь, чтобы не пропустить 🙌"
-msgstr ""
-
-#, elixir-format
 #: lib/t/push_notifications/apns.ex:113
 msgid "Заходи, чтобы ответить на приглашение 👀"
 msgstr ""
@@ -100,3 +95,8 @@ msgstr "Привет, создай свой классный профиль ✨"
 #: lib/t/push_notifications/apns.ex:177
 msgid "Meet interesting people ✌️"
 msgstr "Знакомься с интересными людьми ✌️"
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:124
+msgid "Аудио-дэйт уже в твоём календаре, не пропусти 👀"
+msgstr ""

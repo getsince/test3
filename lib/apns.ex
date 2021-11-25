@@ -8,16 +8,16 @@ defmodule APNS do
           device_id: String.t(),
           topic: String.t(),
           push_type: String.t(),
-          priority: Integer.t(),
+          priority: String.t(),
           env: env
         }
 
   @type response :: :ok | {:error, error_reason | Exception.t()}
 
   @doc "Builds a notification that can be sent to APNs"
-  @spec build_notification(String.t(), String.t(), map, env, String.t(), Integer.t()) ::
+  @spec build_notification(String.t(), String.t(), map, env, String.t(), String.t()) ::
           notification
-  def build_notification(device_id, topic, payload, env, push_type \\ "alert", priority \\ 10) do
+  def build_notification(device_id, topic, payload, env, push_type \\ "alert", priority \\ "10") do
     %{
       device_id: device_id,
       topic: topic,

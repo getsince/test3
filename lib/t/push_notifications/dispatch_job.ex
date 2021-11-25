@@ -265,7 +265,7 @@ defmodule T.PushNotifications.DispatchJob do
         "env" => env,
         "topic" => topic,
         "push_type" => "alert",
-        "priority" => 10
+        "priority" => "10"
       })
     end)
     |> Oban.insert_all()
@@ -285,7 +285,7 @@ defmodule T.PushNotifications.DispatchJob do
         "env" => env,
         "topic" => topic,
         "push_type" => "background",
-        "priority" => 5
+        "priority" => "5"
       })
     end)
     |> Oban.insert_all()

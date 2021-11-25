@@ -263,7 +263,9 @@ defmodule T.PushNotifications.DispatchJob do
         "locale" => locale,
         "data" => data,
         "env" => env,
-        "topic" => topic
+        "topic" => topic,
+        "push_type" => "alert",
+        "priority" => 10
       })
     end)
     |> Oban.insert_all()

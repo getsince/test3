@@ -50,7 +50,7 @@ defmodule T.PushNotifications.DispatchJob do
     end
   end
 
-  defp handle_type(type, args) when type in ["timeslot_offer", "timeslot_accepted"] do
+  defp handle_type("timeslot_offer" = type, args) do
     %{"match_id" => match_id, "receiver_id" => receiver_id, "picker_id" => picker_id} = args
 
     if alive_match(match_id) do
@@ -60,6 +60,34 @@ defmodule T.PushNotifications.DispatchJob do
         receiver_id
         |> Accounts.list_apns_devices()
         |> schedule_apns(type, %{"match_id" => match_id, "name" => name, "gender" => gender})
+
+        :ok
+      end
+    else
+      :discard
+    end
+  end
+
+  defp handle_type("timeslot_accepted" = type, args) do
+    %{
+      "match_id" => match_id,
+      "receiver_id" => receiver_id,
+      "picker_id" => picker_id,
+      "slot" => slot
+    } = args
+
+    if alive_match(match_id) do
+      if profile = profile_info(picker_id) do
+        {name, gender} = profile
+
+        receiver_id
+        |> Accounts.list_apns_devices()
+        |> schedule_apns(type, %{
+          "match_id" => match_id,
+          "name" => name,
+          "gender" => gender,
+          "slot" => slot
+        })
 
         :ok
       end
@@ -87,10 +115,10 @@ defmodule T.PushNotifications.DispatchJob do
           {name, _gender} = profile
 
           apns_devices = receiver_id |> Accounts.list_apns_devices()
-          apns_devices |> schedule_apns(type, %{"match_id" => match_id, "name" => name})
+          apns_devices |> schedule_apns(type, %{"match_id" => match_id, "name" => name, "slot" => slot})
 
           apns_devices
-          |> schedule_background_apns(type, %{"match_id" => match_id, "name" => name})
+          |> schedule_background_apns(type, %{"match_id" => match_id, "name" => name, "slot" => slot})
         end
 
         :ok
@@ -130,7 +158,12 @@ defmodule T.PushNotifications.DispatchJob do
   end
 
   defp handle_type("timeslot_cancelled" = type, args) do
-    %{"match_id" => match_id, "receiver_id" => receiver_id, "canceller_id" => canceller_id} = args
+    %{
+      "match_id" => match_id,
+      "receiver_id" => receiver_id,
+      "canceller_id" => canceller_id,
+      "slot" => slot
+    } = args
 
     if alive_match(match_id) do
       timeslot =
@@ -142,7 +175,7 @@ defmodule T.PushNotifications.DispatchJob do
       unless timeslot do
         if canceller_info = profile_info(canceller_id) do
           {name, _gender} = canceller_info
-          data = %{"match_id" => match_id, "name" => name}
+          data = %{"match_id" => match_id, "name" => name, "slot" => slot}
           receiver_id |> Accounts.list_apns_devices() |> schedule_apns(type, data)
         end
 

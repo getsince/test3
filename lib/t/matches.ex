@@ -547,7 +547,7 @@ defmodule T.Matches do
     {picker_name, _number_of_matches1} = user_info(picker)
     {mate_name, _umber_of_matches2} = user_info(mate)
 
-    seconds = DateTime.utc_now() |> DateTime.diff(slot)
+    seconds = slot |> DateTime.diff(DateTime.utc_now())
     hours = div(seconds, 3600)
     minutes = div(rem(seconds, 3600), 60)
 

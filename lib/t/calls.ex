@@ -176,38 +176,33 @@ defmodule T.Calls do
 
   @spec end_call(Ecto.UUID.t(), Ecto.UUID.t(), DateTime.t()) :: :ok
   def end_call(user_id, call_id, now \\ utc_now()) do
-    {1, maybe_call} =
+    {1, [call]} =
       Call
       |> where(id: ^call_id)
+      |> select([c], c)
       |> Repo.update_all(set: [ended_at: now, ended_by: user_id])
 
-    case maybe_call do
-      [call] ->
-        {user_status, second_user} =
-          if user_id == call.caller_id do
-            {"caller", call.called_id}
-          else
-            {"receiver", call.caller_id}
-          end
+    {user_status, second_user} =
+      if user_id == call.caller_id do
+        {"caller", call.called_id}
+      else
+        {"receiver", call.caller_id}
+      end
 
-        m =
-          if call.accepted_at do
-            seconds = call.ended_at |> DateTime.diff(call.accepted_at)
-            minutes = div(seconds, 60)
+    m =
+      if call.accepted_at do
+        seconds = call.ended_at |> DateTime.diff(call.accepted_at)
+        minutes = div(seconds, 60)
 
-            "call ends #{fetch_name(user_id)} (#{user_id}, #{user_status}) ended a call with #{fetch_name(second_user)} (#{second_user}), call lasted for #{minutes}m"
-          else
-            "user #{fetch_name(user_id)} (#{user_id}, #{user_status}) ended a call with #{fetch_name(second_user)} (#{second_user}), call didn't happen"
-          end
+        "call ends #{fetch_name(user_id)} (#{user_id}, #{user_status}) ended a call with #{fetch_name(second_user)} (#{second_user}), call lasted for #{minutes}m"
+      else
+        "user #{fetch_name(user_id)} (#{user_id}, #{user_status}) ended a call with #{fetch_name(second_user)} (#{second_user}), call didn't happen"
+      end
 
-        Logger.warn(m)
-        Bot.async_post_message(m)
+    Logger.warn(m)
+    Bot.async_post_message(m)
 
-        :ok
-
-      nil ->
-        :ok
-    end
+    :ok
   end
 
   @spec fetch_profile(Ecto.UUID.t()) :: %FeedProfile{}

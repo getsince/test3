@@ -80,7 +80,6 @@ defmodule T.Accounts do
     |> case do
       {:ok, %{user: user, profile: profile}} ->
         Logger.warn("new user #{user.apple_id}")
-        Bot.async_post_message("new user #{user.apple_id}")
         {:ok, %User{user | profile: profile}}
 
       {:error, :user, %Ecto.Changeset{} = changeset, _changes} ->
@@ -145,6 +144,15 @@ defmodule T.Accounts do
   def report_user(from_user_id, on_user_id, reason) do
     Logger.warn("user #{from_user_id} reported #{on_user_id} with reason #{reason}")
 
+    {reported_user_name, story} = name_and_story(on_user_id)
+    story_string = story_to_string(story)
+    {from_user_name, _story} = name_and_story(from_user_id)
+
+    m =
+      "user report from #{from_user_name} (#{from_user_id}) on #{reported_user_name} (#{on_user_id}), #{story_string}"
+
+    Bot.async_post_silent_message(m)
+
     report_changeset =
       %UserReport{from_user_id: from_user_id, on_user_id: on_user_id}
       |> cast(%{reason: reason}, [:reason])
@@ -179,6 +187,7 @@ defmodule T.Accounts do
           |> repo.update_all([])
 
           m = "blocking user #{reported_user_id} due to #reports >= 3"
+
           Logger.warn(m)
           Bot.async_post_silent_message(m)
 
@@ -230,15 +239,42 @@ defmodule T.Accounts do
     end)
   end
 
+  defp name_and_story(user_id) do
+    Profile
+    |> where(user_id: ^user_id)
+    |> select([p], {p.name, p.story})
+    |> Repo.one!()
+  end
+
+  defp story_to_string(story) do
+    if is_list(story) do
+      photo_urls =
+        Enum.map(story, fn p -> p["background"]["s3_key"] end)
+        |> Enum.filter(& &1)
+        |> Enum.each(fn k ->
+          "https://since-when-are-you-happy.s3.eu-north-1.amazonaws.com/" <> k <> " "
+        end)
+
+      labels =
+        Enum.map(story, fn p ->
+          Enum.map(p["labels"], fn l -> l["value"] end)
+          |> Enum.filter(& &1)
+          |> Enum.flat_map(fn l -> [l, ", "] end)
+        end)
+        |> Enum.filter(& &1)
+
+      "photos: #{photo_urls}, labels: #{labels}"
+    else
+      ""
+    end
+  end
+
   # TODO deactivate session
   def delete_user(user_id) do
-    delete_user_name =
-      Profile
-      |> where(user_id: ^user_id)
-      |> select([p], p.name)
-      |> Repo.one!()
+    {delete_user_name, story} = name_and_story(user_id)
+    story_string = story_to_string(story)
 
-    m = "deleted user #{user_id}, user name is #{delete_user_name}"
+    m = "deleted user #{delete_user_name} (#{user_id}), #{story_string}"
 
     Logger.warn(m)
     Bot.async_post_silent_message(m)
@@ -488,7 +524,12 @@ defmodule T.Accounts do
     |> case do
       {:ok, changes} ->
         %{user: user, profile: %Profile{} = profile, gender_preferences: genders} = changes
-        m = "user registered #{user.id}, user name is #{profile.name}"
+
+        time_spent =
+          DateTime.utc_now() |> DateTime.diff(DateTime.from_naive!(user.inserted_at, "Etc/UTC"))
+
+        m = "user #{profile.name} registered #{user.id}, registration took #{time_spent} seconds"
+
         Logger.warn(m)
         Bot.async_post_message(m)
         {:ok, %Profile{profile | gender_preference: genders, hidden?: false}}
@@ -518,7 +559,22 @@ defmodule T.Accounts do
     |> Repo.transaction()
     |> case do
       {:ok, changes} ->
-        %{profile: profile, gender_preferences: genders} = changes
+        %{profile: profile, gender_preferences: genders, maybe_unhide: maybe_unhide} = changes
+
+        if maybe_unhide do
+          name = profile.name
+          user_id = profile.user_id
+
+          first_photo_s3_key =
+            profile.story |> Enum.find_value(fn p -> p["background"]["s3_key"] end)
+
+          photo_url =
+            "https://since-when-are-you-happy.s3.eu-north-1.amazonaws.com/" <> first_photo_s3_key
+
+          m = "user #{name} (#{user_id}) onboarded with photo #{photo_url}"
+
+          Bot.async_post_message(m)
+        end
 
         broadcast_for_user(
           profile.user_id,

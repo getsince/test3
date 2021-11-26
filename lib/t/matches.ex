@@ -130,7 +130,12 @@ defmodule T.Matches do
     Multi.run(multi, :match, fn _repo, %{mutual: mutual} ->
       if mutual do
         [user_id_1, user_id_2] = Enum.sort(user_ids)
-        m = "New match: #{user_id_1} and #{user_id_2}"
+        {name1, number_of_matches1} = user_info(user_id_1)
+        {name2, number_of_matches2} = user_info(user_id_2)
+
+        m =
+          "new match: #{name1} (#{user_id_1}, #{number_of_matches1 + 1} matches) and #{name2} (#{user_id_2}, #{number_of_matches2 + 1})"
+
         Bot.async_post_message(m)
 
         Repo.insert(%Match{user_id_1: user_id_1, user_id_2: user_id_2})
@@ -138,6 +143,18 @@ defmodule T.Matches do
         {:ok, nil}
       end
     end)
+  end
+
+  defp user_info(user_id) do
+    name = FeedProfile |> where(user_id: ^user_id) |> select([p], p.name) |> Repo.one()
+
+    number_of_matches =
+      Match
+      |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
+      |> select([m], count(m.id))
+      |> Repo.one()
+
+    {name, number_of_matches}
   end
 
   defp maybe_create_match_event(multi) do
@@ -307,9 +324,17 @@ defmodule T.Matches do
     broadcast_from_for_user(by_user_id, {__MODULE__, :unmatched, match_id})
   end
 
-  @spec expire_match(uuid, uuid) :: boolean
-  def expire_match(user_id_1, user_id_2) do
-    m = "match between #{user_id_1} and #{user_id_2} expired"
+  @spec expire_match(uuid, uuid, uuid) :: boolean
+  def expire_match(match_id, user_id_1, user_id_2) do
+    {name1, number_of_matches1} = user_info(user_id_1)
+    {name2, number_of_matches2} = user_info(user_id_2)
+
+    number_of_events =
+      MatchEvent |> where(match_id: ^match_id) |> select([e], count(e.timestamp)) |> Repo.one!()
+
+    m =
+      "match between #{name1} (#{user_id_1}, #{number_of_matches1} matches) and #{name2} (#{user_id_2}, #{number_of_matches2}) expired. There were #{number_of_events - 1} events between them."
+
     Logger.warn(m)
     Bot.async_post_message(m)
 
@@ -445,12 +470,10 @@ defmodule T.Matches do
   @spec save_slots_offer(uuid, uuid, uuid, [iso_8601 :: String.t()], DateTime.t()) ::
           {:ok, %Timeslot{}, DateTime.t()} | {:error, %Ecto.Changeset{}}
   defp save_slots_offer(offerer_id, mate_id, match_id, slots, reference) do
-    Logger.warn(
+    m =
       "saving slots offer for match #{match_id} (users #{offerer_id}, #{mate_id}) from #{offerer_id}: #{inspect(slots)}"
-    )
 
-    m = "Saving slots offer for match: #{offerer_id} offered date  #{mate_id}"
-    Bot.async_post_message(m)
+    Logger.warn(m)
 
     changeset =
       timeslot_changeset(
@@ -519,12 +542,22 @@ defmodule T.Matches do
       "accepting slot for match #{match_id} (users #{picker}, #{mate}) by #{picker}: #{inspect(slot)}"
     )
 
-    m = "Accept slot for match: #{picker} with #{mate}"
+    {:ok, slot, 0} = DateTime.from_iso8601(slot)
+
+    {picker_name, _number_of_matches1} = user_info(picker)
+    {mate_name, _umber_of_matches2} = user_info(mate)
+
+    seconds = DateTime.utc_now() |> DateTime.diff(slot)
+    hours = div(seconds, 3600)
+    minutes = div(rem(seconds, 3600), 60)
+
+    m =
+      "accept slot #{picker_name} (#{picker}) with #{mate_name} (#{mate}) in #{hours}h #{minutes}m"
+
     Bot.async_post_message(m)
 
     insert_match_event(match_id, "slot_accept")
 
-    {:ok, slot, 0} = DateTime.from_iso8601(slot)
     true = DateTime.compare(slot, prev_slot(reference)) in [:eq, :gt]
 
     {1, [timeslot]} =
@@ -618,9 +651,6 @@ defmodule T.Matches do
       "cancelling timeslot for match #{match_id} (with mate #{mate_id}) by #{by_user_id}"
     )
 
-    m = "Cancelled timeslot: #{by_user_id} cancelled date with #{mate_id}"
-    Bot.async_post_message(m)
-
     insert_match_event(match_id, "slot_cancel")
 
     {1, [%Timeslot{selected_slot: selected_slot} = timeslot]} =
@@ -635,6 +665,18 @@ defmodule T.Matches do
     broadcast_for_user(mate_id, {__MODULE__, [:timeslot, :cancelled], timeslot, expiration_date})
 
     if selected_slot do
+      {canceller_name, _number_of_matches1} = user_info(by_user_id)
+      {cancelled_name, _umber_of_matches2} = user_info(mate_id)
+
+      seconds = DateTime.utc_now() |> DateTime.diff(selected_slot)
+      hours = div(seconds, 3600)
+      minutes = div(rem(seconds, 3600), 60)
+
+      m =
+        "cancelled slot #{canceller_name} (#{by_user_id}) cancelled slot with #{cancelled_name} (#{mate_id}) in #{hours}h #{minutes}m"
+
+      Bot.async_post_message(m)
+
       push =
         DispatchJob.new(%{
           "type" => "timeslot_cancelled",
@@ -764,10 +806,10 @@ defmodule T.Matches do
 
     expiring_matches_q()
     |> where([m, e, c], e.timestamp < ^expiration_date)
-    |> select([m, e, c], {m.user_id_1, m.user_id_2})
+    |> select([m, e, c], {m.id, m.user_id_1, m.user_id_2})
     |> T.Repo.all()
-    |> Enum.map(fn {user_id_1, user_id_2} ->
-      expire_match(user_id_1, user_id_2)
+    |> Enum.map(fn {match_id, user_id_1, user_id_2} ->
+      expire_match(match_id, user_id_1, user_id_2)
     end)
   end
 

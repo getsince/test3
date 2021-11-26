@@ -149,7 +149,7 @@ defmodule T.Accounts do
     {from_user_name, _story} = name_and_story(from_user_id)
 
     m =
-      "user report from #{from_user_name} (#{from_user_id}) on #{reported_user_name} (#{on_user_id}, #{story_string})"
+      "user report from #{from_user_name} (#{from_user_id}) on #{reported_user_name} (#{on_user_id}), #{story_string}"
 
     Bot.async_post_silent_message(m)
 

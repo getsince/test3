@@ -333,7 +333,7 @@ defmodule T.Matches do
       MatchEvent |> where(match_id: ^match_id) |> select([e], count(e.timestamp)) |> Repo.one!()
 
     m =
-      "match between #{name1} (#{user_id_1}, #{number_of_matches1} matches) and #{name2} (#{user_id_2}, #{number_of_matches2}) expired. There were #{number_of_events - 1} events between them."
+      "match between #{name1} (#{user_id_1}, #{number_of_matches1} matches) and #{name2} (#{user_id_2}, #{number_of_matches2}) expired, there were #{number_of_events - 1} events between them"
 
     Logger.warn(m)
     Bot.async_post_message(m)

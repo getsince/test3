@@ -217,6 +217,24 @@ defmodule T.PushNotifications.DispatchJob do
     :ok
   end
 
+  defp handle_type("contact_sent" = type, args) do
+    %{"match_id" => match_id, "receiver_id" => receiver_id, "sender_id" => sender_id} = args
+
+    if alive_match(match_id) do
+      if profile = profile_info(sender_id) do
+        {name, gender} = profile
+
+        receiver_id
+        |> Accounts.list_apns_devices()
+        |> schedule_apns(type, %{"match_id" => match_id, "name" => name, "gender" => gender})
+
+        :ok
+      end
+    else
+      :discard
+    end
+  end
+
   defp profile_info(user_id) do
     Accounts.Profile
     |> where(user_id: ^user_id)

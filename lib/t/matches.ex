@@ -7,7 +7,7 @@ defmodule T.Matches do
   require Logger
 
   alias T.Repo
-  alias T.Matches.{Match, Like, Timeslot, MatchEvent, ExpiredMatch}
+  alias T.Matches.{Match, Like, Timeslot, MatchEvent, ExpiredMatch, MatchContact}
   alias T.Feeds.FeedProfile
   alias T.Accounts.Profile
   alias T.PushNotifications.DispatchJob
@@ -219,6 +219,7 @@ defmodule T.Matches do
     |> Repo.all()
     |> preload_match_profiles(user_id)
     |> with_timeslots(user_id)
+    |> with_contacts(user_id)
   end
 
   @spec list_expired_matches(uuid) :: [%Match{}]
@@ -401,6 +402,17 @@ defmodule T.Matches do
 
     Enum.map(matches, fn match ->
       %Match{match | timeslot: slots[match.id]}
+    end)
+  end
+
+  defp with_contacts(matches, user_id) do
+    contacts =
+      user_id
+      |> list_relevant_contacts()
+      |> Map.new(fn %MatchContact{match_id: match_id} = contact -> {match_id, contact} end)
+
+    Enum.map(matches, fn match ->
+      %Match{match | contact: contacts[match.id]}
     end)
   end
 
@@ -692,6 +704,65 @@ defmodule T.Matches do
     :ok
   end
 
+  def save_contact_sent_for_match(match_id, by_user_id, contact) do
+    %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} =
+      get_match_for_user!(match_id, by_user_id)
+
+    [mate] = [uid1, uid2] -- [by_user_id]
+    save_contact_sent(by_user_id, mate, match_id, contact)
+  end
+
+  defp save_contact_sent(by_user_id, mate, match_id, contact) do
+    %{"contact_type" => contact_type, "value" => value} = contact
+
+    {by_user_name, _number_of_matches1} = user_info(by_user_id)
+    {mate_name, _umber_of_matches2} = user_info(mate)
+
+    m =
+      "contact sent from #{by_user_name} (#{by_user_id}) to #{mate_name} (#{mate}), #{contact_type}"
+
+    Logger.warn(m)
+    Bot.async_post_message(m)
+
+    changeset =
+      contact_changeset(
+        %MatchContact{match_id: match_id, by_user_id: by_user_id},
+        %{contact_type: contact_type, value: value}
+      )
+
+    push_job =
+      DispatchJob.new(%{
+        "type" => "contact_sent",
+        "match_id" => match_id,
+        "receiver_id" => mate,
+        "sender_id" => by_user_id
+      })
+
+    Multi.new()
+    |> Multi.insert(:match_contact, changeset)
+    |> Multi.insert(:match_event, %MatchEvent{
+      timestamp: DateTime.truncate(DateTime.utc_now(), :second),
+      match_id: match_id,
+      event: "contact_sent"
+    })
+    |> Oban.insert(:push, push_job)
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{match_contact: %MatchContact{} = match_contact}} ->
+        expiration_date = expiration_date(match_id)
+
+        broadcast_for_user(
+          mate,
+          {__MODULE__, [:contact, :sent], match_contact, expiration_date}
+        )
+
+        {:ok, match_contact, expiration_date}
+
+      {:error, :match_contact, %Ecto.Changeset{} = changeset, _changes} ->
+        {:error, changeset}
+    end
+  end
+
   defp get_match_id_for_users!(user_id_1, user_id_2) do
     Match
     |> where(user_id_1: ^user_id_1)
@@ -893,5 +964,23 @@ defmodule T.Matches do
       )
     )
     |> where([m, e, c], is_nil(c.timestamp))
+  end
+
+  # Contact Exchange
+
+  defp list_relevant_contacts(user_id) do
+    my_matches =
+      Match
+      |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
+
+    MatchContact
+    |> join(:inner, [c], m in subquery(my_matches), on: c.match_id == m.id)
+    |> Repo.all()
+  end
+
+  defp contact_changeset(contact, attrs) do
+    contact
+    |> cast(attrs, [:contact_type, :value])
+    |> validate_required([:contact_type, :value])
   end
 end

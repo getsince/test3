@@ -179,4 +179,27 @@ defmodule T.PushNotifications.APNS do
 
     base_alert_payload(type, alert)
   end
+
+  def build_alert_payload("contact_sent" = type, data) do
+    %{"name" => name, "gender" => gender} = data
+
+    gender_a =
+      if(gender == "F") do
+        "a"
+      else
+        ""
+      end
+
+    # TODO Lily
+    alert = %{
+      "title" =>
+        dgettext("apns", "%{name} отправил%{gender_a} тебя контакт!",
+          name: name,
+          gender_a: gender_a
+        ),
+      "body" => dgettext("apns", "Заходи, чтобы посмотреть 👀")
+    }
+
+    base_alert_payload(type, alert, data)
+  end
 end

@@ -1,7 +1,51 @@
 defmodule TWeb.MatchView do
   use TWeb, :view
   alias TWeb.FeedView
-  alias T.Matches.Timeslot
+  alias T.Matches.{Timeslot, MatchContact}
+
+  def render(
+        "match.json",
+        %{id: match_id, timeslot: %Timeslot{} = timeslot, contact: %MatchContact{} = contact} =
+          assigns
+      ) do
+    case expiration_date(match_id) do
+      nil ->
+        %{
+          "id" => match_id,
+          "profile" => render(FeedView, "feed_profile.json", assigns),
+          "timeslot" => render_timeslot(timeslot),
+          "contact" => render_contact(contact)
+        }
+
+      some ->
+        %{
+          "id" => match_id,
+          "profile" => render(FeedView, "feed_profile.json", assigns),
+          "timeslot" => render_timeslot(timeslot),
+          "contact" => render_contact(contact),
+          "expiration_date" => some
+        }
+    end
+  end
+
+  def render("match.json", %{id: match_id, contact: %MatchContact{} = contact} = assigns) do
+    case expiration_date(match_id) do
+      nil ->
+        %{
+          "id" => match_id,
+          "profile" => render(FeedView, "feed_profile.json", assigns),
+          "contact" => render_contact(contact)
+        }
+
+      some ->
+        %{
+          "id" => match_id,
+          "profile" => render(FeedView, "feed_profile.json", assigns),
+          "contact" => render_contact(contact),
+          "expiration_date" => some
+        }
+    end
+  end
 
   def render("match.json", %{id: match_id, timeslot: %Timeslot{} = timeslot} = assigns) do
     case expiration_date(match_id) do
@@ -46,6 +90,10 @@ defmodule TWeb.MatchView do
 
   defp render_timeslot(%Timeslot{picker_id: picker, slots: slots}) do
     %{"slots" => slots, "picker" => picker}
+  end
+
+  defp render_contact(%MatchContact{contact_type: contact_type, value: value}) do
+    %{"contact_type" => contact_type, "value" => value}
   end
 
   defp expiration_date(match_id) do

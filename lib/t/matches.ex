@@ -499,7 +499,7 @@ defmodule T.Matches do
         "type" => "timeslot_offer",
         "match_id" => match_id,
         "receiver_id" => mate_id,
-        "picker_id" => offerer_id
+        "offerer_id" => offerer_id
       })
 
     # conflict_opts = [
@@ -704,46 +704,48 @@ defmodule T.Matches do
     :ok
   end
 
-  def save_contact_sent_for_match(match_id, by_user_id, contact) do
+  def save_contact_offer_for_match(match_id, offerer, contact) do
     %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} =
-      get_match_for_user!(match_id, by_user_id)
+      get_match_for_user!(match_id, offerer)
 
-    [mate] = [uid1, uid2] -- [by_user_id]
-    save_contact_sent(by_user_id, mate, match_id, contact)
+    [mate] = [uid1, uid2] -- [offerer]
+    save_contact_offer(offerer, mate, match_id, contact)
   end
 
-  defp save_contact_sent(by_user_id, mate, match_id, contact) do
+  defp save_contact_offer(offerer, mate, match_id, contact) do
     %{"contact_type" => contact_type, "value" => value} = contact
 
-    {by_user_name, _number_of_matches1} = user_info(by_user_id)
+    {offerer_name, _number_of_matches1} = user_info(offerer)
     {mate_name, _umber_of_matches2} = user_info(mate)
 
     m =
-      "contact sent from #{by_user_name} (#{by_user_id}) to #{mate_name} (#{mate}), #{contact_type}"
+      "contact offer from #{offerer_name} (#{offerer}) to #{mate_name} (#{mate}), #{contact_type}"
 
     Logger.warn(m)
     Bot.async_post_message(m)
 
     changeset =
       contact_changeset(
-        %MatchContact{match_id: match_id, by_user_id: by_user_id},
+        %MatchContact{match_id: match_id, picker_id: mate},
         %{contact_type: contact_type, value: value}
       )
 
     push_job =
       DispatchJob.new(%{
-        "type" => "contact_sent",
+        "type" => "contact_offer",
         "match_id" => match_id,
         "receiver_id" => mate,
-        "sender_id" => by_user_id
+        "offerer_id" => offerer
       })
 
+    conflict_opts = [on_conflict: :replace_all, conflict_target: [:match_id]]
+
     Multi.new()
-    |> Multi.insert(:match_contact, changeset)
+    |> Multi.insert(:match_contact, changeset, conflict_opts)
     |> Multi.insert(:match_event, %MatchEvent{
       timestamp: DateTime.truncate(DateTime.utc_now(), :second),
       match_id: match_id,
-      event: "contact_sent"
+      event: "contact_offer"
     })
     |> Oban.insert(:push, push_job)
     |> Repo.transaction()
@@ -753,7 +755,7 @@ defmodule T.Matches do
 
         broadcast_for_user(
           mate,
-          {__MODULE__, [:contact, :sent], match_contact, expiration_date}
+          {__MODULE__, [:contact, :offered], match_contact, expiration_date}
         )
 
         {:ok, match_contact, expiration_date}
@@ -761,6 +763,37 @@ defmodule T.Matches do
       {:error, :match_contact, %Ecto.Changeset{} = changeset, _changes} ->
         {:error, changeset}
     end
+  end
+
+  @spec cancel_contact_for_match(uuid, uuid) :: {:ok, DateTime.t()}
+  def cancel_contact_for_match(by_user_id, match_id) do
+    %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} =
+      get_match_for_user!(match_id, by_user_id)
+
+    [mate] = [uid1, uid2] -- [by_user_id]
+    cancel_contact(by_user_id, match_id, mate)
+  end
+
+  @spec cancel_contact(uuid, uuid, uuid) :: {:ok, DateTime.t()}
+  defp cancel_contact(by_user_id, match_id, mate_id) do
+    m = "cancelling contact for match #{match_id} (with mate #{mate_id}) by #{by_user_id}"
+
+    Logger.warn(m)
+    Bot.async_post_message(m)
+
+    insert_match_event(match_id, "contact_cancel")
+
+    {1, [%MatchContact{} = contact]} =
+      MatchContact
+      |> where(match_id: ^match_id)
+      |> select([t], t)
+      |> Repo.delete_all()
+
+    expiration_date = expiration_date(match_id)
+
+    broadcast_for_user(mate_id, {__MODULE__, [:contact, :cancelled], contact, expiration_date})
+
+    {:ok, expiration_date}
   end
 
   defp get_match_id_for_users!(user_id_1, user_id_2) do

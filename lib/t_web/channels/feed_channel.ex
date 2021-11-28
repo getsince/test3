@@ -180,7 +180,15 @@ defmodule TWeb.FeedChannel do
     me = me_id(socket)
 
     {:ok, _match_contact, expiration_date} =
-      Matches.save_contact_sent_for_match(match_id, me, contact)
+      Matches.save_contact_offer_for_match(match_id, me, contact)
+
+    {:reply, {:ok, %{"expiration_date" => expiration_date}}, socket}
+  end
+
+  def handle_in("cancel-contact", %{"match_id" => match_id}, socket) do
+    me = me_id(socket)
+
+    {:ok, expiration_date} = Matches.cancel_contact_for_match(me, match_id)
 
     {:reply, {:ok, %{"expiration_date" => expiration_date}}, socket}
   end
@@ -285,13 +293,28 @@ defmodule TWeb.FeedChannel do
     {:noreply, assign(socket, :feed_filter, feed_filter)}
   end
 
-  def handle_info({Matches, [:contact, :sent], match_contact, expiration_date}, socket) do
-    %Matches.MatchContact{contact_type: contact_type, value: value, match_id: match_id} =
-      match_contact
+  def handle_info({Matches, [:contact, :offered], match_contact, expiration_date}, socket) do
+    %Matches.MatchContact{
+      contact_type: contact_type,
+      value: value,
+      match_id: match_id,
+      picker_id: picker_id
+    } = match_contact
 
-    push(socket, "contact_sent", %{
+    push(socket, "contact_offer", %{
       "match_id" => match_id,
-      "contact" => %{"contact_type" => contact_type, "value" => value},
+      "contact" => %{"contact_type" => contact_type, "value" => value, "picker" => picker_id},
+      "expiration_date" => expiration_date
+    })
+
+    {:noreply, socket}
+  end
+
+  def handle_info({Matches, [:contact, :cancelled], match_contact, expiration_date}, socket) do
+    %Matches.MatchContact{match_id: match_id} = match_contact
+
+    push(socket, "contact_cancelled", %{
+      "match_id" => match_id,
       "expiration_date" => expiration_date
     })
 

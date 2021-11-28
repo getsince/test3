@@ -51,10 +51,10 @@ defmodule T.PushNotifications.DispatchJob do
   end
 
   defp handle_type("timeslot_offer" = type, args) do
-    %{"match_id" => match_id, "receiver_id" => receiver_id, "picker_id" => picker_id} = args
+    %{"match_id" => match_id, "receiver_id" => receiver_id, "offerer_id" => offerer_id} = args
 
     if alive_match(match_id) do
-      if profile = profile_info(picker_id) do
+      if profile = profile_info(offerer_id) do
         {name, gender} = profile
 
         receiver_id
@@ -217,11 +217,11 @@ defmodule T.PushNotifications.DispatchJob do
     :ok
   end
 
-  defp handle_type("contact_sent" = type, args) do
-    %{"match_id" => match_id, "receiver_id" => receiver_id, "sender_id" => sender_id} = args
+  defp handle_type("contact_offer" = type, args) do
+    %{"match_id" => match_id, "receiver_id" => receiver_id, "offerer_id" => offerer_id} = args
 
     if alive_match(match_id) do
-      if profile = profile_info(sender_id) do
+      if profile = profile_info(offerer_id) do
         {name, gender} = profile
 
         receiver_id

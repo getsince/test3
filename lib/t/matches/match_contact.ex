@@ -7,7 +7,7 @@ defmodule T.Matches.MatchContact do
   @foreign_key_type Ecto.Bigflake.UUID
   schema "match_contact" do
     belongs_to :match, Matches.Match
-    belongs_to :by_user, Accounts.User
+    belongs_to :picker, Accounts.User
 
     field :contact_type, :string
     field :value, :string

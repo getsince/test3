@@ -1,8 +1,8 @@
-defmodule T.Matches.MatchExpirer do
+defmodule T.Matches.MatchCalls do
   use GenServer
 
   @doc """
-      default_opts = [ttl_days: 1, check_interval: :timer.minutes(100)]
+      default_opts = [ttl_days: 1, check_interval: :timer.minutes(1)]
   """
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
@@ -10,14 +10,13 @@ defmodule T.Matches.MatchExpirer do
 
   @impl true
   def init(opts) do
-    check_interval = opts[:check_interval] || :timer.minutes(100)
+    check_interval = opts[:check_interval] || :timer.seconds(10)
     :timer.send_interval(check_interval, :prune)
     {:ok, %{check_interval: check_interval}}
   end
 
   def prune() do
-    T.Matches.match_soon_to_expire_check()
-    T.Matches.match_expired_check()
+    T.Matches.check_matches_calls()
   end
 
   @impl true

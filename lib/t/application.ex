@@ -27,6 +27,7 @@ defmodule T.Application do
         T.Repo,
         unless_disabled(T.Feeds.SeenPruner),
         unless_disabled(T.Matches.MatchExpirer),
+        unless_disabled(T.Matches.MatchCalls),
         unless_disabled(T.PushNotifications.ScheduledPushes),
         TWeb.Endpoint,
         TWeb.Telemetry,

@@ -12,6 +12,7 @@ defmodule T.Matches do
   alias T.Accounts.Profile
   alias T.PushNotifications.DispatchJob
   alias T.Bot
+  alias T.Calls.Call
 
   @type uuid :: Ecto.UUID.t()
 
@@ -851,5 +852,22 @@ defmodule T.Matches do
       )
     )
     |> where([m, e, c], is_nil(c.timestamp))
+  end
+
+  def check_matches_calls() do
+   matches_without_successful_calls=
+    Match
+    |> join(:inner, [m], c in Call, on: (c.caller_id == m.user_id_1 and c.called_id == m.user_id_2) or (c.caller_id == m.user_id_2 and c.called_id == m.user_id_1))
+    |> select([m], m.id)
+
+    matches=
+    Timeslot
+    |> where([t], t.selected_slot >= fragment("now() - interval '70 hours'"))
+    |> where([t], t.match_id not in subquery(matches_without_successful_calls))
+    |> select([t], t.match_id)
+    |> T.Repo.all()
+
+    IO.puts("matches_without_calls")
+    IO.puts(matches)
   end
 end

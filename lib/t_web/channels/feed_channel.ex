@@ -180,7 +180,7 @@ defmodule TWeb.FeedChannel do
     me = me_id(socket)
 
     {:ok, _match_contact, expiration_date} =
-      Matches.save_contact_offer_for_match(match_id, me, contact)
+      Matches.save_contact_offer_for_match(me, match_id, contact)
 
     {:reply, {:ok, %{"expiration_date" => expiration_date}}, socket}
   end

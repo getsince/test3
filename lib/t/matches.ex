@@ -647,18 +647,18 @@ defmodule T.Matches do
       get_match_for_user!(match_id, by_user_id)
 
     [mate] = [uid1, uid2] -- [by_user_id]
-    cancel_slot(by_user_id, match_id, mate)
+    cancel_slot(by_user_id, mate, match_id)
   end
 
   @spec cancel_slot_for_matched_user(uuid, uuid) :: :ok
   def cancel_slot_for_matched_user(by_user_id, user_id) do
     [uid1, uid2] = Enum.sort([by_user_id, user_id])
     match_id = get_match_id_for_users!(uid1, uid2)
-    cancel_slot(by_user_id, match_id, user_id)
+    cancel_slot(by_user_id, user_id, match_id)
   end
 
   @spec cancel_slot(uuid, uuid, uuid) :: :ok
-  defp cancel_slot(by_user_id, match_id, mate_id) do
+  defp cancel_slot(by_user_id, mate_id, match_id) do
     Logger.warn(
       "cancelling timeslot for match #{match_id} (with mate #{mate_id}) by #{by_user_id}"
     )
@@ -704,7 +704,7 @@ defmodule T.Matches do
     :ok
   end
 
-  def save_contact_offer_for_match(match_id, offerer, contact) do
+  def save_contact_offer_for_match(offerer, match_id, contact) do
     %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} =
       get_match_for_user!(match_id, offerer)
 
@@ -771,11 +771,11 @@ defmodule T.Matches do
       get_match_for_user!(match_id, by_user_id)
 
     [mate] = [uid1, uid2] -- [by_user_id]
-    cancel_contact(by_user_id, match_id, mate)
+    cancel_contact(by_user_id, mate, match_id)
   end
 
   @spec cancel_contact(uuid, uuid, uuid) :: {:ok, DateTime.t()}
-  defp cancel_contact(by_user_id, match_id, mate_id) do
+  defp cancel_contact(by_user_id, mate_id, match_id) do
     m = "cancelling contact for match #{match_id} (with mate #{mate_id}) by #{by_user_id}"
 
     Logger.warn(m)

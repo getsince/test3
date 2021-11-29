@@ -99,3 +99,12 @@ msgstr ""
 #: lib/t/push_notifications/apns.ex:124
 msgid "Аудио-дэйт уже в твоём календаре, не пропусти 👀"
 msgstr ""
+
+#: lib/t/push_notifications/apns.ex:195
+msgid "%{name} прислал%{gender_a} тебe контакт!"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:199
+msgid "Заходи, чтобы просмотреть и написать ✨"
+msgstr ""

@@ -14,6 +14,7 @@ defmodule TWeb.UserSocket do
   channel "admin", TWeb.AdminChannel
 
   @impl true
+  @spec connect(any, any, any) :: :error | {:ok, Phoenix.Socket.t()}
   def connect(%{"token" => token} = params, socket, connect_info) do
     if remote_ip = extract_ip_address(connect_info) do
       Logger.metadata(remote_ip: remote_ip)
@@ -41,6 +42,9 @@ defmodule TWeb.UserSocket do
   def connect(_params, _socket, _connect_info) do
     :error
   end
+
+  def handle_error(conn, :unsupported_version),
+    do: Plug.Conn.send_resp(conn, 418, "")
 
   defp extract_ip_address(connect_info) do
     _extract_ip_address(:x_headers, connect_info) ||
@@ -76,7 +80,6 @@ defmodule TWeb.UserSocket do
   defp on_connect(pid, current_user) do
     %Accounts.User{id: user_id} = current_user
 
-    # TODO not needed anymore (now that we have active sessions)
     Monitor.monitor(
       pid,
       _on_disconnect = fn ->

@@ -109,7 +109,7 @@ defmodule T.Matches.TimeslotsTest do
     setup [:with_match, :with_offer]
 
     test "push notification is scheduled for mate", %{
-      profiles: [_p1, %{user_id: receiver_id}],
+      profiles: [%{user_id: offerer_id}, %{user_id: receiver_id}],
       match: %{id: match_id}
     } do
       assert [
@@ -117,6 +117,7 @@ defmodule T.Matches.TimeslotsTest do
                  args: %{
                    "match_id" => ^match_id,
                    "receiver_id" => ^receiver_id,
+                   "offerer_id" => ^offerer_id,
                    "type" => "timeslot_offer"
                  }
                }

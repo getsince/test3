@@ -7,7 +7,7 @@ defmodule T.Matches do
   require Logger
 
   alias T.Repo
-  alias T.Matches.{Match, Like, Timeslot, MatchEvent, ExpiredMatch}
+  alias T.Matches.{Match, Like, Timeslot, MatchEvent, ExpiredMatch, MatchContact}
   alias T.Feeds.FeedProfile
   alias T.Accounts.Profile
   alias T.PushNotifications.DispatchJob
@@ -130,7 +130,12 @@ defmodule T.Matches do
     Multi.run(multi, :match, fn _repo, %{mutual: mutual} ->
       if mutual do
         [user_id_1, user_id_2] = Enum.sort(user_ids)
-        m = "New match: #{user_id_1} and #{user_id_2}"
+        {name1, number_of_matches1} = user_info(user_id_1)
+        {name2, number_of_matches2} = user_info(user_id_2)
+
+        m =
+          "new match: #{name1} (#{user_id_1}, #{number_of_matches1 + 1} matches) and #{name2} (#{user_id_2}, #{number_of_matches2 + 1})"
+
         Bot.async_post_message(m)
 
         Repo.insert(%Match{user_id_1: user_id_1, user_id_2: user_id_2})
@@ -138,6 +143,18 @@ defmodule T.Matches do
         {:ok, nil}
       end
     end)
+  end
+
+  defp user_info(user_id) do
+    name = FeedProfile |> where(user_id: ^user_id) |> select([p], p.name) |> Repo.one()
+
+    number_of_matches =
+      Match
+      |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
+      |> select([m], count(m.id))
+      |> Repo.one()
+
+    {name, number_of_matches}
   end
 
   defp maybe_create_match_event(multi) do
@@ -202,6 +219,7 @@ defmodule T.Matches do
     |> Repo.all()
     |> preload_match_profiles(user_id)
     |> with_timeslots(user_id)
+    |> with_contacts(user_id)
   end
 
   @spec list_expired_matches(uuid) :: [%Match{}]
@@ -307,9 +325,17 @@ defmodule T.Matches do
     broadcast_from_for_user(by_user_id, {__MODULE__, :unmatched, match_id})
   end
 
-  @spec expire_match(uuid, uuid) :: boolean
-  def expire_match(user_id_1, user_id_2) do
-    m = "match between #{user_id_1} and #{user_id_2} expired"
+  @spec expire_match(uuid, uuid, uuid) :: boolean
+  def expire_match(match_id, user_id_1, user_id_2) do
+    {name1, number_of_matches1} = user_info(user_id_1)
+    {name2, number_of_matches2} = user_info(user_id_2)
+
+    number_of_events =
+      MatchEvent |> where(match_id: ^match_id) |> select([e], count(e.timestamp)) |> Repo.one!()
+
+    m =
+      "match between #{name1} (#{user_id_1}, #{number_of_matches1} matches) and #{name2} (#{user_id_2}, #{number_of_matches2}) expired, there were #{number_of_events - 1} events between them"
+
     Logger.warn(m)
     Bot.async_post_message(m)
 
@@ -379,6 +405,17 @@ defmodule T.Matches do
     end)
   end
 
+  defp with_contacts(matches, user_id) do
+    contacts =
+      user_id
+      |> list_relevant_contacts()
+      |> Map.new(fn %MatchContact{match_id: match_id} = contact -> {match_id, contact} end)
+
+    Enum.map(matches, fn match ->
+      %Match{match | contact: contacts[match.id]}
+    end)
+  end
+
   defp delete_likes(multi) do
     Multi.run(multi, :delete_likes, fn _repo, %{unmatch: unmatch} ->
       [uid1, uid2] =
@@ -445,12 +482,10 @@ defmodule T.Matches do
   @spec save_slots_offer(uuid, uuid, uuid, [iso_8601 :: String.t()], DateTime.t()) ::
           {:ok, %Timeslot{}, DateTime.t()} | {:error, %Ecto.Changeset{}}
   defp save_slots_offer(offerer_id, mate_id, match_id, slots, reference) do
-    Logger.warn(
+    m =
       "saving slots offer for match #{match_id} (users #{offerer_id}, #{mate_id}) from #{offerer_id}: #{inspect(slots)}"
-    )
 
-    m = "Saving slots offer for match: #{offerer_id} offered date  #{mate_id}"
-    Bot.async_post_message(m)
+    Logger.warn(m)
 
     changeset =
       timeslot_changeset(
@@ -464,7 +499,7 @@ defmodule T.Matches do
         "type" => "timeslot_offer",
         "match_id" => match_id,
         "receiver_id" => mate_id,
-        "picker_id" => offerer_id
+        "offerer_id" => offerer_id
       })
 
     # conflict_opts = [
@@ -519,12 +554,22 @@ defmodule T.Matches do
       "accepting slot for match #{match_id} (users #{picker}, #{mate}) by #{picker}: #{inspect(slot)}"
     )
 
-    m = "Accept slot for match: #{picker} with #{mate}"
+    {:ok, slot, 0} = DateTime.from_iso8601(slot)
+
+    {picker_name, _number_of_matches1} = user_info(picker)
+    {mate_name, _umber_of_matches2} = user_info(mate)
+
+    seconds = slot |> DateTime.diff(DateTime.utc_now())
+    hours = div(seconds, 3600)
+    minutes = div(rem(seconds, 3600), 60)
+
+    m =
+      "accept slot #{picker_name} (#{picker}) with #{mate_name} (#{mate}) in #{hours}h #{minutes}m"
+
     Bot.async_post_message(m)
 
     insert_match_event(match_id, "slot_accept")
 
-    {:ok, slot, 0} = DateTime.from_iso8601(slot)
     true = DateTime.compare(slot, prev_slot(reference)) in [:eq, :gt]
 
     {1, [timeslot]} =
@@ -602,24 +647,21 @@ defmodule T.Matches do
       get_match_for_user!(match_id, by_user_id)
 
     [mate] = [uid1, uid2] -- [by_user_id]
-    cancel_slot(by_user_id, match_id, mate)
+    cancel_slot(by_user_id, mate, match_id)
   end
 
   @spec cancel_slot_for_matched_user(uuid, uuid) :: :ok
   def cancel_slot_for_matched_user(by_user_id, user_id) do
     [uid1, uid2] = Enum.sort([by_user_id, user_id])
     match_id = get_match_id_for_users!(uid1, uid2)
-    cancel_slot(by_user_id, match_id, user_id)
+    cancel_slot(by_user_id, user_id, match_id)
   end
 
   @spec cancel_slot(uuid, uuid, uuid) :: :ok
-  defp cancel_slot(by_user_id, match_id, mate_id) do
+  defp cancel_slot(by_user_id, mate_id, match_id) do
     Logger.warn(
       "cancelling timeslot for match #{match_id} (with mate #{mate_id}) by #{by_user_id}"
     )
-
-    m = "Cancelled timeslot: #{by_user_id} cancelled date with #{mate_id}"
-    Bot.async_post_message(m)
 
     insert_match_event(match_id, "slot_cancel")
 
@@ -635,6 +677,18 @@ defmodule T.Matches do
     broadcast_for_user(mate_id, {__MODULE__, [:timeslot, :cancelled], timeslot, expiration_date})
 
     if selected_slot do
+      {canceller_name, _number_of_matches1} = user_info(by_user_id)
+      {cancelled_name, _umber_of_matches2} = user_info(mate_id)
+
+      seconds = DateTime.utc_now() |> DateTime.diff(selected_slot)
+      hours = div(seconds, 3600)
+      minutes = div(rem(seconds, 3600), 60)
+
+      m =
+        "cancelled slot #{canceller_name} (#{by_user_id}) cancelled slot with #{cancelled_name} (#{mate_id}) in #{hours}h #{minutes}m"
+
+      Bot.async_post_message(m)
+
       push =
         DispatchJob.new(%{
           "type" => "timeslot_cancelled",
@@ -648,6 +702,98 @@ defmodule T.Matches do
     end
 
     :ok
+  end
+
+  def save_contact_offer_for_match(offerer, match_id, contact) do
+    %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} =
+      get_match_for_user!(match_id, offerer)
+
+    [mate] = [uid1, uid2] -- [offerer]
+    save_contact_offer(offerer, mate, match_id, contact)
+  end
+
+  defp save_contact_offer(offerer, mate, match_id, contact) do
+    %{"contact_type" => contact_type, "value" => value} = contact
+
+    {offerer_name, _number_of_matches1} = user_info(offerer)
+    {mate_name, _umber_of_matches2} = user_info(mate)
+
+    m =
+      "contact offer from #{offerer_name} (#{offerer}) to #{mate_name} (#{mate}), #{contact_type}"
+
+    Logger.warn(m)
+    Bot.async_post_message(m)
+
+    changeset =
+      contact_changeset(
+        %MatchContact{match_id: match_id, picker_id: mate},
+        %{contact_type: contact_type, value: value}
+      )
+
+    push_job =
+      DispatchJob.new(%{
+        "type" => "contact_offer",
+        "match_id" => match_id,
+        "receiver_id" => mate,
+        "offerer_id" => offerer
+      })
+
+    conflict_opts = [on_conflict: :replace_all, conflict_target: [:match_id]]
+
+    Multi.new()
+    |> Multi.insert(:match_contact, changeset, conflict_opts)
+    |> Multi.insert(:match_event, %MatchEvent{
+      timestamp: DateTime.truncate(DateTime.utc_now(), :second),
+      match_id: match_id,
+      event: "contact_offer"
+    })
+    |> Oban.insert(:push, push_job)
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{match_contact: %MatchContact{} = match_contact}} ->
+        expiration_date = expiration_date(match_id)
+
+        broadcast_for_user(
+          mate,
+          {__MODULE__, [:contact, :offered], match_contact, expiration_date}
+        )
+
+        {:ok, match_contact, expiration_date}
+
+      {:error, :match_contact, %Ecto.Changeset{} = changeset, _changes} ->
+        {:error, changeset}
+    end
+  end
+
+  @spec cancel_contact_for_match(uuid, uuid) :: {:ok, DateTime.t()}
+  def cancel_contact_for_match(by_user_id, match_id) do
+    %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} =
+      get_match_for_user!(match_id, by_user_id)
+
+    [mate] = [uid1, uid2] -- [by_user_id]
+    cancel_contact(by_user_id, mate, match_id)
+  end
+
+  @spec cancel_contact(uuid, uuid, uuid) :: {:ok, DateTime.t()}
+  defp cancel_contact(by_user_id, mate_id, match_id) do
+    m = "cancelling contact for match #{match_id} (with mate #{mate_id}) by #{by_user_id}"
+
+    Logger.warn(m)
+    Bot.async_post_message(m)
+
+    insert_match_event(match_id, "contact_cancel")
+
+    {1, [%MatchContact{} = contact]} =
+      MatchContact
+      |> where(match_id: ^match_id)
+      |> select([t], t)
+      |> Repo.delete_all()
+
+    expiration_date = expiration_date(match_id)
+
+    broadcast_for_user(mate_id, {__MODULE__, [:contact, :cancelled], contact, expiration_date})
+
+    {:ok, expiration_date}
   end
 
   defp get_match_id_for_users!(user_id_1, user_id_2) do
@@ -764,10 +910,10 @@ defmodule T.Matches do
 
     expiring_matches_q()
     |> where([m, e, c], e.timestamp < ^expiration_date)
-    |> select([m, e, c], {m.user_id_1, m.user_id_2})
+    |> select([m, e, c], {m.id, m.user_id_1, m.user_id_2})
     |> T.Repo.all()
-    |> Enum.map(fn {user_id_1, user_id_2} ->
-      expire_match(user_id_1, user_id_2)
+    |> Enum.map(fn {match_id, user_id_1, user_id_2} ->
+      expire_match(match_id, user_id_1, user_id_2)
     end)
   end
 
@@ -851,5 +997,25 @@ defmodule T.Matches do
       )
     )
     |> where([m, e, c], is_nil(c.timestamp))
+  end
+
+  # Contact Exchange
+
+  defp list_relevant_contacts(user_id) do
+    my_matches =
+      Match
+      |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
+
+    MatchContact
+    |> join(:inner, [c], m in subquery(my_matches), on: c.match_id == m.id)
+    |> Repo.all()
+  end
+
+  defp contact_changeset(contact, attrs) do
+    contact
+    |> cast(attrs, [:contact_type, :value])
+    |> validate_required([:contact_type, :value])
+    |> validate_length(:contact_type, min: 1)
+    |> validate_length(:value, min: 1)
   end
 end

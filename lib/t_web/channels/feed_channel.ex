@@ -176,6 +176,23 @@ defmodule TWeb.FeedChannel do
     {:reply, {:ok, %{"expiration_date" => expiration_date}}, socket}
   end
 
+  def handle_in("send-contact", %{"match_id" => match_id, "contact" => contact}, socket) do
+    me = me_id(socket)
+
+    {:ok, _match_contact, expiration_date} =
+      Matches.save_contact_offer_for_match(me, match_id, contact)
+
+    {:reply, {:ok, %{"expiration_date" => expiration_date}}, socket}
+  end
+
+  def handle_in("cancel-contact", %{"match_id" => match_id}, socket) do
+    me = me_id(socket)
+
+    {:ok, expiration_date} = Matches.cancel_contact_for_match(me, match_id)
+
+    {:reply, {:ok, %{"expiration_date" => expiration_date}}, socket}
+  end
+
   def handle_in("unmatch", params, socket) do
     unmatched? =
       case params do
@@ -208,7 +225,7 @@ defmodule TWeb.FeedChannel do
     %{id: match_id, mate: mate_id} = match
 
     if profile = Feeds.get_mate_feed_profile(mate_id) do
-      rendered = render_match(match_id, profile, _timeslot = nil, screen_width)
+      rendered = render_match(match_id, profile, _timeslot = nil, _contact = nil, screen_width)
       push(socket, "matched", %{"match" => rendered})
     end
 
@@ -276,6 +293,34 @@ defmodule TWeb.FeedChannel do
     {:noreply, assign(socket, :feed_filter, feed_filter)}
   end
 
+  def handle_info({Matches, [:contact, :offered], match_contact, expiration_date}, socket) do
+    %Matches.MatchContact{
+      contact_type: contact_type,
+      value: value,
+      match_id: match_id,
+      picker_id: picker_id
+    } = match_contact
+
+    push(socket, "contact_offer", %{
+      "match_id" => match_id,
+      "contact" => %{"contact_type" => contact_type, "value" => value, "picker" => picker_id},
+      "expiration_date" => expiration_date
+    })
+
+    {:noreply, socket}
+  end
+
+  def handle_info({Matches, [:contact, :cancelled], match_contact, expiration_date}, socket) do
+    %Matches.MatchContact{match_id: match_id} = match_contact
+
+    push(socket, "contact_cancelled", %{
+      "match_id" => match_id,
+      "expiration_date" => expiration_date
+    })
+
+    {:noreply, socket}
+  end
+
   defp render_feed_item(profile, screen_width) do
     assigns = [profile: profile, screen_width: screen_width]
     render(FeedView, "feed_item.json", assigns)
@@ -304,10 +349,11 @@ defmodule TWeb.FeedChannel do
       %Matches.Match{
         id: match_id,
         profile: profile,
-        timeslot: timeslot
+        timeslot: timeslot,
+        contact: contact
       } = match
 
-      render_match(match_id, profile, timeslot, screen_width)
+      render_match(match_id, profile, timeslot, contact, screen_width)
     end)
   end
 
@@ -318,7 +364,7 @@ defmodule TWeb.FeedChannel do
         profile: profile
       } = expired_match
 
-      render_match(match_id, profile, nil, screen_width)
+      render_match(match_id, profile, nil, nil, screen_width)
     end)
   end
 
@@ -326,11 +372,13 @@ defmodule TWeb.FeedChannel do
          match_id,
          mate_feed_profile,
          maybe_timeslot,
+         maybe_contact,
          screen_width
        ) do
     render(MatchView, "match.json",
       id: match_id,
       timeslot: maybe_timeslot,
+      contact: maybe_contact,
       profile: mate_feed_profile,
       screen_width: screen_width
     )

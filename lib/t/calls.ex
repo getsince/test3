@@ -28,6 +28,12 @@ defmodule T.Calls do
       %Call{id: ^call_id} =
         Repo.insert!(%Call{id: call_id, caller_id: caller_id, called_id: called_id})
 
+      m =
+        "call attempt #{fetch_name(caller_id)} (#{caller_id}) calling #{fetch_name(called_id)} (#{called_id})"
+
+      Logger.warn(m)
+      Bot.async_post_message(m)
+
       {:ok, call_id}
     else
       {:allowed?, false} -> {:error, "call not allowed"}
@@ -141,11 +147,22 @@ defmodule T.Calls do
     |> Repo.transaction()
     |> case do
       {:ok, %{call: {caller, called}, match_id: match_id}} = success ->
-        m =
-          "New call starts: #{fetch_name(caller)}(#{caller}) and #{fetch_name(called)}(#{called})"
+        selected_slot =
+          T.Matches.Timeslot
+          |> where(match_id: ^match_id)
+          |> select([t], t.selected_slot)
+          |> Repo.one()
 
-        Logger.warn(m)
-        Bot.async_post_message(m)
+        if selected_slot do
+          seconds = DateTime.utc_now() |> DateTime.diff(selected_slot)
+          minutes = div(seconds, 60)
+
+          m =
+            "call starts #{fetch_name(caller)} (#{caller}) with #{fetch_name(called)} (#{called}), #{minutes}m later than agreed slot"
+
+          Logger.warn(m)
+          Bot.async_post_message(m)
+        end
 
         T.Matches.notify_match_expiration_reset(match_id, [caller, called])
         success
@@ -159,15 +176,31 @@ defmodule T.Calls do
 
   @spec end_call(Ecto.UUID.t(), Ecto.UUID.t(), DateTime.t()) :: :ok
   def end_call(user_id, call_id, now \\ utc_now()) do
-    m = "user #{fetch_name(user_id)}, id #{user_id} ended a call #{call_id}"
+    {1, [call]} =
+      Call
+      |> where(id: ^call_id)
+      |> select([c], c)
+      |> Repo.update_all(set: [ended_at: now, ended_by: user_id])
+
+    {user_status, second_user} =
+      if user_id == call.caller_id do
+        {"caller", call.called_id}
+      else
+        {"receiver", call.caller_id}
+      end
+
+    m =
+      if call.accepted_at do
+        seconds = call.ended_at |> DateTime.diff(call.accepted_at)
+        minutes = div(seconds, 60)
+
+        "call ends #{fetch_name(user_id)} (#{user_id}, #{user_status}) ended a call with #{fetch_name(second_user)} (#{second_user}), call lasted for #{minutes}m"
+      else
+        "user #{fetch_name(user_id)} (#{user_id}, #{user_status}) ended a call with #{fetch_name(second_user)} (#{second_user}), call didn't happen"
+      end
 
     Logger.warn(m)
     Bot.async_post_message(m)
-
-    {1, _} =
-      Call
-      |> where(id: ^call_id)
-      |> Repo.update_all(set: [ended_at: now, ended_by: user_id])
 
     :ok
   end

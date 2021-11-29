@@ -904,39 +904,56 @@ defmodule T.Matches do
           (c.caller_id == m.user_id_1 and c.called_id == m.user_id_2) or
             (c.caller_id == m.user_id_2 and c.called_id == m.user_id_1)
       )
+      |> where([m, c], c.accepted_at >= fragment("now() - interval '80 hours'"))
       |> select([m], m.id)
 
     matches_for_push =
       Timeslot
-      |> where([t], t.selected_slot >= fragment("now() - interval '70 hours'"))
+      |> where([t], t.selected_slot >= fragment("now() - interval '80 hours'"))
       |> where([t], t.match_id not in subquery(matches_without_successful_calls))
       |> select([t], t.match_id)
 
-    good_and_bad_users =
+    good_users =
       Call
-      |> where([c, m], c.inserted_at >= fragment("now() - interval '70 hours'"))
       |> join(:inner, [c], m in Match,
         on:
           (c.caller_id == m.user_id_1 and c.called_id == m.user_id_2) or
             (c.caller_id == m.user_id_2 and c.called_id == m.user_id_1)
       )
+      |> where([c, m], c.inserted_at >= fragment("now() - interval '80 hours'"))
       |> where([c, m], m.id in subquery(matches_for_push))
-      |> select(
-        [c, m],
-        fragment("CASE WHEN caller_id = user_id_1 THEN
-        user_id_1
-      WHEN caller_id = user_id_2 THEN
-        user_id_2
-      END AS good_user,
-      CASE WHEN called_id = user_id_1 THEN
-        user_id_1
-      WHEN called_id = user_id_2 THEN
-        user_id_2
-      END AS bad_user")
+      |> where([c, m], c.caller_id == m.user_id_1 or c.caller_id == m.user_id_2)
+      |> select([c, m], c.caller_id)
+      |> T.Repo.all()
+
+    not_in_good_users =
+      Call
+      |> join(:inner, [c], m in Match,
+        on:
+          (c.caller_id == m.user_id_1 and c.called_id == m.user_id_2) or
+            (c.caller_id == m.user_id_2 and c.called_id == m.user_id_1)
       )
+      |> where([c, m], c.inserted_at >= fragment("now() - interval '80 hours'"))
+      |> where([c, m], m.id in subquery(matches_for_push))
+      |> where([c, m], c.caller_id == m.user_id_1 or c.caller_id == m.user_id_2)
+      |> select([c, m], c.caller_id)
+
+    bad_users =
+      Call
+      |> join(:inner, [c], m in Match,
+        on:
+          (c.caller_id == m.user_id_1 and c.called_id == m.user_id_2) or
+            (c.caller_id == m.user_id_2 and c.called_id == m.user_id_1)
+      )
+      |> where([c, m], c.inserted_at >= fragment("now() - interval '80 hours'"))
+      |> where([c, m], m.id in subquery(matches_for_push))
+      |> where([c, m], c.called_id == m.user_id_1 or c.called_id == m.user_id_2)
+      |> where([c, m], c.called_id not in subquery(not_in_good_users))
+      |> select([c, m], c.called_id)
       |> T.Repo.all()
 
     IO.puts("matches_without_calls")
-    IO.inspect(good_and_bad_users)
+    IO.inspect(good_users)
+    IO.inspect(bad_users)
   end
 end

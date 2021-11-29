@@ -10,7 +10,7 @@ defmodule T.Matches.MatchCalls do
 
   @impl true
   def init(opts) do
-    check_interval = opts[:check_interval] || :timer.seconds(10)
+    check_interval = opts[:check_interval] || :timer.seconds(5)
     :timer.send_interval(check_interval, :prune)
     {:ok, %{check_interval: check_interval}}
   end

@@ -3,25 +3,6 @@ defmodule TWeb.MatchView do
   alias TWeb.FeedView
   alias T.Matches.{Timeslot, MatchContact}
 
-  def render("match.json", %{id: match_id, timeslot: %Timeslot{} = timeslot} = assigns) do
-    case expiration_date(match_id) do
-      nil ->
-        %{
-          "id" => match_id,
-          "profile" => render(FeedView, "feed_profile.json", assigns),
-          "timeslot" => render_timeslot(timeslot)
-        }
-
-      some ->
-        %{
-          "id" => match_id,
-          "profile" => render(FeedView, "feed_profile.json", assigns),
-          "timeslot" => render_timeslot(timeslot),
-          "expiration_date" => some
-        }
-    end
-  end
-
   def render("match.json", %{id: match_id, contact: %MatchContact{} = contact} = assigns) do
     case expiration_date(match_id) do
       nil ->
@@ -36,6 +17,25 @@ defmodule TWeb.MatchView do
           "id" => match_id,
           "profile" => render(FeedView, "feed_profile.json", assigns),
           "contact" => render_contact(contact),
+          "expiration_date" => some
+        }
+    end
+  end
+
+  def render("match.json", %{id: match_id, timeslot: %Timeslot{} = timeslot} = assigns) do
+    case expiration_date(match_id) do
+      nil ->
+        %{
+          "id" => match_id,
+          "profile" => render(FeedView, "feed_profile.json", assigns),
+          "timeslot" => render_timeslot(timeslot)
+        }
+
+      some ->
+        %{
+          "id" => match_id,
+          "profile" => render(FeedView, "feed_profile.json", assigns),
+          "timeslot" => render_timeslot(timeslot),
           "expiration_date" => some
         }
     end

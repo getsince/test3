@@ -201,4 +201,14 @@ defmodule T.PushNotifications.APNS do
 
     base_alert_payload(type, alert, data)
   end
+
+  def build_alert_payload("upgrade_app" = type, _data) do
+    alert = %{
+      # TODO
+      "title" => dgettext("apns", "Hey, please update the app"),
+      "body" => dgettext("apns", "Your app version is no longer supported")
+    }
+
+    base_alert_payload(type, alert)
+  end
 end

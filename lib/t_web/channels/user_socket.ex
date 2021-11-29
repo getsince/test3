@@ -36,7 +36,7 @@ defmodule TWeb.UserSocket do
          )}
       else
         # TODO
-        # schedule_upgrade_push()
+        Accounts.schedule_upgrade_app_push(user.id)
         {:error, :unsupported_version}
       end
     else

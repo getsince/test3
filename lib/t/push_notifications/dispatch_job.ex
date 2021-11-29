@@ -235,6 +235,14 @@ defmodule T.PushNotifications.DispatchJob do
     end
   end
 
+  defp handle_type("upgrade_app" = type, args) do
+    %{"user_id" => user_id} = args
+
+    user_id |> Accounts.list_apns_devices() |> schedule_apns(type, args)
+
+    :ok
+  end
+
   defp profile_info(user_id) do
     Accounts.Profile
     |> where(user_id: ^user_id)

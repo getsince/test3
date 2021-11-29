@@ -2,6 +2,7 @@ defmodule TWeb.UserSocketTest do
   use TWeb.ChannelCase, async: true
   alias TWeb.UserSocket
   alias T.Accounts
+  use Oban.Testing, repo: T.Repo
 
   import Ecto.Query
 
@@ -22,6 +23,17 @@ defmodule TWeb.UserSocketTest do
         Accounts.UserToken |> where(user_id: ^user.id) |> Repo.one()
 
       assert version == nil
+
+      user_id = user.id
+
+      assert [
+               %Oban.Job{
+                 args: %{
+                   "user_id" => ^user_id,
+                   "type" => "upgrade_app"
+                 }
+               }
+             ] = all_enqueued(worker: T.PushNotifications.DispatchJob)
     end
 
     test "with valid token and version", %{user: user} do

@@ -179,7 +179,7 @@ defmodule T.PushNotifications.APNS do
 
     base_alert_payload(type, alert)
   end
-  
+
   def build_alert_payload("contact_offer" = type, data) do
     %{"name" => name, "gender" => gender} = data
 

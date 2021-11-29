@@ -109,4 +109,4 @@ msgstr "%{name} shared a contact with you!"
 #, elixir-format, fuzzy
 #: lib/t/push_notifications/apns.ex:199
 msgid "Заходи, чтобы просмотреть и написать ✨"
-msgstr "Come in to view & to message ✨"
+msgstr "Come in to view & message ✨"

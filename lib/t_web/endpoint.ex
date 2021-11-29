@@ -13,7 +13,10 @@ defmodule TWeb.Endpoint do
 
   # TODO session
   socket "/api/socket", TWeb.UserSocket,
-    websocket: [connect_info: [:peer_data, :x_headers]],
+    websocket: [
+      connect_info: [:peer_data, :x_headers],
+      error_handler: {TWeb.UserSocket, :handle_error, []}
+    ],
     longpoll: false
 
   socket "/live", Phoenix.LiveView.Socket, websocket: [connect_info: [session: @session_options]]

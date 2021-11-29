@@ -100,3 +100,13 @@ msgstr "Привет, создай свой классный профиль ✨"
 #: lib/t/push_notifications/apns.ex:177
 msgid "Meet interesting people ✌️"
 msgstr "Знакомься с интересными людьми ✌️"
+
+#, elixir-format, fuzzy
+#: lib/t/push_notifications/apns.ex:195
+msgid "%{name} прислал%{gender_a} тебe контакт!"
+msgstr ""
+
+#, elixir-format, fuzzy
+#: lib/t/push_notifications/apns.ex:199
+msgid "Заходи, чтобы просмотреть и написать ✨"
+msgstr ""

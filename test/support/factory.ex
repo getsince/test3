@@ -2,7 +2,7 @@ defmodule T.Factory do
   use ExMachina.Ecto, repo: T.Repo
   alias T.Accounts.{User, Profile, GenderPreference}
   alias T.Feeds.SeenProfile
-  alias T.Matches.{Match, Timeslot, ExpiredMatch, MatchEvent}
+  alias T.Matches.{Match, Timeslot, ExpiredMatch, MatchEvent, MatchContact}
   alias T.Calls.Call
 
   def user_factory do
@@ -47,6 +47,10 @@ defmodule T.Factory do
 
   def gender_preference_factory do
     %GenderPreference{}
+  end
+
+  def match_contact_factory do
+    %MatchContact{}
   end
 
   def apple_id do

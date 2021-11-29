@@ -51,10 +51,10 @@ defmodule T.PushNotifications.DispatchJob do
   end
 
   defp handle_type("timeslot_offer" = type, args) do
-    %{"match_id" => match_id, "receiver_id" => receiver_id, "picker_id" => picker_id} = args
+    %{"match_id" => match_id, "receiver_id" => receiver_id, "offerer_id" => offerer_id} = args
 
     if alive_match(match_id) do
-      if profile = profile_info(picker_id) do
+      if profile = profile_info(offerer_id) do
         {name, gender} = profile
 
         receiver_id
@@ -215,6 +215,24 @@ defmodule T.PushNotifications.DispatchJob do
     user_id |> Accounts.list_apns_devices() |> schedule_apns(type, args)
 
     :ok
+  end
+
+  defp handle_type("contact_offer" = type, args) do
+    %{"match_id" => match_id, "receiver_id" => receiver_id, "offerer_id" => offerer_id} = args
+
+    if alive_match(match_id) do
+      if profile = profile_info(offerer_id) do
+        {name, gender} = profile
+
+        receiver_id
+        |> Accounts.list_apns_devices()
+        |> schedule_apns(type, %{"match_id" => match_id, "name" => name, "gender" => gender})
+
+        :ok
+      end
+    else
+      :discard
+    end
   end
 
   defp profile_info(user_id) do

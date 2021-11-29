@@ -897,19 +897,49 @@ defmodule T.Matches do
   end
 
   def check_matches_calls() do
-   matches_without_successful_calls=
-    Match
-    |> join(:inner, [m], c in Call, on: (c.caller_id == m.user_id_1 and c.called_id == m.user_id_2) or (c.caller_id == m.user_id_2 and c.called_id == m.user_id_1))
-    |> select([m], m.id)
+    matches_without_successful_calls =
+      Match
+      |> join(:inner, [m], c in Call,
+        on:
+          (c.caller_id == m.user_id_1 and c.called_id == m.user_id_2) or
+            (c.caller_id == m.user_id_2 and c.called_id == m.user_id_1)
+      )
+      |> select([m], m.id)
 
-    matches=
-    Timeslot
-    |> where([t], t.selected_slot >= fragment("now() - interval '70 hours'"))
-    |> where([t], t.match_id not in subquery(matches_without_successful_calls))
-    |> select([t], t.match_id)
-    |> T.Repo.all()
+    matches_for_push =
+      Timeslot
+      |> where([t], t.selected_slot >= fragment("now() - interval '70 hours'"))
+      |> where([t], t.match_id not in subquery(matches_without_successful_calls))
+      |> select([t], t.match_id)
+      |> T.Repo.all()
+
+    {good_user, bad_user} =
+      Call
+      |> where([c, m], c.inserted_at >= fragment("now() - interval '70 hours'"))
+      |> join(:inner, [c], m in Match,
+        on:
+          (c.caller_id == m.user_id_1 and c.called_id == m.user_id_2) or
+            (c.caller_id == m.user_id_2 and c.called_id == m.user_id_1)
+      )
+      |> where([c, m], m.match_id in subquery(matches_for_push))
+      |> select([c, m],
+        fragment(
+          "CASE WHEN caller_id = user_id_1 THEN
+        user_id_1
+      WHEN caller_id = user_id_2 THEN
+        user_id_2
+      END AS good_user,
+      CASE WHEN called_id = user_id_1 THEN
+        user_id_1
+      WHEN called_id = user_id_2 THEN
+        user_id_2
+      END AS bad_user"
+        )
+      )
+      |> T.Repo.all()
 
     IO.puts("matches_without_calls")
-    IO.puts(matches)
+    IO.puts(good_user)
+    IO.puts(bad_user)
   end
 end

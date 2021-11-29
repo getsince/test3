@@ -1015,5 +1015,7 @@ defmodule T.Matches do
     contact
     |> cast(attrs, [:contact_type, :value])
     |> validate_required([:contact_type, :value])
+    |> validate_length(:contact_type, min: 1)
+    |> validate_length(:value, min: 1)
   end
 end

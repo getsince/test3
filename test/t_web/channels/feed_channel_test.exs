@@ -49,6 +49,23 @@ defmodule TWeb.FeedChannelTest do
 
       insert(:timeslot, match_id: m2.id, slots: slots, picker_id: me.id)
       insert(:timeslot, match_id: m3.id, slots: slots, selected_slot: s2, picker_id: p3.id)
+
+      # add contact to m1
+      insert(:match_contact,
+        match_id: m1.id,
+        contact_type: "telegram",
+        value: "@abcde",
+        picker_id: me.id
+      )
+
+      # add contact to m2, but it won't be returned since there is a timeslot as well
+      insert(:match_contact,
+        match_id: m2.id,
+        contact_type: "whatsapp",
+        value: "+79666666666",
+        picker_id: me.id
+      )
+
       assert {:ok, %{"matches" => matches}, _socket} = join(socket, "feed:" <> me.id)
 
       assert matches == [
@@ -64,7 +81,12 @@ defmodule TWeb.FeedChannelTest do
                },
                %{
                  "id" => m1.id,
-                 "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"}
+                 "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
+                 "contact" => %{
+                   "contact_type" => "telegram",
+                   "picker" => me.id,
+                   "value" => "@abcde"
+                 }
                }
              ]
     end

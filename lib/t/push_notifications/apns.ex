@@ -190,14 +190,13 @@ defmodule T.PushNotifications.APNS do
         ""
       end
 
-    # TODO Lily
     alert = %{
       "title" =>
-        dgettext("apns", "%{name} отправил%{gender_a} тебя контакт!",
+        dgettext("apns", "%{name} прислал%{gender_a} тебe контакт!",
           name: name,
           gender_a: gender_a
         ),
-      "body" => dgettext("apns", "Заходи, чтобы посмотреть 👀")
+      "body" => dgettext("apns", "Заходи, чтобы просмотреть и написать ✨")
     }
 
     base_alert_payload(type, alert, data)

@@ -35,7 +35,6 @@ defmodule TWeb.UserSocket do
            screen_width: params["screen_width"] || 1000
          )}
       else
-        # TODO
         Accounts.schedule_upgrade_app_push(user.id)
         {:error, :unsupported_version}
       end

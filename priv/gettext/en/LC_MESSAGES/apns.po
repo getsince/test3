@@ -112,11 +112,11 @@ msgid "Заходи, чтобы просмотреть и написать ✨"
 msgstr "Come in to view & to message ✨"
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:207
-msgid "Hey, please update the app"
+#: lib/t/push_notifications/apns.ex:208
+msgid "The current version is no longer supported 🙃"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:208
-msgid "Your app version is no longer supported"
+#: lib/t/push_notifications/apns.ex:207
+msgid "Update the app in the App Store ✨"
 msgstr ""

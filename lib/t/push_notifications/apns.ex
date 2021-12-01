@@ -202,12 +202,6 @@ defmodule T.PushNotifications.APNS do
     base_alert_payload(type, alert, data)
   end
 
-  # backround notifications
-
-  def background_notification_payload(type, data) do
-    Map.merge(data, %{"type" => type, "aps" => %{"content-available" => "1"}})
-  end
-
   def build_alert_payload("upgrade_app" = type, _data) do
     alert = %{
       "title" => dgettext("apns", "Update the app in the App Store ✨"),
@@ -215,5 +209,11 @@ defmodule T.PushNotifications.APNS do
     }
 
     base_alert_payload(type, alert)
+  end
+
+  # backround notifications
+
+  def background_notification_payload(type, data) do
+    Map.merge(data, %{"type" => type, "aps" => %{"content-available" => "1"}})
   end
 end

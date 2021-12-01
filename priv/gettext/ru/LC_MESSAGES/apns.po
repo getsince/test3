@@ -101,12 +101,22 @@ msgstr "Привет, создай свой классный профиль ✨"
 msgid "Meet interesting people ✌️"
 msgstr "Знакомься с интересными людьми ✌️"
 
-#, elixir-format, fuzzy
+#, elixir-format
 #: lib/t/push_notifications/apns.ex:195
 msgid "%{name} прислал%{gender_a} тебe контакт!"
 msgstr ""
 
-#, elixir-format, fuzzy
+#, elixir-format
 #: lib/t/push_notifications/apns.ex:199
 msgid "Заходи, чтобы просмотреть и написать ✨"
 msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:208
+msgid "The current version is no longer supported 🙃"
+msgstr "Текущая версия больше не поддерживается 🙃"
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:207
+msgid "Update the app in the App Store ✨"
+msgstr "Обнови приложение в App Store ✨"

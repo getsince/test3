@@ -10,16 +10,22 @@ defmodule T.PushNotifications.APNSJob do
     %{"template" => template, "data" => data, "device_id" => device_id} = args
 
     topic = args["topic"] || T.PushNotifications.APNS.default_topic()
+    push_type = args["push_type"]
+    priority = args["priority"]
 
     payload =
-      Gettext.with_locale(args["locale"] || "en", fn ->
-        T.PushNotifications.APNS.build_alert_payload(template, data)
-      end)
+      if push_type == "background" do
+        T.PushNotifications.APNS.background_notification_payload(template, data)
+      else
+        Gettext.with_locale(args["locale"] || "en", fn ->
+          T.PushNotifications.APNS.build_alert_payload(template, data)
+        end)
+      end
 
     env = T.PushNotifications.APNS.apns_env(args["env"])
 
     device_id
-    |> APNS.build_notification(topic, payload, env)
+    |> APNS.build_notification(topic, payload, env, push_type, priority)
     |> T.PushNotifications.APNS.push()
     |> case do
       :ok ->

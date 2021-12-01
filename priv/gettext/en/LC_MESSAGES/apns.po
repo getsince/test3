@@ -12,11 +12,6 @@ msgstr ""
 "Plural-Forms: nplurals=2\n"
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:124
-msgid "Добавь аудио-дэйт в календарь, чтобы не пропустить 🙌"
-msgstr "Add audio date to your calendar so you don't miss it 🙌"
-
-#, elixir-format
 #: lib/t/push_notifications/apns.ex:113
 msgid "Заходи, чтобы ответить на приглашение 👀"
 msgstr "Come in to respond to the invitation 👀"
@@ -102,6 +97,11 @@ msgid "Meet interesting people ✌️"
 msgstr ""
 
 #, elixir-format
+#: lib/t/push_notifications/apns.ex:124
+msgid "Аудио-дэйт уже в твоём календаре, не пропусти 👀"
+msgstr "Audio-date is already in your calendar, don't miss it 👀"
+
+#, elixir-format, fuzzy
 #: lib/t/push_notifications/apns.ex:195
 msgid "%{name} прислал%{gender_a} тебe контакт!"
 msgstr "%{name} shared a contact with you!"
@@ -109,7 +109,7 @@ msgstr "%{name} shared a contact with you!"
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:199
 msgid "Заходи, чтобы просмотреть и написать ✨"
-msgstr "Come in to view & to message ✨"
+msgstr "Come in to view & message ✨"
 
 #, elixir-format
 #: lib/t/push_notifications/apns.ex:208

@@ -8,15 +8,24 @@ defmodule APNS do
           device_id: String.t(),
           topic: String.t(),
           push_type: String.t(),
+          priority: String.t(),
           env: env
         }
 
   @type response :: :ok | {:error, error_reason | Exception.t()}
 
   @doc "Builds a notification that can be sent to APNs"
-  @spec build_notification(String.t(), String.t(), map, env, String.t()) :: notification
-  def build_notification(device_id, topic, payload, env, push_type \\ "alert") do
-    %{device_id: device_id, topic: topic, payload: payload, env: env, push_type: push_type}
+  @spec build_notification(String.t(), String.t(), map, env, String.t(), String.t()) ::
+          notification
+  def build_notification(device_id, topic, payload, env, push_type \\ "alert", priority \\ "10") do
+    %{
+      device_id: device_id,
+      topic: topic,
+      payload: payload,
+      env: env,
+      push_type: push_type,
+      priority: priority
+    }
   end
 
   @spec url(env, String.t()) :: String.t()
@@ -67,13 +76,20 @@ defmodule APNS do
 
   @spec build_request(notification, String.t()) :: Finch.Request.t()
   defp build_request(notification, token) do
-    %{payload: payload, device_id: device_id, env: env, push_type: push_type, topic: topic} =
-      notification
+    %{
+      payload: payload,
+      device_id: device_id,
+      env: env,
+      push_type: push_type,
+      priority: priority,
+      topic: topic
+    } = notification
 
     base_headers = [
       {"authorization", "bearer " <> token},
       {"apns-topic", maybe_voip_topic(push_type, topic)},
-      {"apns-push-type", push_type}
+      {"apns-push-type", push_type},
+      {"apns-priority", priority}
     ]
 
     url = url(env, device_id)
@@ -85,10 +101,12 @@ defmodule APNS do
 
   @spec maybe_add_expiration(String.t(), Finch.Request.headers()) :: Finch.Request.headers()
   defp maybe_add_expiration("alert", headers), do: headers
+  defp maybe_add_expiration("background", headers), do: headers
   defp maybe_add_expiration("voip", headers), do: [{"apns-expiration", "0"} | headers]
 
   @spec maybe_voip_topic(String.t(), String.t()) :: String.t()
   defp maybe_voip_topic("alert", topic), do: topic
+  defp maybe_voip_topic("background", topic), do: topic
   defp maybe_voip_topic("voip", topic), do: topic <> ".voip"
 
   defp error_reason(%{"reason" => reason}) do

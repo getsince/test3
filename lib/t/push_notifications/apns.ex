@@ -121,7 +121,7 @@ defmodule T.PushNotifications.APNS do
 
     alert = %{
       "title" => dgettext("apns", "Приглашение на дэйт c %{name} принято", name: name),
-      "body" => dgettext("apns", "Добавь аудио-дэйт в календарь, чтобы не пропустить 🙌")
+      "body" => dgettext("apns", "Аудио-дэйт уже в твоём календаре, не пропусти 👀")
     }
 
     base_alert_payload(type, alert, data)
@@ -209,5 +209,11 @@ defmodule T.PushNotifications.APNS do
     }
 
     base_alert_payload(type, alert)
+  end
+
+  # backround notifications
+
+  def background_notification_payload(type, data) do
+    Map.merge(data, %{"type" => type, "aps" => %{"content-available" => "1"}})
   end
 end

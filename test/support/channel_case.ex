@@ -63,7 +63,7 @@ defmodule TWeb.ChannelCase do
       |> Accounts.generate_user_session_token("mobile")
       |> Accounts.UserToken.encoded_token()
 
-    {:ok, socket} = connect(TWeb.UserSocket, %{"token" => token}, %{})
+    {:ok, socket} = connect(TWeb.UserSocket, %{"token" => token, "version" => "4.6.0"}, %{})
     socket
   end
 

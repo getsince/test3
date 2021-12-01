@@ -757,4 +757,9 @@ defmodule T.Accounts do
     job = DispatchJob.new(%{"type" => "complete_onboarding", "user_id" => user_id})
     Oban.insert(job)
   end
+
+  def schedule_upgrade_app_push(user_id) do
+    job = DispatchJob.new(%{"type" => "upgrade_app", "user_id" => user_id})
+    Oban.insert(job)
+  end
 end

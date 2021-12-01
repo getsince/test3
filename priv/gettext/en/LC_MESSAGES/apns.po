@@ -106,7 +106,17 @@ msgstr "Audio-date is already in your calendar, don't miss it 👀"
 msgid "%{name} прислал%{gender_a} тебe контакт!"
 msgstr "%{name} shared a contact with you!"
 
-#, elixir-format, fuzzy
+#, elixir-format
 #: lib/t/push_notifications/apns.ex:199
 msgid "Заходи, чтобы просмотреть и написать ✨"
 msgstr "Come in to view & message ✨"
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:208
+msgid "The current version is no longer supported 🙃"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:207
+msgid "Update the app in the App Store ✨"
+msgstr ""

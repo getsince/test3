@@ -216,10 +216,14 @@ defmodule T.Matches do
     Match
     |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
     |> order_by(desc: :inserted_at)
+    |> join(:left, [m], t in Timeslot, on: m.id == t.match_id)
+    |> join(:left, [m, t], c in MatchContact, on: m.id == c.match_id)
+    |> select([m, t, c], {m, t, c})
     |> Repo.all()
+    |> Enum.map(fn {match, timeslot, contact} ->
+      %Match{match | timeslot: timeslot, contact: contact}
+    end)
     |> preload_match_profiles(user_id)
-    |> with_timeslots(user_id)
-    |> with_contacts(user_id)
   end
 
   @spec list_expired_matches(uuid) :: [%Match{}]
@@ -390,29 +394,6 @@ defmodule T.Matches do
       [mate_id] = [match.user_id_1, match.user_id_2] -- [user_id]
       profile = Map.fetch!(profiles, mate_id)
       %Match{match | profile: profile}
-    end)
-  end
-
-  defp with_timeslots(matches, user_id) do
-    slots =
-      user_id
-      # TODO don't reissue join to alive matches
-      |> list_relevant_slots()
-      |> Map.new(fn %Timeslot{match_id: match_id} = timeslot -> {match_id, timeslot} end)
-
-    Enum.map(matches, fn match ->
-      %Match{match | timeslot: slots[match.id]}
-    end)
-  end
-
-  defp with_contacts(matches, user_id) do
-    contacts =
-      user_id
-      |> list_relevant_contacts()
-      |> Map.new(fn %MatchContact{match_id: match_id} = contact -> {match_id, contact} end)
-
-    Enum.map(matches, fn match ->
-      %Match{match | contact: contacts[match.id]}
     end)
   end
 
@@ -627,18 +608,6 @@ defmodule T.Matches do
     pushes |> List.wrap() |> Oban.insert_all()
 
     timeslot
-  end
-
-  # TODO delete stale slots
-  # can list where I'm picker, where I'm not picker, where slot is selected
-  defp list_relevant_slots(user_id) do
-    my_matches =
-      Match
-      |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
-
-    Timeslot
-    |> join(:inner, [t], m in subquery(my_matches), on: t.match_id == m.id)
-    |> Repo.all()
   end
 
   @spec cancel_slot_for_match(uuid, uuid) :: :ok
@@ -1000,16 +969,6 @@ defmodule T.Matches do
   end
 
   # Contact Exchange
-
-  defp list_relevant_contacts(user_id) do
-    my_matches =
-      Match
-      |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
-
-    MatchContact
-    |> join(:inner, [c], m in subquery(my_matches), on: c.match_id == m.id)
-    |> Repo.all()
-  end
 
   defp contact_changeset(contact, attrs) do
     contact

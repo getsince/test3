@@ -76,7 +76,7 @@ defmodule T.Accounts.ProfileTest do
       assert errors_on(changeset).birthdate == ["too young"]
 
       %{year: y, month: m, day: d} = DateTime.utc_now()
-      young = %Date{year: y - 18, month: m, day: d + 1}
+      young = %Date{year: y - 18, month: m, day: d} |> Date.add(1)
 
       changeset =
         Profile.essential_info_changeset(%Profile{}, %{birthdate: Date.to_string(young)})

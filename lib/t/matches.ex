@@ -765,6 +765,31 @@ defmodule T.Matches do
     {:ok, expiration_date}
   end
 
+  def mark_contact_opened_for_match(by_user_id, match_id) do
+    %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} =
+      get_match_for_user!(match_id, by_user_id)
+
+    [mate] = [uid1, uid2] -- [by_user_id]
+    mark_contact_opened_for_match(by_user_id, mate, match_id)
+  end
+
+  @spec mark_contact_opened_for_match(uuid, uuid, uuid) :: :ok
+  defp mark_contact_opened_for_match(by_user_id, mate_id, match_id) do
+    {by_user_id_name, _number_of_matches1} = user_info(by_user_id)
+    {mate_name, _umber_of_matches2} = user_info(mate_id)
+
+    m = "contact opened by #{by_user_id_name} (#{by_user_id}) from #{mate_name} (#{mate_id})"
+
+    Logger.warn(m)
+    Bot.async_post_message(m)
+
+    MatchContact
+    |> where(match_id: ^match_id)
+    |> Repo.update_all(set: [opened: true])
+
+    :ok
+  end
+
   defp get_match_id_for_users!(user_id_1, user_id_2) do
     Match
     |> where(user_id_1: ^user_id_1)

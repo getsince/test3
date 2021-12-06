@@ -13,7 +13,7 @@ defmodule T.Feeds do
   alias T.Accounts.{Profile, UserReport, GenderPreference}
   alias T.Matches.{Match, Like, ExpiredMatch}
   # alias T.Calls
-  alias T.Feeds.{FeedProfile, SeenProfile, FeededProfile, FeedFilter}
+  alias T.Feeds.{FeedProfile, SeenProfile, FeededProfile, FeedFilter, LiveSession}
   # alias T.PushNotifications.DispatchJob
 
   ### PubSub
@@ -22,22 +22,33 @@ defmodule T.Feeds do
   # instead of single topic, use `up-to-filter` with each subscriber providing a value up to which
   # they are subscribed, and if the event is below that value -> send it, if not -> don't send it
 
-  # @pubsub T.PubSub
+  @pubsub T.PubSub
 
-  # defp notify_subscribers({:error, _multi, _reason, _changes} = fail, _event), do: fail
-  # defp notify_subscribers({:error, _reason} = fail, _event), do: fail
+  defp notify_subscribers(%LiveSession{user_id: user_id} = session, :live = event) do
+    broadcast_from(live_topic(), {__MODULE__, event, user_id})
+    session
+  end
+
+  defp notify_subscribers({:error, _multi, _reason, _changes} = fail, _event), do: fail
+  defp notify_subscribers({:error, _reason} = fail, _event), do: fail
+
+  def subscribe_for_live_sessions do
+    subscribe(live_topic())
+  end
 
   # defp broadcast(topic, message) do
   #   Phoenix.PubSub.broadcast(@pubsub, topic, message)
   # end
 
-  # defp broadcast_from(topic, message) do
-  #   Phoenix.PubSub.broadcast_from(@pubsub, self(), topic, message)
-  # end
+  defp broadcast_from(topic, message) do
+    Phoenix.PubSub.broadcast_from(@pubsub, self(), topic, message)
+  end
 
-  # defp subscribe(topic) do
-  #   Phoenix.PubSub.subscribe(@pubsub, topic)
-  # end
+  defp subscribe(topic) do
+    Phoenix.PubSub.subscribe(@pubsub, topic)
+  end
+
+  defp live_topic, do: "__live:"
 
   ### Likes
 
@@ -73,9 +84,76 @@ defmodule T.Feeds do
     where(query, [p], p.by_user_id not in subquery(match_user2_ids_q(user_id)))
   end
 
-  ### Feed
+  ### Live Feed
 
-  @type feed_cursor :: DateTime.t()
+  # TODO test pubsub
+  @spec activate_session(Ecto.UUID.t()) :: %LiveSession{}
+  def activate_session(user_id) do
+    Logger.warn("user #{user_id} activated session")
+    # TODO bot
+
+    %LiveSession{user_id: user_id}
+    |> Repo.insert!(on_conflict: :replace_all, conflict_target: :user_id)
+    |> notify_subscribers(:live)
+  end
+
+  @type feed_cursor :: String.t()
+
+  @spec fetch_live_feed(
+          Ecto.UUID.t(),
+          pos_integer,
+          feed_cursor | nil
+        ) ::
+          {[%FeedProfile{}], feed_cursor}
+  def fetch_live_feed(user_id, count, feed_cursor) do
+    profiles_q = filtered_live_profiles_q(user_id)
+
+    feed_items =
+      live_sessions_q(user_id, feed_cursor)
+      |> join(:inner, [s], p in subquery(profiles_q), on: s.user_id == p.user_id)
+      |> limit(^count)
+      |> select([s, p], {s, p})
+      |> Repo.all()
+
+    feed_cursor =
+      if last = List.last(feed_items) do
+        {%LiveSession{flake: last_flake}, _feed_profile} = last
+        last_flake
+      else
+        feed_cursor
+      end
+
+    feed_profiles = feed_items |> Enum.map(fn {_s, p} -> p end)
+
+    {feed_profiles, feed_cursor}
+  end
+
+  def get_live_feed_profile(for_user_id, mate) do
+    not_hidden_profiles_q()
+    |> not_reported_profiles_q(for_user_id)
+    |> where(user_id: ^mate)
+    |> Repo.one()
+  end
+
+  @spec live_sessions_q(Ecto.UUID.t(), String.t() | nil) :: Ecto.Query.t()
+  defp live_sessions_q(user_id, nil) do
+    LiveSession
+    |> order_by([s], asc: s.flake)
+    |> where([s], s.user_id != ^user_id)
+  end
+
+  defp live_sessions_q(user_id, last_flake) do
+    user_id
+    |> live_sessions_q(nil)
+    |> where([s], s.flake > ^last_flake)
+  end
+
+  defp filtered_live_profiles_q(user_id) do
+    not_hidden_profiles_q()
+    |> not_reported_profiles_q(user_id)
+  end
+
+  ### Normal Feed
 
   @spec fetch_feed(
           Ecto.UUID.t(),

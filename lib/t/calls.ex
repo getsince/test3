@@ -36,6 +36,7 @@ defmodule T.Calls do
 
       {:ok, call_id}
     else
+      # TODO error due to user being on another call
       {:allowed?, false} -> {:error, "call not allowed"}
       {:devices, []} -> {:error, "no pushkit devices available"}
       {:push, false} -> {:error, "all pushes failed"}

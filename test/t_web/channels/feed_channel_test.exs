@@ -103,6 +103,7 @@ defmodule TWeb.FeedChannelTest do
       assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id)
 
       assert reply == %{
+               "mode" => "normal",
                "likes" => [
                  %{
                    "profile" => %{
@@ -181,6 +182,7 @@ defmodule TWeb.FeedChannelTest do
       assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id)
 
       assert reply == %{
+               "mode" => "normal",
                "missed_calls" => [
                  %{
                    # TODO call without ended_at should be joined from ios?
@@ -213,6 +215,7 @@ defmodule TWeb.FeedChannelTest do
                join(socket, "feed:" <> me.id, %{"missed_calls_cursor" => call_id2})
 
       assert reply == %{
+               "mode" => "normal",
                "missed_calls" => [
                  %{
                    "call" => %{

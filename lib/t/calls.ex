@@ -44,6 +44,7 @@ defmodule T.Calls do
   end
 
   def call_allowed?(caller_id, called_id) do
+    # TODO or both live_session
     missed?(called_id, caller_id) or matched?(caller_id, called_id)
   end
 
@@ -237,4 +238,12 @@ defmodule T.Calls do
 
   defp maybe_after_missed_calls(query, nil), do: query
   defp maybe_after_missed_calls(query, after_id), do: where(query, [c], c.id > ^after_id)
+
+  def list_live_missed_calls_with_profile(user_id, reference) do
+    missed_calls_q(user_id, [])
+    |> where([c], c.inserted_at > ^reference)
+    |> join(:inner, [c], p in FeedProfile, on: c.caller_id == p.user_id)
+    |> select([c, p], {c, p})
+    |> Repo.all()
+  end
 end

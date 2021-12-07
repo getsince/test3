@@ -264,6 +264,23 @@ defmodule T.PushNotifications.DispatchJob do
     :ok
   end
 
+  defp handle_type("live_invite" = type, args) do
+    %{"by_user_id" => by_user_id, "user_id" => user_id} = args
+
+    if profile = profile_info(by_user_id) do
+      {name, _gender} = profile
+
+      data = %{
+        "user_id" => by_user_id,
+        "name" => name
+      }
+
+      user_id |> Accounts.list_apns_devices() |> schedule_apns(type, data)
+    end
+
+    :ok
+  end
+
   defp profile_info(user_id) do
     Accounts.Profile
     |> where(user_id: ^user_id)

@@ -13,8 +13,8 @@ defmodule T.Feeds do
   alias T.Accounts.{Profile, UserReport, GenderPreference}
   alias T.Matches.{Match, Like, ExpiredMatch}
   # alias T.Calls
-  alias T.Feeds.{FeedProfile, SeenProfile, FeededProfile, FeedFilter, LiveSession}
-  # alias T.PushNotifications.DispatchJob
+  alias T.Feeds.{FeedProfile, SeenProfile, FeededProfile, FeedFilter, LiveSession, LiveInvite}
+  alias T.PushNotifications.DispatchJob
 
   ### PubSub
 
@@ -23,6 +23,7 @@ defmodule T.Feeds do
   # they are subscribed, and if the event is below that value -> send it, if not -> don't send it
 
   @pubsub T.PubSub
+  @topic "__f"
 
   defp notify_subscribers(%LiveSession{user_id: user_id} = session, :live = event) do
     broadcast_from(live_topic(), {__MODULE__, event, user_id})
@@ -36,12 +37,24 @@ defmodule T.Feeds do
     subscribe(live_topic())
   end
 
+  def subscribe_for_user(user_id) do
+    Phoenix.PubSub.subscribe(@pubsub, pubsub_user_topic(user_id))
+  end
+
   # defp broadcast(topic, message) do
   #   Phoenix.PubSub.broadcast(@pubsub, topic, message)
   # end
 
   defp broadcast_from(topic, message) do
     Phoenix.PubSub.broadcast_from(@pubsub, self(), topic, message)
+  end
+
+  defp pubsub_user_topic(user_id) when is_binary(user_id) do
+    @topic <> ":u:" <> String.downcase(user_id)
+  end
+
+  defp broadcast_for_user(user_id, message) do
+    Phoenix.PubSub.broadcast(@pubsub, pubsub_user_topic(user_id), message)
   end
 
   defp subscribe(topic) do
@@ -148,9 +161,67 @@ defmodule T.Feeds do
     |> where([s], s.flake > ^last_flake)
   end
 
+  defp invited_user_ids_q(user_id) do
+    LiveInvite |> where(by_user_id: ^user_id) |> select([l], l.user_id)
+  end
+
+  defp not_invited_profiles_q(query, user_id) do
+    where(query, [p], p.user_id not in subquery(invited_user_ids_q(user_id)))
+  end
+
+  defp inviter_user_ids_q(user_id) do
+    LiveInvite |> where(user_id: ^user_id) |> select([l], l.by_user_id)
+  end
+
+  defp not_inviter_profiles_q(query, user_id) do
+    where(query, [p], p.user_id not in subquery(inviter_user_ids_q(user_id)))
+  end
+
+  defp not_match1_live_profiles_q(query, user_id) do
+    where(query, [p], p.user_id not in subquery(match_user1_ids_q(user_id)))
+  end
+
+  defp not_match2_live_profiles_q(query, user_id) do
+    where(query, [p], p.user_id not in subquery(match_user2_ids_q(user_id)))
+  end
+
   defp filtered_live_profiles_q(user_id) do
     not_hidden_profiles_q()
     |> not_reported_profiles_q(user_id)
+    |> not_invited_profiles_q(user_id)
+    |> not_inviter_profiles_q(user_id)
+    |> not_match1_live_profiles_q(user_id)
+    |> not_match2_live_profiles_q(user_id)
+  end
+
+  def live_invite_user(by_user_id, user_id) do
+    %LiveInvite{by_user_id: by_user_id, user_id: user_id}
+    |> Repo.insert!(on_conflict: :replace_all, conflict_target: [:by_user_id, :user_id])
+
+    notify_invited_user(by_user_id, user_id)
+  end
+
+  defp notify_invited_user(by_user_id, user_id) do
+    broadcast_for_user(user_id, {__MODULE__, :live_invited, %{by_user_id: by_user_id}})
+    schedule_invited_push(by_user_id, user_id)
+  end
+
+  defp schedule_invited_push(by_user_id, user_id) do
+    job =
+      DispatchJob.new(%{"type" => "live_invite", "by_user_id" => by_user_id, "user_id" => user_id})
+
+    Oban.insert(job)
+  end
+
+  def list_received_invites(user_id) do
+    profiles_q = not_reported_profiles_q(user_id)
+
+    LiveInvite
+    |> where(user_id: ^user_id)
+    |> order_by(desc: :inserted_at)
+    |> join(:inner, [l], p in subquery(profiles_q), on: p.user_id == l.by_user_id)
+    |> select([l, p], p)
+    |> Repo.all()
   end
 
   ### Normal Feed

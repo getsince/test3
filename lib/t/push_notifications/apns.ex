@@ -211,6 +211,16 @@ defmodule T.PushNotifications.APNS do
     base_alert_payload(type, alert)
   end
 
+  def build_alert_payload("live_invite" = type, data) do
+    %{"user_id" => user_id, "name" => name} = data
+
+    alert = %{
+      "title" => dgettext("apns", "%{name} invited you to talk now during Since Live", name: name)
+    }
+
+    base_alert_payload(type, alert, %{"user_id" => user_id})
+  end
+
   # backround notifications
 
   def background_notification_payload(type, data) do

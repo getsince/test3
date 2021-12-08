@@ -25,21 +25,27 @@ defmodule T.Feeds do
   @pubsub T.PubSub
   @topic "__f"
 
+  def subscribe_for_live_sessions, do: subscribe(live_topic())
+  defp live_topic, do: "__live:"
+
+  def subscribe_for_mode_change, do: subscribe(mode_change_topic())
+  defp mode_change_topic, do: "__mode_change:"
+
+  def subscribe_for_user(user_id) do
+    Phoenix.PubSub.subscribe(@pubsub, pubsub_user_topic(user_id))
+  end
+
   defp notify_subscribers(%LiveSession{user_id: user_id} = session, :live = event) do
     broadcast_from(live_topic(), {__MODULE__, event, user_id})
     session
   end
 
+  defp notify_subscribers(:mode_change, event) do
+    broadcast_from(mode_change_topic(), {__MODULE__, [:mode_change, event]})
+  end
+
   defp notify_subscribers({:error, _multi, _reason, _changes} = fail, _event), do: fail
   defp notify_subscribers({:error, _reason} = fail, _event), do: fail
-
-  def subscribe_for_live_sessions do
-    subscribe(live_topic())
-  end
-
-  def subscribe_for_user(user_id) do
-    Phoenix.PubSub.subscribe(@pubsub, pubsub_user_topic(user_id))
-  end
 
   # defp broadcast(topic, message) do
   #   Phoenix.PubSub.broadcast(@pubsub, topic, message)
@@ -60,8 +66,6 @@ defmodule T.Feeds do
   defp subscribe(topic) do
     Phoenix.PubSub.subscribe(@pubsub, topic)
   end
-
-  defp live_topic, do: "__live:"
 
   ### Likes
 
@@ -99,15 +103,85 @@ defmodule T.Feeds do
 
   ### Live Feed
 
-  # TODO test pubsub
-  @spec activate_session(Ecto.UUID.t()) :: %LiveSession{}
-  def activate_session(user_id) do
-    Logger.warn("user #{user_id} activated session")
-    # TODO bot
+  # TODO change
+  def since_live_time_text() do
+    %{
+      "en" => "Come to Since Live every Thursday from 19:00 to 21:00, it will be great ✌️",
+      "ru" => "Приходи на Since Live каждый четверг с 19:00 до 21:00, будет классно ✌️"
+    }
+  end
 
-    %LiveSession{user_id: user_id}
-    |> Repo.insert!(on_conflict: :replace_all, conflict_target: :user_id)
-    |> notify_subscribers(:live)
+  def is_now_live_mode() do
+    day_of_week = Date.utc_today() |> Date.day_of_week()
+    hour = DateTime.utc_now().hour
+    # minute = DateTime.utc_now().minute
+
+    # true
+    # minute < 25
+    day_of_week == 4 && (hour == 16 || hour == 17)
+  end
+
+  @spec live_mode_start_and_end_dates :: {DateTime.t(), DateTime.t()}
+  def live_mode_start_and_end_dates() do
+    session_start = DateTime.new!(Date.utc_today(), Time.new!(18, 0, 0))
+    session_end = DateTime.new!(Date.utc_today(), Time.new!(16, 0, 0))
+    {session_start, session_end}
+  end
+
+  def notify_live_mode_start() do
+    notify_subscribers(:mode_change, :start)
+    DispatchJob.new(%{"type" => "live_mode_started"}) |> Oban.insert()
+  end
+
+  def notify_live_mode_end() do
+    notify_subscribers(:mode_change, :end)
+    DispatchJob.new(%{"type" => "live_mode_ended"}) |> Oban.insert()
+  end
+
+  def clear_live_tables() do
+    # TODO tg bots
+    LiveInvite |> Repo.delete_all()
+    LiveSession |> Repo.delete_all()
+  end
+
+  # TODO test pubsub
+  def maybe_activate_session(user_id) do
+    is_already_live =
+      LiveSession |> where(user_id: ^user_id) |> select([s], count()) |> Repo.all()
+
+    case is_already_live do
+      [0] ->
+        Logger.warn("user #{user_id} activated session")
+        # TODO bot
+
+        %LiveSession{user_id: user_id}
+        |> Repo.insert!(on_conflict: :replace_all, conflict_target: :user_id)
+        |> notify_subscribers(:live)
+
+        maybe_schedule_push_to_matches(user_id)
+
+      _ ->
+        nil
+    end
+  end
+
+  defp maybe_schedule_push_to_matches(user_id) do
+    Match
+    |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
+    |> select([m], {m.user_id_1, m.user_id_2})
+    |> Repo.all()
+    |> Enum.map(fn {user_id_1, user_id_2} ->
+      mate_id = [user_id_1, user_id_2] -- [user_id]
+
+      job =
+        DispatchJob.new(%{
+          "type" => "match_went_live",
+          "user_id" => user_id,
+          "for_user_id" => mate_id
+        })
+
+      Oban.insert(job)
+    end)
   end
 
   @type feed_cursor :: String.t()

@@ -219,10 +219,7 @@ defmodule T.PushNotifications.DispatchJob do
     if profile = profile_info(by_user_id) do
       {name, _gender} = profile
 
-      data = %{
-        "user_id" => by_user_id,
-        "name" => name
-      }
+      data = %{"user_id" => by_user_id, "name" => name}
 
       user_id |> Accounts.list_apns_devices() |> schedule_apns(type, data)
     end
@@ -270,13 +267,30 @@ defmodule T.PushNotifications.DispatchJob do
     if profile = profile_info(by_user_id) do
       {name, _gender} = profile
 
-      data = %{
-        "user_id" => by_user_id,
-        "name" => name
-      }
+      data = %{"user_id" => by_user_id, "name" => name}
 
       user_id |> Accounts.list_apns_devices() |> schedule_apns(type, data)
     end
+
+    :ok
+  end
+
+  defp handle_type("match_went_live" = type, args) do
+    %{"for_user_id" => for_user_id, "user_id" => user_id} = args
+
+    if profile = profile_info(user_id) do
+      {name, gender} = profile
+
+      data = %{"user_id" => user_id, "name" => name, "gender" => gender}
+
+      for_user_id |> Accounts.list_apns_devices() |> schedule_apns(type, data)
+    end
+
+    :ok
+  end
+
+  defp handle_type(type, _args) when type in ["live_mode_started", "live_mode_ended"] do
+    Accounts.list_apns_devices() |> schedule_apns(type, %{})
 
     :ok
   end

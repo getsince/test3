@@ -16,21 +16,15 @@ defmodule TWeb.FeedChannel do
 
       :ok = Matches.subscribe_for_user(user_id)
       :ok = Accounts.subscribe_for_user(user_id)
+      :ok = Feeds.subscribe_for_mode_change()
 
-      day_of_week = Date.utc_today() |> Date.day_of_week()
-      hour = DateTime.utc_now().hour
-      # minute = DateTime.utc_now().minute
-
-      # if true do
-      if day_of_week == 4 && (hour == 16 || hour == 17) do
-        # if minute == 28 do
+      if Feeds.is_now_live_mode() do
         :ok = Feeds.subscribe_for_live_sessions()
         :ok = Feeds.subscribe_for_user(user_id)
 
-        Feeds.activate_session(user_id)
+        Feeds.maybe_activate_session(user_id)
 
-        session_start = DateTime.new!(Date.utc_today(), Time.new!(16, 0, 0))
-        session_end = DateTime.new!(Date.utc_today(), Time.new!(18, 0, 0))
+        {session_start, session_end} = Feeds.live_mode_start_and_end_dates()
 
         missed_calls =
           user_id
@@ -82,6 +76,7 @@ defmodule TWeb.FeedChannel do
 
         reply =
           %{"mode" => "normal"}
+          |> Map.put("since_live_time_text", Feeds.since_live_time_text())
           |> Map.put("match_expiration_duration", @match_ttl)
           |> maybe_put("missed_calls", missed_calls)
           |> maybe_put("likes", likes)
@@ -354,12 +349,12 @@ defmodule TWeb.FeedChannel do
     {:noreply, socket}
   end
 
-  def handle_info({Matches, [:timeslot, :started], match_id}, socket) do
+  def handle_info({Matches, [:timeslot, :start], match_id}, socket) do
     push(socket, "timeslot_started", %{"match_id" => match_id})
     {:noreply, socket}
   end
 
-  def handle_info({Matches, [:timeslot, :ended], match_id}, socket) do
+  def handle_info({Matches, [:timeslot, :end], match_id}, socket) do
     push(socket, "timeslot_ended", %{"match_id" => match_id})
     {:noreply, socket}
   end
@@ -396,15 +391,30 @@ defmodule TWeb.FeedChannel do
     {:noreply, assign(socket, :feed_filter, feed_filter)}
   end
 
+  def handle_info({Feeds, [:mode_change, event]}, socket) do
+    case event do
+      :start -> push(socket, "live_mode_started", %{})
+      :end -> push(socket, "live_mode_ended", %{})
+    end
+
+    {:noreply, socket}
+  end
+
   # TODO test
   # TODO reduce # queries
   # TODO optimise pubsub, and use fastlane (one encode per screen width) or move screen width logic to the client
   def handle_info({Feeds, :live, user_id}, socket) do
     %{current_user: user, screen_width: screen_width} = socket.assigns
 
-    # TODO activated-match
     if feed_profile = Feeds.get_live_feed_profile(user.id, user_id) do
-      push(socket, "activated", render_feed_item(feed_profile, screen_width))
+      if match_id = Matches.is_match?(user.id, user_id) do
+        rendered =
+          render_match(match_id, feed_profile, _timeslot = nil, _contact = nil, screen_width)
+
+        push(socket, "activated_match", %{"match" => rendered})
+      else
+        push(socket, "activated_profile", render_feed_item(feed_profile, screen_width))
+      end
     end
 
     {:noreply, socket}

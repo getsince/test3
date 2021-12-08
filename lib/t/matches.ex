@@ -226,6 +226,16 @@ defmodule T.Matches do
     |> preload_match_profiles(user_id)
   end
 
+  def is_match?(uid1, uid2) do
+    [user_id_1, user_id_2] = Enum.sort([uid1, uid2])
+
+    Match
+    |> where(user_id_1: ^user_id_1)
+    |> where(user_id_2: ^user_id_2)
+    |> select([m], m.id)
+    |> Repo.one()
+  end
+
   # - Matches
 
   @spec list_matches(uuid) :: [%Match{}]

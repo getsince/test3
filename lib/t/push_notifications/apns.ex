@@ -97,12 +97,7 @@ defmodule T.PushNotifications.APNS do
   def build_alert_payload("timeslot_offer" = type, data) do
     %{"name" => name, "gender" => gender} = data
 
-    gender_a =
-      if(gender == "F") do
-        "a"
-      else
-        ""
-      end
+    gender_a = if gender == "F", do: "a", else: ""
 
     alert = %{
       "title" =>
@@ -183,12 +178,7 @@ defmodule T.PushNotifications.APNS do
   def build_alert_payload("contact_offer" = type, data) do
     %{"name" => name, "gender" => gender} = data
 
-    gender_a =
-      if(gender == "F") do
-        "a"
-      else
-        ""
-      end
+    gender_a = if gender == "F", do: "a", else: ""
 
     alert = %{
       "title" =>
@@ -215,10 +205,46 @@ defmodule T.PushNotifications.APNS do
     %{"user_id" => user_id, "name" => name} = data
 
     alert = %{
-      "title" => dgettext("apns", "%{name} invited you to talk now during Since Live", name: name)
+      "title" => dgettext("apns", "%{name} invites you to talk 👉", name: name),
+      "body" => dgettext("apns", "Call now, this is Since Live 🎉")
     }
 
     base_alert_payload(type, alert, %{"user_id" => user_id})
+  end
+
+  def build_alert_payload("match_went_live" = type, data) do
+    %{"user_id" => user_id, "name" => name, "gender" => gender} = data
+
+    gender_a = if gender == "F", do: "a", else: ""
+
+    alert = %{
+      "title" =>
+        dgettext("apns", "Мэтч %{name} готов%{gender_a} общаться 👋",
+          name: name,
+          gender_a: gender_a
+        ),
+      "body" => dgettext("apns", "Заходи и звони сейчас 👉")
+    }
+
+    base_alert_payload(type, alert, %{"user_id" => user_id})
+  end
+
+  def build_alert_payload("live_mode_started" = type, _data) do
+    alert = %{
+      "title" => dgettext("apns", "Since Live starts 🥳"),
+      "body" => dgettext("apns", "Come to the party and chat 🎉")
+    }
+
+    base_alert_payload(type, alert, %{})
+  end
+
+  def build_alert_payload("live_mode_ended" = type, _data) do
+    alert = %{
+      "title" => dgettext("apns", "Since Live ended ✌️"),
+      "body" => dgettext("apns", "Wait for the party in a week 👀")
+    }
+
+    base_alert_payload(type, alert, %{})
   end
 
   # backround notifications

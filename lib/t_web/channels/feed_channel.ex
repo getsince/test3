@@ -18,82 +18,91 @@ defmodule TWeb.FeedChannel do
       :ok = Accounts.subscribe_for_user(user_id)
       :ok = Feeds.subscribe_for_mode_change()
 
-      if Feeds.is_now_live_mode() do
-        :ok = Feeds.subscribe_for_live_sessions()
-        :ok = Feeds.subscribe_for_user(user_id)
-
-        Feeds.maybe_activate_session(user_id)
-
-        {session_start, session_end} = Feeds.live_mode_start_and_end_dates()
-
-        missed_calls =
-          user_id
-          |> Calls.list_live_missed_calls_with_profile(session_start)
-          |> render_missed_calls_with_profile(screen_width)
-
-        invites =
-          user_id
-          |> Feeds.list_received_invites()
-          |> render_feed(screen_width)
-
-        matches =
-          user_id
-          |> Matches.list_live_matches()
-          |> render_matches(screen_width)
-
-        reply =
-          %{"mode" => "live"}
-          |> Map.put("session_expiration_date", session_end)
-          |> Map.put("live_session_duration", @live_session_duration)
-          |> maybe_put("missed_calls", missed_calls)
-          |> maybe_put("invites", invites)
-          |> maybe_put("matches", matches)
-
-        {:ok, reply, assign(socket, mode: "live")}
-      else
-        feed_filter = Feeds.get_feed_filter(user_id)
-        {location, gender} = Accounts.get_location_and_gender!(user_id)
-
-        missed_calls =
-          user_id
-          |> Calls.list_missed_calls_with_profile(after: params["missed_calls_cursor"])
-          |> render_missed_calls_with_profile(screen_width)
-
-        likes =
-          user_id
-          |> Feeds.list_received_likes()
-          |> render_feed(screen_width)
-
-        matches =
-          user_id
-          |> Matches.list_matches()
-          |> render_matches(screen_width)
-
-        expired_matches =
-          user_id
-          |> Matches.list_expired_matches()
-          |> render_expired_matches(screen_width)
-
-        reply =
-          %{"mode" => "normal"}
-          |> Map.put("since_live_time_text", Feeds.since_live_time_text())
-          |> Map.put("match_expiration_duration", @match_ttl)
-          |> maybe_put("missed_calls", missed_calls)
-          |> maybe_put("likes", likes)
-          |> maybe_put("matches", matches)
-          |> maybe_put("expired_matches", expired_matches)
-
-        {:ok, reply,
-         assign(socket,
-           mode: "normal",
-           feed_filter: feed_filter,
-           location: location,
-           gender: gender
-         )}
+      cond do
+        params["mode"] == "normal" -> join_normal_mode(user_id, screen_width, params, socket)
+        params["mode"] == "live" -> join_live_mode(user_id, screen_width, socket)
+        Feeds.is_now_live_mode() -> join_live_mode(user_id, screen_width, socket)
+        true -> join_normal_mode(user_id, screen_width, params, socket)
       end
     else
       {:error, %{"error" => "forbidden"}}
     end
+  end
+
+  defp join_live_mode(user_id, screen_width, socket) do
+    :ok = Feeds.subscribe_for_live_sessions()
+    :ok = Feeds.subscribe_for_user(user_id)
+
+    Feeds.maybe_activate_session(user_id)
+
+    {session_start, session_end} = Feeds.live_mode_start_and_end_dates()
+
+    missed_calls =
+      user_id
+      |> Calls.list_live_missed_calls_with_profile(session_start)
+      |> render_missed_calls_with_profile(screen_width)
+
+    invites =
+      user_id
+      |> Feeds.list_received_invites()
+      |> render_feed(screen_width)
+
+    matches =
+      user_id
+      |> Matches.list_live_matches()
+      |> render_matches(screen_width)
+
+    reply =
+      %{"mode" => "live"}
+      |> Map.put("session_expiration_date", session_end)
+      |> Map.put("live_session_duration", @live_session_duration)
+      |> maybe_put("missed_calls", missed_calls)
+      |> maybe_put("invites", invites)
+      |> maybe_put("matches", matches)
+
+    {:ok, reply, assign(socket, mode: "live")}
+  end
+
+  defp join_normal_mode(user_id, screen_width, params, socket) do
+    feed_filter = Feeds.get_feed_filter(user_id)
+    {location, gender} = Accounts.get_location_and_gender!(user_id)
+
+    missed_calls =
+      user_id
+      |> Calls.list_missed_calls_with_profile(after: params["missed_calls_cursor"])
+      |> render_missed_calls_with_profile(screen_width)
+
+    likes =
+      user_id
+      |> Feeds.list_received_likes()
+      |> render_feed(screen_width)
+
+    matches =
+      user_id
+      |> Matches.list_matches()
+      |> render_matches(screen_width)
+
+    expired_matches =
+      user_id
+      |> Matches.list_expired_matches()
+      |> render_expired_matches(screen_width)
+
+    reply =
+      %{"mode" => "normal"}
+      |> Map.put("since_live_time_text", Feeds.since_live_time_text())
+      |> Map.put("match_expiration_duration", @match_ttl)
+      |> maybe_put("missed_calls", missed_calls)
+      |> maybe_put("likes", likes)
+      |> maybe_put("matches", matches)
+      |> maybe_put("expired_matches", expired_matches)
+
+    {:ok, reply,
+     assign(socket,
+       mode: "normal",
+       feed_filter: feed_filter,
+       location: location,
+       gender: gender
+     )}
   end
 
   @impl true
@@ -106,14 +115,19 @@ defmodule TWeb.FeedChannel do
 
     case mode do
       "live" ->
-        {feed, cursor} =
-          Feeds.fetch_live_feed(
-            user.id,
-            params["count"] || 10,
-            params["cursor"]
-          )
+        if params["cursor"] == "non-nil" do
+          {:reply, {:ok, %{"feed" => [], "cursor" => nil}}, socket}
+        else
+          {feed, cursor} =
+            Feeds.fetch_live_feed(
+              user.id,
+              params["count"] || 10,
+              params["cursor"]
+            )
 
-        {:reply, {:ok, %{"feed" => render_feed(feed, screen_width), "cursor" => cursor}}, socket}
+          {:reply, {:ok, %{"feed" => render_feed(feed, screen_width), "cursor" => cursor}},
+           socket}
+        end
 
       "normal" ->
         %{
@@ -428,8 +442,6 @@ defmodule TWeb.FeedChannel do
       rendered = render_feed_item(profile, screen_width)
       push(socket, "live_invite", rendered)
     end
-
-    # push(socket, "live_mode_ended", %{})
 
     {:noreply, socket}
   end

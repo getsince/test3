@@ -66,7 +66,8 @@ defmodule TWeb.FeedChannelTest do
         picker_id: p2.id
       )
 
-      assert {:ok, %{"matches" => matches}, _socket} = join(socket, "feed:" <> me.id)
+      assert {:ok, %{"matches" => matches}, _socket} =
+               join(socket, "feed:" <> me.id, %{"mode" => "normal"})
 
       assert matches == [
                %{
@@ -100,10 +101,16 @@ defmodule TWeb.FeedChannelTest do
 
       assert {:ok, %{like: %Matches.Like{}}} = Matches.like_user(mate.id, me.id)
 
-      assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id)
+      assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id, %{"mode" => "normal"})
 
       assert reply == %{
                "mode" => "normal",
+               "since_live_time_text" => %{
+                 "en" =>
+                   "Come to Since Live every Thursday from 19:00 to 21:00 and Saturday from 20:00 to 22:00, it will be great ✌️",
+                 "ru" =>
+                   "Приходи на Since Live каждый четверг с 19:00 до 21:00 и субботу с 20:00 до 22:00, будет классно ✌️"
+               },
                "likes" => [
                  %{
                    "profile" => %{
@@ -130,7 +137,7 @@ defmodule TWeb.FeedChannelTest do
         )
 
       assert {:ok, %{"expired_matches" => expired_matches}, _socket} =
-               join(socket, "feed:" <> me.id)
+               join(socket, "feed:" <> me.id, %{"mode" => "normal"})
 
       assert expired_matches == [
                %{
@@ -179,10 +186,16 @@ defmodule TWeb.FeedChannelTest do
       assert c2.ended_at
       assert c2.ended_by == mate.id
 
-      assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id)
+      assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id, %{"mode" => "normal"})
 
       assert reply == %{
                "mode" => "normal",
+               "since_live_time_text" => %{
+                 "en" =>
+                   "Come to Since Live every Thursday from 19:00 to 21:00 and Saturday from 20:00 to 22:00, it will be great ✌️",
+                 "ru" =>
+                   "Приходи на Since Live каждый четверг с 19:00 до 21:00 и субботу с 20:00 до 22:00, будет классно ✌️"
+               },
                "missed_calls" => [
                  %{
                    # TODO call without ended_at should be joined from ios?
@@ -212,10 +225,19 @@ defmodule TWeb.FeedChannelTest do
 
       # now with missed_calls_cursor
       assert {:ok, reply, _socket} =
-               join(socket, "feed:" <> me.id, %{"missed_calls_cursor" => call_id2})
+               join(socket, "feed:" <> me.id, %{
+                 "missed_calls_cursor" => call_id2,
+                 "mode" => "normal"
+               })
 
       assert reply == %{
                "mode" => "normal",
+               "since_live_time_text" => %{
+                 "en" =>
+                   "Come to Since Live every Thursday from 19:00 to 21:00 and Saturday from 20:00 to 22:00, it will be great ✌️",
+                 "ru" =>
+                   "Приходи на Since Live каждый четверг с 19:00 до 21:00 и субботу с 20:00 до 22:00, будет классно ✌️"
+               },
                "missed_calls" => [
                  %{
                    "call" => %{
@@ -375,7 +397,9 @@ defmodule TWeb.FeedChannelTest do
         )
 
       socket = connected_socket(me)
-      assert {:ok, _reply, socket} = subscribe_and_join(socket, "feed:" <> me.id)
+
+      assert {:ok, _reply, socket} =
+               subscribe_and_join(socket, "feed:" <> me.id, %{"mode" => "normal"})
 
       now = DateTime.utc_now()
 
@@ -439,7 +463,9 @@ defmodule TWeb.FeedChannelTest do
         )
 
       socket = connected_socket(me)
-      assert {:ok, _reply, socket} = subscribe_and_join(socket, "feed:" <> me.id)
+
+      assert {:ok, _reply, socket} =
+               subscribe_and_join(socket, "feed:" <> me.id, %{"mode" => "normal"})
 
       [m1, m2] = [
         onboarded_user(
@@ -491,7 +517,9 @@ defmodule TWeb.FeedChannelTest do
         )
 
       socket = connected_socket(me)
-      assert {:ok, _reply, socket} = subscribe_and_join(socket, "feed:" <> me.id)
+
+      assert {:ok, _reply, socket} =
+               subscribe_and_join(socket, "feed:" <> me.id, %{"mode" => "normal"})
 
       ref = push(socket, "more", %{"count" => 3})
       assert_reply(ref, :ok, %{"feed" => feed})
@@ -707,7 +735,12 @@ defmodule TWeb.FeedChannelTest do
     test "missing invite", %{socket: socket, mate: mate} do
       ref = push(socket, "call", %{"user_id" => mate.id})
       assert_reply(ref, :error, reply)
-      assert reply == %{"reason" => "call not allowed"}
+
+      if T.Feeds.is_now_live_mode() do
+        assert reply == %{"reason" => "no pushkit devices available"}
+      else
+        assert reply == %{"reason" => "call not allowed"}
+      end
     end
 
     test "missing pushkit devices", %{me: me, socket: socket, mate: mate} do
@@ -1300,13 +1333,15 @@ defmodule TWeb.FeedChannelTest do
   end
 
   defp joined(%{socket: socket, me: me}) do
-    assert {:ok, _reply, socket} = subscribe_and_join(socket, "feed:" <> me.id)
+    assert {:ok, _reply, socket} =
+             subscribe_and_join(socket, "feed:" <> me.id, %{"mode" => "normal"})
+
     {:ok, socket: socket}
   end
 
   defp joined_mate(%{mate: mate}) do
     socket = connected_socket(mate)
-    {:ok, _reply, socket} = join(socket, "feed:" <> mate.id)
+    {:ok, _reply, socket} = join(socket, "feed:" <> mate.id, %{"mode" => "normal"})
     {:ok, mate_socket: socket}
   end
 

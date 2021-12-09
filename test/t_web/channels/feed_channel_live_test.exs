@@ -317,22 +317,24 @@ defmodule TWeb.FeedChanneLiveTest do
     end
 
     test "when non-matched with mate", %{me: me, mate: mate, socket: socket} do
-      # these are the pushes sent to mate
-      MockAPNS
-      # ABABABAB on prod -> success!
-      |> expect(:push, fn %{env: :prod} -> :ok end)
-      # BABABABABA on sandbox -> fails!
-      |> expect(:push, fn %{env: :dev} -> {:error, :bad_device_token} end)
+      if Feeds.is_now_live_mode() do
+        # these are the pushes sent to mate
+        MockAPNS
+        # ABABABAB on prod -> success!
+        |> expect(:push, fn %{env: :prod} -> :ok end)
+        # BABABABABA on sandbox -> fails!
+        |> expect(:push, fn %{env: :dev} -> {:error, :bad_device_token} end)
 
-      ref = push(socket, "call", %{"user_id" => mate.id})
-      assert_reply(ref, :ok, %{"call_id" => call_id})
+        ref = push(socket, "call", %{"user_id" => mate.id})
 
-      assert %Call{id: ^call_id} = call = Repo.get!(Calls.Call, call_id)
+        assert_reply(ref, :ok, %{"call_id" => call_id})
+        assert %Call{id: ^call_id} = call = Repo.get!(Calls.Call, call_id)
 
-      refute call.ended_at
-      refute call.accepted_at
-      assert call.caller_id == me.id
-      assert call.called_id == mate.id
+        refute call.ended_at
+        refute call.accepted_at
+        assert call.caller_id == me.id
+        assert call.called_id == mate.id
+      end
     end
   end
 

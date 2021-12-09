@@ -106,8 +106,10 @@ defmodule T.Feeds do
   # TODO change
   def since_live_time_text() do
     %{
-      "en" => "Come to Since Live every Thursday from 19:00 to 21:00, it will be great ✌️",
-      "ru" => "Приходи на Since Live каждый четверг с 19:00 до 21:00, будет классно ✌️"
+      "en" =>
+        "Come to Since Live every Thursday from 19:00 to 21:00 and Saturday from 20:00 to 22:00, it will be great ✌️",
+      "ru" =>
+        "Приходи на Since Live каждый четверг с 19:00 до 21:00 и субботу с 20:00 до 22:00, будет классно ✌️"
     }
   end
 
@@ -116,16 +118,27 @@ defmodule T.Feeds do
     hour = DateTime.utc_now().hour
     # minute = DateTime.utc_now().minute
 
-    # true
+    true
     # minute < 25
-    day_of_week == 4 && (hour == 16 || hour == 17)
+    # (day_of_week == 4 && (hour == 16 || hour == 17)) ||
+    # (day_of_week == 6 && (hour == 17 || hour == 18))
   end
 
   @spec live_mode_start_and_end_dates :: {DateTime.t(), DateTime.t()}
   def live_mode_start_and_end_dates() do
-    session_start = DateTime.new!(Date.utc_today(), Time.new!(18, 0, 0))
-    session_end = DateTime.new!(Date.utc_today(), Time.new!(16, 0, 0))
-    {session_start, session_end}
+    day_of_week = Date.utc_today() |> Date.day_of_week()
+
+    case day_of_week do
+      6 ->
+        session_start = DateTime.new!(Date.utc_today(), Time.new!(17, 0, 0))
+        session_end = DateTime.new!(Date.utc_today(), Time.new!(19, 0, 0))
+        {session_start, session_end}
+
+      _ ->
+        session_start = DateTime.new!(Date.utc_today(), Time.new!(16, 0, 0))
+        session_end = DateTime.new!(Date.utc_today(), Time.new!(18, 0, 0))
+        {session_start, session_end}
+    end
   end
 
   def notify_live_mode_start() do

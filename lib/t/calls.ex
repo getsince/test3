@@ -8,7 +8,7 @@ defmodule T.Calls do
   alias T.{Repo, Twilio, Accounts}
   alias T.Calls.Call
   alias T.Feeds.{FeedProfile}
-  alias T.Matches.Match
+  alias T.Matches.{Match, MatchEvent}
   alias T.PushNotifications.APNS
   alias T.Bot
 
@@ -44,8 +44,7 @@ defmodule T.Calls do
   end
 
   def call_allowed?(caller_id, called_id) do
-    # TODO or both live_session
-    missed?(called_id, caller_id) or matched?(caller_id, called_id)
+    missed?(called_id, caller_id) or matched?(caller_id, called_id) or live_mode?()
   end
 
   defp missed?(caller_id, called_id) do
@@ -63,6 +62,10 @@ defmodule T.Calls do
     |> where(user_id_1: ^user_id_1)
     |> where(user_id_2: ^user_id_2)
     |> Repo.exists?()
+  end
+
+  defp live_mode?() do
+    T.Feeds.is_now_live_mode()
   end
 
   @spec push_call(Ecto.UUID.t(), Ecto.UUID.t(), [%Accounts.PushKitDevice{}]) :: boolean
@@ -114,7 +117,7 @@ defmodule T.Calls do
     end)
   end
 
-  defp get_match_id(multi) do
+  defp maybe_get_match_id(multi) do
     Multi.run(multi, :match_id, fn _repo, %{call: {caller, called}} ->
       match_id =
         Match
@@ -123,19 +126,23 @@ defmodule T.Calls do
         |> order_by(desc: :inserted_at)
         |> limit(1)
         |> select([m], m.id)
-        |> Repo.one!()
+        |> Repo.one()
 
       {:ok, match_id}
     end)
   end
 
-  defp insert_call_start_event(multi) do
-    Multi.insert(multi, :event, fn %{match_id: match_id} ->
-      %T.Matches.MatchEvent{
-        timestamp: DateTime.truncate(DateTime.utc_now(), :second),
-        match_id: match_id,
-        event: "call_start"
-      }
+  defp maybe_insert_call_start_event(multi) do
+    Multi.run(multi, :event, fn _repo, %{match_id: match_id} ->
+      if match_id do
+        Repo.insert(%MatchEvent{
+          timestamp: DateTime.truncate(DateTime.utc_now(), :second),
+          match_id: match_id,
+          event: "call_start"
+        })
+      else
+        {:ok, nil}
+      end
     end)
   end
 
@@ -144,29 +151,38 @@ defmodule T.Calls do
   def accept_call(call_id, now \\ utc_now()) do
     Multi.new()
     |> set_call_accepted_at(call_id, now)
-    |> get_match_id()
-    |> insert_call_start_event()
+    |> maybe_get_match_id()
+    |> maybe_insert_call_start_event()
     |> Repo.transaction()
     |> case do
       {:ok, %{call: {caller, called}, match_id: match_id}} = success ->
-        selected_slot =
-          T.Matches.Timeslot
-          |> where(match_id: ^match_id)
-          |> select([t], t.selected_slot)
-          |> Repo.one()
+        if match_id do
+          selected_slot =
+            T.Matches.Timeslot
+            |> where(match_id: ^match_id)
+            |> select([t], t.selected_slot)
+            |> Repo.one()
 
-        if selected_slot do
-          seconds = DateTime.utc_now() |> DateTime.diff(selected_slot)
-          minutes = div(seconds, 60)
+          if selected_slot do
+            seconds = DateTime.utc_now() |> DateTime.diff(selected_slot)
+            minutes = div(seconds, 60)
 
+            m =
+              "call starts #{fetch_name(caller)} (#{caller}) with #{fetch_name(called)} (#{called}), #{minutes}m later than agreed slot"
+
+            Logger.warn(m)
+            Bot.async_post_message(m)
+          end
+
+          T.Matches.notify_match_expiration_reset(match_id, [caller, called])
+        else
           m =
-            "call starts #{fetch_name(caller)} (#{caller}) with #{fetch_name(called)} (#{called}), #{minutes}m later than agreed slot"
+            "LIVE call starts #{fetch_name(caller)} (#{caller}) with #{fetch_name(called)} (#{called})"
 
           Logger.warn(m)
           Bot.async_post_message(m)
         end
 
-        T.Matches.notify_match_expiration_reset(match_id, [caller, called])
         success
 
       {:error, _step, _reason, _changes} = failure ->

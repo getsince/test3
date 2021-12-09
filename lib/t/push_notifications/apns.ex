@@ -218,12 +218,11 @@ defmodule T.PushNotifications.APNS do
     gender_a = if gender == "F", do: "a", else: ""
 
     alert = %{
-      "title" =>
-        dgettext("apns", "Мэтч %{name} готов%{gender_a} общаться 👋",
-          name: name,
+      "title" => dgettext("apns", "Мэтч %{name} онлайн 👋", name: name),
+      "body" =>
+        dgettext("apns", "...и готов%{gender_a} общаться! Заходи и звони сейчас 👉",
           gender_a: gender_a
-        ),
-      "body" => dgettext("apns", "Заходи и звони сейчас 👉")
+        )
     }
 
     base_alert_payload(type, alert, %{"user_id" => user_id})
@@ -239,9 +238,17 @@ defmodule T.PushNotifications.APNS do
   end
 
   def build_alert_payload("live_mode_ended" = type, _data) do
+    day_of_week = Date.utc_today() |> Date.day_of_week()
+
+    body =
+      case day_of_week do
+        6 -> dgettext("apns", "Wait for the party on Thursday 👀")
+        _ -> dgettext("apns", "Wait for the party on Saturday 👀")
+      end
+
     alert = %{
       "title" => dgettext("apns", "Since Live ended ✌️"),
-      "body" => dgettext("apns", "Wait for the party in a week 👀")
+      "body" => body
     }
 
     base_alert_payload(type, alert, %{})

@@ -256,8 +256,12 @@ defmodule T.Calls do
   defp maybe_after_missed_calls(query, after_id), do: where(query, [c], c.id > ^after_id)
 
   def list_live_missed_calls_with_profile(user_id, reference) do
-    missed_calls_q(user_id, [])
+    Call
+    |> where(called_id: ^user_id)
+    # call hasn't been picked up
+    |> where([c], is_nil(c.accepted_at))
     |> where([c], c.inserted_at > ^reference)
+    |> order_by(asc: :id)
     |> join(:inner, [c], p in FeedProfile, on: c.caller_id == p.user_id)
     |> select([c, p], {c, p})
     |> Repo.all()

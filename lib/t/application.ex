@@ -28,6 +28,7 @@ defmodule T.Application do
         unless_disabled(T.Feeds.SeenPruner),
         unless_disabled(T.Matches.MatchExpirer),
         unless_disabled(T.PushNotifications.ScheduledPushes),
+        unless_disabled(T.Feeds.LiveModeManager),
         TWeb.Endpoint,
         TWeb.Telemetry,
         maybe_migrator(),

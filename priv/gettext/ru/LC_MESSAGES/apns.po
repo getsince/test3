@@ -12,22 +12,22 @@ msgstr ""
 "Plural-Forms: nplurals=3\n"
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:113
+#: lib/t/push_notifications/apns.ex:108
 msgid "Заходи, чтобы ответить на приглашение 👀"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:146
+#: lib/t/push_notifications/apns.ex:141
 msgid "Попробуй предложить другое время 👉"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:157
+#: lib/t/push_notifications/apns.ex:152
 msgid "Приготовься, у тебя 15 минут 👋"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:168
+#: lib/t/push_notifications/apns.ex:163
 msgid "Скорее заходи и звони 🖤"
 msgstr ""
 
@@ -52,12 +52,12 @@ msgid "Invite your match to a date if you want to keep it alive ✨"
 msgstr "Пригласи на дэйт мэтча, если хочешь его сохранить ✨"
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:135
+#: lib/t/push_notifications/apns.ex:130
 msgid "Заходи и звони сейчас 👉"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:109
+#: lib/t/push_notifications/apns.ex:104
 msgid "%{name} пригласил%{gender_a} тебя на дэйт!"
 msgstr ""
 
@@ -67,56 +67,125 @@ msgid "Match with %{name} is about to expire"
 msgstr "Мэтч c %{name} почти истек"
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:167
+#: lib/t/push_notifications/apns.ex:162
 msgid "Аудио-дэйт с %{name} начинается"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:156
+#: lib/t/push_notifications/apns.ex:151
 msgid "Аудио-дэйт с %{name} совсем скоро"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:123 lib/t/push_notifications/apns.ex:134
+#: lib/t/push_notifications/apns.ex:118 lib/t/push_notifications/apns.ex:129
 msgid "Приглашение на дэйт c %{name} принято"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:145
+#: lib/t/push_notifications/apns.ex:140
 msgid "Твой дэйт с %{name} отменён"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:176
+#: lib/t/push_notifications/apns.ex:171
 msgid "Hey, create your own cool profile ✨"
 msgstr "Привет, создай свой классный профиль ✨"
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:177
+#: lib/t/push_notifications/apns.ex:172
 msgid "Meet interesting people ✌️"
 msgstr "Знакомься с интересными людьми ✌️"
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:124
+#: lib/t/push_notifications/apns.ex:119
 msgid "Аудио-дэйт уже в твоём календаре, не пропусти 👀"
 msgstr ""
 
-#, elixir-format, fuzzy
-#: lib/t/push_notifications/apns.ex:195
+#: lib/t/push_notifications/apns.ex:185
 msgid "%{name} прислал%{gender_a} тебe контакт!"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:199
+#: lib/t/push_notifications/apns.ex:189
 msgid "Заходи, чтобы просмотреть и написать ✨"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:208
+#: lib/t/push_notifications/apns.ex:198
 msgid "The current version is no longer supported 🙃"
 msgstr "Текущая версия больше не поддерживается 🙃"
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:207
+#: lib/t/push_notifications/apns.ex:197
 msgid "Update the app in the App Store ✨"
 msgstr "Обнови приложение в App Store ✨"
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:208
+msgid "%{name} invites you to talk 👉"
+msgstr "%{name} приглашает тебя поговорить 👉"
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:209
+msgid "Call now, this is Since Live 🎉"
+msgstr "Звони сейчас — это Since Live 🎉"
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:260
+msgid "Come to the party and chat 🎉"
+msgstr "Заходи на вечеринку и общайся 🎉"
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:276
+msgid "Since Live ended ✌️"
+msgstr "Since Live закончился ✌️"
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:259
+msgid "Since Live starts 🥳"
+msgstr "Since Live начинается 🥳"
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:272
+msgid "Wait for the party on Saturday 👀"
+msgstr "Жди следующую вечеринку в субботу 👀"
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:271
+msgid "Wait for the party on Thursday 👀"
+msgstr "Жди следующую вечеринку в четверг 👀"
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:223
+msgid "...и готов%{gender_a} общаться! Заходи и звони сейчас 👉"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:221
+msgid "Мэтч %{name} онлайн 👋"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:251
+msgid "Come chat with new people 🥳"
+msgstr "Приходи общаться с новыми людьми 🥳"
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:237
+msgid "Come to the party at 19:00, it will be 🔥"
+msgstr "Приходи на вечеринку к 19:00, будет классно 🔥"
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:236
+msgid "Come to the party at 20:00, it will be 🔥"
+msgstr "Приходи на вечеринку к 20:00, будет классно 🔥"
+
+#, elixir-format, fuzzy
+#: lib/t/push_notifications/apns.ex:250
+msgid "Since LIVE starts soon 🔥"
+msgstr "Since LIVE скоро начнется 🔥"
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:241
+msgid "Since LIVE today 🥳"
+msgstr "Since LIVE уже сегодня 🥳"

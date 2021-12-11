@@ -258,6 +258,7 @@ if config_env() == :test do
   config :t, T.PushNotifications.APNS, default_topic: "app.topic"
 
   config :t, T.Feeds.SeenPruner, disabled?: true
+  config :t, T.Feeds.LiveModeManager, disabled?: true
 end
 
 if config_env() == :bench do

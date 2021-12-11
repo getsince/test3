@@ -338,6 +338,11 @@ defmodule T.Accounts do
     :ok
   end
 
+  @spec list_apns_devices() :: [%APNSDevice{}]
+  def list_apns_devices() do
+    APNSDevice |> Repo.all() |> with_base16_encoded_apns_device_id()
+  end
+
   @spec list_apns_devices(Ecto.UUID.t()) :: [%APNSDevice{}]
   def list_apns_devices(user_id) do
     APNSDevice

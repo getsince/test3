@@ -8,7 +8,7 @@ defmodule T.Matches do
 
   alias T.Repo
   alias T.Matches.{Match, Like, Timeslot, MatchEvent, ExpiredMatch, MatchContact}
-  alias T.Feeds.FeedProfile
+  alias T.Feeds.{FeedProfile, LiveSession}
   alias T.Accounts.Profile
   alias T.PushNotifications.DispatchJob
   alias T.Bot
@@ -207,6 +207,33 @@ defmodule T.Matches do
       {:error, _step, _reason, _changes} = failure ->
         failure
     end
+  end
+
+  # - Live Matches
+
+  defp active_live_sessions() do
+    LiveSession |> select([s], s.user_id)
+  end
+
+  @spec list_live_matches(uuid) :: [%Match{}]
+  def list_live_matches(user_id) do
+    Match
+    |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
+    |> where([m], m.user_id_1 in subquery(active_live_sessions()))
+    |> where([m], m.user_id_2 in subquery(active_live_sessions()))
+    |> order_by(desc: :inserted_at)
+    |> Repo.all()
+    |> preload_match_profiles(user_id)
+  end
+
+  def is_match?(uid1, uid2) do
+    [user_id_1, user_id_2] = Enum.sort([uid1, uid2])
+
+    Match
+    |> where(user_id_1: ^user_id_1)
+    |> where(user_id_2: ^user_id_2)
+    |> select([m], m.id)
+    |> Repo.one()
   end
 
   # - Matches

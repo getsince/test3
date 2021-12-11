@@ -8,13 +8,13 @@ defmodule T.Feeds do
   require Logger
 
   alias T.Repo
-  # alias T.Bot
+  alias T.Bot
   # alias T.Accounts
   alias T.Accounts.{Profile, UserReport, GenderPreference}
   alias T.Matches.{Match, Like, ExpiredMatch}
-  # alias T.Calls
-  alias T.Feeds.{FeedProfile, SeenProfile, FeededProfile, FeedFilter}
-  # alias T.PushNotifications.DispatchJob
+  alias T.Calls.Call
+  alias T.Feeds.{FeedProfile, SeenProfile, FeededProfile, FeedFilter, LiveSession, LiveInvite}
+  alias T.PushNotifications.DispatchJob
 
   ### PubSub
 
@@ -22,60 +22,316 @@ defmodule T.Feeds do
   # instead of single topic, use `up-to-filter` with each subscriber providing a value up to which
   # they are subscribed, and if the event is below that value -> send it, if not -> don't send it
 
-  # @pubsub T.PubSub
+  @pubsub T.PubSub
+  @topic "__f"
 
-  # defp notify_subscribers({:error, _multi, _reason, _changes} = fail, _event), do: fail
-  # defp notify_subscribers({:error, _reason} = fail, _event), do: fail
+  def subscribe_for_live_sessions, do: subscribe(live_topic())
+  defp live_topic, do: "__live:"
+
+  def subscribe_for_mode_change, do: subscribe(mode_change_topic())
+  defp mode_change_topic, do: "__mode_change:"
+
+  def subscribe_for_user(user_id) do
+    Phoenix.PubSub.subscribe(@pubsub, pubsub_user_topic(user_id))
+  end
+
+  defp notify_subscribers(%LiveSession{user_id: user_id} = session, :live = event) do
+    broadcast_from(live_topic(), {__MODULE__, event, user_id})
+    session
+  end
+
+  defp notify_subscribers(:mode_change, event) do
+    broadcast_from(mode_change_topic(), {__MODULE__, [:mode_change, event]})
+  end
+
+  defp notify_subscribers({:error, _multi, _reason, _changes} = fail, _event), do: fail
+  defp notify_subscribers({:error, _reason} = fail, _event), do: fail
 
   # defp broadcast(topic, message) do
   #   Phoenix.PubSub.broadcast(@pubsub, topic, message)
   # end
 
-  # defp broadcast_from(topic, message) do
-  #   Phoenix.PubSub.broadcast_from(@pubsub, self(), topic, message)
-  # end
+  defp broadcast_from(topic, message) do
+    Phoenix.PubSub.broadcast_from(@pubsub, self(), topic, message)
+  end
 
-  # defp subscribe(topic) do
-  #   Phoenix.PubSub.subscribe(@pubsub, topic)
-  # end
+  defp pubsub_user_topic(user_id) when is_binary(user_id) do
+    @topic <> ":u:" <> String.downcase(user_id)
+  end
 
-  ### Likes
+  defp broadcast_for_user(user_id, message) do
+    Phoenix.PubSub.broadcast(@pubsub, pubsub_user_topic(user_id), message)
+  end
 
-  # TODO accept cursor
-  @spec list_received_likes(Ecto.UUID.t()) :: [%FeedProfile{}]
-  def list_received_likes(user_id) do
+  defp subscribe(topic) do
+    Phoenix.PubSub.subscribe(@pubsub, topic)
+  end
+
+  ### Live Feed
+
+  # TODO change
+  def since_live_time_text() do
+    %{
+      "en" =>
+        "Come to Since Live every Thursday from 19:00 to 21:00 and Saturday from 20:00 to 22:00, it will be great ✌️",
+      "ru" =>
+        "Приходи на Since Live каждый четверг с 19:00 до 21:00 и субботу с 20:00 до 22:00, будет классно ✌️"
+    }
+  end
+
+  def is_now_live_mode(reference_date \\ Date.utc_today(), reference_time \\ Time.utc_now()) do
+    day_of_week = reference_date |> Date.day_of_week()
+    hour = reference_time.hour
+    # minute = reference_time.minute
+
+    # true
+    # minute < 25
+    (day_of_week == 4 && (hour == 16 || hour == 17)) ||
+      (day_of_week == 6 && (hour == 17 || hour == 18))
+  end
+
+  @spec live_mode_start_and_end_dates :: {DateTime.t(), DateTime.t()}
+  def live_mode_start_and_end_dates() do
+    day_of_week = Date.utc_today() |> Date.day_of_week()
+
+    case day_of_week do
+      6 ->
+        session_start = DateTime.new!(Date.utc_today(), Time.new!(17, 0, 0))
+        session_end = DateTime.new!(Date.utc_today(), Time.new!(19, 0, 0))
+        {session_start, session_end}
+
+      _ ->
+        session_start = DateTime.new!(Date.utc_today(), Time.new!(16, 0, 0))
+        session_end = DateTime.new!(Date.utc_today(), Time.new!(18, 0, 0))
+        {session_start, session_end}
+    end
+  end
+
+  def notify_live_mode_will_be_today() do
+    DispatchJob.new(%{"type" => "live_mode_today"}) |> Oban.insert()
+  end
+
+  def notify_live_mode_soon() do
+    DispatchJob.new(%{"type" => "live_mode_soon"}) |> Oban.insert()
+  end
+
+  def notify_live_mode_start() do
+    m = "LIVE started"
+    Logger.warn(m)
+    Bot.async_post_message(m)
+
+    notify_subscribers(:mode_change, :start)
+    DispatchJob.new(%{"type" => "live_mode_started"}) |> Oban.insert()
+  end
+
+  def notify_live_mode_end() do
+    notify_subscribers(:mode_change, :end)
+    DispatchJob.new(%{"type" => "live_mode_ended"}) |> Oban.insert()
+  end
+
+  def clear_live_tables() do
+    invites_count = LiveInvite |> select([i], count()) |> Repo.one!()
+    sessions_count = LiveSession |> select([i], count()) |> Repo.one!()
+    {session_start_time, _} = live_mode_start_and_end_dates()
+
+    calls_count =
+      Call
+      |> where([c], c.accepted_at > ^session_start_time)
+      |> select([c], count())
+      |> Repo.one!()
+
+    m =
+      "LIVE ended, there were #{sessions_count} users with #{invites_count} invites and #{calls_count} successful calls"
+
+    Logger.warn(m)
+    Bot.async_post_message(m)
+
+    LiveInvite |> Repo.delete_all()
+    LiveSession |> Repo.delete_all()
+  end
+
+  # TODO test pubsub
+  def maybe_activate_session(user_id) do
+    is_already_live? = LiveSession |> where(user_id: ^user_id) |> Repo.exists?()
+
+    case is_already_live? do
+      false ->
+        name = Profile |> where(user_id: ^user_id) |> select([p], p.name) |> Repo.one!()
+        m = "user #{name} (#{user_id}) activated LIVE session"
+        Logger.warn(m)
+        Bot.async_post_message(m)
+
+        live_session =
+          %LiveSession{user_id: user_id}
+          |> Repo.insert!(on_conflict: :replace_all, conflict_target: :user_id)
+          |> notify_subscribers(:live)
+
+        maybe_schedule_push_to_matches(user_id)
+        live_session
+
+      true ->
+        nil
+    end
+  end
+
+  defp maybe_schedule_push_to_matches(user_id) do
+    Match
+    |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
+    |> select([m], {m.user_id_1, m.user_id_2})
+    |> Repo.all()
+    |> Enum.map(fn {user_id_1, user_id_2} ->
+      [mate_id] = [user_id_1, user_id_2] -- [user_id]
+
+      job =
+        DispatchJob.new(%{
+          "type" => "match_went_live",
+          "user_id" => user_id,
+          "for_user_id" => mate_id
+        })
+
+      Oban.insert(job)
+    end)
+  end
+
+  @type feed_cursor :: String.t()
+
+  @spec fetch_live_feed(
+          Ecto.UUID.t(),
+          pos_integer,
+          feed_cursor | nil
+        ) ::
+          {[%FeedProfile{}], feed_cursor}
+  def fetch_live_feed(user_id, count, feed_cursor) do
+    profiles_q = filtered_live_profiles_q(user_id)
+
+    feed_items =
+      live_sessions_q(user_id, feed_cursor)
+      |> join(:inner, [s], p in subquery(profiles_q), on: s.user_id == p.user_id)
+      |> limit(^count)
+      |> select([s, p], {s, p})
+      |> Repo.all()
+
+    feed_cursor =
+      if last = List.last(feed_items) do
+        {%LiveSession{flake: last_flake}, _feed_profile} = last
+        last_flake
+      else
+        feed_cursor
+      end
+
+    feed_profiles = feed_items |> Enum.map(fn {_s, p} -> p end)
+
+    {feed_profiles, feed_cursor}
+  end
+
+  def get_live_feed_profile(for_user_id, mate) do
+    not_hidden_profiles_q()
+    |> not_reported_profiles_q(for_user_id)
+    |> where(user_id: ^mate)
+    |> Repo.one()
+  end
+
+  @spec live_sessions_q(Ecto.UUID.t(), String.t() | nil) :: Ecto.Query.t()
+  defp live_sessions_q(user_id, nil) do
+    LiveSession
+    |> order_by([s], asc: s.flake)
+    |> where([s], s.user_id != ^user_id)
+  end
+
+  defp live_sessions_q(user_id, last_flake) do
+    user_id
+    |> live_sessions_q(nil)
+    |> where([s], s.flake > ^last_flake)
+  end
+
+  defp invited_user_ids_q(user_id) do
+    LiveInvite |> where(by_user_id: ^user_id) |> select([l], l.user_id)
+  end
+
+  defp not_invited_profiles_q(query, user_id) do
+    where(query, [p], p.user_id not in subquery(invited_user_ids_q(user_id)))
+  end
+
+  defp inviter_user_ids_q(user_id) do
+    LiveInvite |> where(user_id: ^user_id) |> select([l], l.by_user_id)
+  end
+
+  defp not_inviter_profiles_q(query, user_id) do
+    where(query, [p], p.user_id not in subquery(inviter_user_ids_q(user_id)))
+  end
+
+  defp not_match1_live_profiles_q(query, user_id) do
+    where(query, [p], p.user_id not in subquery(match_user1_ids_q(user_id)))
+  end
+
+  defp not_match2_live_profiles_q(query, user_id) do
+    where(query, [p], p.user_id not in subquery(match_user2_ids_q(user_id)))
+  end
+
+  defp filtered_live_profiles_q(user_id) do
+    not_hidden_profiles_q()
+    |> not_reported_profiles_q(user_id)
+    |> not_invited_profiles_q(user_id)
+    |> not_inviter_profiles_q(user_id)
+    |> not_match1_live_profiles_q(user_id)
+    |> not_match2_live_profiles_q(user_id)
+  end
+
+  def live_invite_user(by_user_id, user_id) do
+    # TODO refactor
+    reported? =
+      UserReport
+      |> where(from_user_id: ^user_id)
+      |> where(on_user_id: ^by_user_id)
+      |> Repo.exists?()
+
+    hidden? = FeedProfile |> where(user_id: ^by_user_id) |> select([p], p.hidden?) |> Repo.one!()
+
+    case {reported?, hidden?} do
+      {false, false} ->
+        name_by_user_id =
+          Profile |> where(user_id: ^by_user_id) |> select([p], p.name) |> Repo.one!()
+
+        name_user_id = Profile |> where(user_id: ^user_id) |> select([p], p.name) |> Repo.one!()
+
+        m = "#{name_by_user_id} (#{by_user_id}) LIVE invited #{name_user_id} (#{user_id})"
+        Logger.warn(m)
+        Bot.async_post_message(m)
+
+        %LiveInvite{by_user_id: by_user_id, user_id: user_id}
+        |> Repo.insert!(on_conflict: :replace_all, conflict_target: [:by_user_id, :user_id])
+
+        notify_invited_user(by_user_id, user_id)
+
+      _ ->
+        nil
+    end
+  end
+
+  defp notify_invited_user(by_user_id, user_id) do
+    broadcast_for_user(user_id, {__MODULE__, :live_invited, %{by_user_id: by_user_id}})
+    schedule_invited_push(by_user_id, user_id)
+  end
+
+  defp schedule_invited_push(by_user_id, user_id) do
+    job =
+      DispatchJob.new(%{"type" => "live_invite", "by_user_id" => by_user_id, "user_id" => user_id})
+
+    Oban.insert(job)
+  end
+
+  def list_received_invites(user_id) do
     profiles_q = not_reported_profiles_q(user_id)
 
-    Like
+    LiveInvite
     |> where(user_id: ^user_id)
-    |> where([l], is_nil(l.declined))
-    |> not_match1_profiles_q(user_id)
-    |> not_match2_profiles_q(user_id)
     |> order_by(desc: :inserted_at)
     |> join(:inner, [l], p in subquery(profiles_q), on: p.user_id == l.by_user_id)
     |> select([l, p], p)
     |> Repo.all()
   end
 
-  defp match_user1_ids_q(user_id) do
-    Match |> where(user_id_1: ^user_id) |> select([m], m.user_id_2)
-  end
-
-  defp match_user2_ids_q(user_id) do
-    Match |> where(user_id_2: ^user_id) |> select([m], m.user_id_1)
-  end
-
-  defp not_match1_profiles_q(query, user_id) do
-    where(query, [p], p.by_user_id not in subquery(match_user1_ids_q(user_id)))
-  end
-
-  defp not_match2_profiles_q(query, user_id) do
-    where(query, [p], p.by_user_id not in subquery(match_user2_ids_q(user_id)))
-  end
-
-  ### Feed
-
-  @type feed_cursor :: DateTime.t()
+  ### Normal Feed
 
   @spec fetch_feed(
           Ecto.UUID.t(),
@@ -287,6 +543,40 @@ defmodule T.Feeds do
     |> not_expired_match_with_q(user_id)
     |> profiles_that_accept_gender_q(gender)
     |> maybe_gender_preferenced_q(gender_preference)
+  end
+
+  ### Likes
+
+  # TODO accept cursor
+  @spec list_received_likes(Ecto.UUID.t()) :: [%FeedProfile{}]
+  def list_received_likes(user_id) do
+    profiles_q = not_reported_profiles_q(user_id)
+
+    Like
+    |> where(user_id: ^user_id)
+    |> where([l], is_nil(l.declined))
+    |> not_match1_profiles_q(user_id)
+    |> not_match2_profiles_q(user_id)
+    |> order_by(desc: :inserted_at)
+    |> join(:inner, [l], p in subquery(profiles_q), on: p.user_id == l.by_user_id)
+    |> select([l, p], p)
+    |> Repo.all()
+  end
+
+  defp match_user1_ids_q(user_id) do
+    Match |> where(user_id_1: ^user_id) |> select([m], m.user_id_2)
+  end
+
+  defp match_user2_ids_q(user_id) do
+    Match |> where(user_id_2: ^user_id) |> select([m], m.user_id_1)
+  end
+
+  defp not_match1_profiles_q(query, user_id) do
+    where(query, [p], p.by_user_id not in subquery(match_user1_ids_q(user_id)))
+  end
+
+  defp not_match2_profiles_q(query, user_id) do
+    where(query, [p], p.by_user_id not in subquery(match_user2_ids_q(user_id)))
   end
 
   @doc "mark_profile_seen(user_id, by: <user-id>)"

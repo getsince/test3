@@ -107,6 +107,14 @@ defmodule T.Feeds do
     end
   end
 
+  def notify_live_mode_will_be_today() do
+    DispatchJob.new(%{"type" => "live_mode_today"}) |> Oban.insert()
+  end
+
+  def notify_live_mode_soon() do
+    DispatchJob.new(%{"type" => "live_mode_soon"}) |> Oban.insert()
+  end
+
   def notify_live_mode_start() do
     m = "LIVE started"
     Logger.warn(m)

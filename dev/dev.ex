@@ -3,17 +3,8 @@ defmodule Dev do
     alert1_ru = %{
       "aps" => %{
         "alert" => %{
-          "title" => "Обнови приложение в App Store ✨",
-          "body" => "Текущая версия больше не поддерживается 🙃"
-        }
-      }
-    }
-
-    alert2_ru = %{
-      "aps" => %{
-        "alert" => %{
-          "title" => "В обновлении много важного 👉",
-          "body" => "Попробуй обмен контактами прямо из ленты 👀"
+          "title" => "Обнови приложение 👋",
+          "body" => "Встречай Since LIVE — новый формат вечеринки 🎉"
         }
       }
     }
@@ -21,17 +12,8 @@ defmodule Dev do
     alert1_en = %{
       "aps" => %{
         "alert" => %{
-          "title" => "Update the app in the App Store ✨",
-          "body" => "The current version is no longer supported 🙃"
-        }
-      }
-    }
-
-    alert2_en = %{
-      "aps" => %{
-        "alert" => %{
-          "title" => "Meet important things in the update 👉",
-          "body" => "Try sharing contacts straight from your feed 👀"
+          "title" => "Update the app 👋",
+          "body" => "Meet Since LIVE, a new party format 🎉"
         }
       }
     }
@@ -55,15 +37,12 @@ defmodule Dev do
       case locale do
         "ru" ->
           APNS.build_notification(device_id, topic, alert1_ru, env) |> APNS.push(T.Finch)
-          APNS.build_notification(device_id, topic, alert2_ru, env) |> APNS.push(T.Finch)
 
         "en" ->
           APNS.build_notification(device_id, topic, alert1_en, env) |> APNS.push(T.Finch)
-          APNS.build_notification(device_id, topic, alert2_en, env) |> APNS.push(T.Finch)
 
         _ ->
           APNS.build_notification(device_id, topic, alert1_ru, env) |> APNS.push(T.Finch)
-          APNS.build_notification(device_id, topic, alert2_ru, env) |> APNS.push(T.Finch)
       end
     end
   end

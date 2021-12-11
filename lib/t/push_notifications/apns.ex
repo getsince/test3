@@ -228,6 +228,32 @@ defmodule T.PushNotifications.APNS do
     base_alert_payload(type, alert, %{"user_id" => user_id})
   end
 
+  def build_alert_payload("live_mode_today" = type, _data) do
+    day_of_week = Date.utc_today() |> Date.day_of_week()
+
+    body =
+      case day_of_week do
+        6 -> dgettext("apns", "Come to the party at 20:00, it will be 🔥")
+        4 -> dgettext("apns", "Come to the party at 19:00, it will be 🔥")
+      end
+
+    alert = %{
+      "title" => dgettext("apns", "Since LIVE today 🥳"),
+      "body" => body
+    }
+
+    base_alert_payload(type, alert, %{})
+  end
+
+  def build_alert_payload("live_mode_soon" = type, _data) do
+    alert = %{
+      "title" => dgettext("apns", "Since LIVE starts soon 🔥"),
+      "body" => dgettext("apns", "Come chat with new people 🥳")
+    }
+
+    base_alert_payload(type, alert, %{})
+  end
+
   def build_alert_payload("live_mode_started" = type, _data) do
     alert = %{
       "title" => dgettext("apns", "Since Live starts 🥳"),
@@ -243,7 +269,7 @@ defmodule T.PushNotifications.APNS do
     body =
       case day_of_week do
         6 -> dgettext("apns", "Wait for the party on Thursday 👀")
-        _ -> dgettext("apns", "Wait for the party on Saturday 👀")
+        4 -> dgettext("apns", "Wait for the party on Saturday 👀")
       end
 
     alert = %{

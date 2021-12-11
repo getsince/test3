@@ -289,7 +289,8 @@ defmodule T.PushNotifications.DispatchJob do
     :ok
   end
 
-  defp handle_type(type, _args) when type in ["live_mode_started", "live_mode_ended"] do
+  defp handle_type(type, _args)
+       when type in ["live_mode_started", "live_mode_ended", "live_mode_today", "live_mode_soon"] do
     Accounts.list_apns_devices() |> schedule_apns(type, %{})
 
     :ok

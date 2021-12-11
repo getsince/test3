@@ -74,28 +74,21 @@ defmodule TWeb.FeedChanneLiveTest do
     end
 
     test "with missed calls", %{socket: socket, me: me} do
-      "user_socket:" <> token = socket.id
       mate = onboarded_user(story: [], location: apple_location(), name: "mate", gender: "F")
-
-      # prepare pushkit devices
-      :ok = Accounts.save_pushkit_device_id(me.id, token, Base.decode16!("ABABAB"), env: "prod")
-
-      # prepare apns mock
-      expect(MockAPNS, :push, 1, fn _notification -> :ok end)
 
       _match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
 
-      # mate calls me
-      {:ok, call_id2} = Calls.call(mate.id, me.id)
-      # mate ends call, so call_id2, should be considered missed
-      :ok = Calls.end_call(mate.id, call_id2)
-      %Call{} = c2 = Repo.get(Call, call_id2)
-      assert c2.ended_at
-      assert c2.ended_by == mate.id
+      expiration_date = session_expiration_date()
+
+      call =
+        insert(:call,
+          called: me,
+          caller: mate,
+          inserted_at: expiration_date,
+          ended_at: expiration_date
+        )
 
       assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id, %{"mode" => "live"})
-
-      expiration_date = session_expiration_date()
 
       assert reply == %{
                "mode" => "live",
@@ -104,9 +97,9 @@ defmodule TWeb.FeedChanneLiveTest do
                "missed_calls" => [
                  %{
                    "call" => %{
-                     "id" => call_id2,
-                     "started_at" => DateTime.from_naive!(c2.inserted_at, "Etc/UTC"),
-                     "ended_at" => DateTime.from_naive!(c2.ended_at, "Etc/UTC")
+                     "id" => call.id,
+                     "started_at" => DateTime.from_naive!(call.inserted_at, "Etc/UTC"),
+                     "ended_at" => DateTime.from_naive!(call.ended_at, "Etc/UTC")
                    },
                    "profile" => %{name: "mate", story: [], user_id: mate.id, gender: "F"}
                  }

@@ -48,6 +48,9 @@ defmodule T.Feeds.LiveModeManager do
       6 ->
         if hour == 10 && minute == 0 && second == 0, do: T.Feeds.notify_live_mode_will_be_today()
         if hour == 16 && minute == 45 && second == 0, do: T.Feeds.notify_live_mode_soon()
+
+      _ ->
+        nil
     end
   end
 

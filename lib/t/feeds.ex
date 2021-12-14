@@ -72,11 +72,17 @@ defmodule T.Feeds do
   # TODO change
   def since_live_time_text() do
     %{
-      "en" =>
-        "Come to Since Live every Thursday from 19:00 to 21:00 and Saturday from 20:00 to 22:00, it will be great ✌️",
-      "ru" =>
-        "Приходи на Since Live каждый четверг с 19:00 до 21:00 и субботу с 20:00 до 22:00, будет классно ✌️"
+      "en" => "Come to Since Live every day from 19:00 to 21:00, it will be great ✌️",
+      "ru" => "Приходи на Since Live каждый день с 19:00 до 21:00, будет классно ✌️"
     }
+  end
+
+  def since_live_date() do
+    if Time.utc_now().hour < 17 do
+      DateTime.new!(Date.utc_today(), Time.new!(17, 0, 0))
+    else
+      DateTime.new!(Date.utc_today() |> Date.add(1), Time.new!(17, 0, 0))
+    end
   end
 
   def is_now_live_mode(reference_date \\ Date.utc_today(), reference_time \\ Time.utc_now()) do

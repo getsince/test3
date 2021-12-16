@@ -105,6 +105,7 @@ defmodule TWeb.FeedChannelTest do
 
       assert reply == %{
                "mode" => "normal",
+               "since_live_date" => since_live_date(),
                "since_live_time_text" => %{
                  "en" =>
                    "Come to Since Live every Thursday from 19:00 to 21:00 and Saturday from 20:00 to 22:00, it will be great ✌️",
@@ -190,6 +191,7 @@ defmodule TWeb.FeedChannelTest do
 
       assert reply == %{
                "mode" => "normal",
+               "since_live_date" => since_live_date(),
                "since_live_time_text" => %{
                  "en" =>
                    "Come to Since Live every Thursday from 19:00 to 21:00 and Saturday from 20:00 to 22:00, it will be great ✌️",
@@ -232,6 +234,7 @@ defmodule TWeb.FeedChannelTest do
 
       assert reply == %{
                "mode" => "normal",
+               "since_live_date" => since_live_date(),
                "since_live_time_text" => %{
                  "en" =>
                    "Come to Since Live every Thursday from 19:00 to 21:00 and Saturday from 20:00 to 22:00, it will be great ✌️",
@@ -1348,4 +1351,7 @@ defmodule TWeb.FeedChannelTest do
   defp expiration_date() do
     DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.add(@match_ttl)
   end
+
+  # TODO remove
+  defp since_live_date(), do: T.Feeds.since_live_date()
 end

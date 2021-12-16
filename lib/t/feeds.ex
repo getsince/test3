@@ -79,6 +79,14 @@ defmodule T.Feeds do
     }
   end
 
+  def since_live_date() do
+    if Time.utc_now().hour < 17 do
+      DateTime.new!(Date.utc_today(), Time.new!(17, 0, 0))
+    else
+      DateTime.new!(Date.utc_today() |> Date.add(1), Time.new!(17, 0, 0))
+    end
+  end
+
   def is_now_live_mode(reference_date \\ Date.utc_today(), reference_time \\ Time.utc_now()) do
     day_of_week = reference_date |> Date.day_of_week()
     hour = reference_time.hour

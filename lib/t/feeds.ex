@@ -69,7 +69,7 @@ defmodule T.Feeds do
 
   ### Live Feed
 
-  # TODO change
+  # TODO remove after new app version release
   def since_live_time_text() do
     %{
       "en" => "Come to Since Live every day from 19:00 to 21:00, it will be great ✌️",

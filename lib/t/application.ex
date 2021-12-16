@@ -98,7 +98,7 @@ defmodule T.Application do
     get_in(Application.get_env(:t, mod), [:disabled?])
   end
 
-  defp unless_disabled(mod) do
+  defp unless_disabled(mod) when is_atom(mod) do
     unless disabled?(mod), do: mod
   end
 end

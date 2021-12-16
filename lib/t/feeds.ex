@@ -41,15 +41,15 @@ defmodule T.Feeds do
   end
 
   defp notify_subscribers(:mode_change, event) do
-    broadcast_from(mode_change_topic(), {__MODULE__, [:mode_change, event]})
+    broadcast(mode_change_topic(), {__MODULE__, [:mode_change, event]})
   end
 
   defp notify_subscribers({:error, _multi, _reason, _changes} = fail, _event), do: fail
   defp notify_subscribers({:error, _reason} = fail, _event), do: fail
 
-  # defp broadcast(topic, message) do
-  #   Phoenix.PubSub.broadcast(@pubsub, topic, message)
-  # end
+  defp broadcast(topic, message) do
+    Phoenix.PubSub.broadcast(@pubsub, topic, message)
+  end
 
   defp broadcast_from(topic, message) do
     Phoenix.PubSub.broadcast_from(@pubsub, self(), topic, message)
@@ -79,12 +79,15 @@ defmodule T.Feeds do
     }
   end
 
-  def since_live_date() do
-    if Time.utc_now().hour < 17 do
-      DateTime.new!(Date.utc_today(), Time.new!(17, 0, 0))
-    else
-      DateTime.new!(Date.utc_today() |> Date.add(1), Time.new!(17, 0, 0))
-    end
+  def since_live_date(reference \\ DateTime.utc_now()) do
+    next_date =
+      if reference.hour < 17 do
+        DateTime.to_date(reference)
+      else
+        Date.add(reference, 1)
+      end
+
+    DateTime.new!(next_date, Time.new!(17, 0, 0))
   end
 
   def is_now_live_mode(reference_date \\ Date.utc_today(), reference_time \\ Time.utc_now()) do
@@ -137,10 +140,14 @@ defmodule T.Feeds do
     DispatchJob.new(%{"type" => "live_mode_ended"}) |> Oban.insert()
   end
 
-  def clear_live_tables() do
+  def clear_live_tables do
+    {session_start_time, _} = live_mode_start_and_end_dates()
+    clear_live_tables(session_start_time)
+  end
+
+  def clear_live_tables(session_start_time) do
     invites_count = LiveInvite |> select([i], count()) |> Repo.one!()
     sessions_count = LiveSession |> select([i], count()) |> Repo.one!()
-    {session_start_time, _} = live_mode_start_and_end_dates()
 
     calls_count =
       Call
@@ -624,5 +631,154 @@ defmodule T.Feeds do
     SeenProfile
     |> where([s], s.inserted_at < fragment("now() - ? * interval '1 day'", ^ttl_days))
     |> Repo.delete_all()
+  end
+
+  # newbies and stuff
+
+  @doc """
+  Starts a "Since Live" event for newbies:
+
+    - sends a message to the admin tg bot
+    - broadcasts a push notification to all participants
+    - broadcasts a `:start` event to all newbies' feed channels
+
+  This function shouldn't be called directly, but rather scheduled with Oban in crontab.
+  """
+  @spec newbies_start_live(DateTime.t()) :: :ok
+  def newbies_start_live(reference \\ DateTime.utc_now()) do
+    newbies = newbies_list_today_participants(reference)
+
+    m = "LIVE (newbie's special edition) started: newbies count #{length(newbies)}"
+    Logger.warn(m)
+    Bot.async_post_message(m)
+
+    Enum.each(newbies, fn user_id ->
+      feed_channel_topic = "feed:" <> user_id
+      broadcast(feed_channel_topic, {__MODULE__, [:mode_change, :start]})
+    end)
+
+    newbies
+    |> T.Accounts.list_apns_devices()
+    |> DispatchJob.schedule_apns("newbie_live_mode_started", _data = %{})
+
+    :ok
+  end
+
+  @doc """
+  Ends a "Since Live" event for newbies:
+
+    - sends a message to the admin tg bot
+    - broadcasts an `:end` event to all `:mode_change` subscribers
+    - clears live tables
+
+  This function shouldn't be called directly, but rather scheduled with Oban in crontab.
+  """
+  @spec newbies_end_live(DateTime.t()) :: :ok
+  def newbies_end_live(reference \\ DateTime.utc_now()) do
+    newbies = newbies_list_today_participants(reference)
+
+    m = "LIVE (newbie's special edition) ended"
+    Logger.warn(m)
+    Bot.async_post_message(m)
+
+    # we don't need to send `end` event only to newbies,
+    # we can turn off everyone who's live right now
+    # since "newbie live" and "normal live" don't intersect
+    notify_subscribers(:mode_change, :end)
+
+    hour_ago_ref = DateTime.add(DateTime.utc_now(), -3600)
+    clear_live_tables(hour_ago_ref)
+
+    next_live_event_on = reference |> since_live_date() |> DateTime.to_date()
+
+    newbies
+    |> T.Accounts.list_apns_devices()
+    |> DispatchJob.schedule_apns(
+      "newbie_live_mode_ended",
+      _data = %{"next" => next_live_event_on}
+    )
+
+    :ok
+  end
+
+  @doc """
+  Lists ids of today's "newbies live" participants.
+
+  "newbies live" participants are:
+  - newbies: users who have registered since the last newbies live
+  - oldies or "midwives": experienced users who explain newbies what all this is about
+
+  """
+  @spec newbies_list_today_participants(DateTime.t()) :: [Ecto.UUID.t()]
+  def newbies_list_today_participants(reference \\ DateTime.utc_now()) do
+    # maybe Repo.stream later
+    newbies = Repo.all(new_newbies_q(reference))
+    hardcoded_oldies() ++ newbies
+  end
+
+  defp hardcoded_oldies do
+    Application.get_env(:t, :oldies) || []
+  end
+
+  # TODO move to accounts.ex? maybe later
+  @spec new_newbies_q(DateTime.t()) :: Ecto.Query.t()
+  defp new_newbies_q(reference) do
+    yesterday_event =
+      reference
+      |> yesterday_newbies_live_started_at()
+      # we need to convert the datetime to +00:00 before giving it to db
+      |> DateTime.shift_zone!("Etc/UTC")
+
+    T.Accounts.User
+    |> where([u], is_nil(u.blocked_at))
+    |> where([u], not is_nil(u.onboarded_at))
+    |> where([u], not is_nil(u.onboarded_with_story_at))
+    |> where([u], fragment("? > ?", u.onboarded_with_story_at, ^yesterday_event))
+    |> join(:inner, [u], p in FeedProfile, on: u.id == p.user_id and not p.hidden?)
+    |> select([u], u.id)
+  end
+
+  @spec is_a_newbies_participant?(Ecto.UUID.t(), DateTime.t()) :: boolean
+  defp is_a_newbies_participant?(user_id, reference) do
+    user_id in hardcoded_oldies() or
+      is_new_newbie?(user_id, reference)
+  end
+
+  @spec is_new_newbie?(Ecto.UUID.t(), DateTime.t()) :: boolean
+  defp is_new_newbie?(user_id, reference) do
+    new_newbies_q(reference)
+    |> where(id: ^user_id)
+    |> Repo.exists?()
+  end
+
+  defp newbies_live_start_at, do: ~T[19:00:00]
+  defp newbies_live_end_at, do: ~T[20:00:00]
+
+  @spec yesterday_newbies_live_started_at(DateTime.t()) :: DateTime.t()
+  defp yesterday_newbies_live_started_at(reference) do
+    reference
+    |> Date.add(-1)
+    |> DateTime.new!(newbies_live_start_at(), "Europe/Moscow")
+  end
+
+  @doc """
+  Checks if there is an ongoing "Since Live" event and if that is the case,
+  checks if user_id is a participant.
+
+  Assumes "Since Live" event starts at 19:00 and ends at 20:00 MSK.
+  """
+  @spec newbies_live_now?(Ecto.UUID.t(), DateTime.t()) :: boolean
+  def newbies_live_now?(user_id, reference \\ DateTime.utc_now()) do
+    msk_now = DateTime.shift_zone!(reference, "Europe/Moscow")
+
+    newbie_time? =
+      Time.compare(newbies_live_start_at(), msk_now) in [:eq, :lt] and
+        Time.compare(newbies_live_end_at(), msk_now) in [:eq, :gt]
+
+    if newbie_time? do
+      is_a_newbies_participant?(user_id, reference)
+    else
+      false
+    end
   end
 end

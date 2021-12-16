@@ -141,7 +141,7 @@ msgid "Since Live ended ✌️"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:259
+#: lib/t/push_notifications/apns.ex:259 lib/t/push_notifications/apns.ex:311
 msgid "Since Live starts 🥳"
 msgstr ""
 
@@ -166,12 +166,12 @@ msgid "Мэтч %{name} онлайн 👋"
 msgstr "Match %{name} is online 👋"
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:251
+#: lib/t/push_notifications/apns.ex:251 lib/t/push_notifications/apns.ex:303
 msgid "Come chat with new people 🥳"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:237
+#: lib/t/push_notifications/apns.ex:237 lib/t/push_notifications/apns.ex:294
 msgid "Come to the party at 19:00, it will be 🔥"
 msgstr ""
 
@@ -180,12 +180,62 @@ msgstr ""
 msgid "Come to the party at 20:00, it will be 🔥"
 msgstr ""
 
-#, elixir-format, fuzzy
-#: lib/t/push_notifications/apns.ex:250
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:250 lib/t/push_notifications/apns.ex:302
 msgid "Since LIVE starts soon 🔥"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:241
+#: lib/t/push_notifications/apns.ex:241 lib/t/push_notifications/apns.ex:293
 msgid "Since LIVE today 🥳"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:312
+msgid "Only you and other new users are invited 🎉"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:333
+msgid "Since Live for babies is over ✌️"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:335
+msgid "Wait for the real party %{on_weekday} 👀"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:327
+msgid "on Friday"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:323
+msgid "on Monday"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:328
+msgid "on Saturday"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:326
+msgid "on Thursday"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:324
+msgid "on Tuesday"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:325
+msgid "on Wednesday"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:329
+msgid "on Sunday"
 msgstr ""

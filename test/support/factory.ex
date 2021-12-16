@@ -1,6 +1,6 @@
 defmodule T.Factory do
   use ExMachina.Ecto, repo: T.Repo
-  alias T.Accounts.{User, Profile, GenderPreference}
+  alias T.Accounts.{User, Profile, GenderPreference, APNSDevice, UserToken}
   alias T.Feeds.{SeenProfile, LiveSession, LiveInvite}
   alias T.Matches.{Match, Timeslot, ExpiredMatch, MatchEvent, MatchContact}
   alias T.Calls.Call
@@ -59,6 +59,25 @@ defmodule T.Factory do
 
   def live_invites_factory do
     %LiveInvite{}
+  end
+
+  def user_token_factory do
+    token = :crypto.strong_rand_bytes(32)
+    %UserToken{token: token, context: "mobile"}
+  end
+
+  def apns_device_factory do
+    alias T.PushNotifications.APNS
+
+    user = build(:user)
+
+    %APNSDevice{
+      user: user,
+      topic: APNS.default_topic(),
+      env: "sandbox",
+      locale: "en",
+      token: build(:user_token, user: user)
+    }
   end
 
   def apple_id do

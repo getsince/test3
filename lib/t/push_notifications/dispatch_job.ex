@@ -4,7 +4,7 @@ defmodule T.PushNotifications.DispatchJob do
 
   use Oban.Worker, queue: :apns
   import Ecto.Query
-  alias T.{Repo, Matches, Accounts, PushNotifications}
+  alias T.{Repo, Matches, Accounts, Feeds, PushNotifications}
 
   @impl true
   def perform(%Oban.Job{args: %{"type" => type} = args}) do
@@ -296,6 +296,15 @@ defmodule T.PushNotifications.DispatchJob do
     :ok
   end
 
+  defp handle_type(type, _args)
+       when type in ["newbie_live_mode_today", "newbie_live_mode_soon"] do
+    Feeds.newbies_list_today_participants()
+    |> Accounts.list_apns_devices()
+    |> schedule_apns(type, _data = %{})
+
+    :ok
+  end
+
   defp profile_info(user_id) do
     Accounts.Profile
     |> where(user_id: ^user_id)
@@ -310,7 +319,7 @@ defmodule T.PushNotifications.DispatchJob do
   end
 
   @spec schedule_apns([%Accounts.APNSDevice{}], String.t(), map) :: [Oban.Job.t()]
-  defp schedule_apns(apns_devices, template, data) do
+  def schedule_apns(apns_devices, template, data) do
     apns_devices
     |> Enum.map(fn device ->
       %Accounts.APNSDevice{device_id: device_id, locale: locale, env: env, topic: topic} = device
@@ -326,6 +335,7 @@ defmodule T.PushNotifications.DispatchJob do
         "priority" => "10"
       })
     end)
+    # TODO might need to chunk later (pg won't accept more than ~30k uuids at a time)
     |> Oban.insert_all()
   end
 

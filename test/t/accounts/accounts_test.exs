@@ -110,4 +110,28 @@ defmodule T.AccountsTest do
       assert ["F", "N"] == Accounts.get_profile!(user_id).gender_preference
     end
   end
+
+  describe "list_apns_devices/1" do
+    test "success: works with user_ids" do
+      [u1, u2] = insert_pair(:user)
+
+      assert Accounts.list_apns_devices([u1.id, u2.id]) == []
+
+      insert(:apns_device, user: u1, device_id: Base.decode16!("BABABABABA"))
+      insert(:apns_device, user: u2, device_id: Base.decode16!("ABABABAB"))
+
+      assert [_, _] = Accounts.list_apns_devices([u1.id, u2.id])
+    end
+
+    test "success: works with user_id" do
+      user = insert(:user)
+
+      assert Accounts.list_apns_devices(user.id) == []
+
+      insert(:apns_device, user: user, device_id: Base.decode16!("BABABABABA"))
+      insert(:apns_device, user: user, device_id: Base.decode16!("ABABABAB"))
+
+      assert [_, _] = Accounts.list_apns_devices(user.id)
+    end
+  end
 end

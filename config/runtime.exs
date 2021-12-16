@@ -26,9 +26,46 @@ config :sentry,
 
 config :t, T.PromEx, disabled: config_env() != :prod
 
+crontab =
+  case config_env() do
+    :prod ->
+      alias T.PushNotifications.DispatchJob
+
+      [
+        if System.get_env("ENABLE_NEWBIE_LIVE") do
+          [
+            # https://crontab.guru/#0_13_*_*_0-4,6
+            # At 13:00 on every day-of-week from Sunday through Thursday and Saturday.
+            {"0 13 * * 0-4,6", DispatchJob, args: %{"type" => "newbie_live_mode_today"}},
+            # https://crontab.guru/#45_18_*_*_0-4,6
+            # At 18:45 on every day-of-week from Sunday through Thursday and Saturday.
+            {"45 18 * * 0-4,6", DispatchJob, args: %{"type" => "newbie_live_mode_soon"}},
+            # https://crontab.guru/#00_19_*_*_0-4,6
+            # At 19:00 on every day-of-week from Sunday through Thursday and Saturday.
+            {"00 19 * * 0-4,6", T.Feeds.NewbiesLive.StartJob},
+            # https://crontab.guru/#00_20_*_*_0-4,6
+            # At 20:00 on every day-of-week from Sunday through Thursday and Saturday.
+            {"00 20 * * 0-4,6", T.Feeds.NewbiesLive.EndJob}
+          ]
+        end
+      ]
+      |> Enum.reject(&is_nil/1)
+      |> List.flatten()
+
+    :dev ->
+      []
+
+    :test ->
+      []
+  end
+
 config :t, Oban,
   repo: T.Repo,
-  plugins: [Oban.Plugins.Pruner, Oban.Plugins.Stager],
+  plugins: [
+    Oban.Plugins.Pruner,
+    Oban.Plugins.Stager,
+    {Oban.Plugins.Cron, crontab: crontab, timezone: "Europe/Moscow"}
+  ],
   queues: [default: 10, apns: 100]
 
 config :ex_aws,
@@ -121,6 +158,15 @@ if config_env() == :prod do
     user_bucket: System.fetch_env!("AWS_S3_BUCKET"),
     static_bucket: System.fetch_env!("AWS_S3_BUCKET_STATIC"),
     static_cdn: System.fetch_env!("STATIC_CDN")
+
+  # oldies are hardcoded users (or rather their ids) which
+  # become participants in all "newbies live" events
+  config :t,
+    oldies: [
+      _Vlad = "0000017b-b0cf-d3e8-0242-ac1100020000",
+      _Lily = "0000017b-e3d2-2b30-0242-ac1100020000",
+      _Rail = "0000017c-14c7-9745-0242-ac1100020000"
+    ]
 end
 
 if config_env() == :dev do
@@ -259,6 +305,9 @@ if config_env() == :test do
 
   config :t, T.Feeds.SeenPruner, disabled?: true
   config :t, T.Feeds.LiveModeManager, disabled?: true
+
+  # there is no user with this id, it's been generated just for the tests
+  config :t, oldies: ["0000017d-d720-1f6a-06e9-e8bbc6570000"]
 end
 
 if config_env() == :bench do

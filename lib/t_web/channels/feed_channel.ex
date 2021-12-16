@@ -22,6 +22,7 @@ defmodule TWeb.FeedChannel do
         params["mode"] == "normal" -> join_normal_mode(user_id, screen_width, params, socket)
         params["mode"] == "live" -> join_live_mode(user_id, screen_width, socket)
         Feeds.is_now_live_mode() -> join_live_mode(user_id, screen_width, socket)
+        Feeds.newbies_live_now?(user_id) -> join_live_mode(user_id, screen_width, socket)
         true -> join_normal_mode(user_id, screen_width, params, socket)
       end
     else
@@ -407,10 +408,19 @@ defmodule TWeb.FeedChannel do
   end
 
   def handle_info({Feeds, [:mode_change, event]}, socket) do
-    case event do
-      :start -> push(socket, "live_mode_started", %{})
-      :end -> push(socket, "live_mode_ended", %{})
-    end
+    socket =
+      case {event, socket.assigns[:mode]} do
+        {:start, "normal"} ->
+          push(socket, "live_mode_started", %{})
+          assign(socket, mode: "live")
+
+        {:end, "live"} ->
+          push(socket, "live_mode_ended", %{})
+          assign(socket, mode: "normal")
+
+        _other ->
+          socket
+      end
 
     {:noreply, socket}
   end

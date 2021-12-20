@@ -523,6 +523,11 @@ defmodule T.Accounts do
     end)
     |> Multi.run(:show_profile, fn _repo, %{user: user} ->
       {count, nil} = maybe_unhide_profile_with_story(user.id)
+
+      if count >= 1 do
+        maybe_mark_onboarded_with_story(user.id)
+      end
+
       {:ok, count >= 1}
     end)
     |> Repo.transaction()
@@ -558,7 +563,18 @@ defmodule T.Accounts do
     |> Multi.run(:maybe_unhide, fn _repo, %{profile: profile} ->
       has_story? = !!profile.story
       hidden? = profile.hidden?
-      result = if hidden? and has_story?, do: maybe_unhide_profile_with_story(profile.user_id)
+
+      result =
+        if hidden? and has_story? do
+          result = {count, _} = maybe_unhide_profile_with_story(profile.user_id)
+
+          if count >= 1 do
+            maybe_mark_onboarded_with_story(profile.user_id)
+          end
+
+          result
+        end
+
       {:ok, result}
     end)
     |> Repo.transaction()
@@ -664,6 +680,14 @@ defmodule T.Accounts do
     |> where([_, u], not is_nil(u.onboarded_at))
     |> where([_, u], is_nil(u.blocked_at))
     |> Repo.update_all(set: [hidden?: false])
+  end
+
+  defp maybe_mark_onboarded_with_story(user_id) do
+    User
+    |> where(id: ^user_id)
+    |> where([u], is_nil(u.onboarded_with_story_at))
+    |> update([u], set: [onboarded_with_story_at: fragment("now()")])
+    |> Repo.update_all([])
   end
 
   def profile_editor_tutorial(_id) do

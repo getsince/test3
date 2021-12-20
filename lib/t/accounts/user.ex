@@ -12,6 +12,7 @@ defmodule T.Accounts.User do
     field :email, :string
 
     field :onboarded_at, :utc_datetime
+    field :onboarded_with_story_at, :utc_datetime
     field :blocked_at, :utc_datetime
 
     has_one :profile, Profile

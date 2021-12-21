@@ -151,6 +151,27 @@ defmodule TWeb.FeedChannel do
     end
   end
 
+  def handle_in("archived-matches", _params, socket) do
+    %{current_user: user, screen_width: screen_width} = socket.assigns
+
+    archived_matches =
+      user.id
+      |> Matches.list_archived_matches()
+      |> render_archived_matches(screen_width)
+
+    {:reply, {:ok, %{"archived_matches" => archived_matches}}, socket}
+  end
+
+  def handle_in("archive-match", %{"match_id" => match_id}, socket) do
+    Matches.mark_match_archived(match_id, me_id(socket))
+    {:reply, :ok, socket}
+  end
+
+  def handle_in("unarchive-match", %{"match_id" => match_id}, socket) do
+    Matches.unarchive_match(match_id, me_id(socket))
+    {:reply, :ok, socket}
+  end
+
   # TODO possibly batch
   def handle_in("seen", %{"user_id" => user_id}, socket) do
     Feeds.mark_profile_seen(user_id, by: me_id(socket))
@@ -526,6 +547,17 @@ defmodule TWeb.FeedChannel do
         match_id: match_id,
         profile: profile
       } = expired_match
+
+      render_match(match_id, profile, nil, nil, screen_width)
+    end)
+  end
+
+  defp render_archived_matches(archived_matches, screen_width) do
+    Enum.map(archived_matches, fn archived_match ->
+      %Matches.ArchivedMatch{
+        match_id: match_id,
+        profile: profile
+      } = archived_match
 
       render_match(match_id, profile, nil, nil, screen_width)
     end)

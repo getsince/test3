@@ -7,7 +7,7 @@ defmodule T.Matches do
   require Logger
 
   alias T.Repo
-  alias T.Matches.{Match, Like, Timeslot, MatchEvent, ExpiredMatch, MatchContact}
+  alias T.Matches.{Match, Like, Timeslot, MatchEvent, ExpiredMatch, MatchContact, ArchivedMatch}
   alias T.Feeds.{FeedProfile, LiveSession}
   alias T.Accounts.Profile
   alias T.PushNotifications.DispatchJob
@@ -242,6 +242,7 @@ defmodule T.Matches do
   def list_matches(user_id) do
     Match
     |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
+    |> where([m], m.id not in subquery(archived_match_ids_q(user_id)))
     |> order_by(desc: :inserted_at)
     |> join(:left, [m], t in Timeslot, on: m.id == t.match_id)
     |> join(:left, [m, t], c in MatchContact, on: m.id == c.match_id)
@@ -251,6 +252,10 @@ defmodule T.Matches do
       %Match{match | timeslot: timeslot, contact: contact}
     end)
     |> preload_match_profiles(user_id)
+  end
+
+  defp archived_match_ids_q(user_id) do
+    ArchivedMatch |> where(by_user_id: ^user_id) |> select([m], m.match_id)
   end
 
   @spec list_expired_matches(uuid) :: [%Match{}]
@@ -264,6 +269,35 @@ defmodule T.Matches do
     |> Enum.map(fn {match, feed_profile} ->
       %ExpiredMatch{match | profile: feed_profile}
     end)
+  end
+
+  @spec list_archived_matches(any) :: list
+  def list_archived_matches(user_id) do
+    ArchivedMatch
+    |> where([m], m.by_user_id == ^user_id)
+    |> order_by(desc: :inserted_at)
+    |> join(:inner, [m], p in FeedProfile, on: m.with_user_id == p.user_id)
+    |> select([m, p], {m, p})
+    |> Repo.all()
+    |> Enum.map(fn {match, feed_profile} ->
+      %ArchivedMatch{match | profile: feed_profile}
+    end)
+  end
+
+  def mark_match_archived(match_id, by_user_id) do
+    %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} =
+      get_match_for_user!(match_id, by_user_id)
+
+    [mate] = [uid1, uid2] -- [by_user_id]
+
+    Repo.insert!(%ArchivedMatch{match_id: match_id, by_user_id: by_user_id, with_user_id: mate})
+  end
+
+  def unarchive_match(match_id, by_user_id) do
+    ArchivedMatch
+    |> where(match_id: ^match_id)
+    |> where(by_user_id: ^by_user_id)
+    |> Repo.delete_all()
   end
 
   @spec unmatch_match(uuid, uuid) :: boolean

@@ -12,6 +12,7 @@ defmodule T.Matches.MatchContact do
     field :contact_type, :string
     field :value, :string
     field :contacts, :map
+    field :opened_contact_type, :string
 
     timestamps(updated_at: false)
   end

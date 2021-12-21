@@ -724,10 +724,12 @@ defmodule T.Matches do
     Logger.warn(m)
     Bot.async_post_message(m)
 
+    contacts = %{contact_type => value}
+
     changeset =
       contact_changeset(
         %MatchContact{match_id: match_id, picker_id: mate},
-        %{contact_type: contact_type, value: value}
+        %{contacts: contacts, contact_type: contact_type, value: value}
       )
 
     push_job =
@@ -778,7 +780,7 @@ defmodule T.Matches do
     value = contacts |> Map.get(contact_type)
 
     changeset =
-      contacts_changeset(
+      contact_changeset(
         %MatchContact{match_id: match_id, picker_id: mate},
         %{contacts: contacts, contact_type: contact_type, value: value}
       )
@@ -847,6 +849,54 @@ defmodule T.Matches do
     broadcast_for_user(mate_id, {__MODULE__, [:contact, :cancelled], contact, expiration_date})
 
     {:ok, expiration_date}
+  end
+
+  def open_contact_for_match(me, match_id, contact_type) do
+    m = "contact opened for match #{match_id} by #{me}"
+
+    Logger.warn(m)
+    Bot.async_post_message(m)
+
+    {1, _} =
+      MatchContact
+      |> where(match_id: ^match_id)
+      |> Repo.update_all(set: [opened_contact_type: contact_type])
+
+    :ok
+  end
+
+  def report_meeting(me, match_id) do
+    m = "meeting reported for match #{match_id} by #{me}"
+
+    Logger.warn(m)
+    Bot.async_post_message(m)
+
+    Multi.new()
+    |> Multi.delete_all(:match_contact, MatchContact |> where(match_id: ^match_id))
+    |> Multi.insert(:match_event, %MatchEvent{
+      timestamp: DateTime.truncate(DateTime.utc_now(), :second),
+      match_id: match_id,
+      event: "meeting_report"
+    })
+    |> Repo.transaction()
+    |> case do
+      {:ok, _changes} -> :ok
+      {:error, _changes} -> :error
+    end
+  end
+
+  def mark_contact_not_opened(me, match_id) do
+    m = "haven't yet met for match #{match_id} by #{me}"
+
+    Logger.warn(m)
+    Bot.async_post_message(m)
+
+    {1, _} =
+      MatchContact
+      |> where(match_id: ^match_id)
+      |> Repo.update_all(set: [opened_contact_type: nil])
+
+    :ok
   end
 
   defp get_match_id_for_users!(user_id_1, user_id_2) do
@@ -1003,7 +1053,7 @@ defmodule T.Matches do
       c in fragment(
         "SELECT c.timestamp
         FROM match_events c
-        WHERE c.match_id = ? AND c.event = 'call_start'
+        WHERE c.match_id = ? AND (c.event = 'call_start' OR c.event = 'meeting_report')
         LIMIT 1",
         e.match_id
       )
@@ -1044,7 +1094,7 @@ defmodule T.Matches do
       c in fragment(
         "SELECT c.timestamp
         FROM match_events c
-        WHERE c.match_id = ? AND c.event = 'call_start'
+        WHERE c.match_id = ? AND (c.event = 'call_start' OR c.event = 'meeting_report')
         LIMIT 1",
         m.id
       )
@@ -1055,14 +1105,6 @@ defmodule T.Matches do
   # Contact Exchange
 
   defp contact_changeset(contact, attrs) do
-    contact
-    |> cast(attrs, [:contact_type, :value])
-    |> validate_required([:contact_type, :value])
-    |> validate_length(:contact_type, min: 1)
-    |> validate_length(:value, min: 1)
-  end
-
-  defp contacts_changeset(contact, attrs) do
     contact
     |> cast(attrs, [:contact_type, :value, :contacts])
     |> validate_required([:contact_type, :value, :contacts])

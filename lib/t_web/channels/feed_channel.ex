@@ -278,6 +278,30 @@ defmodule TWeb.FeedChannel do
     {:reply, {:ok, %{"expiration_date" => expiration_date}}, socket}
   end
 
+  def handle_in("open-contact", %{"match_id" => match_id, "contact_type" => contact_type}, socket) do
+    me = me_id(socket)
+
+    :ok = Matches.open_contact_for_match(me, match_id, contact_type)
+
+    {:reply, :ok, socket}
+  end
+
+  def handle_in("report-we-met", %{"match_id" => match_id}, socket) do
+    me = me_id(socket)
+
+    :ok = Matches.report_meeting(me, match_id)
+
+    {:reply, :ok, socket}
+  end
+
+  def handle_in("report-we-not-met", %{"match_id" => match_id}, socket) do
+    me = me_id(socket)
+
+    :ok = Matches.mark_contact_not_opened(me, match_id)
+
+    {:reply, :ok, socket}
+  end
+
   def handle_in("unmatch", params, socket) do
     unmatched? =
       case params do

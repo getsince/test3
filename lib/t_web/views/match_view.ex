@@ -71,13 +71,15 @@ defmodule TWeb.MatchView do
          contacts: contacts,
          contact_type: contact_type,
          value: value,
-         picker_id: picker
+         picker_id: picker,
+         opened_contact_type: opened_contact_type
        }) do
     %{
       "contacts" => contacts,
       "contact_type" => contact_type,
       "value" => value,
-      "picker" => picker
+      "picker" => picker,
+      "opened_contact_type" => opened_contact_type
     }
   end
 

@@ -54,12 +54,12 @@ defmodule TWeb.FeedChanneLiveTest do
       Feeds.live_invite_user(mate.id, me.id)
 
       assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id, %{"mode" => "live"})
-      expiration_date = session_expiration_date()
+      {duration, expiration_date} = session_expiration_date()
 
       assert reply == %{
                "mode" => "live",
                "session_expiration_date" => expiration_date,
-               "live_session_duration" => 7200,
+               "live_session_duration" => duration,
                "invites" => [
                  %{
                    "profile" => %{
@@ -78,7 +78,7 @@ defmodule TWeb.FeedChanneLiveTest do
 
       _match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
 
-      expiration_date = session_expiration_date()
+      {duration, expiration_date} = session_expiration_date()
 
       call =
         insert(:call,
@@ -93,13 +93,13 @@ defmodule TWeb.FeedChanneLiveTest do
       assert reply == %{
                "mode" => "live",
                "session_expiration_date" => expiration_date,
-               "live_session_duration" => 7200,
+               "live_session_duration" => duration,
                "missed_calls" => [
                  %{
                    "call" => %{
                      "id" => call.id,
-                     "started_at" => DateTime.from_naive!(call.inserted_at, "Etc/UTC"),
-                     "ended_at" => DateTime.from_naive!(call.ended_at, "Etc/UTC")
+                     "started_at" => expiration_date,
+                     "ended_at" => expiration_date
                    },
                    "profile" => %{name: "mate", story: [], user_id: mate.id, gender: "F"}
                  }
@@ -310,24 +310,24 @@ defmodule TWeb.FeedChanneLiveTest do
     end
 
     test "when non-matched with mate", %{me: me, mate: mate, socket: socket} do
-      if Feeds.is_now_live_mode() do
-        # these are the pushes sent to mate
-        MockAPNS
-        # ABABABAB on prod -> success!
-        |> expect(:push, fn %{env: :prod} -> :ok end)
-        # BABABABABA on sandbox -> fails!
-        |> expect(:push, fn %{env: :dev} -> {:error, :bad_device_token} end)
+      freeze_time(socket, _thu_19_30_msk = ~U[2021-12-09 16:30:00Z])
 
-        ref = push(socket, "call", %{"user_id" => mate.id})
+      # these are the pushes sent to mate
+      MockAPNS
+      # ABABABAB on prod -> success!
+      |> expect(:push, fn %{env: :prod} -> :ok end)
+      # BABABABABA on sandbox -> fails!
+      |> expect(:push, fn %{env: :dev} -> {:error, :bad_device_token} end)
 
-        assert_reply(ref, :ok, %{"call_id" => call_id})
-        assert %Call{id: ^call_id} = call = Repo.get!(Calls.Call, call_id)
+      ref = push(socket, "call", %{"user_id" => mate.id})
 
-        refute call.ended_at
-        refute call.accepted_at
-        assert call.caller_id == me.id
-        assert call.called_id == mate.id
-      end
+      assert_reply(ref, :ok, %{"call_id" => call_id})
+      assert %Call{id: ^call_id} = call = Repo.get!(Calls.Call, call_id)
+
+      refute call.ended_at
+      refute call.accepted_at
+      assert call.caller_id == me.id
+      assert call.called_id == mate.id
     end
   end
 
@@ -452,7 +452,8 @@ defmodule TWeb.FeedChanneLiveTest do
   end
 
   defp session_expiration_date() do
-    {_start_date, end_date} = Feeds.live_mode_start_and_end_dates()
-    end_date
+    {_type, [start_date, end_date]} = Feeds.live_today()
+    duration = DateTime.diff(end_date, start_date)
+    {duration, end_date}
   end
 end

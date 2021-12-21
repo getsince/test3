@@ -31,14 +31,15 @@ defmodule T.Feeds.NewbiesLiveTest do
       %{id: _} = newbie_user(onboarded_at: msk(~D[2021-12-19], ~T[14:00:00]))
       %{id: _} = newbie_user(onboarded_at: msk(~D[2021-12-19], ~T[18:59:59]))
       %{id: _yesterday_19_00} = newbie_user(onboarded_at: msk(~D[2021-12-19], ~T[19:00:00]))
-      %{id: yesterday_19_00_01} = newbie_user(onboarded_at: msk(~D[2021-12-19], ~T[19:00:01]))
+      %{id: _yesterday_20_00} = newbie_user(onboarded_at: msk(~D[2021-12-19], ~T[20:00:00]))
+      %{id: yesterday_20_00_01} = newbie_user(onboarded_at: msk(~D[2021-12-19], ~T[20:00:01]))
       %{id: today_12_00} = newbie_user(onboarded_at: msk(~D[2021-12-20], ~T[12:00:00]))
 
       # "Since Live is today" notification is sent at 13:00 MSK
       participants = Feeds.newbies_list_today_participants(msk(~D[2021-12-20], ~T[13:00:00]))
 
       assert_lists_equal(participants, [
-        yesterday_19_00_01,
+        yesterday_20_00_01,
         today_12_00 | @oldies
       ])
 
@@ -49,7 +50,7 @@ defmodule T.Feeds.NewbiesLiveTest do
       participants = Feeds.newbies_list_today_participants(msk(~D[2021-12-20], ~T[18:45:00]))
 
       assert_lists_equal(participants, [
-        yesterday_19_00_01,
+        yesterday_20_00_01,
         today_12_00,
         today_18_40 | @oldies
       ])
@@ -62,7 +63,7 @@ defmodule T.Feeds.NewbiesLiveTest do
       participants = Feeds.newbies_list_today_participants(msk(~D[2021-12-20], ~T[19:00:00]))
 
       assert_lists_equal(participants, [
-        yesterday_19_00_01,
+        yesterday_20_00_01,
         today_12_00,
         today_18_40,
         today_18_59,
@@ -71,13 +72,13 @@ defmodule T.Feeds.NewbiesLiveTest do
     end
   end
 
-  describe "newbies_live_now?/1,2" do
+  describe "live_now?/1,2" do
     test "returns false when no ongoing event and user is participant" do
       oldie = List.first(@oldies)
       %{id: newbie} = newbie_user(onboarded_at: msk(~D[2021-12-19], ~T[09:47:57]))
 
       for time <- [~T[18:59:59], ~T[20:00:01]], user <- [oldie, newbie] do
-        refute Feeds.newbies_live_now?(user, msk(~D[2021-12-19], time))
+        refute Feeds.live_now?(user, msk(~D[2021-12-19], time))
       end
     end
 
@@ -89,7 +90,7 @@ defmodule T.Feeds.NewbiesLiveTest do
       times = [~T[19:00:00], ~T[19:00:01], ~T[19:59:59], ~T[20:00:00]]
 
       for time <- times, user <- users do
-        assert Feeds.newbies_live_now?(user, msk(~D[2021-12-19], time))
+        assert Feeds.live_now?(user, msk(~D[2021-12-19], time))
       end
     end
 
@@ -98,7 +99,7 @@ defmodule T.Feeds.NewbiesLiveTest do
       times = [~T[18:59:59], ~T[19:00:00], ~T[19:59:59], ~T[20:00:00], ~T[20:00:01]]
 
       for time <- times do
-        refute Feeds.newbies_live_now?(old, msk(~D[2021-12-19], time))
+        refute Feeds.live_now?(old, msk(~D[2021-12-19], time))
       end
     end
   end
@@ -151,7 +152,7 @@ defmodule T.Feeds.NewbiesLiveTest do
   end
 
   describe "newbies_end_live/0" do
-    test "broadcasts end event to all subcribes" do
+    test "broadcasts end event to all subcribers" do
       :ok = Feeds.subscribe_for_mode_change()
       :ok = Feeds.newbies_end_live()
       assert_receive {Feeds, [:mode_change, :end]}
@@ -161,7 +162,7 @@ defmodule T.Feeds.NewbiesLiveTest do
     @tag skip: true
     test "clears live tables"
 
-    test "schedules push notifications with the next live event (newbie or normal)" do
+    test "schedules push notifications with the next real live event" do
       newbie = newbie_user(onboarded_at: msk(~D[2021-12-19], ~T[09:47:57]))
       insert(:apns_device, user: newbie, device_id: Base.decode16!("BABABABABA"))
       insert(:apns_device, user: newbie, device_id: Base.decode16!("ABABABAB"), locale: "ru")
@@ -172,23 +173,23 @@ defmodule T.Feeds.NewbiesLiveTest do
                %{
                  "device_id" => "ABABABAB",
                  "template" => "newbie_live_mode_ended",
-                 "data" => %{"next" => "2021-12-20"}
+                 "data" => %{"next" => "2021-12-23"}
                },
                %{
                  "device_id" => "BABABABABA",
                  "template" => "newbie_live_mode_ended",
-                 "data" => %{"next" => "2021-12-20"}
+                 "data" => %{"next" => "2021-12-23"}
                }
              ] = Enum.map(all_enqueued(), & &1.args)
 
       expected_alerts = %{
         "BABABABABA" => %{
-          "title" => "Since Live for babies is over ✌️",
-          "body" => "Wait for the real party on Monday 👀"
+          "title" => "Since Live for newbies is over ✌️",
+          "body" => "Wait for the real party on Thursday 👀"
         },
         "ABABABAB" => %{
-          "title" => "Since Live для малышей закончился ✌️",
-          "body" => "Жди следующую вечеринку в понедельник 👀"
+          "title" => "Since Live для новеньких закончился ✌️",
+          "body" => "Жди следующую вечеринку в четверг 👀"
         }
       }
 
@@ -200,10 +201,6 @@ defmodule T.Feeds.NewbiesLiveTest do
       assert %{failure: 0, snoozed: 0, success: 2} =
                Oban.drain_queue(queue: :apns, with_safety: false)
     end
-  end
-
-  defp msk(date, time) do
-    DateTime.new!(date, time, "Europe/Moscow")
   end
 
   defp newbie_user(opts) do

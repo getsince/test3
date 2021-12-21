@@ -166,4 +166,10 @@ defmodule T.Factory do
     {:ok, profile} = Accounts.onboard_profile(user.profile, onboarding_attrs(opts))
     %Accounts.User{user | profile: profile}
   end
+
+  def msk(date, time) do
+    date
+    |> DateTime.new!(time, "Europe/Moscow")
+    |> DateTime.shift_zone!("Etc/UTC")
+  end
 end

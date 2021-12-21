@@ -1,7 +1,7 @@
 defmodule TWeb.FeedChannelTest do
   use TWeb.ChannelCase, async: true
 
-  alias T.{Accounts, Calls, Matches}
+  alias T.{Accounts, Calls, Matches, Feeds}
   alias Matches.{Timeslot, Match, MatchEvent}
   alias Calls.Call
 
@@ -105,7 +105,7 @@ defmodule TWeb.FeedChannelTest do
 
       assert reply == %{
                "mode" => "normal",
-               "since_live_date" => since_live_date(),
+               "since_live_date" => Feeds.live_next_real_at(),
                "since_live_time_text" => %{
                  "en" =>
                    "Come to Since Live every Thursday from 19:00 to 21:00 and Saturday from 20:00 to 22:00, it will be great ✌️",
@@ -189,9 +189,11 @@ defmodule TWeb.FeedChannelTest do
 
       assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id, %{"mode" => "normal"})
 
+      since_live_date = DateTime.shift_zone!(Feeds.live_next_real_at(), "Etc/UTC")
+
       assert reply == %{
                "mode" => "normal",
-               "since_live_date" => since_live_date(),
+               "since_live_date" => since_live_date,
                "since_live_time_text" => %{
                  "en" =>
                    "Come to Since Live every Thursday from 19:00 to 21:00 and Saturday from 20:00 to 22:00, it will be great ✌️",
@@ -234,7 +236,7 @@ defmodule TWeb.FeedChannelTest do
 
       assert reply == %{
                "mode" => "normal",
-               "since_live_date" => since_live_date(),
+               "since_live_date" => since_live_date,
                "since_live_time_text" => %{
                  "en" =>
                    "Come to Since Live every Thursday from 19:00 to 21:00 and Saturday from 20:00 to 22:00, it will be great ✌️",
@@ -739,7 +741,7 @@ defmodule TWeb.FeedChannelTest do
       ref = push(socket, "call", %{"user_id" => mate.id})
       assert_reply(ref, :error, reply)
 
-      if T.Feeds.is_now_live_mode() do
+      if Feeds.live_now?(mate.id) do
         assert reply == %{"reason" => "no pushkit devices available"}
       else
         assert reply == %{"reason" => "call not allowed"}
@@ -1351,7 +1353,4 @@ defmodule TWeb.FeedChannelTest do
   defp expiration_date() do
     DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.add(@match_ttl)
   end
-
-  # TODO remove
-  defp since_live_date(), do: T.Feeds.since_live_date()
 end

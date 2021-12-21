@@ -130,28 +130,18 @@ msgid "Call now, this is Since Live 🎉"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:260
+#: lib/t/push_notifications/apns.ex:252
 msgid "Come to the party and chat 🎉"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:276
+#: lib/t/push_notifications/apns.ex:260
 msgid "Since Live ended ✌️"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:259 lib/t/push_notifications/apns.ex:311
+#: lib/t/push_notifications/apns.ex:251 lib/t/push_notifications/apns.ex:296
 msgid "Since Live starts 🥳"
-msgstr ""
-
-#, elixir-format
-#: lib/t/push_notifications/apns.ex:272
-msgid "Wait for the party on Saturday 👀"
-msgstr ""
-
-#, elixir-format
-#: lib/t/push_notifications/apns.ex:271
-msgid "Wait for the party on Thursday 👀"
 msgstr ""
 
 #, elixir-format
@@ -165,76 +155,76 @@ msgid "Мэтч %{name} онлайн 👋"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:251 lib/t/push_notifications/apns.ex:303
+#: lib/t/push_notifications/apns.ex:243 lib/t/push_notifications/apns.ex:288
 msgid "Come chat with new people 🥳"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:237 lib/t/push_notifications/apns.ex:294
-msgid "Come to the party at 19:00, it will be 🔥"
-msgstr ""
-
-#, elixir-format
-#: lib/t/push_notifications/apns.ex:236
-msgid "Come to the party at 20:00, it will be 🔥"
-msgstr ""
-
-#, elixir-format
-#: lib/t/push_notifications/apns.ex:250 lib/t/push_notifications/apns.ex:302
+#: lib/t/push_notifications/apns.ex:242 lib/t/push_notifications/apns.ex:287
 msgid "Since LIVE starts soon 🔥"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:241 lib/t/push_notifications/apns.ex:293
+#: lib/t/push_notifications/apns.ex:233 lib/t/push_notifications/apns.ex:278
 msgid "Since LIVE today 🥳"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:312
+#: lib/t/push_notifications/apns.ex:297
 msgid "Only you and other new users are invited 🎉"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:333
-msgid "Since Live for babies is over ✌️"
-msgstr ""
-
-#, elixir-format
-#: lib/t/push_notifications/apns.ex:335
+#: lib/t/push_notifications/apns.ex:307
 msgid "Wait for the real party %{on_weekday} 👀"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:327
+#: lib/t/push_notifications/apns.ex:330
 msgid "on Friday"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:323
+#: lib/t/push_notifications/apns.ex:326
 msgid "on Monday"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:328
+#: lib/t/push_notifications/apns.ex:331
 msgid "on Saturday"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:326
+#: lib/t/push_notifications/apns.ex:329
 msgid "on Thursday"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:324
+#: lib/t/push_notifications/apns.ex:327
 msgid "on Tuesday"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:325
+#: lib/t/push_notifications/apns.ex:328
 msgid "on Wednesday"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:329
+#: lib/t/push_notifications/apns.ex:332
 msgid "on Sunday"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:234 lib/t/push_notifications/apns.ex:279
+msgid "Come to the party at %{time}, it will be 🔥"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:262
+msgid "Wait for the party %{on_weekday} 👀"
+msgstr ""
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:305
+msgid "Since Live for newbies is over ✌️"
 msgstr ""

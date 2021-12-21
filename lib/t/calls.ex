@@ -5,7 +5,7 @@ defmodule T.Calls do
 
   require Logger
 
-  alias T.{Repo, Twilio, Accounts}
+  alias T.{Repo, Twilio, Accounts, Feeds}
   alias T.Calls.Call
   alias T.Feeds.{FeedProfile}
   alias T.Matches.{Match, MatchEvent}
@@ -17,12 +17,12 @@ defmodule T.Calls do
     Twilio.ice_servers()
   end
 
-  @spec call(Ecto.UUID.t(), Ecto.UUID.t()) ::
+  @spec call(Ecto.UUID.t(), Ecto.UUID.t(), DateTime.t()) ::
           {:ok, call_id :: Ecto.UUID.t()} | {:error, reason :: String.t()}
-  def call(caller_id, called_id) do
+  def call(caller_id, called_id, reference \\ DateTime.utc_now()) do
     call_id = Ecto.Bigflake.UUID.generate()
 
-    with {:allowed?, true} <- {:allowed?, call_allowed?(caller_id, called_id)},
+    with {:allowed?, true} <- {:allowed?, call_allowed?(caller_id, called_id, reference)},
          {:devices, [_ | _] = devices} <- {:devices, Accounts.list_pushkit_devices(called_id)},
          {:push, _any_push_sent? = true} <- {:push, push_call(caller_id, call_id, devices)} do
       %Call{id: ^call_id} =
@@ -43,8 +43,9 @@ defmodule T.Calls do
     end
   end
 
-  def call_allowed?(caller_id, called_id) do
-    missed?(called_id, caller_id) or matched?(caller_id, called_id) or live_mode?()
+  def call_allowed?(caller_id, called_id, reference) do
+    missed?(called_id, caller_id) or matched?(caller_id, called_id) or
+      in_live_mode?(caller_id, called_id, reference)
   end
 
   defp missed?(caller_id, called_id) do
@@ -64,8 +65,8 @@ defmodule T.Calls do
     |> Repo.exists?()
   end
 
-  defp live_mode?() do
-    T.Feeds.is_now_live_mode()
+  defp in_live_mode?(caller_id, called_id, reference) do
+    Feeds.live_now?(caller_id, reference) and Feeds.live_now?(called_id, reference)
   end
 
   @spec push_call(Ecto.UUID.t(), Ecto.UUID.t(), [%Accounts.PushKitDevice{}]) :: boolean

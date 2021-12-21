@@ -6,20 +6,132 @@ defmodule T.FeedsLiveTest do
   alias T.Feeds.{LiveSession, LiveInvite}
   alias T.Accounts
 
-  describe "is_now_live_mode/2" do
-    test "Thursday" do
-      assert Feeds.is_now_live_mode(Date.new!(2021, 12, 9), Time.new!(17, 0, 0)) == true
-      assert Feeds.is_now_live_mode(Date.new!(2021, 12, 9), Time.new!(18, 0, 0)) == false
+  import Mox
+  setup :verify_on_exit!
+
+  describe "live_now?/1,2" do
+    setup do
+      {:ok, user_id: Ecto.UUID.generate()}
     end
 
-    test "Saturday" do
-      assert Feeds.is_now_live_mode(Date.new!(2021, 12, 11), Time.new!(17, 0, 0)) == true
-      assert Feeds.is_now_live_mode(Date.new!(2021, 12, 11), Time.new!(19, 0, 0)) == false
+    test "Thursday", %{user_id: user_id} do
+      refute Feeds.live_now?(user_id, msk(~D[2021-12-09], ~T[18:59:59]))
+
+      assert Feeds.live_now?(user_id, msk(~D[2021-12-09], ~T[19:00:00]))
+      assert Feeds.live_now?(user_id, msk(~D[2021-12-09], ~T[19:00:01]))
+      assert Feeds.live_now?(user_id, msk(~D[2021-12-09], ~T[20:59:59]))
+      assert Feeds.live_now?(user_id, msk(~D[2021-12-09], ~T[21:00:00]))
+
+      refute Feeds.live_now?(user_id, msk(~D[2021-12-09], ~T[21:00:01]))
     end
 
-    test "Monday" do
-      assert Feeds.is_now_live_mode(Date.new!(2021, 12, 6), Time.new!(17, 0, 0)) == false
-      assert Feeds.is_now_live_mode(Date.new!(2021, 12, 6), Time.new!(18, 0, 0)) == false
+    test "Saturday", %{user_id: user_id} do
+      refute Feeds.live_now?(user_id, msk(~D[2021-12-11], ~T[19:59:59]))
+
+      assert Feeds.live_now?(user_id, msk(~D[2021-12-11], ~T[20:00:00]))
+      assert Feeds.live_now?(user_id, msk(~D[2021-12-11], ~T[20:00:01]))
+      assert Feeds.live_now?(user_id, msk(~D[2021-12-11], ~T[21:59:59]))
+      assert Feeds.live_now?(user_id, msk(~D[2021-12-11], ~T[22:00:00]))
+
+      refute Feeds.live_now?(user_id, msk(~D[2021-12-11], ~T[22:00:01]))
+    end
+
+    test "Monday", %{user_id: user_id} do
+      refute Feeds.live_now?(user_id, msk(~D[2021-12-06], ~T[18:00:00]))
+      refute Feeds.live_now?(user_id, msk(~D[2021-12-06], ~T[19:00:00]))
+      refute Feeds.live_now?(user_id, msk(~D[2021-12-06], ~T[20:00:00]))
+      refute Feeds.live_now?(user_id, msk(~D[2021-12-06], ~T[21:00:00]))
+      refute Feeds.live_now?(user_id, msk(~D[2021-12-06], ~T[22:00:00]))
+    end
+  end
+
+  describe "live_mode_start/0" do
+    test "notifies :mode_change subscribers" do
+      Feeds.subscribe_for_mode_change()
+      :ok = Feeds.live_mode_start()
+      assert_receive {Feeds, [:mode_change, :start]}
+    end
+
+    test "schedules push notifications with 'starting' message" do
+      insert(:apns_device, user: build(:user), device_id: Base.decode16!("BABA"))
+      insert(:apns_device, user: build(:user), device_id: Base.decode16!("ABAB"), locale: "ru")
+
+      :ok = Feeds.live_mode_start()
+
+      assert [
+               %{"device_id" => "ABAB", "template" => "live_mode_started"},
+               %{"device_id" => "BABA", "template" => "live_mode_started"}
+             ] = Enum.map(all_enqueued(), & &1.args)
+
+      expected_alerts = %{
+        "BABA" => %{
+          "title" => "Since Live starts 🥳",
+          "body" => "Come to the party and chat 🎉"
+        },
+        "ABAB" => %{
+          "title" => "Since Live начинается 🥳",
+          "body" => "Заходи на вечеринку и общайся 🎉"
+        }
+      }
+
+      expect(MockAPNS, :push, 2, fn %{device_id: device_id, payload: payload} ->
+        assert expected_alerts[device_id] == payload["aps"]["alert"]
+        :ok
+      end)
+
+      assert %{failure: 0, snoozed: 0, success: 2} =
+               Oban.drain_queue(queue: :apns, with_safety: false)
+    end
+  end
+
+  describe "live_mode_end/0,1" do
+    test "broadcasts end event to all subcribers" do
+      :ok = Feeds.subscribe_for_mode_change()
+      :ok = Feeds.live_mode_end()
+      assert_receive {Feeds, [:mode_change, :end]}
+    end
+
+    # TODO
+    @tag skip: true
+    test "clears live tables"
+
+    test "schedules push notifications with the next live event" do
+      insert(:apns_device, user: build(:user), device_id: Base.decode16!("BABA"))
+      insert(:apns_device, user: build(:user), device_id: Base.decode16!("ABAB"), locale: "ru")
+
+      :ok = Feeds.live_mode_end(msk(~D[2021-12-19], ~T[20:00:00]))
+
+      assert [
+               %{
+                 "device_id" => "ABAB",
+                 "template" => "live_mode_ended",
+                 "data" => %{"next" => "2021-12-23"}
+               },
+               %{
+                 "device_id" => "BABA",
+                 "template" => "live_mode_ended",
+                 "data" => %{"next" => "2021-12-23"}
+               }
+             ] = Enum.map(all_enqueued(), & &1.args)
+
+      expected_alerts = %{
+        "BABA" => %{
+          "title" => "Since Live ended ✌️",
+          "body" => "Wait for the party on Thursday 👀"
+        },
+        "ABAB" => %{
+          "title" => "Since Live закончился ✌️",
+          "body" => "Жди следующую вечеринку в четверг 👀"
+        }
+      }
+
+      expect(MockAPNS, :push, 2, fn %{device_id: device_id, payload: payload} ->
+        assert expected_alerts[device_id] == payload["aps"]["alert"]
+        :ok
+      end)
+
+      assert %{failure: 0, snoozed: 0, success: 2} =
+               Oban.drain_queue(queue: :apns, with_safety: false)
     end
   end
 

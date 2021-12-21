@@ -251,6 +251,7 @@ defmodule TWeb.FeedChannel do
     {:reply, {:ok, %{"expiration_date" => expiration_date}}, socket}
   end
 
+  # TODO remove upon release of new app version
   def handle_in("send-contact", %{"match_id" => match_id, "contact" => contact}, socket) do
     me = me_id(socket)
 
@@ -258,6 +259,15 @@ defmodule TWeb.FeedChannel do
       Matches.save_contact_offer_for_match(me, match_id, contact)
 
     {:reply, {:ok, %{"expiration_date" => expiration_date}}, socket}
+  end
+
+  def handle_in("send-contact", %{"match_id" => match_id, "contacts" => contacts}, socket) do
+    me = me_id(socket)
+
+    {:ok, %Matches.MatchContact{contacts: contacts}, expiration_date} =
+      Matches.save_contact_offer_for_match(me, match_id, contacts)
+
+    {:reply, {:ok, %{"expiration_date" => expiration_date, "contacts" => contacts}}, socket}
   end
 
   def handle_in("cancel-contact", %{"match_id" => match_id}, socket) do
@@ -378,13 +388,16 @@ defmodule TWeb.FeedChannel do
     %Matches.MatchContact{
       contact_type: contact_type,
       value: value,
+      contacts: contacts,
       match_id: match_id,
       picker_id: picker_id
     } = match_contact
 
     push(socket, "contact_offer", %{
       "match_id" => match_id,
+      # TODO remove on app release
       "contact" => %{"contact_type" => contact_type, "value" => value, "picker" => picker_id},
+      "contacts" => contacts,
       "expiration_date" => expiration_date
     })
 

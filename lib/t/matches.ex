@@ -708,9 +708,13 @@ defmodule T.Matches do
     save_contact_offer(offerer, mate, match_id, contact)
   end
 
-  defp save_contact_offer(offerer, mate, match_id, contact) do
-    %{"contact_type" => contact_type, "value" => value} = contact
-
+  # TODO remove on new app version release
+  defp save_contact_offer(
+         offerer,
+         mate,
+         match_id,
+         %{"contact_type" => contact_type, "value" => value} = _contact
+       ) do
     {offerer_name, _number_of_matches1} = user_info(offerer)
     {mate_name, _umber_of_matches2} = user_info(mate)
 
@@ -724,6 +728,59 @@ defmodule T.Matches do
       contact_changeset(
         %MatchContact{match_id: match_id, picker_id: mate},
         %{contact_type: contact_type, value: value}
+      )
+
+    push_job =
+      DispatchJob.new(%{
+        "type" => "contact_offer",
+        "match_id" => match_id,
+        "receiver_id" => mate,
+        "offerer_id" => offerer
+      })
+
+    conflict_opts = [on_conflict: :replace_all, conflict_target: [:match_id]]
+
+    Multi.new()
+    |> Multi.insert(:match_contact, changeset, conflict_opts)
+    |> Multi.insert(:match_event, %MatchEvent{
+      timestamp: DateTime.truncate(DateTime.utc_now(), :second),
+      match_id: match_id,
+      event: "contact_offer"
+    })
+    |> Oban.insert(:push, push_job)
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{match_contact: %MatchContact{} = match_contact}} ->
+        expiration_date = expiration_date(match_id)
+
+        broadcast_for_user(
+          mate,
+          {__MODULE__, [:contact, :offered], match_contact, expiration_date}
+        )
+
+        {:ok, match_contact, expiration_date}
+
+      {:error, :match_contact, %Ecto.Changeset{} = changeset, _changes} ->
+        {:error, changeset}
+    end
+  end
+
+  defp save_contact_offer(offerer, mate, match_id, contacts) do
+    {offerer_name, _number_of_matches1} = user_info(offerer)
+    {mate_name, _umber_of_matches2} = user_info(mate)
+
+    m = "contact offer from #{offerer_name} (#{offerer}) to #{mate_name} (#{mate})"
+
+    Logger.warn(m)
+    Bot.async_post_message(m)
+
+    contact_type = contacts |> Map.keys() |> Enum.at(-1)
+    value = contacts |> Map.get(contact_type)
+
+    changeset =
+      contacts_changeset(
+        %MatchContact{match_id: match_id, picker_id: mate},
+        %{contacts: contacts, contact_type: contact_type, value: value}
       )
 
     push_job =
@@ -1001,6 +1058,14 @@ defmodule T.Matches do
     contact
     |> cast(attrs, [:contact_type, :value])
     |> validate_required([:contact_type, :value])
+    |> validate_length(:contact_type, min: 1)
+    |> validate_length(:value, min: 1)
+  end
+
+  defp contacts_changeset(contact, attrs) do
+    contact
+    |> cast(attrs, [:contact_type, :value, :contacts])
+    |> validate_required([:contact_type, :value, :contacts])
     |> validate_length(:contact_type, min: 1)
     |> validate_length(:value, min: 1)
   end

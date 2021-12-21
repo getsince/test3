@@ -67,8 +67,18 @@ defmodule TWeb.MatchView do
     %{"slots" => slots, "picker" => picker}
   end
 
-  defp render_contact(%MatchContact{contact_type: contact_type, value: value, picker_id: picker}) do
-    %{"contact_type" => contact_type, "value" => value, "picker" => picker}
+  defp render_contact(%MatchContact{
+         contacts: contacts,
+         contact_type: contact_type,
+         value: value,
+         picker_id: picker
+       }) do
+    %{
+      "contacts" => contacts,
+      "contact_type" => contact_type,
+      "value" => value,
+      "picker" => picker
+    }
   end
 
   defp expiration_date(match_id) do

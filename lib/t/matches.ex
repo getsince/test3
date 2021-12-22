@@ -9,7 +9,7 @@ defmodule T.Matches do
   alias T.Repo
   alias T.Matches.{Match, Like, Timeslot, MatchEvent, ExpiredMatch, MatchContact, ArchivedMatch}
   alias T.Feeds.{FeedProfile, LiveSession}
-  alias T.Accounts.Profile
+  alias T.Accounts.{Profile, UserSettings}
   alias T.PushNotifications.DispatchJob
   alias T.Bot
 
@@ -41,7 +41,8 @@ defmodule T.Matches do
   # - Likes
 
   @spec like_user(Ecto.UUID.t(), Ecto.UUID.t()) ::
-          {:ok, %{match: %Match{} | nil, event: %MatchEvent{} | nil}} | {:error, atom, term, map}
+          {:ok, %{match: %Match{} | nil, audio_only: [Boolean.t()], event: %MatchEvent{} | nil}}
+          | {:error, atom, term, map}
   def like_user(by_user_id, user_id) do
     Multi.new()
     |> mark_liked(by_user_id, user_id)
@@ -49,8 +50,8 @@ defmodule T.Matches do
     |> match_if_mutual(by_user_id, user_id)
     |> Repo.transaction()
     |> case do
-      {:ok, %{match: match}} = success ->
-        maybe_notify_match(match, by_user_id, user_id)
+      {:ok, %{match: match, audio_only: audio_only}} = success ->
+        maybe_notify_match(match, audio_only, by_user_id, user_id)
         maybe_notify_liked_user(match, by_user_id, user_id)
         success
 
@@ -71,13 +72,24 @@ defmodule T.Matches do
     Multi.update_all(multi, :bump_likes_count, query, [])
   end
 
-  defp maybe_notify_match(%Match{id: match_id}, by_user_id, user_id) do
-    broadcast_from_for_user(by_user_id, {__MODULE__, :matched, %{id: match_id, mate: user_id}})
+  defp maybe_notify_match(
+         %Match{id: match_id},
+         [by_user_id_settings, user_id_settings],
+         by_user_id,
+         user_id
+       ) do
+    broadcast_from_for_user(
+      by_user_id,
+      {__MODULE__, :matched, %{id: match_id, mate: user_id, audio_only: user_id_settings}}
+    )
 
-    broadcast_for_user(user_id, {__MODULE__, :matched, %{id: match_id, mate: by_user_id}})
+    broadcast_for_user(
+      user_id,
+      {__MODULE__, :matched, %{id: match_id, mate: by_user_id, audio_only: by_user_id_settings}}
+    )
   end
 
-  defp maybe_notify_match(nil, _by_user_id, _user_id), do: :ok
+  defp maybe_notify_match(nil, _settings, _by_user_id, _user_id), do: :ok
 
   defp maybe_notify_liked_user(%Match{id: _match_id}, _by_user_id, _user_id), do: :ok
 
@@ -95,6 +107,7 @@ defmodule T.Matches do
     multi
     |> with_mutual_liker(by_user_id, user_id)
     |> maybe_create_match([by_user_id, user_id])
+    |> maybe_fetch_settings([by_user_id, user_id])
     |> maybe_create_match_event()
     |> maybe_schedule_match_push()
   end
@@ -139,6 +152,23 @@ defmodule T.Matches do
         Bot.async_post_message(m)
 
         Repo.insert(%Match{user_id_1: user_id_1, user_id_2: user_id_2})
+      else
+        {:ok, nil}
+      end
+    end)
+  end
+
+  defp maybe_fetch_settings(multi, [by_user_id, user_id]) do
+    Multi.run(multi, :audio_only, fn _repo, %{mutual: mutual} ->
+      if mutual do
+        # TODO batch
+        by_user_id_settings =
+          UserSettings |> where(user_id: ^by_user_id) |> select([s], s.audio_only) |> Repo.one!()
+
+        user_id_settings =
+          UserSettings |> where(user_id: ^user_id) |> select([s], s.audio_only) |> Repo.one!()
+
+        {:ok, [by_user_id_settings, user_id_settings]}
       else
         {:ok, nil}
       end
@@ -445,16 +475,18 @@ defmodule T.Matches do
 
     mates = Map.keys(mate_matches)
 
-    profiles =
+    profiles_with_settings =
       FeedProfile
       |> where([p], p.user_id in ^mates)
+      |> join(:left, [p], s in UserSettings, on: p.user_id == s.user_id)
+      |> select([p, s], {p, s})
       |> Repo.all()
-      |> Map.new(fn profile -> {profile.user_id, profile} end)
+      |> Map.new(fn {profile, settings} -> {profile.user_id, {profile, settings.audio_only}} end)
 
     Enum.map(matches, fn match ->
       [mate_id] = [match.user_id_1, match.user_id_2] -- [user_id]
-      profile = Map.fetch!(profiles, mate_id)
-      %Match{match | profile: profile}
+      {profile, audio_only} = Map.fetch!(profiles_with_settings, mate_id)
+      %Match{match | profile: profile, audio_only: audio_only}
     end)
   end
 

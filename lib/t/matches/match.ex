@@ -12,6 +12,7 @@ defmodule T.Matches.Match do
     field :timeslot, :map, virtual: true
     field :contact, :map, virtual: true
     field :expiration_date, :utc_datetime, virtual: true
+    field :audio_only, :boolean, virtual: true
 
     # embeds_one :slot_offer, Timeslot do
     #   field :offerer, Ecto.Bigflake.UUID

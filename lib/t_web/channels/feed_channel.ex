@@ -206,9 +206,20 @@ defmodule TWeb.FeedChannel do
         {:ok, %{match: _no_match = nil}} ->
           :ok
 
-        {:ok, %{match: %{id: match_id}, event: %{timestamp: timestamp}}} ->
+        {:ok,
+         %{
+           match: %{id: match_id},
+           audio_only: [_our, mate_audio_only],
+           event: %{timestamp: timestamp}
+         }} ->
           expiration_date = timestamp |> DateTime.add(@match_ttl)
-          {:ok, %{"match_id" => match_id, "expiration_date" => expiration_date}}
+
+          {:ok,
+           %{
+             "match_id" => match_id,
+             "audio_only" => mate_audio_only,
+             "expiration_date" => expiration_date
+           }}
 
         {:error, _step, _reason, _changes} ->
           :ok
@@ -362,10 +373,12 @@ defmodule TWeb.FeedChannel do
 
   def handle_info({Matches, :matched, match}, socket) do
     %{screen_width: screen_width} = socket.assigns
-    %{id: match_id, mate: mate_id} = match
+    %{id: match_id, mate: mate_id, audio_only: audio_only} = match
 
     if profile = Feeds.get_mate_feed_profile(mate_id) do
-      rendered = render_match(match_id, profile, _timeslot = nil, _contact = nil, screen_width)
+      rendered =
+        render_match(match_id, audio_only, profile, _timeslot = nil, _contact = nil, screen_width)
+
       push(socket, "matched", %{"match" => rendered})
     end
 
@@ -482,7 +495,14 @@ defmodule TWeb.FeedChannel do
     if feed_profile = Feeds.get_live_feed_profile(user.id, user_id) do
       if match_id = Matches.is_match?(user.id, user_id) do
         rendered =
-          render_match(match_id, feed_profile, _timeslot = nil, _contact = nil, screen_width)
+          render_match(
+            match_id,
+            _audio_only = nil,
+            feed_profile,
+            _timeslot = nil,
+            _contact = nil,
+            screen_width
+          )
 
         push(socket, "activated_match", %{"match" => rendered})
       else
@@ -532,12 +552,13 @@ defmodule TWeb.FeedChannel do
     Enum.map(matches, fn match ->
       %Matches.Match{
         id: match_id,
+        audio_only: audio_only,
         profile: profile,
         timeslot: timeslot,
         contact: contact
       } = match
 
-      render_match(match_id, profile, timeslot, contact, screen_width)
+      render_match(match_id, audio_only, profile, timeslot, contact, screen_width)
     end)
   end
 
@@ -548,7 +569,7 @@ defmodule TWeb.FeedChannel do
         profile: profile
       } = expired_match
 
-      render_match(match_id, profile, nil, nil, screen_width)
+      render_match(match_id, nil, profile, nil, nil, screen_width)
     end)
   end
 
@@ -559,12 +580,13 @@ defmodule TWeb.FeedChannel do
         profile: profile
       } = archived_match
 
-      render_match(match_id, profile, nil, nil, screen_width)
+      render_match(match_id, nil, profile, nil, nil, screen_width)
     end)
   end
 
   defp render_match(
          match_id,
+         maybe_audio_only,
          mate_feed_profile,
          maybe_timeslot,
          maybe_contact,
@@ -572,6 +594,7 @@ defmodule TWeb.FeedChannel do
        ) do
     render(MatchView, "match.json",
       id: match_id,
+      audio_only: maybe_audio_only,
       timeslot: maybe_timeslot,
       contact: maybe_contact,
       profile: mate_feed_profile,

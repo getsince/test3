@@ -26,6 +26,9 @@ defmodule T.Accounts.Profile do
     field :name, :string
     field :gender, :string
     field :birthdate, :date
+
+    # settings
+    field :audio_only, :boolean, virtual: true
   end
 
   defp maybe_validate_required(changeset, opts, fun) when is_function(fun, 1) do

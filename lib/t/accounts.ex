@@ -19,6 +19,7 @@ defmodule T.Accounts do
     APNSDevice,
     PushKitDevice,
     GenderPreference,
+    UserSettings,
     AppleSignIn
   }
 
@@ -64,18 +65,8 @@ defmodule T.Accounts do
   def register_user_with_apple_id(attrs, now \\ DateTime.utc_now()) do
     Multi.new()
     |> Multi.insert(:user, User.apple_id_registration_changeset(%User{}, attrs))
-    |> add_profile_and_transact(now)
-  end
-
-  defp add_profile_and_transact(multi, now) do
-    multi
-    |> Multi.insert(
-      :profile,
-      fn %{user: user} ->
-        %Profile{user_id: user.id, last_active: DateTime.truncate(now, :second)}
-      end,
-      returning: [:hidden?]
-    )
+    |> add_profile(now)
+    |> add_settings()
     |> Repo.transaction()
     |> case do
       {:ok, %{user: user, profile: profile}} ->
@@ -85,6 +76,27 @@ defmodule T.Accounts do
       {:error, :user, %Ecto.Changeset{} = changeset, _changes} ->
         {:error, changeset}
     end
+  end
+
+  defp add_profile(multi, now) do
+    multi
+    |> Multi.insert(
+      :profile,
+      fn %{user: user} ->
+        %Profile{user_id: user.id, last_active: DateTime.truncate(now, :second)}
+      end,
+      returning: [:hidden?]
+    )
+  end
+
+  defp add_settings(multi) do
+    multi
+    |> Multi.insert(
+      :user_settings,
+      fn %{user: user} ->
+        %UserSettings{user_id: user.id, audio_only: false}
+      end
+    )
   end
 
   def update_last_active(user_id, time \\ DateTime.utc_now()) do
@@ -494,7 +506,13 @@ defmodule T.Accounts do
       |> select([g], g.gender)
       |> Repo.all()
 
-    %Profile{profile | gender_preference: gender_preference}
+    audio_only =
+      UserSettings
+      |> where([g], g.user_id == ^user_id)
+      |> select([s], s.audio_only)
+      |> Repo.all()
+
+    %Profile{profile | gender_preference: gender_preference, audio_only: audio_only}
   end
 
   def onboard_profile(%Profile{user_id: user_id} = profile, attrs) do
@@ -790,5 +808,12 @@ defmodule T.Accounts do
   def schedule_upgrade_app_push(user_id) do
     job = DispatchJob.new(%{"type" => "upgrade_app", "user_id" => user_id})
     Oban.insert(job)
+  end
+
+  def set_audio_only(user_id, bool) do
+    {1, _} =
+      UserSettings
+      |> where(user_id: ^user_id)
+      |> Repo.update_all(set: [audio_only: bool])
   end
 end

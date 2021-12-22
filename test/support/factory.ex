@@ -1,6 +1,6 @@
 defmodule T.Factory do
   use ExMachina.Ecto, repo: T.Repo
-  alias T.Accounts.{User, Profile, GenderPreference}
+  alias T.Accounts.{User, Profile, GenderPreference, UserSettings}
   alias T.Feeds.{SeenProfile, LiveSession, LiveInvite}
   alias T.Matches.{Match, Timeslot, ExpiredMatch, MatchEvent, MatchContact}
   alias T.Calls.Call
@@ -20,6 +20,10 @@ defmodule T.Factory do
       hidden?: false,
       gender: "M"
     }
+  end
+
+  def build_user_settings(user_id) do
+    T.Repo.insert(%UserSettings{user_id: user_id, audio_only: false})
   end
 
   def match_factory do

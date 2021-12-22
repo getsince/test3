@@ -8,7 +8,7 @@ defmodule TWeb.FeedChannelTest do
   import Mox
   setup :verify_on_exit!
 
-  @match_ttl 172_800
+  @match_ttl 604_800
 
   setup do
     me = onboarded_user(location: moscow_location(), accept_genders: ["F", "N", "M"])
@@ -73,7 +73,8 @@ defmodule TWeb.FeedChannelTest do
                %{
                  "id" => m3.id,
                  "profile" => %{name: "mate-3", story: [], user_id: p3.id, gender: "M"},
-                 "timeslot" => %{"selected_slot" => s2}
+                 "timeslot" => %{"selected_slot" => s2},
+                 "audio_only" => false
                },
                %{
                  "id" => m2.id,
@@ -81,8 +82,11 @@ defmodule TWeb.FeedChannelTest do
                  "contact" => %{
                    "contact_type" => "whatsapp",
                    "picker" => p2.id,
-                   "value" => "+79666666666"
-                 }
+                   "value" => "+79666666666",
+                   "contacts" => nil,
+                   "opened_contact_type" => nil
+                 },
+                 "audio_only" => false
                },
                %{
                  "id" => m1.id,
@@ -90,8 +94,11 @@ defmodule TWeb.FeedChannelTest do
                  "contact" => %{
                    "contact_type" => "telegram",
                    "picker" => p1.id,
-                   "value" => "@abcde"
-                 }
+                   "value" => "@abcde",
+                   "contacts" => nil,
+                   "opened_contact_type" => nil
+                 },
+                 "audio_only" => false
                }
              ]
     end
@@ -219,6 +226,7 @@ defmodule TWeb.FeedChannelTest do
                "matches" => [
                  %{
                    "id" => match.id,
+                   "audio_only" => false,
                    "profile" => %{gender: "F", name: "mate", story: [], user_id: mate.id}
                  }
                ],
@@ -253,7 +261,8 @@ defmodule TWeb.FeedChannelTest do
                "matches" => [
                  %{
                    "id" => match.id,
-                   "profile" => %{gender: "F", name: "mate", story: [], user_id: mate.id}
+                   "profile" => %{gender: "F", name: "mate", story: [], user_id: mate.id},
+                   "audio_only" => false
                  }
                ],
                "match_expiration_duration" => @match_ttl
@@ -719,7 +728,8 @@ defmodule TWeb.FeedChannelTest do
                "match" => %{
                  "id" => match_id,
                  "profile" => %{name: "mate", story: [], user_id: mate.id, gender: "M"},
-                 "expiration_date" => exp_date
+                 "expiration_date" => exp_date,
+                 "audio_only" => false
                }
              }
     end
@@ -900,23 +910,15 @@ defmodule TWeb.FeedChannelTest do
           "slots" => Enum.map(slots, &DateTime.to_iso8601/1)
         })
 
-      exp_date = expiration_date()
-
       assert_reply(ref, :ok, %{})
 
       # mate received slots
       assert_push("slots_offer", push)
 
-      assert push == %{
-               "match_id" => match.id,
-               "slots" => slots,
-               "expiration_date" => exp_date
-             }
+      assert push == %{"match_id" => match.id, "slots" => slots}
     end
 
     test "with user_id", %{slots: slots, mate: mate, match: match, socket: socket} do
-      exp_date = expiration_date()
-
       ref =
         push(socket, "offer-slots", %{
           "user_id" => mate.id,
@@ -928,11 +930,7 @@ defmodule TWeb.FeedChannelTest do
       # mate received slots
       assert_push("slots_offer", push)
 
-      assert push == %{
-               "match_id" => match.id,
-               "slots" => slots,
-               "expiration_date" => exp_date
-             }
+      assert push == %{"match_id" => match.id, "slots" => slots}
     end
   end
 
@@ -1023,26 +1021,19 @@ defmodule TWeb.FeedChannelTest do
 
       iso_slots = Enum.map(slots, &DateTime.to_iso8601/1)
 
-      exp_date = expiration_date()
-
       ref = push(mate_socket, "offer-slots", %{"match_id" => match.id, "slots" => iso_slots})
       assert_reply(ref, :ok, _reply)
 
       # we get slots_offer
       assert_push("slots_offer", push)
 
-      assert push == %{
-               "match_id" => match.id,
-               "slots" => slots,
-               "expiration_date" => exp_date
-             }
+      assert push == %{"match_id" => match.id, "slots" => slots}
 
       {:ok, slots: slots}
     end
 
     test "with match_id", %{slots: [_s1, s2, _s3] = slots, match: match, socket: socket, me: me} do
       iso_slot = DateTime.to_iso8601(s2)
-      exp_date = expiration_date()
       ref = push(socket, "pick-slot", %{"match_id" => match.id, "slot" => iso_slot})
       assert_reply(ref, :ok, _reply)
 
@@ -1054,11 +1045,7 @@ defmodule TWeb.FeedChannelTest do
       # mate gets a slot_accepted notification
       assert_push("slot_accepted", push)
 
-      assert push == %{
-               "match_id" => match.id,
-               "selected_slot" => s2,
-               "expiration_date" => exp_date
-             }
+      assert push == %{"match_id" => match.id, "selected_slot" => s2}
     end
 
     test "with user_id", %{
@@ -1068,8 +1055,6 @@ defmodule TWeb.FeedChannelTest do
       socket: socket,
       me: me
     } do
-      exp_date = expiration_date()
-
       iso_slot = DateTime.to_iso8601(s2)
       ref = push(socket, "pick-slot", %{"user_id" => mate.id, "slot" => iso_slot})
       assert_reply(ref, :ok, _reply)
@@ -1082,16 +1067,10 @@ defmodule TWeb.FeedChannelTest do
       # mate gets a slot_accepted notification
       assert_push("slot_accepted", push)
 
-      assert push == %{
-               "match_id" => match.id,
-               "selected_slot" => s2,
-               "expiration_date" => exp_date
-             }
+      assert push == %{"match_id" => match.id, "selected_slot" => s2}
     end
 
     test "repick", %{slots: [s1, s2, _s3] = slots, match: match, socket: socket, me: me} do
-      exp_date = expiration_date()
-
       iso_slot = DateTime.to_iso8601(s2)
       ref = push(socket, "pick-slot", %{"match_id" => match.id, "slot" => iso_slot})
       assert_reply(ref, :ok, _reply)
@@ -1099,11 +1078,7 @@ defmodule TWeb.FeedChannelTest do
       # mate first gets second slot
       assert_push("slot_accepted", push)
 
-      assert push == %{
-               "match_id" => match.id,
-               "selected_slot" => s2,
-               "expiration_date" => exp_date
-             }
+      assert push == %{"match_id" => match.id, "selected_slot" => s2}
 
       iso_slot = DateTime.to_iso8601(s1)
       ref = push(socket, "pick-slot", %{"match_id" => match.id, "slot" => iso_slot})
@@ -1112,11 +1087,7 @@ defmodule TWeb.FeedChannelTest do
       # then mate gets first slot
       assert_push("slot_accepted", push)
 
-      assert push == %{
-               "match_id" => match.id,
-               "selected_slot" => s1,
-               "expiration_date" => exp_date
-             }
+      assert push == %{"match_id" => match.id, "selected_slot" => s1}
 
       assert %Timeslot{} = timeslot = Repo.get_by(Timeslot, match_id: match.id)
       assert timeslot.picker_id == me.id
@@ -1154,7 +1125,6 @@ defmodule TWeb.FeedChannelTest do
         ]
 
       iso_slots = Enum.map(slots, &DateTime.to_iso8601/1)
-      exp_date = expiration_date()
 
       ref = push(mate_socket, "offer-slots", %{"match_id" => match.id, "slots" => iso_slots})
       assert_reply(ref, :ok, _reply)
@@ -1162,13 +1132,7 @@ defmodule TWeb.FeedChannelTest do
       # we get slots_offer
       assert_push("slots_offer", push)
 
-      assert push == %{
-               "match_id" => match.id,
-               "slots" => slots,
-               "expiration_date" => exp_date
-             }
-
-      exp_date = expiration_date()
+      assert push == %{"match_id" => match.id, "slots" => slots}
 
       # we accept seocnd slot
       iso_slot = DateTime.to_iso8601(s2)
@@ -1178,36 +1142,30 @@ defmodule TWeb.FeedChannelTest do
       # mate gets a slot_accepted notification
       assert_push("slot_accepted", push)
 
-      assert push == %{
-               "match_id" => match.id,
-               "selected_slot" => s2,
-               "expiration_date" => exp_date
-             }
+      assert push == %{"match_id" => match.id, "selected_slot" => s2}
 
       {:ok, slots: slots}
     end
 
     test "with match_id", %{socket: socket, match: match} do
-      exp_date = expiration_date()
       ref = push(socket, "cancel-slot", %{"match_id" => match.id})
       assert_reply(ref, :ok, _reply)
 
       # mate gets slot_cancelled notification
       assert_push("slot_cancelled", push)
-      assert push == %{"match_id" => match.id, "expiration_date" => exp_date}
+      assert push == %{"match_id" => match.id}
 
       # timeslot is reset
       refute Repo.get_by(Timeslot, match_id: match.id)
     end
 
     test "with user_id", %{socket: socket, match: match, mate: mate} do
-      exp_date = expiration_date()
       ref = push(socket, "cancel-slot", %{"user_id" => mate.id})
       assert_reply(ref, :ok, _reply)
 
       # mate gets slot_cancelled notification
       assert_push("slot_cancelled", push)
-      assert push == %{"match_id" => match.id, "expiration_date" => exp_date}
+      assert push == %{"match_id" => match.id}
 
       # timeslot is reset
       refute Repo.get_by(Timeslot, match_id: match.id)

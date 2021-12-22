@@ -51,6 +51,23 @@ defmodule TWeb.MatchView do
     end
   end
 
+  def render("match.json", %{id: match_id, audio_only: nil} = assigns) do
+    case expiration_date(match_id) do
+      nil ->
+        %{
+          "id" => match_id,
+          "profile" => render(FeedView, "feed_profile.json", assigns)
+        }
+
+      some ->
+        %{
+          "id" => match_id,
+          "profile" => render(FeedView, "feed_profile.json", assigns),
+          "expiration_date" => some
+        }
+    end
+  end
+
   def render("match.json", %{id: match_id, audio_only: audio_only} = assigns) do
     case expiration_date(match_id) do
       nil ->
@@ -64,23 +81,6 @@ defmodule TWeb.MatchView do
         %{
           "id" => match_id,
           "audio_only" => audio_only,
-          "profile" => render(FeedView, "feed_profile.json", assigns),
-          "expiration_date" => some
-        }
-    end
-  end
-
-  def render("match.json", %{id: match_id} = assigns) do
-    case expiration_date(match_id) do
-      nil ->
-        %{
-          "id" => match_id,
-          "profile" => render(FeedView, "feed_profile.json", assigns)
-        }
-
-      some ->
-        %{
-          "id" => match_id,
           "profile" => render(FeedView, "feed_profile.json", assigns),
           "expiration_date" => some
         }

@@ -25,7 +25,8 @@ defmodule TWeb.ProfileChannelTest do
                story: [],
                gender: nil,
                name: nil,
-               birthdate: nil
+               birthdate: nil,
+               audio_only: false
              }
     end
   end
@@ -110,7 +111,8 @@ defmodule TWeb.ProfileChannelTest do
                latitude: 55.755833,
                longitude: 37.617222,
                birthdate: ~D[1998-10-28],
-               user_id: user.id
+               user_id: user.id,
+               audio_only: false
              }
     end
   end
@@ -204,7 +206,8 @@ defmodule TWeb.ProfileChannelTest do
                  ],
                  gender: "F",
                  name: "hey that's me CLARISA",
-                 birthdate: ~D[1995-10-28]
+                 birthdate: ~D[1995-10-28],
+                 audio_only: false
                }
              }
 

@@ -10,6 +10,8 @@ defmodule T.MatchesTest do
   describe "unmatch" do
     test "match no longer, likes no longer, unmatched broadcasted" do
       [%{user_id: p1_id}, %{user_id: p2_id}] = insert_list(2, :profile, hidden?: false)
+      build_user_settings(p1_id)
+      build_user_settings(p2_id)
 
       Matches.subscribe_for_user(p1_id)
       Matches.subscribe_for_user(p2_id)

@@ -20,7 +20,7 @@ defmodule T.Matches do
   @pubsub T.PubSub
   @topic "__m"
 
-  @match_ttl 172_800
+  @match_ttl 604_800
 
   defp pubsub_user_topic(user_id) when is_binary(user_id) do
     @topic <> ":u:" <> String.downcase(user_id)
@@ -163,7 +163,7 @@ defmodule T.Matches do
       if mutual do
         # TODO batch
         by_user_id_settings =
-          UserSettings |> where(user_id: ^by_user_id) |> select([s], s.audio_only) |> Repo.one!()
+          UserSettings |> where(user_id: ^by_user_id) |> select([s], s.audio_only) |> Repo.one()
 
         user_id_settings =
           UserSettings |> where(user_id: ^user_id) |> select([s], s.audio_only) |> Repo.one!()
@@ -253,7 +253,7 @@ defmodule T.Matches do
     |> where([m], m.user_id_2 in subquery(active_live_sessions()))
     |> order_by(desc: :inserted_at)
     |> Repo.all()
-    |> preload_match_profiles(user_id)
+    |> preload_live_match_profiles(user_id)
   end
 
   def is_match?(uid1, uid2) do
@@ -466,6 +466,29 @@ defmodule T.Matches do
   end
 
   # TODO cleanup
+  defp preload_live_match_profiles(matches, user_id) do
+    mate_matches =
+      Map.new(matches, fn match ->
+        [mate_id] = [match.user_id_1, match.user_id_2] -- [user_id]
+        {mate_id, match}
+      end)
+
+    mates = Map.keys(mate_matches)
+
+    profiles =
+      FeedProfile
+      |> where([p], p.user_id in ^mates)
+      |> Repo.all()
+      |> Map.new(fn profile -> {profile.user_id, profile} end)
+
+    Enum.map(matches, fn match ->
+      [mate_id] = [match.user_id_1, match.user_id_2] -- [user_id]
+      profile = Map.fetch!(profiles, mate_id)
+      %Match{match | profile: profile}
+    end)
+  end
+
+  # TODO cleanup
   defp preload_match_profiles(matches, user_id) do
     mate_matches =
       Map.new(matches, fn match ->
@@ -536,7 +559,7 @@ defmodule T.Matches do
   @type iso_8601 :: String.t()
 
   @spec save_slots_offer_for_match(uuid, uuid, [iso_8601], DateTime.t()) ::
-          {:ok, %Timeslot{}, DateTime.t()} | {:error, %Ecto.Changeset{}}
+          {:ok, %Timeslot{}} | {:error, %Ecto.Changeset{}}
   def save_slots_offer_for_match(offerer, match_id, slots, reference \\ DateTime.utc_now()) do
     %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} =
       get_match_for_user!(match_id, offerer)
@@ -546,7 +569,7 @@ defmodule T.Matches do
   end
 
   @spec save_slots_offer_for_user(uuid, uuid, [iso_8601], DateTime.t()) ::
-          {:ok, %Timeslot{}, DateTime.t()} | {:error, %Ecto.Changeset{}}
+          {:ok, %Timeslot{}} | {:error, %Ecto.Changeset{}}
   def save_slots_offer_for_user(offerer, mate, slots, reference \\ DateTime.utc_now()) do
     [uid1, uid2] = Enum.sort([offerer, mate])
     match_id = get_match_id_for_users!(uid1, uid2)
@@ -554,7 +577,7 @@ defmodule T.Matches do
   end
 
   @spec save_slots_offer(uuid, uuid, uuid, [iso_8601 :: String.t()], DateTime.t()) ::
-          {:ok, %Timeslot{}, DateTime.t()} | {:error, %Ecto.Changeset{}}
+          {:ok, %Timeslot{}} | {:error, %Ecto.Changeset{}}
   defp save_slots_offer(offerer_id, mate_id, match_id, slots, reference) do
     m =
       "saving slots offer for match #{match_id} (users #{offerer_id}, #{mate_id}) from #{offerer_id}: #{inspect(slots)}"
@@ -594,14 +617,10 @@ defmodule T.Matches do
     |> Repo.transaction()
     |> case do
       {:ok, %{timeslot: %Timeslot{} = timeslot}} ->
-        expiration_date = expiration_date(match_id)
+        maybe_unarchive_match(match_id)
+        broadcast_for_user(mate_id, {__MODULE__, [:timeslot, :offered], timeslot})
 
-        broadcast_for_user(
-          mate_id,
-          {__MODULE__, [:timeslot, :offered], timeslot, expiration_date}
-        )
-
-        {:ok, timeslot, expiration_date}
+        {:ok, timeslot}
 
       {:error, :timeslot, %Ecto.Changeset{} = changeset, _changes} ->
         {:error, changeset}
@@ -654,8 +673,7 @@ defmodule T.Matches do
       |> select([t], t)
       |> Repo.update_all(set: [selected_slot: slot])
 
-    expiration_date = expiration_date(match_id)
-    broadcast_for_user(mate, {__MODULE__, [:timeslot, :accepted], timeslot, expiration_date})
+    broadcast_for_user(mate, {__MODULE__, [:timeslot, :accepted], timeslot})
 
     timeslot_started? = DateTime.compare(slot, reference) in [:lt, :eq]
 
@@ -734,9 +752,7 @@ defmodule T.Matches do
       |> select([t], t)
       |> Repo.delete_all()
 
-    expiration_date = expiration_date(match_id)
-
-    broadcast_for_user(mate_id, {__MODULE__, [:timeslot, :cancelled], timeslot, expiration_date})
+    broadcast_for_user(mate_id, {__MODULE__, [:timeslot, :cancelled], timeslot})
 
     if selected_slot do
       {canceller_name, _number_of_matches1} = user_info(by_user_id)
@@ -819,14 +835,10 @@ defmodule T.Matches do
     |> Repo.transaction()
     |> case do
       {:ok, %{match_contact: %MatchContact{} = match_contact}} ->
-        expiration_date = expiration_date(match_id)
+        maybe_unarchive_match(match_id)
+        broadcast_for_user(mate, {__MODULE__, [:contact, :offered], match_contact})
 
-        broadcast_for_user(
-          mate,
-          {__MODULE__, [:contact, :offered], match_contact, expiration_date}
-        )
-
-        {:ok, match_contact, expiration_date}
+        {:ok, match_contact}
 
       {:error, :match_contact, %Ecto.Changeset{} = changeset, _changes} ->
         {:error, changeset}
@@ -872,21 +884,17 @@ defmodule T.Matches do
     |> Repo.transaction()
     |> case do
       {:ok, %{match_contact: %MatchContact{} = match_contact}} ->
-        expiration_date = expiration_date(match_id)
+        maybe_unarchive_match(match_id)
+        broadcast_for_user(mate, {__MODULE__, [:contact, :offered], match_contact})
 
-        broadcast_for_user(
-          mate,
-          {__MODULE__, [:contact, :offered], match_contact, expiration_date}
-        )
-
-        {:ok, match_contact, expiration_date}
+        {:ok, match_contact}
 
       {:error, :match_contact, %Ecto.Changeset{} = changeset, _changes} ->
         {:error, changeset}
     end
   end
 
-  @spec cancel_contact_for_match(uuid, uuid) :: {:ok, DateTime.t()}
+  @spec cancel_contact_for_match(uuid, uuid) :: :ok
   def cancel_contact_for_match(by_user_id, match_id) do
     %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} =
       get_match_for_user!(match_id, by_user_id)
@@ -895,7 +903,7 @@ defmodule T.Matches do
     cancel_contact(by_user_id, mate, match_id)
   end
 
-  @spec cancel_contact(uuid, uuid, uuid) :: {:ok, DateTime.t()}
+  @spec cancel_contact(uuid, uuid, uuid) :: :ok
   defp cancel_contact(by_user_id, mate_id, match_id) do
     m = "cancelling contact for match #{match_id} (with mate #{mate_id}) by #{by_user_id}"
 
@@ -910,11 +918,9 @@ defmodule T.Matches do
       |> select([t], t)
       |> Repo.delete_all()
 
-    expiration_date = expiration_date(match_id)
+    broadcast_for_user(mate_id, {__MODULE__, [:contact, :cancelled], contact})
 
-    broadcast_for_user(mate_id, {__MODULE__, [:contact, :cancelled], contact, expiration_date})
-
-    {:ok, expiration_date}
+    :ok
   end
 
   def open_contact_for_match(me, match_id, contact_type) do
@@ -963,6 +969,10 @@ defmodule T.Matches do
       |> Repo.update_all(set: [opened_contact_type: nil])
 
     :ok
+  end
+
+  defp maybe_unarchive_match(match_id) do
+    ArchivedMatch |> where(match_id: ^match_id) |> Repo.delete_all()
   end
 
   defp get_match_id_for_users!(user_id_1, user_id_2) do
@@ -1075,7 +1085,7 @@ defmodule T.Matches do
   end
 
   def match_expired_check() do
-    expiration_date = DateTime.add(DateTime.utc_now(), -48 * 60 * 60)
+    expiration_date = DateTime.add(DateTime.utc_now(), -7 * 24 * 60 * 60)
 
     expiring_matches_q()
     |> where([m, e, c], e.timestamp < ^expiration_date)
@@ -1111,7 +1121,7 @@ defmodule T.Matches do
   def expiration_date(match_id) do
     MatchEvent
     |> where(match_id: ^match_id)
-    |> order_by(desc: :timestamp)
+    |> where(event: "created")
     |> first()
     |> join(
       :left_lateral,
@@ -1148,8 +1158,7 @@ defmodule T.Matches do
       e in fragment(
         "SELECT e.timestamp
         FROM match_events e
-        WHERE e.match_id = ?
-        ORDER BY e.timestamp DESC
+        WHERE e.match_id = ? AND e.event = 'created'
         LIMIT 1",
         m.id
       )

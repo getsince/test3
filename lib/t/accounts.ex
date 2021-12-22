@@ -510,12 +510,12 @@ defmodule T.Accounts do
       UserSettings
       |> where([g], g.user_id == ^user_id)
       |> select([s], s.audio_only)
-      |> Repo.all()
+      |> Repo.one!()
 
     %Profile{profile | gender_preference: gender_preference, audio_only: audio_only}
   end
 
-  def onboard_profile(%Profile{user_id: user_id} = profile, attrs) do
+  def onboard_profile(%Profile{user_id: user_id, audio_only: audio_only} = profile, attrs) do
     Multi.new()
     |> Multi.run(:user, fn repo, _changes ->
       user = repo.get!(User, user_id)
@@ -560,7 +560,9 @@ defmodule T.Accounts do
 
         Logger.warn(m)
         Bot.async_post_message(m)
-        {:ok, %Profile{profile | gender_preference: genders, hidden?: false}}
+
+        {:ok,
+         %Profile{profile | gender_preference: genders, hidden?: false, audio_only: audio_only}}
 
       {:error, :user, :already_onboarded, _changes} ->
         {:error, :already_onboarded}
@@ -572,7 +574,7 @@ defmodule T.Accounts do
     # |> notify_subscribers([:user, :new])
   end
 
-  def update_profile(%Profile{} = profile, attrs, opts \\ []) do
+  def update_profile(%Profile{audio_only: audio_only} = profile, attrs, opts \\ []) do
     Logger.warn("user #{profile.user_id} updates profile with #{inspect(attrs)}")
 
     Multi.new()
@@ -626,7 +628,7 @@ defmodule T.Accounts do
            }}
         )
 
-        {:ok, %Profile{profile | gender_preference: genders}}
+        {:ok, %Profile{profile | gender_preference: genders, audio_only: audio_only}}
 
       {:error, :profile, %Ecto.Changeset{} = changeset, _changes} ->
         {:error, changeset}

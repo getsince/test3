@@ -77,7 +77,7 @@ defmodule T.Matches.ContactsTest do
     end
 
     test "offer is broadcast via pubsub to mate", %{profiles: [_p1, %{user_id: receiver_id}]} do
-      assert_receive {Matches, [:contact, :offered], %MatchContact{} = contact, _expiration_date}
+      assert_receive {Matches, [:contact, :offered], %MatchContact{} = contact}
 
       assert contact.contact_type == "whatsapp"
       assert contact.value == "+55555555555"
@@ -98,8 +98,7 @@ defmodule T.Matches.ContactsTest do
                  picker: p2.user
                )
 
-      assert {:ok, %MatchContact{contact_type: "whatsapp", value: "+66666666666"},
-              _expiration_date} =
+      assert {:ok, %MatchContact{contact_type: "whatsapp", value: "+66666666666"}} =
                Matches.save_contact_offer_for_match(
                  p2.user_id,
                  match.id,
@@ -120,7 +119,7 @@ defmodule T.Matches.ContactsTest do
                  picker: p2.user
                )
 
-      assert {:ok, _expiration_date} = Matches.cancel_contact_for_match(p2.user_id, match.id)
+      assert :ok = Matches.cancel_contact_for_match(p2.user_id, match.id)
 
       match_id = match.id
 
@@ -139,13 +138,13 @@ defmodule T.Matches.ContactsTest do
   defp with_contact_offer(%{profiles: [p1, _p2], match: match}) do
     contact = %{"contact_type" => "whatsapp", "value" => "+55555555555"}
 
-    assert {:ok, %MatchContact{} = match_contact, expiration_date} =
+    assert {:ok, %MatchContact{} = match_contact} =
              Matches.save_contact_offer_for_match(
                p1.user_id,
                match.id,
                contact
              )
 
-    {:ok, match_contact: match_contact, expiration_date: expiration_date}
+    {:ok, match_contact: match_contact}
   end
 end

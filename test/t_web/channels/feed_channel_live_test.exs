@@ -127,8 +127,7 @@ defmodule TWeb.FeedChanneLiveTest do
           story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
           gender: "F",
           accept_genders: ["M"],
-          last_active: DateTime.add(now, -1),
-          like_ratio: 1.0
+          last_active: DateTime.add(now, -1)
         ),
         onboarded_user(
           name: "mate-2",
@@ -136,8 +135,7 @@ defmodule TWeb.FeedChanneLiveTest do
           story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
           gender: "N",
           accept_genders: ["M"],
-          last_active: DateTime.add(now, -2),
-          like_ratio: 0.5
+          last_active: DateTime.add(now, -2)
         ),
         onboarded_user(
           name: "mate-3",
@@ -145,10 +143,13 @@ defmodule TWeb.FeedChanneLiveTest do
           story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
           gender: "M",
           accept_genders: ["M"],
-          last_active: DateTime.add(now, -3),
-          like_ratio: 0
+          last_active: DateTime.add(now, -3)
         )
       ]
+
+      set_like_ratio(m1, 1.0)
+      set_like_ratio(m2, 0.5)
+      set_like_ratio(m3, 0)
 
       joined_mate(%{mate: m1})
       joined_mate(%{mate: m2})

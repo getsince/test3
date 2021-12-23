@@ -13,7 +13,7 @@ defmodule T.Matches.ExpiredMatchTest do
     test "matches ought to be expired are deleted from matches and inserted intro expired matches" do
       me = insert(:user)
       not_me = insert(:user)
-      long_ago = DateTime.add(DateTime.utc_now(), -3 * 24 * 60 * 60)
+      long_ago = DateTime.add(DateTime.utc_now(), -8 * 24 * 60 * 60)
 
       m = insert(:match, user_id_1: me.id, user_id_2: not_me.id, inserted_at: long_ago)
       insert(:match_event, match_id: m.id, event: "created", timestamp: long_ago)
@@ -33,12 +33,10 @@ defmodule T.Matches.ExpiredMatchTest do
     test "recent match is not expired" do
       me = insert(:user)
       not_me = insert(:user)
-      long_ago = DateTime.add(DateTime.utc_now(), -3 * 24 * 60 * 60)
-      recently = DateTime.add(DateTime.utc_now(), -5 * 60 * 60)
+      long_ago = DateTime.add(DateTime.utc_now(), -6 * 24 * 60 * 60)
 
       m = insert(:match, user_id_1: me.id, user_id_2: not_me.id, inserted_at: long_ago)
       insert(:match_event, match_id: m.id, event: "created", timestamp: long_ago)
-      insert(:match_event, match_id: m.id, event: "keep_alive", timestamp: recently)
 
       matches = Matches.Match |> T.Repo.all()
       assert length(matches) == 1

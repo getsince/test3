@@ -9,8 +9,8 @@ defmodule T.Matches.MatchContact do
     belongs_to :match, Matches.Match
     belongs_to :picker, Accounts.User
 
-    field :contact_type, :string
-    field :value, :string
+    field :contacts, :map
+    field :opened_contact_type, :string
 
     timestamps(updated_at: false)
   end

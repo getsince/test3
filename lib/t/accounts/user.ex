@@ -1,7 +1,7 @@
 defmodule T.Accounts.User do
   use Ecto.Schema
   import Ecto.Changeset
-  alias T.Accounts.Profile
+  alias T.Accounts.{Profile, UserSettings}
 
   # https://hexdocs.pm/pow/lock_users.html#content
 
@@ -16,6 +16,7 @@ defmodule T.Accounts.User do
     field :blocked_at, :utc_datetime
 
     has_one :profile, Profile
+    has_one :settings, UserSettings
     timestamps()
   end
 

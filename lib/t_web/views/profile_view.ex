@@ -14,7 +14,17 @@ defmodule TWeb.ProfileView do
       }) do
     profile
     |> render_profile(
-      [:user_id, :name, :gender, :birthdate, :gender_preference, :min_age, :max_age, :distance],
+      [
+        :user_id,
+        :name,
+        :gender,
+        :birthdate,
+        :gender_preference,
+        :min_age,
+        :max_age,
+        :distance,
+        :audio_only
+      ],
       screen_width
     )
     |> Map.put(:latitude, lat(location))

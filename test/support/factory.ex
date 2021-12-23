@@ -1,12 +1,16 @@
 defmodule T.Factory do
   use ExMachina.Ecto, repo: T.Repo
-  alias T.Accounts.{User, Profile, GenderPreference}
+  alias T.Accounts.{User, Profile, GenderPreference, UserSettings}
   alias T.Feeds.{SeenProfile, LiveSession, LiveInvite}
   alias T.Matches.{Match, Timeslot, ExpiredMatch, MatchEvent, MatchContact}
   alias T.Calls.Call
 
   def user_factory do
-    %User{apple_id: apple_id()}
+    %User{apple_id: apple_id(), settings: build(:user_settings)}
+  end
+
+  def user_settings_factory do
+    %UserSettings{audio_only: false}
   end
 
   def seen_profile_factory do

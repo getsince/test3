@@ -73,6 +73,37 @@ defmodule TWeb.FeedChanneLiveTest do
              }
     end
 
+    test "with archive match", %{socket: socket, me: me} do
+      p1 = onboarded_user(story: [], name: "mate-1", location: apple_location(), gender: "F")
+
+      m1 =
+        insert(:match, user_id_1: me.id, user_id_2: p1.id, inserted_at: ~N[2021-09-30 12:16:05])
+
+      joined_mate(%{mate: p1})
+
+      assert {:ok, %{"matches" => matches}, socket} =
+               join(socket, "feed:" <> me.id, %{"mode" => "live"})
+
+      assert matches == [
+               %{
+                 "id" => m1.id,
+                 "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"}
+               }
+             ]
+
+      push(socket, "archive-match", %{"match_id" => m1.id})
+
+      assert {:ok, %{"matches" => matches}, _socket} =
+               join(socket, "feed:" <> me.id, %{"mode" => "live"})
+
+      assert matches == [
+               %{
+                 "id" => m1.id,
+                 "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"}
+               }
+             ]
+    end
+
     test "with missed calls", %{socket: socket, me: me} do
       mate = onboarded_user(story: [], location: apple_location(), name: "mate", gender: "F")
 

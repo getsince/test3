@@ -29,7 +29,7 @@ defmodule T.Accounts.BlockingTest do
 
       # notification for reporter
       assert_receive {Matches, :matched, match}
-      assert match == %{id: match_id, mate: reported.id}
+      assert match == %{id: match_id, mate: reported.id, audio_only: false}
 
       assert :ok == Accounts.report_user(reporter.id, reported.id, "he show dicky")
       assert_receive {Matches, :unmatched, ^match_id}

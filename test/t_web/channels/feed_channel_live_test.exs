@@ -277,6 +277,53 @@ defmodule TWeb.FeedChanneLiveTest do
     end
   end
 
+  describe "live-session-activation" do
+    test "we are notified if new user matches filter" do
+      # we are M gender who accepts F and N genders
+      we = onboarded_user(gender: "M", accept_genders: ["F", "N"])
+      joined_mate(%{mate: we})
+
+      p1 = onboarded_user(gender: "F", accept_genders: ["F", "N", "M"])
+      joined_mate(%{mate: p1})
+
+      assert_push("activated_profile", _profile)
+    end
+
+    test "we are not notified if new user doesn't match our filter" do
+      # we are M gender who accepts F and N genders
+      we = onboarded_user(gender: "M", accept_genders: ["F", "N"])
+      joined_mate(%{mate: we})
+
+      p1 = onboarded_user(gender: "M", accept_genders: ["F", "N", "M"])
+      joined_mate(%{mate: p1})
+
+      refute_push("activated_profile", _profile)
+    end
+
+    test "we are not notified if we do not match new user's filter" do
+      # we are M gender who accepts F and N genders
+      we = onboarded_user(gender: "M", accept_genders: ["F", "N"])
+      joined_mate(%{mate: we})
+
+      p1 = onboarded_user(gender: "F", accept_genders: ["F", "N"])
+      joined_mate(%{mate: p1})
+
+      refute_push("activated_profile", _profile)
+    end
+
+    test "we are notified if mate comes online" do
+      we = onboarded_user(gender: "M", accept_genders: ["F", "N"])
+      joined_mate(%{mate: we})
+
+      p1 = onboarded_user(gender: "F", accept_genders: ["F", "N"])
+      _m1 = insert(:match, user_id_1: we.id, user_id_2: p1.id)
+
+      joined_mate(%{mate: p1})
+
+      assert_push("activated_match", _match)
+    end
+  end
+
   describe "live-invite" do
     setup :joined
 

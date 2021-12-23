@@ -4,6 +4,7 @@ defmodule TWeb.FeedChannel do
 
   alias TWeb.{FeedView, MatchView, ErrorView}
   alias T.{Feeds, Calls, Matches, Accounts}
+  alias T.Feeds.FeedFilter
 
   @match_ttl 604_800
   @live_session_duration 7200
@@ -33,7 +34,10 @@ defmodule TWeb.FeedChannel do
     :ok = Feeds.subscribe_for_live_sessions()
     :ok = Feeds.subscribe_for_user(user_id)
 
-    Feeds.maybe_activate_session(user_id)
+    feed_filter = Feeds.get_feed_filter(user_id)
+    {_location, gender} = Accounts.get_location_and_gender!(user_id)
+
+    Feeds.maybe_activate_session(user_id, gender, feed_filter)
 
     {session_start, session_end} = Feeds.live_mode_start_and_end_dates()
 
@@ -60,7 +64,7 @@ defmodule TWeb.FeedChannel do
       |> maybe_put("invites", invites)
       |> maybe_put("matches", matches)
 
-    {:ok, reply, assign(socket, mode: "live")}
+    {:ok, reply, assign(socket, mode: "live", feed_filter: feed_filter, gender: gender)}
   end
 
   defp join_normal_mode(user_id, screen_width, params, socket) do
@@ -119,9 +123,16 @@ defmodule TWeb.FeedChannel do
         if params["cursor"] == "non-nil" do
           {:reply, {:ok, %{"feed" => [], "cursor" => nil}}, socket}
         else
+          %{
+            feed_filter: feed_filter,
+            gender: gender
+          } = socket.assigns
+
           {feed, cursor} =
             Feeds.fetch_live_feed(
               user.id,
+              gender,
+              feed_filter,
               params["count"] || 10,
               params["cursor"]
             )
@@ -466,8 +477,19 @@ defmodule TWeb.FeedChannel do
   # TODO test
   # TODO reduce # queries
   # TODO optimise pubsub, and use fastlane (one encode per screen width) or move screen width logic to the client
-  def handle_info({Feeds, :live, user_id}, socket) do
-    %{current_user: user, screen_width: screen_width} = socket.assigns
+  def handle_info({Feeds, :live, mate}, socket) do
+    %{
+      current_user: user,
+      screen_width: screen_width,
+      feed_filter: %FeedFilter{genders: our_gender_preferences},
+      gender: our_gender
+    } = socket.assigns
+
+    %{
+      user_id: user_id,
+      gender: mate_gender,
+      feed_filter: %FeedFilter{genders: mate_gender_preferences}
+    } = mate
 
     if feed_profile = Feeds.get_live_feed_profile(user.id, user_id) do
       if match_id = Matches.is_match?(user.id, user_id) do
@@ -483,7 +505,9 @@ defmodule TWeb.FeedChannel do
 
         push(socket, "activated_match", %{"match" => rendered})
       else
-        push(socket, "activated_profile", render_feed_item(feed_profile, screen_width))
+        if our_gender in mate_gender_preferences and mate_gender in our_gender_preferences do
+          push(socket, "activated_profile", render_feed_item(feed_profile, screen_width))
+        end
       end
     end
 

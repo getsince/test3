@@ -35,17 +35,26 @@ defmodule T.Feeds do
     Phoenix.PubSub.subscribe(@pubsub, pubsub_user_topic(user_id))
   end
 
-  defp notify_subscribers(%LiveSession{user_id: user_id} = session, :live = event) do
-    broadcast_from(live_topic(), {__MODULE__, event, user_id})
+  defp notify_subscribers(
+         %LiveSession{user_id: user_id} = session,
+         gender,
+         feed_filter,
+         :live = event
+       ) do
+    broadcast_from(
+      live_topic(),
+      {__MODULE__, event, %{user_id: user_id, gender: gender, feed_filter: feed_filter}}
+    )
+
     session
   end
+
+  defp notify_subscribers({:error, _multi, _reason, _changes} = fail, _g, _f, _event), do: fail
+  defp notify_subscribers({:error, _reason} = fail, _g, _f, _event), do: fail
 
   defp notify_subscribers(:mode_change, event) do
     broadcast_from(mode_change_topic(), {__MODULE__, [:mode_change, event]})
   end
-
-  defp notify_subscribers({:error, _multi, _reason, _changes} = fail, _event), do: fail
-  defp notify_subscribers({:error, _reason} = fail, _event), do: fail
 
   # defp broadcast(topic, message) do
   #   Phoenix.PubSub.broadcast(@pubsub, topic, message)
@@ -93,7 +102,7 @@ defmodule T.Feeds do
     # minute = reference_time.minute
 
     # true
-    # minute < 25
+    # minute  25
     (day_of_week == 4 && (hour == 16 || hour == 17)) ||
       (day_of_week == 6 && (hour == 17 || hour == 18))
   end
@@ -159,7 +168,11 @@ defmodule T.Feeds do
   end
 
   # TODO test pubsub
-  def maybe_activate_session(user_id) do
+  def maybe_activate_session(
+        user_id,
+        gender,
+        feed_filter \\ %FeedFilter{genders: ["F", "M", "N"]}
+      ) do
     is_already_live? = LiveSession |> where(user_id: ^user_id) |> Repo.exists?()
 
     case is_already_live? do
@@ -172,7 +185,7 @@ defmodule T.Feeds do
         live_session =
           %LiveSession{user_id: user_id}
           |> Repo.insert!(on_conflict: :replace_all, conflict_target: :user_id)
-          |> notify_subscribers(:live)
+          |> notify_subscribers(gender, feed_filter, :live)
 
         maybe_schedule_push_to_matches(user_id)
         live_session
@@ -205,12 +218,22 @@ defmodule T.Feeds do
 
   @spec fetch_live_feed(
           Ecto.UUID.t(),
+          String.t(),
+          %FeedFilter{},
           pos_integer,
           feed_cursor | nil
         ) ::
           {[%FeedProfile{}], feed_cursor}
-  def fetch_live_feed(user_id, count, feed_cursor) do
-    profiles_q = filtered_live_profiles_q(user_id)
+  def fetch_live_feed(user_id, gender, feed_filter, count, feed_cursor) do
+    %FeedFilter{
+      genders: gender_preferences
+    } = feed_filter
+
+    profiles_q =
+      user_id
+      |> filtered_live_profiles_q()
+      |> profiles_that_accept_gender_q(gender)
+      |> maybe_gender_preferenced_q(gender_preferences)
 
     feed_items =
       live_sessions_q(user_id, feed_cursor)

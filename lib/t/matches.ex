@@ -790,61 +790,6 @@ defmodule T.Matches do
     save_contact_offer(offerer, mate, match_id, contact)
   end
 
-  # TODO remove on new app version release
-  defp save_contact_offer(
-         offerer,
-         mate,
-         match_id,
-         %{"contact_type" => contact_type, "value" => value} = _contact
-       ) do
-    {offerer_name, _number_of_matches1} = user_info(offerer)
-    {mate_name, _umber_of_matches2} = user_info(mate)
-
-    m =
-      "contact offer from #{offerer_name} (#{offerer}) to #{mate_name} (#{mate}), #{contact_type}"
-
-    Logger.warn(m)
-    Bot.async_post_message(m)
-
-    contacts = %{contact_type => value}
-
-    changeset =
-      contact_changeset(
-        %MatchContact{match_id: match_id, picker_id: mate},
-        %{contacts: contacts, contact_type: contact_type, value: value}
-      )
-
-    push_job =
-      DispatchJob.new(%{
-        "type" => "contact_offer",
-        "match_id" => match_id,
-        "receiver_id" => mate,
-        "offerer_id" => offerer
-      })
-
-    conflict_opts = [on_conflict: :replace_all, conflict_target: [:match_id]]
-
-    Multi.new()
-    |> Multi.insert(:match_contact, changeset, conflict_opts)
-    |> Multi.insert(:match_event, %MatchEvent{
-      timestamp: DateTime.truncate(DateTime.utc_now(), :second),
-      match_id: match_id,
-      event: "contact_offer"
-    })
-    |> Oban.insert(:push, push_job)
-    |> Repo.transaction()
-    |> case do
-      {:ok, %{match_contact: %MatchContact{} = match_contact}} ->
-        maybe_unarchive_match(match_id)
-        broadcast_for_user(mate, {__MODULE__, [:contact, :offered], match_contact})
-
-        {:ok, match_contact}
-
-      {:error, :match_contact, %Ecto.Changeset{} = changeset, _changes} ->
-        {:error, changeset}
-    end
-  end
-
   defp save_contact_offer(offerer, mate, match_id, contacts) do
     {offerer_name, _number_of_matches1} = user_info(offerer)
     {mate_name, _umber_of_matches2} = user_info(mate)
@@ -854,14 +799,8 @@ defmodule T.Matches do
     Logger.warn(m)
     Bot.async_post_message(m)
 
-    contact_type = contacts |> Map.keys() |> Enum.at(-1)
-    value = contacts |> Map.get(contact_type)
-
     changeset =
-      contact_changeset(
-        %MatchContact{match_id: match_id, picker_id: mate},
-        %{contacts: contacts, contact_type: contact_type, value: value}
-      )
+      contact_changeset(%MatchContact{match_id: match_id, picker_id: mate}, %{contacts: contacts})
 
     push_job =
       DispatchJob.new(%{
@@ -1181,9 +1120,17 @@ defmodule T.Matches do
 
   defp contact_changeset(contact, attrs) do
     contact
-    |> cast(attrs, [:contact_type, :value, :contacts])
-    |> validate_required([:contact_type, :value, :contacts])
-    |> validate_length(:contact_type, min: 1)
-    |> validate_length(:value, min: 1)
+    |> cast(attrs, [:contacts])
+    |> validate_required([:contacts])
+    |> validate_change(:contacts, fn :contacts, contacts ->
+      case contacts
+           |> Map.keys()
+           |> Enum.find(fn key ->
+             key not in ["whatsapp", "telegram", "instagram", "phone"]
+           end) do
+        nil -> []
+        _ -> [contacts: "unrecognized contact type"]
+      end
+    end)
   end
 end

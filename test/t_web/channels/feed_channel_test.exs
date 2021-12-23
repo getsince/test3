@@ -53,16 +53,14 @@ defmodule TWeb.FeedChannelTest do
       # add contact to m1
       insert(:match_contact,
         match_id: m1.id,
-        contact_type: "telegram",
-        value: "@abcde",
+        contacts: %{"telegram" => "@abcde"},
         picker_id: p1.id
       )
 
       # add contact to m2, but it won't be returned since there is a timeslot as well
       insert(:match_contact,
         match_id: m2.id,
-        contact_type: "whatsapp",
-        value: "+79666666666",
+        contacts: %{"whatsapp" => "+79666666666"},
         picker_id: p2.id
       )
 
@@ -80,10 +78,8 @@ defmodule TWeb.FeedChannelTest do
                  "id" => m2.id,
                  "profile" => %{name: "mate-2", story: [], user_id: p2.id, gender: "N"},
                  "contact" => %{
-                   "contact_type" => "whatsapp",
+                   "contacts" => %{"whatsapp" => "+79666666666"},
                    "picker" => p2.id,
-                   "value" => "+79666666666",
-                   "contacts" => nil,
                    "opened_contact_type" => nil
                  },
                  "audio_only" => false
@@ -92,12 +88,47 @@ defmodule TWeb.FeedChannelTest do
                  "id" => m1.id,
                  "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
                  "contact" => %{
-                   "contact_type" => "telegram",
+                   "contacts" => %{"telegram" => "@abcde"},
                    "picker" => p1.id,
-                   "value" => "@abcde",
-                   "contacts" => nil,
                    "opened_contact_type" => nil
                  },
+                 "audio_only" => false
+               }
+             ]
+    end
+
+    test "with archive match", %{socket: socket, me: me} do
+      p1 = onboarded_user(story: [], name: "mate-1", location: apple_location(), gender: "F")
+
+      m1 =
+        insert(:match, user_id_1: me.id, user_id_2: p1.id, inserted_at: ~N[2021-09-30 12:16:05])
+
+      assert {:ok, %{"matches" => matches}, socket} =
+               join(socket, "feed:" <> me.id, %{"mode" => "normal"})
+
+      assert matches == [
+               %{
+                 "id" => m1.id,
+                 "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
+                 "audio_only" => false
+               }
+             ]
+
+      push(socket, "archive-match", %{"match_id" => m1.id})
+
+      assert {:ok, reply, socket} = join(socket, "feed:" <> me.id, %{"mode" => "normal"})
+
+      assert reply["matches"] == nil
+
+      push(socket, "unarchive-match", %{"match_id" => m1.id})
+
+      assert {:ok, %{"matches" => matches}, _socket} =
+               join(socket, "feed:" <> me.id, %{"mode" => "normal"})
+
+      assert matches == [
+               %{
+                 "id" => m1.id,
+                 "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
                  "audio_only" => false
                }
              ]
@@ -1290,6 +1321,115 @@ defmodule TWeb.FeedChannelTest do
       Accounts.update_profile(profile, %{"min_age" => 31})
       new_filter = %T.Feeds.FeedFilter{initial_filter | min_age: 31}
       assert_receive {Accounts, :feed_filter_updated, ^new_filter}
+    end
+  end
+
+  describe "archived-matches" do
+    setup :joined
+
+    test "works", %{me: me, socket: socket} do
+      ref = push(socket, "archived-matches")
+      assert_reply(ref, :ok, reply)
+      assert reply == %{"archived_matches" => []}
+
+      p1 = onboarded_user(story: [], name: "mate-1", location: apple_location(), gender: "F")
+
+      m1 =
+        insert(:match, user_id_1: me.id, user_id_2: p1.id, inserted_at: ~N[2021-09-30 12:16:05])
+
+      ref = push(socket, "archived-matches")
+      assert_reply(ref, :ok, reply)
+      assert reply == %{"archived_matches" => []}
+
+      push(socket, "archive-match", %{"match_id" => m1.id})
+
+      ref = push(socket, "archived-matches")
+      assert_reply(ref, :ok, reply)
+
+      assert reply == %{
+               "archived_matches" => [
+                 %{
+                   "id" => m1.id,
+                   "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"}
+                 }
+               ]
+             }
+
+      push(socket, "unarchive-match", %{"match_id" => m1.id})
+
+      ref = push(socket, "archived-matches")
+      assert_reply(ref, :ok, reply)
+      assert reply == %{"archived_matches" => []}
+    end
+  end
+
+  describe "open-contact, report-we-met, report-we-not-met" do
+    setup :joined
+
+    test "works", %{me: me, socket: socket} do
+      p1 = onboarded_user(story: [], name: "mate-1", location: apple_location(), gender: "F")
+
+      m1 =
+        insert(:match, user_id_1: me.id, user_id_2: p1.id, inserted_at: ~N[2021-09-30 12:16:05])
+
+      insert(:match_contact,
+        match_id: m1.id,
+        contacts: %{"telegram" => "@abcde"},
+        picker_id: p1.id
+      )
+
+      ref = push(socket, "open-contact", %{"match_id" => m1.id, "contact_type" => "telegram"})
+      assert_reply(ref, :ok, _reply)
+
+      assert {:ok, %{"matches" => matches}, _socket} =
+               join(socket, "feed:" <> me.id, %{"mode" => "normal"})
+
+      assert matches == [
+               %{
+                 "id" => m1.id,
+                 "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
+                 "contact" => %{
+                   "contacts" => %{"telegram" => "@abcde"},
+                   "picker" => p1.id,
+                   "opened_contact_type" => "telegram"
+                 },
+                 "audio_only" => false
+               }
+             ]
+
+      push(socket, "report-we-not-met", %{"match_id" => m1.id})
+
+      assert {:ok, %{"matches" => matches}, _socket} =
+               join(socket, "feed:" <> me.id, %{"mode" => "normal"})
+
+      assert matches == [
+               %{
+                 "id" => m1.id,
+                 "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
+                 "contact" => %{
+                   "contacts" => %{"telegram" => "@abcde"},
+                   "picker" => p1.id,
+                   "opened_contact_type" => nil
+                 },
+                 "audio_only" => false
+               }
+             ]
+
+      ref = push(socket, "open-contact", %{"match_id" => m1.id, "contact_type" => "telegram"})
+      assert_reply(ref, :ok, _reply)
+
+      push(socket, "report-we-met", %{"match_id" => m1.id})
+
+      assert {:ok, %{"matches" => matches}, _socket} =
+               join(socket, "feed:" <> me.id, %{"mode" => "normal"})
+
+      assert matches == [
+               %{
+                 "id" => m1.id,
+                 "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
+                 "audio_only" => false
+               }
+             ]
     end
   end
 

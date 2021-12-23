@@ -37,7 +37,7 @@ defmodule T.Accounts.DeletionTest do
 
       assert_receive {Matches, :matched, match}
       user_id = user.id
-      assert %{id: ^match_id, mate: ^user_id} = match
+      assert match == %{id: match_id, mate: user_id, audio_only: false}
 
       assert {:ok, %{delete_user: true, unmatch: [true]}} = Accounts.delete_user(user.id)
       assert_receive {Matches, :unmatched, ^match_id}

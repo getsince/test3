@@ -69,9 +69,9 @@ defmodule T.Accounts do
     |> add_settings()
     |> Repo.transaction()
     |> case do
-      {:ok, %{user: user, profile: profile}} ->
+      {:ok, %{user: user, profile: profile, user_settings: user_settings}} ->
         Logger.warn("new user #{user.apple_id}")
-        {:ok, %User{user | profile: profile}}
+        {:ok, %User{user | profile: %Profile{profile | audio_only: user_settings.audio_only}}}
 
       {:error, :user, %Ecto.Changeset{} = changeset, _changes} ->
         {:error, changeset}

@@ -15,6 +15,11 @@ defmodule T.Repo.Migrations.AddMultipleContacts do
     )
     |> T.Repo.update_all([])
 
-    # TODO remove contact_type & value upon app release
+    flush()
+
+    alter table(:match_contact) do
+      remove :contact_type
+      remove :value
+    end
   end
 end

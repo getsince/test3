@@ -8,7 +8,7 @@ defmodule T.Matches.ContactsTest do
   describe "save_contact_offer/3 for invalid match" do
     setup [:with_profiles]
 
-    @contact %{"contact_type" => "telegram", "value" => "@durov"}
+    @contact %{"telegram" => "@durov"}
 
     test "with non-existent match", %{profiles: [p1, _]} do
       match = Ecto.UUID.generate()
@@ -37,18 +37,39 @@ defmodule T.Matches.ContactsTest do
 
     test "with empty contact", %{profiles: [p1, _], match: match} do
       assert {:error, %Ecto.Changeset{valid?: false} = changeset} =
-               Matches.save_contact_offer_for_match(p1.user_id, match.id, %{
-                 "contact_type" => "",
-                 "value" => ""
-               })
+               Matches.save_contact_offer_for_match(p1.user_id, match.id, %{"" => ""})
 
-      assert errors_on(changeset) == %{
-               contact_type: ["can't be blank"],
-               value: ["can't be blank"]
-             }
+      assert errors_on(changeset) == %{contacts: ["unrecognized contact type"]}
     end
 
-    # TODO unsupported contact type / value
+    test "multiple contact", %{profiles: [p1, p2], match: match} do
+      assert {:ok, %MatchContact{} = contact} =
+               Matches.save_contact_offer_for_match(p1.user_id, match.id, %{
+                 "telegram" => "@pashka"
+               })
+
+      picker_id = p2.user_id
+      assert %{contacts: %{"telegram" => "@pashka"}, picker_id: ^picker_id} = contact
+
+      assert {:ok, %MatchContact{} = contact} =
+               Matches.save_contact_offer_for_match(p1.user_id, match.id, %{
+                 "whatsapp" => "@reptile",
+                 "telegram" => "@pashka"
+               })
+
+      assert %{
+               contacts: %{"whatsapp" => "@reptile", "telegram" => "@pashka"},
+               picker_id: ^picker_id
+             } = contact
+
+      assert {:ok, %MatchContact{} = contact} =
+               Matches.save_contact_offer_for_match(p2.user_id, match.id, %{
+                 "phone" => "+6666"
+               })
+
+      picker_id = p1.user_id
+      assert %{contacts: %{"phone" => "+6666"}, picker_id: ^picker_id} = contact
+    end
   end
 
   describe "save_contact_offer/3 side-effects" do
@@ -79,10 +100,28 @@ defmodule T.Matches.ContactsTest do
     test "offer is broadcast via pubsub to mate", %{profiles: [_p1, %{user_id: receiver_id}]} do
       assert_receive {Matches, [:contact, :offered], %MatchContact{} = contact}
 
-      assert contact.contact_type == "whatsapp"
-      assert contact.value == "+55555555555"
+      assert contact.contacts == %{"whatsapp" => "+55555555555"}
 
       assert contact.picker_id == receiver_id
+    end
+  end
+
+  describe "save_contact_offer/3 for archived match side-effects" do
+    setup [:with_profiles]
+
+    setup %{profiles: [_p1, p2]} do
+      Matches.subscribe_for_user(p2.user_id)
+    end
+
+    setup [:with_archived_match, :with_contact_offer]
+
+    test "archived match is unarchived", %{profiles: [_p1, %{user_id: receiver_id}]} do
+      assert_receive {Matches, [:contact, :offered], %MatchContact{} = contact}
+
+      assert contact.contacts == %{"whatsapp" => "+55555555555"}
+      assert contact.picker_id == receiver_id
+
+      assert Matches.list_archived_matches(receiver_id) == []
     end
   end
 
@@ -92,17 +131,16 @@ defmodule T.Matches.ContactsTest do
     test "on counter-offer, contact is overwritten", %{profiles: [_p1, p2], match: match} do
       assert %MatchContact{} =
                insert(:match_contact,
-                 contact_type: "instagram",
-                 value: "zyzz",
+                 contacts: %{"instagram" => "zyzz"},
                  match: match,
                  picker: p2.user
                )
 
-      assert {:ok, %MatchContact{contact_type: "whatsapp", value: "+66666666666"}} =
+      assert {:ok, %MatchContact{contacts: %{"whatsapp" => "+66666666666"}}} =
                Matches.save_contact_offer_for_match(
                  p2.user_id,
                  match.id,
-                 %{"contact_type" => "whatsapp", "value" => "+66666666666"}
+                 %{"whatsapp" => "+66666666666"}
                )
     end
   end
@@ -113,8 +151,7 @@ defmodule T.Matches.ContactsTest do
     test "contact is deleted", %{profiles: [_p1, p2], match: match} do
       assert %MatchContact{} =
                insert(:match_contact,
-                 contact_type: "phone",
-                 value: "+77777777777",
+                 contacts: %{"phone" => "+77777777777"},
                  match: match,
                  picker: p2.user
                )
@@ -135,8 +172,17 @@ defmodule T.Matches.ContactsTest do
     {:ok, match: insert(:match, user_id_1: p1.user_id, user_id_2: p2.user_id)}
   end
 
+  defp with_archived_match(%{profiles: [p1, p2]}) do
+    match = insert(:match, user_id_1: p1.user_id, user_id_2: p2.user_id)
+    Matches.mark_match_archived(match.id, p2.user_id)
+
+    assert length(Matches.list_archived_matches(p2.user_id)) == 1
+
+    {:ok, match: match}
+  end
+
   defp with_contact_offer(%{profiles: [p1, _p2], match: match}) do
-    contact = %{"contact_type" => "whatsapp", "value" => "+55555555555"}
+    contact = %{"whatsapp" => "+55555555555"}
 
     assert {:ok, %MatchContact{} = match_contact} =
              Matches.save_contact_offer_for_match(

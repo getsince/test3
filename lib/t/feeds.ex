@@ -205,12 +205,22 @@ defmodule T.Feeds do
 
   @spec fetch_live_feed(
           Ecto.UUID.t(),
+          String.t(),
+          %FeedFilter{},
           pos_integer,
           feed_cursor | nil
         ) ::
           {[%FeedProfile{}], feed_cursor}
-  def fetch_live_feed(user_id, count, feed_cursor) do
-    profiles_q = filtered_live_profiles_q(user_id)
+  def fetch_live_feed(user_id, gender, feed_filter, count, feed_cursor) do
+    %FeedFilter{
+      genders: gender_preferences
+    } = feed_filter
+
+    profiles_q =
+      user_id
+      |> filtered_live_profiles_q()
+      |> profiles_that_accept_gender_q(gender)
+      |> maybe_gender_preferenced_q(gender_preferences)
 
     feed_items =
       live_sessions_q(user_id, feed_cursor)

@@ -60,7 +60,10 @@ defmodule TWeb.FeedChannel do
       |> maybe_put("invites", invites)
       |> maybe_put("matches", matches)
 
-    {:ok, reply, assign(socket, mode: "live")}
+    feed_filter = Feeds.get_feed_filter(user_id)
+    {_location, gender} = Accounts.get_location_and_gender!(user_id)
+
+    {:ok, reply, assign(socket, mode: "live", feed_filter: feed_filter, gender: gender)}
   end
 
   defp join_normal_mode(user_id, screen_width, params, socket) do
@@ -119,9 +122,16 @@ defmodule TWeb.FeedChannel do
         if params["cursor"] == "non-nil" do
           {:reply, {:ok, %{"feed" => [], "cursor" => nil}}, socket}
         else
+          %{
+            feed_filter: feed_filter,
+            gender: gender
+          } = socket.assigns
+
           {feed, cursor} =
             Feeds.fetch_live_feed(
               user.id,
+              gender,
+              feed_filter,
               params["count"] || 10,
               params["cursor"]
             )

@@ -296,8 +296,7 @@ defmodule TWeb.FeedChannelTest do
           story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
           gender: "F",
           accept_genders: ["M"],
-          last_active: DateTime.add(now, -1),
-          like_ratio: 1.0
+          last_active: DateTime.add(now, -1)
         ),
         onboarded_user(
           name: "mate-2",
@@ -305,8 +304,7 @@ defmodule TWeb.FeedChannelTest do
           story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
           gender: "N",
           accept_genders: ["M"],
-          last_active: DateTime.add(now, -2),
-          like_ratio: 0.5
+          last_active: DateTime.add(now, -2)
         ),
         onboarded_user(
           name: "mate-3",
@@ -314,10 +312,13 @@ defmodule TWeb.FeedChannelTest do
           story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
           gender: "M",
           accept_genders: ["M"],
-          last_active: DateTime.add(now, -3),
-          like_ratio: 0
+          last_active: DateTime.add(now, -3)
         )
       ]
+
+      set_like_ratio(m1, 1.0)
+      set_like_ratio(m2, 0.5)
+      set_like_ratio(m3, 0)
 
       ref = push(socket, "more", %{"count" => 2})
       assert_reply(ref, :ok, %{"cursor" => cursor, "feed" => feed})
@@ -476,18 +477,19 @@ defmodule TWeb.FeedChannelTest do
           location: apple_location(),
           story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
           gender: "F",
-          accept_genders: ["M"],
-          like_ratio: 1.0
+          accept_genders: ["M"]
         ),
         onboarded_user(
           name: "mate-2",
           location: moscow_location(),
           story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
           gender: "F",
-          accept_genders: ["M"],
-          like_ratio: 0.5
+          accept_genders: ["M"]
         )
       ]
+
+      set_like_ratio(m1, 1)
+      set_like_ratio(m2, 0.5)
 
       ref = push(socket, "more", %{"count" => 2})
       assert_reply(ref, :ok, %{"feed" => feed})

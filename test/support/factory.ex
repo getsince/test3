@@ -125,7 +125,6 @@ defmodule T.Factory do
       birthdate: opts[:birthdate] || "1998-10-28",
       gender: gender,
       name: opts[:name] || "that",
-      like_ratio: opts[:like_ratio] || 0,
       gender_preference: opts[:accept_genders] || ["F"],
       distance: opts[:distance],
       max_age: opts[:max_age],
@@ -133,7 +132,7 @@ defmodule T.Factory do
     }
   end
 
-  alias T.Accounts
+  alias T.{Accounts, Repo}
 
   def registered_user(apple_id \\ apple_id(), last_active \\ DateTime.utc_now()) do
     {:ok, user} = Accounts.register_user_with_apple_id(%{"apple_id" => apple_id}, last_active)
@@ -146,5 +145,22 @@ defmodule T.Factory do
 
     {:ok, profile} = Accounts.onboard_profile(user.profile, onboarding_attrs(opts))
     %Accounts.User{user | profile: profile}
+  end
+
+  def set_like_ratio(%Accounts.User{id: user_id}, ratio) do
+    set_like_ratio(user_id, ratio)
+  end
+
+  def set_like_ratio(%{user_id: user_id}, ratio) do
+    set_like_ratio(user_id, ratio)
+  end
+
+  def set_like_ratio(user_id, ratio) when is_binary(user_id) do
+    import Ecto.Query
+
+    {1, _} =
+      "profiles"
+      |> where(user_id: type(^user_id, Ecto.UUID))
+      |> Repo.update_all(set: [like_ratio: ratio])
   end
 end

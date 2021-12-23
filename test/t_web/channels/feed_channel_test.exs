@@ -1366,7 +1366,7 @@ defmodule TWeb.FeedChannelTest do
   describe "open-contact, report-we-met, report-we-not-met" do
     setup :joined
 
-    test "works", %{me: me, socket: socket} do
+    test "open-contact, report-we-not-met, report-we-met", %{me: me, socket: socket} do
       p1 = onboarded_user(story: [], name: "mate-1", location: apple_location(), gender: "F")
 
       m1 =

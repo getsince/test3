@@ -6,7 +6,11 @@ defmodule T.Factory do
   alias T.Calls.Call
 
   def user_factory do
-    %User{apple_id: apple_id()}
+    %User{apple_id: apple_id(), settings: build(:user_settings)}
+  end
+
+  def user_settings_factory do
+    %UserSettings{audio_only: false}
   end
 
   def seen_profile_factory do
@@ -20,10 +24,6 @@ defmodule T.Factory do
       hidden?: false,
       gender: "M"
     }
-  end
-
-  def build_user_settings(user_id) do
-    T.Repo.insert(%UserSettings{user_id: user_id, audio_only: false})
   end
 
   def match_factory do

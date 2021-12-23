@@ -41,7 +41,7 @@ defmodule T.Matches do
   # - Likes
 
   @spec like_user(Ecto.UUID.t(), Ecto.UUID.t()) ::
-          {:ok, %{match: %Match{} | nil, audio_only: [Boolean.t()], event: %MatchEvent{} | nil}}
+          {:ok, %{match: %Match{} | nil, audio_only: [boolean] | nil, event: %MatchEvent{} | nil}}
           | {:error, atom, term, map}
   def like_user(by_user_id, user_id) do
     Multi.new()
@@ -161,9 +161,8 @@ defmodule T.Matches do
   defp maybe_fetch_settings(multi, [by_user_id, user_id]) do
     Multi.run(multi, :audio_only, fn _repo, %{mutual: mutual} ->
       if mutual do
-        # TODO batch
         by_user_id_settings =
-          UserSettings |> where(user_id: ^by_user_id) |> select([s], s.audio_only) |> Repo.one()
+          UserSettings |> where(user_id: ^by_user_id) |> select([s], s.audio_only) |> Repo.one!()
 
         user_id_settings =
           UserSettings |> where(user_id: ^user_id) |> select([s], s.audio_only) |> Repo.one!()

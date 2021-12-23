@@ -76,12 +76,11 @@ defmodule TWeb.ProfileChannel do
   end
 
   def handle_in("set-audio-only", %{"bool" => bool}, socket) do
-    %{current_user: user} = socket.assigns
+    %{profile: profile, current_user: user} = socket.assigns
 
     Accounts.set_audio_only(user.id, bool)
 
-    # TODO assign socket new user settings
-    {:reply, :ok, socket}
+    {:reply, :ok, assign(socket, profile: %Profile{profile | audio_only: bool})}
   end
 
   def handle_in("profile-editor-tutorial", params, socket) do

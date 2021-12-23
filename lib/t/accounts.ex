@@ -495,9 +495,11 @@ defmodule T.Accounts do
   end
 
   def get_profile!(user_id) when is_binary(user_id) do
-    profile =
+    {profile, audio_only} =
       Profile
       |> where([p], p.user_id == ^user_id)
+      |> join(:inner, [p], s in UserSettings, on: s.user_id == p.user_id)
+      |> select([p, s], {p, s.audio_only})
       |> Repo.one!()
 
     gender_preference =
@@ -505,12 +507,6 @@ defmodule T.Accounts do
       |> where([g], g.user_id == ^user_id)
       |> select([g], g.gender)
       |> Repo.all()
-
-    audio_only =
-      UserSettings
-      |> where([g], g.user_id == ^user_id)
-      |> select([s], s.audio_only)
-      |> Repo.one!()
 
     %Profile{profile | gender_preference: gender_preference, audio_only: audio_only}
   end

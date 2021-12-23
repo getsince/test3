@@ -4,7 +4,7 @@ defmodule T.Accounts.UserSettings do
   @primary_key false
   @foreign_key_type Ecto.Bigflake.UUID
   schema "user_settings" do
-    belongs_to :user, T.Accounts.User, primary_key: true
+    field :user_id, Ecto.UUID, primary_key: true
     field :audio_only, :boolean
   end
 end

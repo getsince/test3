@@ -27,7 +27,6 @@ defmodule T.Accounts.DeletionTest do
 
     test "current match is unmatched", %{user: user} do
       p2 = insert(:profile)
-      build_user_settings(p2.user_id)
 
       Matches.subscribe_for_user(user.id)
       Matches.subscribe_for_user(p2.user_id)

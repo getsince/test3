@@ -63,7 +63,7 @@ defmodule T.MixProject do
       {:floki, ">= 0.0.0", only: :test},
       {:sentry, "~> 8.0"},
       {:bigflake, "0.5.0"},
-      {:imgproxy, "~> 2.0"},
+      {:imgproxy, "~> 3.0"},
       {:rexbug, "~> 1.0"},
       {:geo_postgis, "~> 3.4"},
       {:finch, "~> 0.8"},

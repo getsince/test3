@@ -29,33 +29,16 @@ config :t, T.PromEx, disabled: config_env() != :prod
 crontab =
   case config_env() do
     :prod ->
-      alias T.PushNotifications.DispatchJob
-
       [
         if System.get_env("ENABLE_NEWBIE_LIVE") do
-          [
-            # https://crontab.guru/#0_13_*_*_0-4,6
-            # At 13:00 on every day-of-week from Sunday through Thursday and Saturday.
-            {"0 13 * * 0-4,6", DispatchJob, args: %{"type" => "newbie_live_mode_today"}},
-            # https://crontab.guru/#45_18_*_*_0-4,6
-            # At 18:45 on every day-of-week from Sunday through Thursday and Saturday.
-            {"45 18 * * 0-4,6", DispatchJob, args: %{"type" => "newbie_live_mode_soon"}},
-            # https://crontab.guru/#00_19_*_*_0-4,6
-            # At 19:00 on every day-of-week from Sunday through Thursday and Saturday.
-            {"00 19 * * 0-4,6", T.Feeds.NewbiesLive.StartJob},
-            # https://crontab.guru/#00_20_*_*_0-4,6
-            # At 20:00 on every day-of-week from Sunday through Thursday and Saturday.
-            {"00 20 * * 0-4,6", T.Feeds.NewbiesLive.EndJob}
-          ]
-        end
+          T.Feeds.newbies_crontab()
+        end,
+        T.Feeds.live_crontab()
       ]
       |> Enum.reject(&is_nil/1)
       |> List.flatten()
 
-    :dev ->
-      []
-
-    :test ->
+    _other ->
       []
   end
 
@@ -244,7 +227,12 @@ if config_env() == :dev do
     static_bucket: System.fetch_env!("AWS_S3_BUCKET_STATIC"),
     static_cdn: System.fetch_env!("STATIC_CDN")
 
-  config :t, T.Media.Static, disabled?: false
+  config :t, T.Media.Static, disabled?: !!System.get_env("DISABLE_MEDIA")
+  config :t, T.Feeds.SeenPruner, disabled?: !!System.get_env("DISABLE_SEEN_PRUNER")
+  config :t, T.Matches.MatchExpirer, disabled?: !!System.get_env("DISABLE_MATCH_EXPIRER")
+
+  config :t, T.PushNotifications.ScheduledPushes,
+    disabled?: !!System.get_env("DISABLE_SCHEDULED_PUSHES")
 end
 
 if config_env() == :test do
@@ -296,7 +284,8 @@ if config_env() == :test do
   config :t, T.PushNotifications.APNS, default_topic: "app.topic"
 
   config :t, T.Feeds.SeenPruner, disabled?: true
-  config :t, T.Feeds.LiveModeManager, disabled?: true
+  config :t, T.Matches.MatchExpirer, disabled?: true
+  config :t, T.PushNotifications.ScheduledPushes, disabled?: true
 
   # there is no user with this id, it's been generated just for the tests
   config :t, oldies: ["0000017d-d720-1f6a-06e9-e8bbc6570000"]

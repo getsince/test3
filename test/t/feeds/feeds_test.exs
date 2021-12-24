@@ -5,6 +5,8 @@ defmodule T.FeedsTest do
   alias T.Feeds
   alias T.Feeds.{FeedProfile, FeedFilter, SeenProfile}
 
+  doctest Feeds, import: true
+
   describe "fetch_feed/3" do
     setup do
       me = onboarded_user(location: moscow_location())

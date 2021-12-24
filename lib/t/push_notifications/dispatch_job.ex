@@ -289,10 +289,8 @@ defmodule T.PushNotifications.DispatchJob do
     :ok
   end
 
-  defp handle_type(type, _args)
-       when type in ["live_mode_started", "live_mode_ended", "live_mode_today", "live_mode_soon"] do
-    Accounts.list_apns_devices() |> schedule_apns(type, %{})
-
+  defp handle_type(type, _args) when type in ["live_mode_today", "live_mode_soon"] do
+    Accounts.list_apns_devices() |> schedule_apns(type, _data = %{})
     :ok
   end
 
@@ -335,7 +333,7 @@ defmodule T.PushNotifications.DispatchJob do
         "priority" => "10"
       })
     end)
-    # TODO might need to chunk later (pg won't accept more than ~30k uuids at a time)
+    # TODO might need to chunk later
     |> Oban.insert_all()
   end
 

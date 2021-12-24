@@ -186,4 +186,10 @@ defmodule T.Factory do
       |> where(user_id: type(^user_id, Ecto.UUID))
       |> Repo.update_all(set: [like_ratio: ratio])
   end
+
+  def msk(date, time) do
+    date
+    |> DateTime.new!(time, "Europe/Moscow")
+    |> DateTime.shift_zone!("Etc/UTC")
+  end
 end

@@ -228,18 +228,10 @@ defmodule T.PushNotifications.APNS do
     base_alert_payload(type, alert, %{"user_id" => user_id})
   end
 
-  def build_alert_payload("live_mode_today" = type, _data) do
-    day_of_week = Date.utc_today() |> Date.day_of_week()
-
-    body =
-      case day_of_week do
-        6 -> dgettext("apns", "Come to the party at 20:00, it will be 🔥")
-        4 -> dgettext("apns", "Come to the party at 19:00, it will be 🔥")
-      end
-
+  def build_alert_payload("live_mode_today" = type, %{"time" => time}) do
     alert = %{
       "title" => dgettext("apns", "Since LIVE today 🥳"),
-      "body" => body
+      "body" => dgettext("apns", "Come to the party at %{time}, it will be 🔥", time: time)
     }
 
     base_alert_payload(type, alert, %{})
@@ -263,18 +255,11 @@ defmodule T.PushNotifications.APNS do
     base_alert_payload(type, alert, %{})
   end
 
-  def build_alert_payload("live_mode_ended" = type, _data) do
-    day_of_week = Date.utc_today() |> Date.day_of_week()
-
-    body =
-      case day_of_week do
-        6 -> dgettext("apns", "Wait for the party on Thursday 👀")
-        4 -> dgettext("apns", "Wait for the party on Saturday 👀")
-      end
-
+  def build_alert_payload("live_mode_ended" = type, %{"next" => next}) do
     alert = %{
       "title" => dgettext("apns", "Since Live ended ✌️"),
-      "body" => body
+      "body" =>
+        dgettext("apns", "Wait for the party %{on_weekday} 👀", on_weekday: on_weekday(next))
     }
 
     base_alert_payload(type, alert, %{})
@@ -287,11 +272,11 @@ defmodule T.PushNotifications.APNS do
   #    • (also orientation course) _mainly North American_ a course giving information to
   #                                newcomers to a university or other institution.
 
-  def build_alert_payload("newbie_live_mode_today" = type, _data) do
+  def build_alert_payload("newbie_live_mode_today" = type, %{"time" => time}) do
     alert = %{
-      # like Since Live orientation today
+      # like "Since Live orientation today"
       "title" => dgettext("apns", "Since LIVE today 🥳"),
-      "body" => dgettext("apns", "Come to the party at 19:00, it will be 🔥")
+      "body" => dgettext("apns", "Come to the party at %{time}, it will be 🔥", time: time)
     }
 
     base_alert_payload(type, alert, %{})
@@ -316,23 +301,10 @@ defmodule T.PushNotifications.APNS do
   end
 
   def build_alert_payload("newbie_live_mode_ended" = type, %{"next" => next}) do
-    next = Date.from_iso8601!(next)
-
-    on_weekday =
-      case Date.day_of_week(next) do
-        1 -> dgettext("apns", "on Monday")
-        2 -> dgettext("apns", "on Tuesday")
-        3 -> dgettext("apns", "on Wednesday")
-        4 -> dgettext("apns", "on Thursday")
-        5 -> dgettext("apns", "on Friday")
-        6 -> dgettext("apns", "on Saturday")
-        7 -> dgettext("apns", "on Sunday")
-      end
-
     alert = %{
-      "title" => dgettext("apns", "Since Live for babies is over ✌️"),
+      "title" => dgettext("apns", "Since Live for newbies is over ✌️"),
       "body" =>
-        dgettext("apns", "Wait for the real party %{on_weekday} 👀", on_weekday: on_weekday)
+        dgettext("apns", "Wait for the real party %{on_weekday} 👀", on_weekday: on_weekday(next))
     }
 
     base_alert_payload(type, alert, %{})
@@ -342,5 +314,22 @@ defmodule T.PushNotifications.APNS do
 
   def background_notification_payload(type, data) do
     Map.merge(data, %{"type" => type, "aps" => %{"content-available" => "1"}})
+  end
+
+  @spec on_weekday(String.t() | Date.t()) :: String.t()
+  defp on_weekday(next) when is_binary(next) do
+    next |> Date.from_iso8601!() |> on_weekday()
+  end
+
+  defp on_weekday(%Date{} = next) do
+    case Date.day_of_week(next) do
+      1 -> dgettext("apns", "on Monday")
+      2 -> dgettext("apns", "on Tuesday")
+      3 -> dgettext("apns", "on Wednesday")
+      4 -> dgettext("apns", "on Thursday")
+      5 -> dgettext("apns", "on Friday")
+      6 -> dgettext("apns", "on Saturday")
+      7 -> dgettext("apns", "on Sunday")
+    end
   end
 end

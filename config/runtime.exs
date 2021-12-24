@@ -26,11 +26,15 @@ config :sentry,
 
 config :t, T.PromEx, disabled: config_env() != :prod
 
+newbies_live_enabled? = !!System.get_env("ENABLE_NEWBIE_LIVE")
+
+config :t, newbies_live_enabled?: newbies_live_enabled?
+
 crontab =
   case config_env() do
     :prod ->
       [
-        if System.get_env("ENABLE_NEWBIE_LIVE") do
+        if newbies_live_enabled? do
           T.Feeds.newbies_crontab()
         end,
         T.Feeds.live_crontab()

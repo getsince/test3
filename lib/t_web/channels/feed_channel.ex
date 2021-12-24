@@ -18,11 +18,20 @@ defmodule TWeb.FeedChannel do
       :ok = Accounts.subscribe_for_user(user_id)
       :ok = Feeds.subscribe_for_mode_change()
 
+      newbies_live_enabled? = Application.get_env(:t, :newbies_live_enabled?)
+
       cond do
-        params["mode"] == "normal" -> join_normal_mode(user_id, screen_width, params, socket)
-        params["mode"] == "live" -> join_live_mode(user_id, screen_width, socket)
-        Feeds.live_now?(user_id, utc_now(socket)) -> join_live_mode(user_id, screen_width, socket)
-        true -> join_normal_mode(user_id, screen_width, params, socket)
+        params["mode"] == "normal" ->
+          join_normal_mode(user_id, screen_width, params, socket)
+
+        params["mode"] == "live" ->
+          join_live_mode(user_id, screen_width, socket)
+
+        Feeds.live_now?(user_id, utc_now(socket), newbies_live_enabled?) ->
+          join_live_mode(user_id, screen_width, socket)
+
+        true ->
+          join_normal_mode(user_id, screen_width, params, socket)
       end
     else
       {:error, %{"error" => "forbidden"}}

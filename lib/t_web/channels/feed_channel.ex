@@ -95,7 +95,6 @@ defmodule TWeb.FeedChannel do
 
     reply =
       %{"mode" => "normal"}
-      |> Map.put("since_live_time_text", Feeds.since_live_time_text())
       |> Map.put("since_live_date", since_live_date)
       |> Map.put("match_expiration_duration", @match_ttl)
       |> maybe_put("missed_calls", missed_calls)

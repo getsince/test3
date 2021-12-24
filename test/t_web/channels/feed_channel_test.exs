@@ -144,12 +144,6 @@ defmodule TWeb.FeedChannelTest do
       assert reply == %{
                "mode" => "normal",
                "since_live_date" => Feeds.live_next_real_at(),
-               "since_live_time_text" => %{
-                 "en" =>
-                   "Come to Since Live every Thursday from 19:00 to 21:00 and Saturday from 20:00 to 22:00, it will be great ✌️",
-                 "ru" =>
-                   "Приходи на Since Live каждый четверг с 19:00 до 21:00 и субботу с 20:00 до 22:00, будет классно ✌️"
-               },
                "likes" => [
                  %{
                    "profile" => %{
@@ -232,12 +226,6 @@ defmodule TWeb.FeedChannelTest do
       assert reply == %{
                "mode" => "normal",
                "since_live_date" => since_live_date,
-               "since_live_time_text" => %{
-                 "en" =>
-                   "Come to Since Live every Thursday from 19:00 to 21:00 and Saturday from 20:00 to 22:00, it will be great ✌️",
-                 "ru" =>
-                   "Приходи на Since Live каждый четверг с 19:00 до 21:00 и субботу с 20:00 до 22:00, будет классно ✌️"
-               },
                "missed_calls" => [
                  %{
                    # TODO call without ended_at should be joined from ios?
@@ -276,12 +264,6 @@ defmodule TWeb.FeedChannelTest do
       assert reply == %{
                "mode" => "normal",
                "since_live_date" => since_live_date,
-               "since_live_time_text" => %{
-                 "en" =>
-                   "Come to Since Live every Thursday from 19:00 to 21:00 and Saturday from 20:00 to 22:00, it will be great ✌️",
-                 "ru" =>
-                   "Приходи на Since Live каждый четверг с 19:00 до 21:00 и субботу с 20:00 до 22:00, будет классно ✌️"
-               },
                "missed_calls" => [
                  %{
                    "call" => %{

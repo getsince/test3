@@ -265,6 +265,39 @@ defmodule T.Matches do
     |> Repo.one()
   end
 
+  alias T.Calls.Call
+
+  @doc """
+  Matches users after a (>=1 minute) call if they haven't already been matched.
+
+  Used to match users after Since Live calls.
+  """
+  @spec maybe_match_after_end_call(%Call{}) :: %Match{} | nil
+  def maybe_match_after_end_call(%Call{accepted_at: nil} = _unanswered), do: nil
+
+  def maybe_match_after_end_call(%Call{} = call) do
+    %Call{
+      caller_id: caller_id,
+      called_id: called_id,
+      ended_at: ended_at,
+      accepted_at: accepted_at
+    } = call
+
+    duration = DateTime.diff(ended_at, accepted_at)
+
+    if duration >= 60 do
+      [user_id_1, user_id_2] = Enum.sort([caller_id, called_id])
+
+      change(%Match{user_id_1: user_id_1, user_id_2: user_id_2})
+      |> unique_constraint(:id, name: "matches_user_id_1_user_id_2_index")
+      |> Repo.insert()
+      |> case do
+        {:ok, match} -> match
+        {:error, _changeset} -> nil
+      end
+    end
+  end
+
   # - Matches
 
   @spec list_matches(uuid) :: [%Match{}]

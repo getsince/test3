@@ -5,7 +5,7 @@ defmodule T.Calls do
 
   require Logger
 
-  alias T.{Repo, Twilio, Accounts, Feeds}
+  alias T.{Repo, Twilio, Accounts, Feeds, Matches}
   alias T.Calls.Call
   alias T.Feeds.{FeedProfile}
   alias T.Matches.{Match, MatchEvent}
@@ -225,6 +225,8 @@ defmodule T.Calls do
       |> where(id: ^call_id)
       |> select([c], c)
       |> Repo.update_all(set: [ended_at: now, ended_by: user_id])
+
+    Matches.maybe_match_after_end_call(call)
 
     {user_status, second_user} =
       if user_id == call.caller_id do

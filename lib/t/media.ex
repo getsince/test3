@@ -44,19 +44,22 @@ defmodule T.Media do
 
   Accepts `opts` that are passed to imgproxy URL builder.
   """
+  def user_imgproxy_cdn_url(url_or_s3_key, requested_width, opts \\ [])
 
-  def user_imgproxy_cdn_url("http" <> _rest = source_url, requested_width) do
+  def user_imgproxy_cdn_url("http" <> _rest = source_url, requested_width, opts) do
+    width = if opts[:force_width], do: requested_width, else: image_width_bucket(requested_width)
+
     # TODO sharpen?
     Imgproxy.url(source_url,
-      width: image_width_bucket(requested_width),
+      width: width,
       height: 0,
       enlarge: "0",
       resize: "fit"
     )
   end
 
-  def user_imgproxy_cdn_url(s3_key, requested_width) do
-    user_imgproxy_cdn_url(user_s3_url(s3_key), requested_width)
+  def user_imgproxy_cdn_url(s3_key, requested_width, opts) do
+    user_imgproxy_cdn_url(user_s3_url(s3_key), requested_width, opts)
   end
 
   defp static_cdn_url(s3_key) do

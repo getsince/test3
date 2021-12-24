@@ -34,12 +34,12 @@ defmodule TWeb.ProfileLive.Index do
             </table>
           </div>
           <%= for page <- profile.story || [] do %>
-            <%= if url = background_url(page) do %>
-              <div class="relative cursor-pointer" x-data="{visible: true}" x-on:click="visible = !visible">
-                <img src={url} class="rounded-lg border border-gray-300 dark:border-gray-700 w-56" />
-                <div class="absolute space-y-1 top-0 left-0 p-4">
+            <%= if image = background_image(page) do %>
+              <div class="relative cursor-pointer" phx-click={JS.toggle(to: "[data-for-image='#{image.s3_key}']")}>
+                <img src={image.url} class="rounded-lg border border-gray-300 dark:border-gray-700 w-56" />
+                <div class="absolute space-y-1 top-0 left-0 p-4" data-for-image={image.s3_key}>
                 <%= for label <- labels(page) do %>
-                  <p class="bg-gray-100 dark:bg-black rounded px-1.5 font-medium leading-6 inline-block" x-show="visible" x-transition><%= label %></p>
+                  <p class="bg-gray-100 dark:bg-black rounded px-1.5 font-medium leading-6 inline-block"><%= label %></p>
                 <% end %>
                 </div>
               </div>
@@ -88,11 +88,11 @@ defmodule TWeb.ProfileLive.Index do
     assign(socket, profiles: profiles)
   end
 
-  defp background_url(%{"background" => %{"s3_key" => s3_key}}) do
-    T.Media.user_imgproxy_cdn_url(s3_key, 400)
+  defp background_image(%{"background" => %{"s3_key" => s3_key}}) do
+    %{s3_key: s3_key, url: T.Media.user_imgproxy_cdn_url(s3_key, 400)}
   end
 
-  defp background_url(_other), do: nil
+  defp background_image(_other), do: nil
 
   defp background_color(%{"background" => %{"color" => color}}) do
     color

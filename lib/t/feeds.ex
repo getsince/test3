@@ -173,12 +173,12 @@ defmodule T.Feeds do
       # ongoing newbies Since Live, but user is not a participant
       iex> user_id = Ecto.Bigflake.UUID.generate()
       iex> mon_19_30 = DateTime.new!(~D[2021-12-20], ~T[19:30:00], "Europe/Moscow")
-      iex> live_now?(user_id, mon_19_30)
+      iex> live_now?(user_id, mon_19_30, _newbies_live_enabled? = true)
       false
 
   """
-  @spec live_now?(Ecto.UUID.t(), DateTime.t()) :: boolean
-  def live_now?(user_id, reference \\ DateTime.utc_now()) do
+  @spec live_now?(Ecto.UUID.t(), DateTime.t(), boolean()) :: boolean
+  def live_now?(user_id, reference \\ DateTime.utc_now(), newbies_live_enabled? \\ false) do
     msk_now = DateTime.shift_zone!(reference, "Europe/Moscow")
     weekday_today = Date.day_of_week(msk_now)
 
@@ -191,12 +191,15 @@ defmodule T.Feeds do
 
     if ongoing? do
       case type do
-        :newbie -> is_a_newbies_participant?(user_id, reference)
-        :real -> true
+        :newbie ->
+          if newbies_live_enabled? do
+            is_a_newbies_participant?(user_id, reference)
+          end
+
+        :real ->
+          true
       end
-    else
-      false
-    end
+    end || false
   end
 
   @doc """

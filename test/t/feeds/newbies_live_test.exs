@@ -78,7 +78,7 @@ defmodule T.Feeds.NewbiesLiveTest do
       %{id: newbie} = newbie_user(onboarded_at: msk(~D[2021-12-19], ~T[09:47:57]))
 
       for time <- [~T[18:59:59], ~T[20:00:01]], user <- [oldie, newbie] do
-        refute Feeds.live_now?(user, msk(~D[2021-12-19], time))
+        refute Feeds.live_now?(user, msk(~D[2021-12-19], time), _newbies_live_enabled? = true)
       end
     end
 
@@ -90,7 +90,7 @@ defmodule T.Feeds.NewbiesLiveTest do
       times = [~T[19:00:00], ~T[19:00:01], ~T[19:59:59], ~T[20:00:00]]
 
       for time <- times, user <- users do
-        assert Feeds.live_now?(user, msk(~D[2021-12-19], time))
+        assert Feeds.live_now?(user, msk(~D[2021-12-19], time), _newbies_live_enabled? = true)
       end
     end
 
@@ -99,7 +99,7 @@ defmodule T.Feeds.NewbiesLiveTest do
       times = [~T[18:59:59], ~T[19:00:00], ~T[19:59:59], ~T[20:00:00], ~T[20:00:01]]
 
       for time <- times do
-        refute Feeds.live_now?(old, msk(~D[2021-12-19], time))
+        refute Feeds.live_now?(old, msk(~D[2021-12-19], time), _newbies_live_enabled? = true)
       end
     end
   end

@@ -69,7 +69,7 @@ defmodule T.MixProject do
       {:finch, "~> 0.8"},
       {:locus, "~> 2.2"},
       # {:prom_ex, "~> 1.3"},
-      {:esbuild, "~> 0.3", runtime: Mix.env() == :dev},
+
       # {:retry, "~> 0.14.1"},
       {:cloud_watch, github: "getsince/cloud_watch", branch: "drop-httpoison"},
       {:benchee, "~> 1.0", only: :bench},
@@ -86,14 +86,15 @@ defmodule T.MixProject do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases do
     [
-      setup: ["deps.get", "ecto.setup", "cmd --cd assets npm install"],
+      setup: ["deps.get", "ecto.setup", "cmd npm ci --prefix assets"],
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
       sentry_recompile: ["compile", "deps.compile sentry --force"],
       "assets.deploy": [
-        "cmd --cd assets npm run deploy",
-        "esbuild --no-runtime-config default --minify",
+        "cmd npm ci --prefix assets",
+        "cmd npm run deploy:css --prefix assets",
+        "cmd npm run deploy:js --prefix assets",
         "phx.digest"
       ]
     ]

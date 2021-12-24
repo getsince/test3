@@ -3,7 +3,12 @@
   "description": " ",
   "license": "MIT",
   "scripts": {
-    "deploy": "NODE_ENV=production tailwindcss --postcss --minify -i css/app.css -o ../priv/static/assets/app.css"
+    "tailwind": "tailwindcss -i css/app.css -o ../priv/static/assets/app.css --postcss",
+    "watch:css": "npm run tailwind -- --watch",
+    "deploy:css": "NODE_ENV=production npm run tailwind -- --minify",
+    "esbuild": "esbuild js/*.js --outdir=../priv/static/assets/ --target=es2016 --bundle --external:/fonts/* --external:/images/*",
+    "watch:js": "npm run esbuild -- --sourcemap=inline --watch",
+    "deploy:js": "NODE_ENV=production npm run esbuild -- --minify --splitting --format=esm"
   },
   "dependencies": {
     "alpinejs": "^3.2.2",
@@ -16,6 +21,7 @@
     "@tailwindcss/aspect-ratio": "^0.3.0",
     "@tailwindcss/forms": "^0.3.3",
     "autoprefixer": "^10.0.4",
+    "esbuild": "^0.14.8",
     "postcss": "^8.2.4",
     "postcss-import": "^14.0.2",
     "tailwindcss": "^2.0.2"

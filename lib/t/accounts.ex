@@ -355,6 +355,14 @@ defmodule T.Accounts do
     APNSDevice |> Repo.all() |> with_base16_encoded_apns_device_id()
   end
 
+  @spec list_apns_devices([Ecto.UUID.t()]) :: [%APNSDevice{}]
+  def list_apns_devices(user_ids) when is_list(user_ids) do
+    APNSDevice
+    |> where([d], d.user_id in ^user_ids)
+    |> Repo.all()
+    |> with_base16_encoded_apns_device_id()
+  end
+
   @spec list_apns_devices(Ecto.UUID.t()) :: [%APNSDevice{}]
   def list_apns_devices(user_id) do
     APNSDevice

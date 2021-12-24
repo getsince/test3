@@ -280,6 +280,64 @@ defmodule T.PushNotifications.APNS do
     base_alert_payload(type, alert, %{})
   end
 
+  # newbies alerts
+
+  # maybe have some play on `orientation` (as in uni)
+  # 3. familiarization with something: many judges give instructions to assist jury orientation.
+  #    • (also orientation course) _mainly North American_ a course giving information to
+  #                                newcomers to a university or other institution.
+
+  def build_alert_payload("newbie_live_mode_today" = type, _data) do
+    alert = %{
+      # like Since Live orientation today
+      "title" => dgettext("apns", "Since LIVE today 🥳"),
+      "body" => dgettext("apns", "Come to the party at 19:00, it will be 🔥")
+    }
+
+    base_alert_payload(type, alert, %{})
+  end
+
+  def build_alert_payload("newbie_live_mode_soon" = type, _data) do
+    alert = %{
+      "title" => dgettext("apns", "Since LIVE starts soon 🔥"),
+      "body" => dgettext("apns", "Come chat with new people 🥳")
+    }
+
+    base_alert_payload(type, alert, %{})
+  end
+
+  def build_alert_payload("newbie_live_mode_started" = type, _data) do
+    alert = %{
+      "title" => dgettext("apns", "Since Live starts 🥳"),
+      "body" => dgettext("apns", "Only you and other new users are invited 🎉")
+    }
+
+    base_alert_payload(type, alert, %{})
+  end
+
+  def build_alert_payload("newbie_live_mode_ended" = type, %{"next" => next}) do
+    next = Date.from_iso8601!(next)
+
+    on_weekday =
+      case Date.day_of_week(next) do
+        1 -> dgettext("apns", "on Monday")
+        2 -> dgettext("apns", "on Tuesday")
+        3 -> dgettext("apns", "on Wednesday")
+        4 -> dgettext("apns", "on Thursday")
+        5 -> dgettext("apns", "on Friday")
+        6 -> dgettext("apns", "on Saturday")
+        7 -> dgettext("apns", "on Sunday")
+      end
+
+    alert = %{
+      "title" => dgettext("apns", "Since Live for babies is over ✌️"),
+      "body" =>
+        dgettext("apns", "Wait for the real party %{on_weekday} 👀", on_weekday: on_weekday)
+    }
+
+    base_alert_payload(type, alert, %{})
+  end
+
   # backround notifications
 
   def background_notification_payload(type, data) do

@@ -77,7 +77,8 @@ msgid "Аудио-дэйт с %{name} совсем скоро"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:118 lib/t/push_notifications/apns.ex:129
+#: lib/t/push_notifications/apns.ex:118
+#: lib/t/push_notifications/apns.ex:129
 msgid "Приглашение на дэйт c %{name} принято"
 msgstr ""
 
@@ -141,7 +142,8 @@ msgid "Since Live ended ✌️"
 msgstr "Since Live закончился ✌️"
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:251 lib/t/push_notifications/apns.ex:296
+#: lib/t/push_notifications/apns.ex:251
+#: lib/t/push_notifications/apns.ex:296
 msgid "Since Live starts 🥳"
 msgstr "Since Live начинается 🥳"
 
@@ -156,17 +158,20 @@ msgid "Мэтч %{name} онлайн 👋"
 msgstr ""
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:243 lib/t/push_notifications/apns.ex:288
+#: lib/t/push_notifications/apns.ex:243
+#: lib/t/push_notifications/apns.ex:288
 msgid "Come chat with new people 🥳"
 msgstr "Приходи общаться с новыми людьми 🥳"
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:242 lib/t/push_notifications/apns.ex:287
+#: lib/t/push_notifications/apns.ex:242
+#: lib/t/push_notifications/apns.ex:287
 msgid "Since LIVE starts soon 🔥"
 msgstr "Since LIVE скоро начнется 🔥"
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:233 lib/t/push_notifications/apns.ex:278
+#: lib/t/push_notifications/apns.ex:233
+#: lib/t/push_notifications/apns.ex:278
 msgid "Since LIVE today 🥳"
 msgstr "Since LIVE уже сегодня 🥳"
 
@@ -216,11 +221,6 @@ msgid "on Sunday"
 msgstr "в воскресенье"
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:234 lib/t/push_notifications/apns.ex:279
-msgid "Come to the party at %{time}, it will be 🔥"
-msgstr "Приходи на вечеринку к %{time}, будет классно 🔥"
-
-#, elixir-format
 #: lib/t/push_notifications/apns.ex:262
 msgid "Wait for the party %{on_weekday} 👀"
 msgstr "Жди следующую вечеринку %{on_weekday} 👀"
@@ -229,3 +229,9 @@ msgstr "Жди следующую вечеринку %{on_weekday} 👀"
 #: lib/t/push_notifications/apns.ex:305
 msgid "Since Live for newbies is over ✌️"
 msgstr "Since Live для новеньких закончился ✌️"
+
+#, elixir-format
+#: lib/t/push_notifications/apns.ex:234
+#: lib/t/push_notifications/apns.ex:279
+msgid "Come to the party at %{time} MSK, it will be 🔥"
+msgstr "Приходи на вечеринку к %{time} MSK, будет классно 🔥"

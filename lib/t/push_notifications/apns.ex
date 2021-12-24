@@ -231,7 +231,7 @@ defmodule T.PushNotifications.APNS do
   def build_alert_payload("live_mode_today" = type, %{"time" => time}) do
     alert = %{
       "title" => dgettext("apns", "Since LIVE today 🥳"),
-      "body" => dgettext("apns", "Come to the party at %{time}, it will be 🔥", time: time)
+      "body" => dgettext("apns", "Come to the party at %{time} MSK, it will be 🔥", time: time)
     }
 
     base_alert_payload(type, alert, %{})
@@ -276,7 +276,7 @@ defmodule T.PushNotifications.APNS do
     alert = %{
       # like "Since Live orientation today"
       "title" => dgettext("apns", "Since LIVE today 🥳"),
-      "body" => dgettext("apns", "Come to the party at %{time}, it will be 🔥", time: time)
+      "body" => dgettext("apns", "Come to the party at %{time} MSK, it will be 🔥", time: time)
     }
 
     base_alert_payload(type, alert, %{})

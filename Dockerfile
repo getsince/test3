@@ -28,9 +28,7 @@ COPY config/runtime.exs config/
 
 # build assets
 COPY assets assets
-RUN cd assets && npm ci && npm run deploy
-RUN mix esbuild --no-runtime-config default --minify
-RUN mix phx.digest
+RUN mix assets.deploy
 
 # build release
 RUN mix release

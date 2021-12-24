@@ -1,7 +1,6 @@
 // Bring phoenix_html to deal with method=PUT/DELETE in forms and buttons
 import "phoenix_html";
 
-import Alpine from "alpinejs";
 import { Socket } from "phoenix";
 import topbar from "topbar";
 
@@ -81,13 +80,6 @@ let liveSocket = new LiveSocket("/live", Socket, {
     ScrollWindowDownHook,
     WebRTCHook,
   },
-  dom: {
-    onBeforeElUpdated(from, to) {
-      if (from._x_dataStack) {
-        Alpine.clone(from, to);
-      }
-    },
-  },
 });
 
 // Show progress bar on live navigation and form submits
@@ -97,10 +89,8 @@ window.addEventListener("phx:page-loading-stop", (info) => topbar.hide());
 
 // connect if there are any LiveViews on the page
 liveSocket.connect();
-Alpine.start();
 
 // expose liveSocket on window for web console debug logs and latency simulation:
 // >> liveSocket.enableDebug()
 // >> liveSocket.enableLatencySim(1000)
 window.liveSocket = liveSocket;
-window.Alpine = Alpine;

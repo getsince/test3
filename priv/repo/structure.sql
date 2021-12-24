@@ -89,6 +89,18 @@ CREATE TABLE public.apns_devices (
 
 
 --
+-- Name: archived_matches; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.archived_matches (
+    match_id uuid NOT NULL,
+    by_user_id uuid NOT NULL,
+    with_user_id uuid NOT NULL,
+    inserted_at timestamp(0) without time zone NOT NULL
+);
+
+
+--
 -- Name: calls; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -176,9 +188,9 @@ CREATE TABLE public.live_sessions (
 CREATE TABLE public.match_contact (
     match_id uuid NOT NULL,
     picker_id uuid NOT NULL,
-    contact_type character varying(255) NOT NULL,
-    value character varying(255) NOT NULL,
-    inserted_at timestamp(0) without time zone NOT NULL
+    inserted_at timestamp(0) without time zone NOT NULL,
+    contacts jsonb,
+    opened_contact_type character varying(255)
 );
 
 
@@ -347,6 +359,16 @@ CREATE TABLE public.user_reports (
 
 
 --
+-- Name: user_settings; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.user_settings (
+    user_id uuid NOT NULL,
+    audio_only boolean NOT NULL
+);
+
+
+--
 -- Name: users; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -357,7 +379,8 @@ CREATE TABLE public.users (
     onboarded_at timestamp(0) without time zone,
     inserted_at timestamp(0) without time zone NOT NULL,
     updated_at timestamp(0) without time zone NOT NULL,
-    email character varying(255)
+    email character varying(255),
+    onboarded_with_story_at timestamp(0) without time zone
 );
 
 
@@ -512,6 +535,14 @@ ALTER TABLE ONLY public.user_reports
 
 
 --
+-- Name: user_settings user_settings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_settings
+    ADD CONSTRAINT user_settings_pkey PRIMARY KEY (user_id);
+
+
+--
 -- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -532,6 +563,13 @@ ALTER TABLE ONLY public.users_tokens
 --
 
 CREATE UNIQUE INDEX apns_devices_device_id_index ON public.apns_devices USING btree (device_id);
+
+
+--
+-- Name: archived_matches_by_user_id_match_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX archived_matches_by_user_id_match_id_index ON public.archived_matches USING btree (by_user_id, match_id);
 
 
 --
@@ -709,6 +747,22 @@ ALTER TABLE ONLY public.apns_devices
 
 ALTER TABLE ONLY public.apns_devices
     ADD CONSTRAINT apns_devices_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: archived_matches archived_matches_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.archived_matches
+    ADD CONSTRAINT archived_matches_by_user_id_fkey FOREIGN KEY (by_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: archived_matches archived_matches_with_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.archived_matches
+    ADD CONSTRAINT archived_matches_with_user_id_fkey FOREIGN KEY (with_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
@@ -920,6 +974,14 @@ ALTER TABLE ONLY public.user_reports
 
 
 --
+-- Name: user_settings user_settings_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_settings
+    ADD CONSTRAINT user_settings_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: users_tokens users_tokens_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -958,3 +1020,8 @@ INSERT INTO public."schema_migrations" (version) VALUES (20211116102238);
 INSERT INTO public."schema_migrations" (version) VALUES (20211127120728);
 INSERT INTO public."schema_migrations" (version) VALUES (20211206172231);
 INSERT INTO public."schema_migrations" (version) VALUES (20211207155835);
+INSERT INTO public."schema_migrations" (version) VALUES (20211220142445);
+INSERT INTO public."schema_migrations" (version) VALUES (20211221114359);
+INSERT INTO public."schema_migrations" (version) VALUES (20211221152318);
+INSERT INTO public."schema_migrations" (version) VALUES (20211221161830);
+INSERT INTO public."schema_migrations" (version) VALUES (20211222133341);

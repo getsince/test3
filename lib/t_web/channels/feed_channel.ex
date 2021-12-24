@@ -39,11 +39,12 @@ defmodule TWeb.FeedChannel do
   end
 
   defp join_live_mode(user_id, screen_width, socket) do
-    :ok = Feeds.subscribe_for_live_sessions()
     :ok = Feeds.subscribe_for_user(user_id)
 
-    feed_filter = Feeds.get_feed_filter(user_id)
+    %FeedFilter{genders: want_genders} = feed_filter = Feeds.get_feed_filter(user_id)
     {_location, gender} = Accounts.get_location_and_gender!(user_id)
+
+    :ok = Feeds.subscribe_for_live_sessions(user_id, gender, want_genders)
 
     Feeds.maybe_activate_session(user_id, gender, feed_filter)
 
@@ -494,41 +495,29 @@ defmodule TWeb.FeedChannel do
   end
 
   # TODO test
-  # TODO reduce # queries
-  # TODO optimise pubsub, and use fastlane (one encode per screen width) or move screen width logic to the client
-  def handle_info({Feeds, :live, mate}, socket) do
-    %{
-      current_user: user,
-      screen_width: screen_width,
-      feed_filter: %FeedFilter{genders: our_gender_preferences},
-      gender: our_gender
-    } = socket.assigns
+  def handle_info({Feeds, :live, %{profile: feed_profile}}, socket) do
+    %{screen_width: screen_width} = socket.assigns
+    push(socket, "activated_profile", render_feed_item(feed_profile, screen_width))
+    {:noreply, socket}
+  end
 
-    %{
-      user_id: user_id,
-      gender: mate_gender,
-      feed_filter: %FeedFilter{genders: mate_gender_preferences}
-    } = mate
+  def handle_info(
+        {Feeds, :live_match_online, %{profile: feed_profile, match_id: match_id}},
+        socket
+      ) do
+    %{screen_width: screen_width} = socket.assigns
 
-    if feed_profile = Feeds.get_live_feed_profile(user.id, user_id) do
-      if match_id = Matches.is_match?(user.id, user_id) do
-        rendered =
-          render_match(
-            match_id,
-            _audio_only = nil,
-            feed_profile,
-            _timeslot = nil,
-            _contact = nil,
-            screen_width
-          )
+    match =
+      render_match(
+        match_id,
+        _audio_only = nil,
+        feed_profile,
+        _timeslot = nil,
+        _contact = nil,
+        screen_width
+      )
 
-        push(socket, "activated_match", %{"match" => rendered})
-      else
-        if our_gender in mate_gender_preferences and mate_gender in our_gender_preferences do
-          push(socket, "activated_profile", render_feed_item(feed_profile, screen_width))
-        end
-      end
-    end
+    push(socket, "activated_match", %{"match" => match})
 
     {:noreply, socket}
   end

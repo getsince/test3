@@ -25,9 +25,6 @@ defmodule T.Feeds do
   @pubsub T.PubSub
   @topic "__f"
 
-  def subscribe_for_live_sessions, do: subscribe(live_topic())
-  defp live_topic, do: "__live:"
-
   def subscribe_for_mode_change, do: subscribe(mode_change_topic())
   defp mode_change_topic, do: "__mode_change:"
 
@@ -35,36 +32,8 @@ defmodule T.Feeds do
     Phoenix.PubSub.subscribe(@pubsub, pubsub_user_topic(user_id))
   end
 
-  defp notify_subscribers(
-         %LiveSession{user_id: user_id} = session,
-         gender,
-         feed_filter,
-         :live = event
-       ) do
-    broadcast_from(
-      live_topic(),
-      {__MODULE__, event, %{user_id: user_id, gender: gender, feed_filter: feed_filter}}
-    )
-
-    session
-  end
-
-  defp notify_subscribers({:error, _multi, _reason, _changes} = fail, _g, _f, _event), do: fail
-  defp notify_subscribers({:error, _reason} = fail, _g, _f, _event), do: fail
-
-  defp notify_subscribers(:mode_change, event) do
-    broadcast(mode_change_topic(), {__MODULE__, [:mode_change, event]})
-  end
-
-  defp notify_subscribers({:error, _multi, _reason, _changes} = fail, _event), do: fail
-  defp notify_subscribers({:error, _reason} = fail, _event), do: fail
-
   defp broadcast(topic, message) do
     Phoenix.PubSub.broadcast(@pubsub, topic, message)
-  end
-
-  defp broadcast_from(topic, message) do
-    Phoenix.PubSub.broadcast_from(@pubsub, self(), topic, message)
   end
 
   defp pubsub_user_topic(user_id) when is_binary(user_id) do
@@ -75,8 +44,8 @@ defmodule T.Feeds do
     Phoenix.PubSub.broadcast(@pubsub, pubsub_user_topic(user_id), message)
   end
 
-  defp subscribe(topic) do
-    Phoenix.PubSub.subscribe(@pubsub, topic)
+  defp subscribe(topic, opts \\ []) do
+    Phoenix.PubSub.subscribe(@pubsub, topic, opts)
   end
 
   ### Live Feed
@@ -306,6 +275,14 @@ defmodule T.Feeds do
     Calendar.strftime(time, "%M %H")
   end
 
+  defp broadcast_mode_change_start(topic \\ mode_change_topic()) do
+    broadcast(topic, {__MODULE__, [:mode_change, :start]})
+  end
+
+  defp broadcast_mode_change_end do
+    broadcast(mode_change_topic(), {__MODULE__, [:mode_change, :end]})
+  end
+
   @doc """
   Starts a "Since Live" event:
 
@@ -320,7 +297,7 @@ defmodule T.Feeds do
     Logger.warn(m)
     Bot.async_post_message(m)
 
-    notify_subscribers(:mode_change, :start)
+    broadcast_mode_change_start()
 
     T.Accounts.list_apns_devices()
     |> DispatchJob.schedule_apns("live_mode_started", _data = %{})
@@ -339,7 +316,7 @@ defmodule T.Feeds do
   """
   @spec live_mode_end(DateTime.t()) :: :ok
   def live_mode_end(reference \\ DateTime.utc_now()) do
-    notify_subscribers(:mode_change, :end)
+    broadcast_mode_change_end()
 
     next_live_event_on =
       reference
@@ -379,49 +356,100 @@ defmodule T.Feeds do
   end
 
   # TODO test pubsub
-  def maybe_activate_session(
-        user_id,
-        gender,
-        feed_filter \\ %FeedFilter{genders: ["F", "M", "N"]}
-      ) do
+  @spec maybe_activate_session(Ecto.UUID.t(), String.t(), %FeedFilter{}) :: %LiveSession{}
+  def maybe_activate_session(user_id, gender, feed_filter) do
     is_already_live? = LiveSession |> where(user_id: ^user_id) |> Repo.exists?()
 
-    case is_already_live? do
-      false ->
-        name = Profile |> where(user_id: ^user_id) |> select([p], p.name) |> Repo.one!()
-        m = "user #{name} (#{user_id}) activated LIVE session"
-        Logger.warn(m)
-        Bot.async_post_message(m)
+    unless is_already_live? do
+      profile = FeedProfile |> where(user_id: ^user_id) |> Repo.one!()
+      m = "user #{profile.name} (#{user_id}) activated LIVE session"
+      Logger.warn(m)
+      Bot.async_post_message(m)
 
-        live_session =
-          %LiveSession{user_id: user_id}
-          |> Repo.insert!(on_conflict: :replace_all, conflict_target: :user_id)
-          |> notify_subscribers(gender, feed_filter, :live)
+      live_session =
+        Repo.insert!(%LiveSession{user_id: user_id},
+          on_conflict: :replace_all,
+          conflict_target: :user_id
+        )
 
-        maybe_schedule_push_to_matches(user_id)
-        live_session
+      unless profile.hidden? do
+        blockers =
+          T.Accounts.UserReport
+          |> where([r], r.on_user_id == ^user_id or r.from_user_id == ^user_id)
+          |> select([r], [r.on_user_id, r.from_user_id])
+          |> Repo.all()
+          |> Enum.map(fn users -> users -- [user_id] end)
 
-      true ->
-        nil
+        matches =
+          Match
+          |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
+          |> select([m], {[m.user_id_1, m.user_id_2], m.id})
+          |> Repo.all()
+          |> Enum.map(fn {mates, match_id} ->
+            [mate_id] = mates -- [user_id]
+            {mate_id, match_id}
+          end)
+
+        matches
+        |> Enum.map(fn {mate_id, _match_id} ->
+          DispatchJob.new(%{
+            "type" => "match_went_live",
+            "user_id" => user_id,
+            "for_user_id" => mate_id
+          })
+        end)
+        |> Oban.insert_all()
+
+        broadcast_new_live_session(
+          profile,
+          gender,
+          feed_filter.genders,
+          blockers,
+          Map.new(matches)
+        )
+      end
+
+      live_session
     end
   end
 
-  defp maybe_schedule_push_to_matches(user_id) do
-    Match
-    |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
-    |> select([m], {m.user_id_1, m.user_id_2})
-    |> Repo.all()
-    |> Enum.map(fn {user_id_1, user_id_2} ->
-      [mate_id] = [user_id_1, user_id_2] -- [user_id]
+  @live_topic "__live"
 
-      job =
-        DispatchJob.new(%{
-          "type" => "match_went_live",
-          "user_id" => user_id,
-          "for_user_id" => mate_id
-        })
+  defp live_session_metadata(user_id, gender, want_genders) do
+    %{user_id: user_id, gender: gender, want_genders: want_genders}
+  end
 
-      Oban.insert(job)
+  def subscribe_for_live_sessions(user_id, gender, want_genders) when is_list(want_genders) do
+    metadata = live_session_metadata(user_id, gender, want_genders)
+    subscribe(@live_topic, metadata: metadata)
+  end
+
+  # TODO use pubsub dispatcher
+  defp broadcast_new_live_session(profile, my_gender, my_want_genders, blockers, matches) do
+    me = profile.user_id
+    payload = %{profile: profile}
+    live_payload = {__MODULE__, :live, payload}
+    subscribers = Registry.lookup(@pubsub, @live_topic)
+
+    Enum.each(subscribers, fn {pid, metadata} ->
+      %{user_id: user_id, gender: their_gender, want_genders: they_want_genders} = metadata
+
+      cond do
+        user_id == me ->
+          :ignore
+
+        user_id in blockers ->
+          :ignore
+
+        match_id = matches[user_id] ->
+          send(pid, {__MODULE__, :live_match_online, Map.put(payload, :match_id, match_id)})
+
+        my_gender in they_want_genders and their_gender in my_want_genders ->
+          send(pid, live_payload)
+
+        true ->
+          :ignore
+      end
     end)
   end
 
@@ -922,7 +950,7 @@ defmodule T.Feeds do
 
     Enum.each(newbies, fn user_id ->
       feed_channel_topic = "feed:" <> user_id
-      broadcast(feed_channel_topic, {__MODULE__, [:mode_change, :start]})
+      broadcast_mode_change_start(feed_channel_topic)
     end)
 
     newbies
@@ -953,7 +981,7 @@ defmodule T.Feeds do
     # we don't need to send `end` event only to newbies,
     # we can turn off everyone who's live right now
     # since "newbie live" and "normal live" don't intersect
-    notify_subscribers(:mode_change, :end)
+    broadcast_mode_change_end()
 
     next_live_event_on =
       reference

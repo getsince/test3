@@ -1,5 +1,5 @@
 defmodule T.FeedsLiveTest do
-  use T.DataCase, async: true
+  use T.DataCase
   use Oban.Testing, repo: T.Repo
 
   alias T.Feeds
@@ -142,17 +142,17 @@ defmodule T.FeedsLiveTest do
     end
 
     test "side-effects", %{me: me} do
-      Feeds.maybe_activate_session(me.id, me.profile.gender)
+      Feeds.maybe_activate_session(me.id, me.profile.gender, %FeedFilter{genders: ["M", "N", "F"]})
 
       assert LiveSession |> select([s], s.user_id) |> Repo.all() == [me.id]
     end
 
-    test "match is notified properly" do
-      [p1, p2] = insert_list(2, :profile, hidden?: false)
+    test "match is notified properly", %{me: me} do
+      mate = onboarded_user()
 
-      insert(:match, user_id_1: p1.user_id, user_id_2: p2.user_id)
+      insert(:match, user_id_1: me.id, user_id_2: mate.id)
 
-      Feeds.maybe_activate_session(p1.user_id, p1.gender)
+      Feeds.maybe_activate_session(me.id, me.profile.gender, %FeedFilter{genders: ["M", "N", "F"]})
 
       assert [
                %Oban.Job{
@@ -164,12 +164,12 @@ defmodule T.FeedsLiveTest do
                }
              ] = all_enqueued(worker: T.PushNotifications.DispatchJob)
 
-      assert uid1 == p1.user_id
-      assert uid2 == p2.user_id
+      assert uid1 == me.id
+      assert uid2 == mate.id
 
-      Feeds.maybe_activate_session(p1.user_id, p1.gender)
+      Feeds.maybe_activate_session(me.id, me.profile.gender, %FeedFilter{genders: ["M", "N", "F"]})
 
-      assert length(all_enqueued(worker: T.PushNotifications.DispatchJob)) == 1
+      assert [_] = all_enqueued(worker: T.PushNotifications.DispatchJob)
     end
   end
 

@@ -7,7 +7,6 @@ defmodule TWeb.FeedChannel do
   alias T.Feeds.FeedFilter
 
   @match_ttl 604_800
-  @live_session_duration 7200
 
   @impl true
   def join("feed:" <> user_id, params, socket) do
@@ -22,7 +21,7 @@ defmodule TWeb.FeedChannel do
       cond do
         params["mode"] == "normal" -> join_normal_mode(user_id, screen_width, params, socket)
         params["mode"] == "live" -> join_live_mode(user_id, screen_width, socket)
-        Feeds.is_now_live_mode() -> join_live_mode(user_id, screen_width, socket)
+        Feeds.live_now?(user_id, utc_now(socket)) -> join_live_mode(user_id, screen_width, socket)
         true -> join_normal_mode(user_id, screen_width, params, socket)
       end
     else
@@ -39,7 +38,8 @@ defmodule TWeb.FeedChannel do
 
     Feeds.maybe_activate_session(user_id, gender, feed_filter)
 
-    {session_start, session_end} = Feeds.live_mode_start_and_end_dates()
+    {_type, [session_start, session_end]} = Feeds.live_today(utc_now(socket))
+    live_session_duration = DateTime.diff(session_end, session_start)
 
     missed_calls =
       user_id
@@ -59,7 +59,7 @@ defmodule TWeb.FeedChannel do
     reply =
       %{"mode" => "live"}
       |> Map.put("session_expiration_date", session_end)
-      |> Map.put("live_session_duration", @live_session_duration)
+      |> Map.put("live_session_duration", live_session_duration)
       |> maybe_put("missed_calls", missed_calls)
       |> maybe_put("invites", invites)
       |> maybe_put("matches", matches)
@@ -91,10 +91,11 @@ defmodule TWeb.FeedChannel do
       |> Matches.list_expired_matches()
       |> render_expired_matches(screen_width)
 
+    since_live_date = Feeds.live_next_real_at(utc_now(socket))
+
     reply =
       %{"mode" => "normal"}
-      |> Map.put("since_live_time_text", Feeds.since_live_time_text())
-      |> Map.put("since_live_date", Feeds.since_live_date())
+      |> Map.put("since_live_date", since_live_date)
       |> Map.put("match_expiration_duration", @match_ttl)
       |> maybe_put("missed_calls", missed_calls)
       |> maybe_put("likes", likes)
@@ -199,7 +200,7 @@ defmodule TWeb.FeedChannel do
     caller = me_id(socket)
 
     reply =
-      case Calls.call(caller, called) do
+      case Calls.call(caller, called, utc_now(socket)) do
         {:ok, call_id} -> {:ok, %{"call_id" => call_id}}
         {:error, reason} -> {:error, %{"reason" => reason}}
       end
@@ -466,10 +467,19 @@ defmodule TWeb.FeedChannel do
   end
 
   def handle_info({Feeds, [:mode_change, event]}, socket) do
-    case event do
-      :start -> push(socket, "live_mode_started", %{})
-      :end -> push(socket, "live_mode_ended", %{})
-    end
+    socket =
+      case {event, socket.assigns[:mode]} do
+        {:start, "normal"} ->
+          push(socket, "live_mode_started", %{})
+          assign(socket, mode: "live")
+
+        {:end, "live"} ->
+          push(socket, "live_mode_ended", %{})
+          assign(socket, mode: "normal")
+
+        _other ->
+          socket
+      end
 
     {:noreply, socket}
   end

@@ -28,7 +28,6 @@ defmodule T.Application do
         unless_disabled(T.Feeds.SeenPruner),
         unless_disabled(T.Matches.MatchExpirer),
         unless_disabled(T.PushNotifications.ScheduledPushes),
-        unless_disabled(T.Feeds.LiveModeManager),
         TWeb.Endpoint,
         TWeb.Telemetry,
         maybe_migrator(),
@@ -98,7 +97,7 @@ defmodule T.Application do
     get_in(Application.get_env(:t, mod), [:disabled?])
   end
 
-  defp unless_disabled(mod) do
+  defp unless_disabled(mod) when is_atom(mod) do
     unless disabled?(mod), do: mod
   end
 end

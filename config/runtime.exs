@@ -26,9 +26,29 @@ config :sentry,
 
 config :t, T.PromEx, disabled: config_env() != :prod
 
+crontab =
+  case config_env() do
+    :prod ->
+      [
+        if System.get_env("ENABLE_NEWBIE_LIVE") do
+          T.Feeds.newbies_crontab()
+        end,
+        T.Feeds.live_crontab()
+      ]
+      |> Enum.reject(&is_nil/1)
+      |> List.flatten()
+
+    _other ->
+      []
+  end
+
 config :t, Oban,
   repo: T.Repo,
-  plugins: [Oban.Plugins.Pruner, Oban.Plugins.Stager],
+  plugins: [
+    Oban.Plugins.Pruner,
+    Oban.Plugins.Stager,
+    {Oban.Plugins.Cron, crontab: crontab, timezone: "Europe/Moscow"}
+  ],
   queues: [default: 10, apns: 100]
 
 config :ex_aws,
@@ -121,6 +141,15 @@ if config_env() == :prod do
     user_bucket: System.fetch_env!("AWS_S3_BUCKET"),
     static_bucket: System.fetch_env!("AWS_S3_BUCKET_STATIC"),
     static_cdn: System.fetch_env!("STATIC_CDN")
+
+  # oldies are hardcoded users (or rather their ids) which
+  # become participants in all "newbies live" events
+  config :t,
+    oldies: [
+      _Vlad = "0000017b-b0cf-d3e8-0242-ac1100020000",
+      _Lily = "0000017b-e3d2-2b30-0242-ac1100020000",
+      _Rail = "0000017c-14c7-9745-0242-ac1100020000"
+    ]
 end
 
 if config_env() == :dev do
@@ -198,7 +227,12 @@ if config_env() == :dev do
     static_bucket: System.fetch_env!("AWS_S3_BUCKET_STATIC"),
     static_cdn: System.fetch_env!("STATIC_CDN")
 
-  config :t, T.Media.Static, disabled?: false
+  config :t, T.Media.Static, disabled?: !!System.get_env("DISABLE_MEDIA")
+  config :t, T.Feeds.SeenPruner, disabled?: !!System.get_env("DISABLE_SEEN_PRUNER")
+  config :t, T.Matches.MatchExpirer, disabled?: !!System.get_env("DISABLE_MATCH_EXPIRER")
+
+  config :t, T.PushNotifications.ScheduledPushes,
+    disabled?: !!System.get_env("DISABLE_SCHEDULED_PUSHES")
 end
 
 if config_env() == :test do
@@ -250,7 +284,11 @@ if config_env() == :test do
   config :t, T.PushNotifications.APNS, default_topic: "app.topic"
 
   config :t, T.Feeds.SeenPruner, disabled?: true
-  config :t, T.Feeds.LiveModeManager, disabled?: true
+  config :t, T.Matches.MatchExpirer, disabled?: true
+  config :t, T.PushNotifications.ScheduledPushes, disabled?: true
+
+  # there is no user with this id, it's been generated just for the tests
+  config :t, oldies: ["0000017d-d720-1f6a-06e9-e8bbc6570000"]
 end
 
 if config_env() == :bench do

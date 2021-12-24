@@ -53,12 +53,15 @@ defmodule T.Feeds do
   defp notify_subscribers({:error, _reason} = fail, _g, _f, _event), do: fail
 
   defp notify_subscribers(:mode_change, event) do
-    broadcast_from(mode_change_topic(), {__MODULE__, [:mode_change, event]})
+    broadcast(mode_change_topic(), {__MODULE__, [:mode_change, event]})
   end
 
-  # defp broadcast(topic, message) do
-  #   Phoenix.PubSub.broadcast(@pubsub, topic, message)
-  # end
+  defp notify_subscribers({:error, _multi, _reason, _changes} = fail, _event), do: fail
+  defp notify_subscribers({:error, _reason} = fail, _event), do: fail
+
+  defp broadcast(topic, message) do
+    Phoenix.PubSub.broadcast(@pubsub, topic, message)
+  end
 
   defp broadcast_from(topic, message) do
     Phoenix.PubSub.broadcast_from(@pubsub, self(), topic, message)
@@ -78,78 +81,284 @@ defmodule T.Feeds do
 
   ### Live Feed
 
-  # TODO change
-  def since_live_time_text() do
-    %{
-      "en" =>
-        "Come to Since Live every Thursday from 19:00 to 21:00 and Saturday from 20:00 to 22:00, it will be great ✌️",
-      "ru" =>
-        "Приходи на Since Live каждый четверг с 19:00 до 21:00 и субботу с 20:00 до 22:00, будет классно ✌️"
-    }
+  @doc """
+  This schedule defines start, end, and type of every Since Live event throughout a week.
+
+  Oban crontabs are built based on what this function returns.
+  """
+  def live_schedule do
+    [
+      {_mon = 1, :newbie, [newbies_live_start_at(), newbies_live_end_at()]},
+      {_tue = 2, :newbie, [newbies_live_start_at(), newbies_live_end_at()]},
+      {_wed = 3, :newbie, [newbies_live_start_at(), newbies_live_end_at()]},
+      {_thu = 4, :real, [_start = ~T[19:00:00], _end = ~T[21:00:00]]},
+      {_fri = 5, :newbie, [newbies_live_start_at(), newbies_live_end_at()]},
+      {_sat = 6, :real, [_start = ~T[20:00:00], _end = ~T[22:00:00]]},
+      {_sun = 7, :newbie, [newbies_live_start_at(), newbies_live_end_at()]}
+    ]
   end
 
-  def since_live_date() do
-    if Time.utc_now().hour < 17 do
-      DateTime.new!(Date.utc_today(), Time.new!(17, 0, 0))
+  @doc """
+  Finds out when the next real Since Live will happen:
+
+      iex> mon_12_00 = DateTime.new!(~D[2021-12-20], ~T[12:00:00], "Europe/Moscow")
+      iex> live_next_real_at(_now = mon_12_00)
+      _thu_19_00_as_utc = ~U[2021-12-23 16:00:00Z]
+
+      iex> thu_12_00 = DateTime.new!(~D[2021-12-23], ~T[12:00:00], "Europe/Moscow")
+      iex> live_next_real_at(thu_12_00)
+      _thu_19_00_as_utc = ~U[2021-12-23 16:00:00Z]
+
+      # if today's event has started but hasn't yet ended, today's event is returned
+      iex> thu_19_00 = DateTime.new!(~D[2021-12-23], ~T[19:00:00], "Europe/Moscow")
+      iex> live_next_real_at(thu_19_00)
+      _thu_19_00_as_utc = ~U[2021-12-23 16:00:00Z]
+
+      iex> thu_21_00 = DateTime.new!(~D[2021-12-23], ~T[21:00:00], "Europe/Moscow")
+      iex> live_next_real_at(thu_21_00)
+      _thu_19_00_as_utc = ~U[2021-12-23 16:00:00Z]
+
+      # if today's event has ended, next event is returned
+      iex> thu_21_00_01 = DateTime.new!(~D[2021-12-23], ~T[21:00:01], "Europe/Moscow")
+      iex> live_next_real_at(thu_21_00_01)
+      _sat_20_00_as_utc = ~U[2021-12-25 17:00:00Z]
+
+      # schedule wraps over to the next week
+      iex> sun_12_00 = DateTime.new!(~D[2021-12-26], ~T[12:00:00], "Europe/Moscow")
+      iex> live_next_real_at(sun_12_00)
+      _thu_19_00_as_utc = ~U[2021-12-30 16:00:00Z]
+
+  """
+  def live_next_real_at(reference \\ DateTime.utc_now()) do
+    msk_now = DateTime.shift_zone!(reference, "Europe/Moscow")
+    weekday_today = Date.day_of_week(msk_now)
+
+    [start_at, _end_at] =
+      live_schedule()
+      |> Enum.filter(fn {_weekday, type, _times} -> type == :real end)
+      |> Enum.map(fn {weekday, _type, times} ->
+        diff = weekday - weekday_today
+        diff = if diff < 0, do: 7 + diff, else: diff
+
+        Enum.map(times, fn time ->
+          msk_now
+          |> Date.add(diff)
+          |> DateTime.new!(time, "Europe/Moscow")
+        end)
+      end)
+      |> Enum.sort_by(fn [start_at, _end_at] -> start_at end, {:asc, Date})
+      |> Enum.find(fn [_start_at, end_at] ->
+        DateTime.compare(msk_now, end_at) in [:lt, :eq]
+      end)
+
+    DateTime.shift_zone!(start_at, "Etc/UTC")
+  end
+
+  @doc """
+  Checks if there is an ongoing "Since Live" event and
+  if it's "Since Live for newbies", checks if user_id is a newbie participant.
+
+      # ongoing real Since Live
+      iex> user_id = Ecto.Bigflake.UUID.generate()
+      iex> thu_19_30 = DateTime.new!(~D[2021-12-23], ~T[19:30:00], "Europe/Moscow")
+      iex> live_now?(user_id, thu_19_30)
+      true
+
+      # no ongoing Since Live
+      iex> user_id = Ecto.Bigflake.UUID.generate()
+      iex> thu_13_30 = DateTime.new!(~D[2021-12-23], ~T[13:30:00], "Europe/Moscow")
+      iex> live_now?(user_id, thu_13_30)
+      false
+
+      # ongoing newbies Since Live, but user is not a participant
+      iex> user_id = Ecto.Bigflake.UUID.generate()
+      iex> mon_19_30 = DateTime.new!(~D[2021-12-20], ~T[19:30:00], "Europe/Moscow")
+      iex> live_now?(user_id, mon_19_30)
+      false
+
+  """
+  @spec live_now?(Ecto.UUID.t(), DateTime.t()) :: boolean
+  def live_now?(user_id, reference \\ DateTime.utc_now()) do
+    msk_now = DateTime.shift_zone!(reference, "Europe/Moscow")
+    weekday_today = Date.day_of_week(msk_now)
+
+    {_weekday, type, [start_at, end_at]} =
+      Enum.find(live_schedule(), fn {weekday, _type, _times} -> weekday == weekday_today end)
+
+    ongoing? =
+      Time.compare(start_at, msk_now) in [:eq, :lt] and
+        Time.compare(end_at, msk_now) in [:eq, :gt]
+
+    if ongoing? do
+      case type do
+        :newbie -> is_a_newbies_participant?(user_id, reference)
+        :real -> true
+      end
     else
-      DateTime.new!(Date.utc_today() |> Date.add(1), Time.new!(17, 0, 0))
+      false
     end
   end
 
-  def is_now_live_mode(reference_date \\ Date.utc_today(), reference_time \\ Time.utc_now()) do
-    day_of_week = reference_date |> Date.day_of_week()
-    hour = reference_time.hour
-    # minute = reference_time.minute
+  @doc """
+  Returns type and starting and ending datetimes for today's Since Live event.
 
-    # true
-    # minute  25
-    (day_of_week == 4 && (hour == 16 || hour == 17)) ||
-      (day_of_week == 6 && (hour == 17 || hour == 18))
+      iex> mon_12_00 = DateTime.new!(~D[2021-12-20], ~T[12:00:00], "Europe/Moscow")
+      iex> live_today(_now = mon_12_00)
+      {:newbie, [~U[2021-12-20 16:00:00Z], ~U[2021-12-20 17:00:00Z]]}
+
+      iex> thu_12_00 = DateTime.new!(~D[2021-12-23], ~T[12:00:00], "Europe/Moscow")
+      iex> live_today(_now = thu_12_00)
+      {:real, [~U[2021-12-23 16:00:00Z], ~U[2021-12-23 18:00:00Z]]}
+
+      iex> sat_12_00 = DateTime.new!(~D[2021-12-25], ~T[12:00:00], "Europe/Moscow")
+      iex> live_today(_now = sat_12_00)
+      {:real, [~U[2021-12-25 17:00:00Z], ~U[2021-12-25 19:00:00Z]]}
+
+      # note that past events for today might be returned
+      iex> sat_23_00 = DateTime.new!(~D[2021-12-25], ~T[23:00:00], "Europe/Moscow")
+      iex> live_today(_now = sat_23_00)
+      {:real, [~U[2021-12-25 17:00:00Z], ~U[2021-12-25 19:00:00Z]]}
+
+  """
+  @spec live_today(DateTime.t() | Date.t()) :: {:real | :newbie, [DateTime.t()]}
+  def live_today(reference \\ DateTime.utc_now())
+
+  def live_today(%DateTime{} = reference) do
+    msk_now = DateTime.shift_zone!(reference, "Europe/Moscow")
+    msk_today = DateTime.to_date(msk_now)
+    live_today(msk_today)
   end
 
-  @spec live_mode_start_and_end_dates :: {DateTime.t(), DateTime.t()}
-  def live_mode_start_and_end_dates() do
-    day_of_week = Date.utc_today() |> Date.day_of_week()
+  def live_today(%Date{} = today) do
+    weekday_today = Date.day_of_week(today)
 
-    case day_of_week do
-      6 ->
-        session_start = DateTime.new!(Date.utc_today(), Time.new!(17, 0, 0))
-        session_end = DateTime.new!(Date.utc_today(), Time.new!(19, 0, 0))
-        {session_start, session_end}
+    {_weekday, type, times} =
+      Enum.find(live_schedule(), fn {weekday, _type, _times} -> weekday == weekday_today end)
 
-      _ ->
-        session_start = DateTime.new!(Date.utc_today(), Time.new!(16, 0, 0))
-        session_end = DateTime.new!(Date.utc_today(), Time.new!(18, 0, 0))
-        {session_start, session_end}
-    end
+    times =
+      Enum.map(times, fn time ->
+        today
+        |> DateTime.new!(time, "Europe/Moscow")
+        |> DateTime.shift_zone!("Etc/UTC")
+      end)
+
+    {type, times}
   end
 
-  def notify_live_mode_will_be_today() do
-    DispatchJob.new(%{"type" => "live_mode_today"}) |> Oban.insert()
+  @doc """
+  Generates "Since Live" `:crontab` for Oban's `Oban.Plugins.Cron`:
+
+      iex> live_crontab()
+      [
+        # https://crontab.guru/#0_13_*_*_4
+        {"00 13 * * 4", T.PushNotifications.DispatchJob, args: %{"type" => "live_mode_today", "time" => "19:00"}},
+        {"45 18 * * 4", T.PushNotifications.DispatchJob, args: %{"type" => "live_mode_soon"}},
+        {"00 19 * * 4", T.Feeds.Live.StartJob},
+        {"00 21 * * 4", T.Feeds.Live.EndJob},
+        {"00 14 * * 6", T.PushNotifications.DispatchJob, args: %{"type" => "live_mode_today", "time" => "20:00"}},
+        {"45 19 * * 6", T.PushNotifications.DispatchJob, args: %{"type" => "live_mode_soon"}},
+        {"00 20 * * 6", T.Feeds.Live.StartJob},
+        {"00 22 * * 6", T.Feeds.Live.EndJob}
+      ]
+
+  """
+  def live_crontab do
+    live_schedule()
+    |> Enum.filter(fn {_weekday, type, _times} -> type == :real end)
+    |> Enum.group_by(
+      fn {_weekday, _type, times} -> times end,
+      fn {weekday, _type, _times} -> weekday end
+    )
+    |> Enum.flat_map(fn {[start_at, end_at], weekdays} ->
+      alias T.Feeds.Live.{StartJob, EndJob}
+
+      today_notification_at = Time.add(start_at, _six_hours = -6 * 3600)
+      soon_notification_at = Time.add(start_at, _15_minutes = -15 * 60)
+      cron_days = cron_days(weekdays)
+
+      [
+        {cron_rule(today_notification_at, cron_days), DispatchJob,
+         args: %{"type" => "live_mode_today", "time" => Calendar.strftime(start_at, "%H:%M")}},
+        {cron_rule(soon_notification_at, cron_days), DispatchJob,
+         args: %{"type" => "live_mode_soon"}},
+        {cron_rule(start_at, cron_days), StartJob},
+        {cron_rule(end_at, cron_days), EndJob}
+      ]
+    end)
   end
 
-  def notify_live_mode_soon() do
-    DispatchJob.new(%{"type" => "live_mode_soon"}) |> Oban.insert()
+  @spec cron_rule(Time.t(), String.t()) :: String.t()
+  defp cron_rule(time, cron_days) when is_binary(cron_days) do
+    cron_time(time) <> " * * " <> cron_days
   end
 
-  def notify_live_mode_start() do
+  @spec cron_days([pos_integer]) :: String.t()
+  defp cron_days(weekdays) do
+    # cron days of week start at 0 (Sunday), elixir days of week start at 1 (Monday)
+    weekdays |> Enum.map(fn weekday -> rem(weekday, 7) end) |> Enum.join(",")
+  end
+
+  @spec cron_time(Time.t()) :: String.t()
+  defp cron_time(time) do
+    Calendar.strftime(time, "%M %H")
+  end
+
+  @doc """
+  Starts a "Since Live" event:
+
+    - sends a message to the admin tg bot
+    - broadcasts a push notification to all users
+    - broadcasts a `:start` event to all `:mode_change` subscribers (feed channels)
+
+  This function shouldn't be called directly, but rather scheduled with Oban in crontab.
+  """
+  def live_mode_start do
     m = "LIVE started"
     Logger.warn(m)
     Bot.async_post_message(m)
 
     notify_subscribers(:mode_change, :start)
-    DispatchJob.new(%{"type" => "live_mode_started"}) |> Oban.insert()
+
+    T.Accounts.list_apns_devices()
+    |> DispatchJob.schedule_apns("live_mode_started", _data = %{})
+
+    :ok
   end
 
-  def notify_live_mode_end() do
+  @doc """
+  Ends a "Since Live" event:
+
+    - broadcasts an `:end` event to all `:mode_change` subscribers (feed channels)
+    - broadcasts a push notification to all users with the next date
+    - clears live tables
+
+  This function shouldn't be called directly, but rather scheduled with Oban in crontab.
+  """
+  @spec live_mode_end(DateTime.t()) :: :ok
+  def live_mode_end(reference \\ DateTime.utc_now()) do
     notify_subscribers(:mode_change, :end)
-    DispatchJob.new(%{"type" => "live_mode_ended"}) |> Oban.insert()
+
+    next_live_event_on =
+      reference
+      |> live_next_real_at()
+      |> DateTime.shift_zone!("Europe/Moscow")
+      |> DateTime.to_date()
+
+    T.Accounts.list_apns_devices()
+    |> DispatchJob.schedule_apns(
+      "live_mode_ended",
+      _data = %{"next" => next_live_event_on}
+    )
+
+    {_type, [started_at, _ended_at]} = live_today(reference)
+    clear_live_tables(started_at)
+
+    :ok
   end
 
-  def clear_live_tables() do
-    invites_count = LiveInvite |> select([i], count()) |> Repo.one!()
-    sessions_count = LiveSession |> select([i], count()) |> Repo.one!()
-    {session_start_time, _} = live_mode_start_and_end_dates()
+  defp clear_live_tables(session_start_time) do
+    {invites_count, _} = Repo.delete_all(LiveInvite)
+    {sessions_count, _} = Repo.delete_all(LiveSession)
 
     calls_count =
       Call
@@ -163,8 +372,7 @@ defmodule T.Feeds do
     Logger.warn(m)
     Bot.async_post_message(m)
 
-    LiveInvite |> Repo.delete_all()
-    LiveSession |> Repo.delete_all()
+    :ok
   end
 
   # TODO test pubsub
@@ -648,4 +856,168 @@ defmodule T.Feeds do
     |> where([s], s.inserted_at < fragment("now() - ? * interval '1 day'", ^ttl_days))
     |> Repo.delete_all()
   end
+
+  # newbies and stuff
+
+  @doc """
+  Generates "Since Live for newbies" `:crontab` for Oban's `Oban.Plugins.Cron`:
+
+      iex> newbies_crontab()
+      [
+        # https://crontab.guru/#0_13_*_*_1,2,3,5,0
+        {"00 13 * * 1,2,3,5,0", T.PushNotifications.DispatchJob, args: %{"type" => "newbie_live_mode_today", "time" => "19:00"}},
+        {"45 18 * * 1,2,3,5,0", T.PushNotifications.DispatchJob, args: %{"type" => "newbie_live_mode_soon"}},
+        {"00 19 * * 1,2,3,5,0", T.Feeds.NewbiesLive.StartJob},
+        {"00 20 * * 1,2,3,5,0", T.Feeds.NewbiesLive.EndJob}
+      ]
+
+  """
+  def newbies_crontab do
+    live_schedule()
+    |> Enum.filter(fn {_weekday, type, _times} -> type == :newbie end)
+    |> Enum.group_by(
+      fn {_weekday, _type, times} -> times end,
+      fn {weekday, _type, _times} -> weekday end
+    )
+    |> Enum.flat_map(fn {[start_at, end_at], weekdays} ->
+      alias T.Feeds.NewbiesLive.{StartJob, EndJob}
+
+      today_notification_at = Time.add(start_at, _six_hours = -6 * 3600)
+      soon_notification_at = Time.add(start_at, _15_minutes = -15 * 60)
+      cron_days = cron_days(weekdays)
+
+      [
+        {cron_rule(today_notification_at, cron_days), DispatchJob,
+         args: %{
+           "type" => "newbie_live_mode_today",
+           "time" => Calendar.strftime(start_at, "%H:%M")
+         }},
+        {cron_rule(soon_notification_at, cron_days), DispatchJob,
+         args: %{"type" => "newbie_live_mode_soon"}},
+        {cron_rule(start_at, cron_days), StartJob},
+        {cron_rule(end_at, cron_days), EndJob}
+      ]
+    end)
+  end
+
+  @doc """
+  Starts a "Since Live" event for newbies:
+
+    - sends a message to the admin tg bot
+    - broadcasts a push notification to all participants
+    - broadcasts a `:start` event to all newbies' feed channels
+
+  This function shouldn't be called directly, but rather scheduled with Oban in crontab.
+  """
+  @spec newbies_start_live(DateTime.t()) :: :ok
+  def newbies_start_live(reference \\ DateTime.utc_now()) do
+    newbies = newbies_list_today_participants(reference)
+
+    m = "LIVE (newbie's special edition) started: newbies count #{length(newbies)}"
+    Logger.warn(m)
+    Bot.async_post_message(m)
+
+    Enum.each(newbies, fn user_id ->
+      feed_channel_topic = "feed:" <> user_id
+      broadcast(feed_channel_topic, {__MODULE__, [:mode_change, :start]})
+    end)
+
+    newbies
+    |> T.Accounts.list_apns_devices()
+    |> DispatchJob.schedule_apns("newbie_live_mode_started", _data = %{})
+
+    :ok
+  end
+
+  @doc """
+  Ends a "Since Live" event for newbies:
+
+    - sends a message to the admin tg bot
+    - broadcasts an `:end` event to all `:mode_change` subscribers
+    - broadcasts a push notification to all participants with the next "real live" date
+    - clears live tables
+
+  This function shouldn't be called directly, but rather scheduled with Oban in crontab.
+  """
+  @spec newbies_end_live(DateTime.t()) :: :ok
+  def newbies_end_live(reference \\ DateTime.utc_now()) do
+    newbies = newbies_list_today_participants(reference)
+
+    m = "LIVE (newbie's special edition) ended"
+    Logger.warn(m)
+    Bot.async_post_message(m)
+
+    # we don't need to send `end` event only to newbies,
+    # we can turn off everyone who's live right now
+    # since "newbie live" and "normal live" don't intersect
+    notify_subscribers(:mode_change, :end)
+
+    next_live_event_on =
+      reference
+      |> live_next_real_at()
+      |> DateTime.shift_zone!("Europe/Moscow")
+      |> DateTime.to_date()
+
+    newbies
+    |> T.Accounts.list_apns_devices()
+    |> DispatchJob.schedule_apns(
+      "newbie_live_mode_ended",
+      _data = %{"next" => next_live_event_on}
+    )
+
+    {_type, [started_at, _ended_at]} = live_today(reference)
+    clear_live_tables(started_at)
+
+    :ok
+  end
+
+  @doc """
+  Lists ids of today's "newbies live" participants.
+
+  "newbies live" participants are:
+  - newbies: users who have registered since the last newbies live
+  - oldies or "midwives": experienced users who explain newbies what all this is about
+
+  """
+  @spec newbies_list_today_participants(DateTime.t()) :: [Ecto.UUID.t()]
+  def newbies_list_today_participants(reference \\ DateTime.utc_now()) do
+    # maybe Repo.stream later
+    newbies = Repo.all(newbies_q(reference))
+    hardcoded_oldies() ++ newbies
+  end
+
+  defp hardcoded_oldies do
+    Application.get_env(:t, :oldies) || []
+  end
+
+  # TODO move to accounts.ex? maybe later
+  @spec newbies_q(DateTime.t()) :: Ecto.Query.t()
+  defp newbies_q(reference) do
+    _yesterday_event =
+      {_type, [_started_at, live_ended_at]} =
+      reference |> DateTime.shift_zone!("Europe/Moscow") |> Date.add(-1) |> live_today()
+
+    T.Accounts.User
+    |> where([u], is_nil(u.blocked_at))
+    |> where([u], not is_nil(u.onboarded_at))
+    |> where([u], not is_nil(u.onboarded_with_story_at))
+    |> where([u], u.onboarded_with_story_at > ^live_ended_at)
+    |> join(:inner, [u], p in FeedProfile, on: u.id == p.user_id and not p.hidden?)
+    |> select([u], u.id)
+  end
+
+  @spec is_a_newbies_participant?(Ecto.UUID.t(), DateTime.t()) :: boolean
+  defp is_a_newbies_participant?(user_id, reference) do
+    user_id in hardcoded_oldies() or is_newbie?(user_id, reference)
+  end
+
+  @spec is_newbie?(Ecto.UUID.t(), DateTime.t()) :: boolean
+  defp is_newbie?(user_id, reference) do
+    newbies_q(reference)
+    |> where(id: ^user_id)
+    |> Repo.exists?()
+  end
+
+  defp newbies_live_start_at, do: ~T[19:00:00]
+  defp newbies_live_end_at, do: ~T[20:00:00]
 end

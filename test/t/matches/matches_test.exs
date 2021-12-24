@@ -4,7 +4,7 @@ defmodule T.MatchesTest do
 
   import Assertions
 
-  alias T.{Matches, Feeds, Feeds.FeedProfile, PushNotifications.DispatchJob}
+  alias T.{Matches, Feeds, Feeds.FeedProfile, Calls.Call, PushNotifications.DispatchJob}
   alias Matches.{Match, Like}
 
   describe "unmatch" do
@@ -103,6 +103,57 @@ defmodule T.MatchesTest do
              |> where(user_id: ^liked)
              |> select([p], {p.times_liked, p.like_ratio})
              |> Repo.one!() == {2, 0.6666666666666666}
+    end
+  end
+
+  describe "maybe_match_after_end_call/1" do
+    defp successful_call(caller_id, called_id) do
+      %Call{
+        caller_id: caller_id,
+        called_id: called_id,
+        accepted_at: ~U[2021-12-29 11:08:18Z],
+        ended_at: ~U[2021-12-29 11:12:22Z]
+      }
+    end
+
+    test "creates a match when users haven't been matched yet and call was successful" do
+      u1 = onboarded_user()
+      u2 = onboarded_user()
+      call = successful_call(u1.id, u2.id)
+
+      assert %Match{} = match = Matches.maybe_match_after_end_call(call)
+
+      assert match.user_id_1 == u1.id
+      assert match.user_id_2 == u2.id
+    end
+
+    test "no-op when users are already matched" do
+      u1 = onboarded_user()
+      u2 = onboarded_user()
+
+      {:ok, %{match: nil}} = Matches.like_user(u1.id, u2.id)
+      {:ok, %{match: %Match{}}} = Matches.like_user(u2.id, u1.id)
+
+      call = successful_call(u1.id, u2.id)
+      refute Matches.maybe_match_after_end_call(call)
+    end
+
+    test "no-op on calls <1 minute in duration" do
+      short_call = %Call{
+        accepted_at: ~U[2021-12-29 11:08:18Z],
+        ended_at: ~U[2021-12-29 11:09:17Z]
+      }
+
+      refute Matches.maybe_match_after_end_call(short_call)
+    end
+
+    test "no-op on unanswered calls" do
+      unanswered_call = %Call{
+        accepted_at: nil,
+        ended_at: ~U[2021-12-29 11:09:17Z]
+      }
+
+      refute Matches.maybe_match_after_end_call(unanswered_call)
     end
   end
 

@@ -47,19 +47,3 @@ defmodule Dev do
     end
   end
 end
-
-tokens = [
-  "zH8kYe3GzPpO1kt6jLAYcEFOTFeuNEyNkIuvg3yVioQ=",
-  "V7OnJqdX4grwUdpHr8ZqxVrFRmwU09GctvOyDTCxrzU=",
-  "nJu1lSrLH6kXLsJN3LFblnYZ8A2oRAp66gzkSCajA+Q=",
-  "W7gK/82KvaoR0x4qHmMdVReo3ELKLMUFkzpJGGsSEOU=",
-  "23RFpbhp6Dr4jfRTi4hcS7ESTtesA4xO67e6+2f1lK8=",
-  "rc430QRoOfJ6u7NXic6tAYo2yjRl6SrcF3gz9OYD8DY=",
-  "9pQUl+/da5PBXZAndjliircdh35yVgpkahzO2vTCkZI=",
-  "TzMWHtmyWKzG5HrTeVfcviOXd3k7trV95oIKN7k4kuc="
-]
-
-Enum.each(tokens, fn token ->
-  token = token |> Base.decode64!() |> T.Accounts.UserToken.encoded_token()
-  TWeb.Endpoint.broadcast!("disconnect", "user_socket:" <> token, %{})
-end)

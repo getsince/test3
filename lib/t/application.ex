@@ -22,6 +22,7 @@ defmodule T.Application do
         T.Twilio,
         {Phoenix.PubSub, name: T.PubSub},
         unless_disabled(T.Media.Static),
+        TWeb.CallTracker,
         TWeb.Presence,
         TWeb.UserSocket.Monitor,
         T.Repo,

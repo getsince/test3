@@ -2,7 +2,7 @@ defmodule TWeb.CallChannel do
   @moduledoc "Calls for alternative app."
   use TWeb, :channel
 
-  alias TWeb.Presence
+  alias TWeb.CallTracker
   alias T.Calls
 
   @impl true
@@ -68,9 +68,7 @@ defmodule TWeb.CallChannel do
 
   @impl true
   def handle_info(:after_join, socket) do
-    # TODO possibly remove self from feed channel?
-    {:ok, _} = Presence.track(socket, socket.assigns.current_user.id, %{})
-    push(socket, "presence_state", Presence.list(socket))
+    {:ok, _ref} = CallTracker.track(socket.assigns.current_user.id)
     {:noreply, socket}
   end
 

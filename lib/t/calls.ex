@@ -12,19 +12,20 @@ defmodule T.Calls do
   alias T.PushNotifications.APNS
   alias T.Bot
 
+  @type uuid :: Ecto.Bigflake.UUID.t()
+
   @spec ice_servers :: [map]
   def ice_servers do
     Twilio.ice_servers()
   end
 
-  @spec call(Ecto.UUID.t(), Ecto.UUID.t(), DateTime.t()) ::
-          {:ok, call_id :: Ecto.UUID.t()} | {:error, reason :: String.t()}
+  @spec call(uuid, uuid, DateTime.t()) :: {:ok, call_id :: uuid} | {:error, reason :: String.t()}
   def call(caller_id, called_id, reference \\ DateTime.utc_now()) do
     call_id = Ecto.Bigflake.UUID.generate()
 
-    with {:allowed?, true} <- {:allowed?, call_allowed?(caller_id, called_id, reference)},
-         {:devices, [_ | _] = devices} <- {:devices, Accounts.list_pushkit_devices(called_id)},
-         {:push, _any_push_sent? = true} <- {:push, push_call(caller_id, call_id, devices)} do
+    with :ok <- ensure_call_allowed(caller_id, called_id, reference),
+         {:ok, devices} <- ensure_has_devices(called_id),
+         :ok <- push_call(caller_id, call_id, devices) do
       %Call{id: ^call_id} =
         Repo.insert!(%Call{id: call_id, caller_id: caller_id, called_id: called_id})
 
@@ -35,19 +36,21 @@ defmodule T.Calls do
       Bot.async_post_message(m)
 
       {:ok, call_id}
-    else
-      # TODO error due to user being on another call
-      {:allowed?, false} -> {:error, "call not allowed"}
-      {:devices, []} -> {:error, "no pushkit devices available"}
-      {:push, false} -> {:error, "all pushes failed"}
     end
   end
 
-  def call_allowed?(caller_id, called_id, reference) do
-    missed?(called_id, caller_id) or matched?(caller_id, called_id) or
-      in_live_mode?(caller_id, called_id, reference)
+  @spec ensure_call_allowed(uuid, uuid, DateTime.t()) :: :ok | {:error, reason :: String.t()}
+  defp ensure_call_allowed(caller_id, called_id, reference) do
+    cond do
+      TWeb.CallTracker.in_call?(called_id) -> {:error, "receiver is busy"}
+      missed?(called_id, caller_id) -> :ok
+      matched?(caller_id, called_id) -> :ok
+      in_live_mode?(caller_id, called_id, reference) -> :ok
+      true -> {:error, "call not allowed"}
+    end
   end
 
+  @spec missed?(uuid, uuid) :: boolean
   defp missed?(caller_id, called_id) do
     Call
     |> where(caller_id: ^caller_id)
@@ -56,6 +59,7 @@ defmodule T.Calls do
     |> Repo.exists?()
   end
 
+  @spec matched?(uuid, uuid) :: boolean
   defp matched?(caller_id, called_id) do
     [user_id_1, user_id_2] = Enum.sort([caller_id, called_id])
 
@@ -72,19 +76,32 @@ defmodule T.Calls do
     |> Repo.exists?()
   end
 
+  @spec in_live_mode?(uuid, uuid, DateTime.t()) :: boolean
   defp in_live_mode?(caller_id, called_id, reference) do
     both_live? = Feeds.live_now?(caller_id, reference) and Feeds.live_now?(called_id, reference)
     both_live? and not reported?(caller_id, called_id)
   end
 
-  @spec push_call(Ecto.UUID.t(), Ecto.UUID.t(), [%Accounts.PushKitDevice{}]) :: boolean
-  def push_call(caller_id, call_id, devices) do
+  @spec ensure_has_devices(uuid) ::
+          {:ok, [%Accounts.PushKitDevice{}]} | {:error, reason :: String.t()}
+  defp ensure_has_devices(user_id) do
+    case Accounts.list_pushkit_devices(user_id) do
+      [_ | _] = devices -> {:ok, devices}
+      [] -> {:error, "no pushkit devices available"}
+    end
+  end
+
+  @spec push_call(uuid, uuid, [%Accounts.PushKitDevice{}]) :: :ok | {:error, reason :: String.t()}
+  defp push_call(caller_id, call_id, devices) do
     caller_name = fetch_name(caller_id)
     payload = %{"caller_id" => caller_id, "call_id" => call_id, "caller_name" => caller_name}
 
-    devices
-    |> APNS.pushkit_call(payload)
-    |> Enum.any?(fn response -> response == :ok end)
+    push_sent? =
+      devices
+      |> APNS.pushkit_call(payload)
+      |> Enum.any?(fn response -> response == :ok end)
+
+    if push_sent?, do: :ok, else: {:error, "all pushes failed"}
   end
 
   @spec fetch_name(Ecto.UUID.t()) :: String.t()
@@ -95,7 +112,7 @@ defmodule T.Calls do
     |> Repo.one!()
   end
 
-  @spec get_call_role_and_peer(Ecto.UUID.t(), Ecto.UUID.t()) ::
+  @spec get_call_role_and_peer(uuid, uuid) ::
           {:ok, :caller | :called, %FeedProfile{}} | {:error, :not_found | :ended}
   def get_call_role_and_peer(call_id, user_id) do
     Call
@@ -156,7 +173,7 @@ defmodule T.Calls do
   end
 
   # TODO not ignore errors (currently always :ok)
-  @spec accept_call(Ecto.UUID.t(), DateTime.t()) :: :ok
+  @spec accept_call(uuid, DateTime.t()) :: :ok
   def accept_call(call_id, now \\ utc_now()) do
     Multi.new()
     |> set_call_accepted_at(call_id, now)
@@ -201,7 +218,7 @@ defmodule T.Calls do
     :ok
   end
 
-  @spec end_call(Ecto.UUID.t(), Ecto.UUID.t(), DateTime.t()) :: :ok
+  @spec end_call(uuid, uuid, DateTime.t()) :: :ok
   def end_call(user_id, call_id, now \\ utc_now()) do
     {1, [call]} =
       Call
@@ -232,16 +249,14 @@ defmodule T.Calls do
     :ok
   end
 
-  @spec fetch_profile(Ecto.UUID.t()) :: %FeedProfile{}
+  @spec fetch_profile(uuid) :: %FeedProfile{}
   defp fetch_profile(user_id) do
     FeedProfile
     |> where(user_id: ^user_id)
     |> Repo.one!()
   end
 
-  @spec list_missed_calls_with_profile(Ecto.UUID.t(), Keyword.t()) :: [
-          {%Call{}, %FeedProfile{} | nil}
-        ]
+  @spec list_missed_calls_with_profile(uuid, Keyword.t()) :: [{%Call{}, %FeedProfile{} | nil}]
   def list_missed_calls_with_profile(user_id, opts) do
     missed_calls_q(user_id, opts)
     |> join(:inner, [c], p in FeedProfile, on: c.caller_id == p.user_id)
@@ -249,7 +264,7 @@ defmodule T.Calls do
     |> Repo.all()
   end
 
-  @spec missed_calls_q(Ecto.UUID.t(), Keyword.t()) :: Ecto.Query.t()
+  @spec missed_calls_q(uuid, Keyword.t()) :: Ecto.Query.t()
   defp missed_calls_q(user_id, opts) do
     Call
     |> where(called_id: ^user_id)

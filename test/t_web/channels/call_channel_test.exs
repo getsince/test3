@@ -220,89 +220,28 @@ defmodule TWeb.CallChannelTest do
     end
   end
 
-  describe "presence" do
-    setup :called
+  describe "user is busy" do
+    test "works" do
+      thu_19_30_msk = ~U[2021-12-09 16:30:00Z]
 
-    # this test is more like an example of what to expect from the channel
-    test "receives presence_state and presence_diff on join/leave", %{
-      me: me,
-      caller: caller,
-      call: call
-    } do
-      # presence_state push for me
-      # %{"0000017a-d3ca-b85f-1e00-8a0e24450000" => %{metas: [%{phx_ref: "FpRyMAcUMICp8gRC"}]}}
-      assert_push "presence_state", push
-      assert Map.keys(push) == [me.id]
+      %{socket: socket, user: called} = make_user_socket()
+      caller = onboarded_user()
 
-      # presence_diff broadcast for everyone
-      # %{joins: %{"0000017a-d3cc-80ff-1e00-8a0e24450000" => %{metas: [%{phx_ref: "FpRySz8Q2LAFWQeB"}]}}, leaves: %{}}
-      assert_broadcast "presence_diff", %{joins: joins, leaves: leaves}
-      assert leaves == %{}
-      assert Map.keys(joins) == [me.id]
+      # live mode
+      freeze_time(socket, thu_19_30_msk)
 
-      # presence_diff push for me (but why)
-      # %{joins: %{"0000017a-d3cd-aee1-1e00-8a0e24450000" => %{metas: [%{phx_ref: "FpRyXTwpvQgFWQUC"}]}}, leaves: %{}}
-      assert_push "presence_diff", %{joins: joins, leaves: leaves}
-      assert leaves == %{}
-      assert Map.keys(joins) == [me.id]
+      # called user joined call, should not be available anymore
+      %Call{id: call_id} = insert(:call, called: called, caller: caller)
+      assert {:ok, _reply, _socket} = subscribe_and_join(socket, "call:#{call_id}")
 
-      parent = self()
+      assert TWeb.CallTracker.in_call?(called.id)
+      refute TWeb.CallTracker.in_call?(caller.id)
 
-      spawn(fn ->
-        Ecto.Adapters.SQL.Sandbox.allow(Repo, parent, self())
-        socket = connected_socket(caller)
-        assert {:ok, _reply, socket} = subscribe_and_join(socket, "call:#{call.id}")
+      # another user tries to call `called` user
+      another_caller = onboarded_user()
 
-        # presence_state push for caller
-        # %{
-        #   "0000017a-d3d0-501d-1e00-8a0e24450000" => %{metas: [%{phx_ref: "FpRyhV0obTgFWQHC"}]},
-        #   "0000017a-d3d0-503e-1e00-8a0e24450000" => %{metas: [%{phx_ref: "FpRyhV1gztAFWQJi"}]}
-        # }
-        assert_push "presence_state", push
-        assert Map.keys(push) == [me.id, caller.id]
-
-        # presence_diff broadcast for everyone
-        assert_broadcast "presence_diff", %{joins: joins, leaves: leaves}
-        assert leaves == %{}
-        assert Map.keys(joins) == [caller.id]
-
-        # presence_diff push for caller (but why)
-        assert_push "presence_diff", %{joins: joins, leaves: leaves}
-        assert leaves == %{}
-        assert Map.keys(joins) == [caller.id]
-
-        # %{
-        #   "0000017a-d3e0-3cd6-1e00-8a0e24450000" => %{
-        #     metas: [%{phx_ref: "FpRzeFr6EBgFWQGi"}]
-        #   },
-        #   "0000017a-d3e0-3cf7-1e00-8a0e24450000" => %{
-        #     metas: [%{phx_ref: "FpRzeFssR5AFWQih"}]
-        #   }
-        # }
-        assert socket |> TWeb.Presence.list() |> Map.keys() == [me.id, caller.id]
-
-        leave(socket)
-      end)
-
-      # presence_diff broadcast for everyone
-      assert_broadcast "presence_diff", %{joins: joins, leaves: leaves}
-      assert leaves == %{}
-      assert Map.keys(joins) == [caller.id]
-
-      # presence_diff push for me
-      assert_push "presence_diff", %{joins: joins, leaves: leaves}
-      assert leaves == %{}
-      assert Map.keys(joins) == [caller.id]
-
-      # presence_diff broadcast for everyone
-      assert_broadcast "presence_diff", %{joins: joins, leaves: leaves}
-      assert joins == %{}
-      assert Map.keys(leaves) == [caller.id]
-
-      # presence_diff push for me
-      assert_push "presence_diff", %{joins: joins, leaves: leaves}
-      assert joins == %{}
-      assert Map.keys(leaves) == [caller.id]
+      assert {:error, "receiver is busy"} =
+               T.Calls.call(another_caller.id, called.id, thu_19_30_msk)
     end
   end
 

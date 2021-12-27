@@ -1036,8 +1036,8 @@ defmodule T.Matches do
 
   def match_soon_to_expire_check() do
     expiring_matches_q()
-    |> where([m, e, c], e.timestamp <= fragment("now() - interval '46 hours'"))
-    |> where([m, e, c], e.timestamp > fragment("now() - interval '46 hours 1 minute'"))
+    |> where([m, e, c], e.timestamp <= fragment("now() - interval '6 days'"))
+    |> where([m, e, c], e.timestamp > fragment("now() - interval '6 days 1 minute'"))
     |> select([m, e, c], m.id)
     |> T.Repo.all()
     |> Enum.map(fn match_id ->

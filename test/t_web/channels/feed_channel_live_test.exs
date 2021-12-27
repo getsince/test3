@@ -410,6 +410,24 @@ defmodule TWeb.FeedChanneLiveTest do
     end
   end
 
+  describe "failed calls to active user" do
+    setup :joined
+
+    setup do
+      {:ok, mate: onboarded_user(story: [], location: apple_location(), name: "mate")}
+    end
+
+    setup :joined_mate
+
+    test "i can't call someone who reported me", %{me: me, mate: mate, socket: socket} do
+      Accounts.report_user(mate.id, me.id, "he show dicky")
+      freeze_time(socket, _thu_19_30_msk = ~U[2021-12-09 16:30:00Z])
+
+      ref = push(socket, "call", %{"user_id" => mate.id})
+      assert_reply ref, :error, %{"reason" => "call not allowed"}
+    end
+  end
+
   describe "unmatch success" do
     setup :joined
 

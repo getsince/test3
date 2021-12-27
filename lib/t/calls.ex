@@ -69,9 +69,17 @@ defmodule T.Calls do
     |> Repo.exists?()
   end
 
+  defp reported?(caller_id, called_id) do
+    Accounts.UserReport
+    |> where(on_user_id: ^caller_id)
+    |> where(from_user_id: ^called_id)
+    |> Repo.exists?()
+  end
+
   @spec in_live_mode?(uuid, uuid, DateTime.t()) :: boolean
   defp in_live_mode?(caller_id, called_id, reference) do
-    Feeds.live_now?(caller_id, reference) and Feeds.live_now?(called_id, reference)
+    both_live? = Feeds.live_now?(caller_id, reference) and Feeds.live_now?(called_id, reference)
+    both_live? and not reported?(caller_id, called_id)
   end
 
   @spec ensure_has_devices(uuid) ::

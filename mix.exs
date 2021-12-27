@@ -66,7 +66,7 @@ defmodule T.MixProject do
       {:imgproxy, "~> 2.0"},
       {:rexbug, "~> 1.0"},
       {:geo_postgis, "~> 3.4"},
-      {:finch, "~> 0.9.0"},
+      {:finch, "~> 0.10.1"},
       {:locus, "~> 2.2"},
       # {:prom_ex, "~> 1.3"},
 

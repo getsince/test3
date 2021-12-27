@@ -1,4 +1,10 @@
 defmodule Dev do
+  def notify_live_mode_today do
+    Oban.insert!(
+      T.PushNotifications.DispatchJob.new(%{"type" => "live_mode_today", "time" => "20:00"})
+    )
+  end
+
   def force_app_upgrade() do
     alert1_ru = %{
       "aps" => %{

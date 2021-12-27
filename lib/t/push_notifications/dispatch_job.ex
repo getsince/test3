@@ -289,16 +289,16 @@ defmodule T.PushNotifications.DispatchJob do
     :ok
   end
 
-  defp handle_type(type, _args) when type in ["live_mode_today", "live_mode_soon"] do
-    Accounts.list_apns_devices() |> schedule_apns(type, _data = %{})
+  defp handle_type(type, args) when type in ["live_mode_today", "live_mode_soon"] do
+    Accounts.list_apns_devices() |> schedule_apns(type, args)
     :ok
   end
 
-  defp handle_type(type, _args)
+  defp handle_type(type, args)
        when type in ["newbie_live_mode_today", "newbie_live_mode_soon"] do
     Feeds.newbies_list_today_participants()
     |> Accounts.list_apns_devices()
-    |> schedule_apns(type, _data = %{})
+    |> schedule_apns(type, args)
 
     :ok
   end

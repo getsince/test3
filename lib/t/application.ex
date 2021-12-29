@@ -13,12 +13,14 @@ defmodule T.Application do
         APNS.Token,
         # T.PromEx,
         # TODO add apple keys endpoint and twilio (possibly aws as well)
-        {Finch,
-         name: T.Finch,
-         pools: %{
-           "https://api.development.push.apple.com" => [protocol: :http2],
-           "https://api.push.apple.com" => [protocol: :http2, count: 1]
-         }},
+        unless_disabled(
+          {Finch,
+           name: T.Finch,
+           pools: %{
+             "https://api.development.push.apple.com" => [protocol: :http2],
+             "https://api.push.apple.com" => [protocol: :http2, count: 1]
+           }}
+        ),
         T.Twilio,
         {Phoenix.PubSub, name: T.PubSub},
         unless_disabled(T.Media.Static),
@@ -100,5 +102,9 @@ defmodule T.Application do
 
   defp unless_disabled(mod) when is_atom(mod) do
     unless disabled?(mod), do: mod
+  end
+
+  defp unless_disabled({mod, _opts} = child) when is_atom(mod) do
+    unless disabled?(mod), do: child
   end
 end

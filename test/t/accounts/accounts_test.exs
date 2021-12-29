@@ -65,16 +65,18 @@ defmodule T.AccountsTest do
 
   describe "update_last_active/1" do
     test "it works" do
+      now = ~U[2021-12-29 09:10:47.196283Z]
+
       {:ok, %{profile: %Profile{user_id: user_id, last_active: last_active}}} =
-        Accounts.register_user_with_apple_id(%{"apple_id" => apple_id()})
+        Accounts.register_user_with_apple_id(%{"apple_id" => apple_id()}, now)
 
-      assert last_active
+      assert last_active == ~U[2021-12-29 09:10:47Z]
 
-      # TODO
-      :timer.sleep(1000)
+      later = DateTime.add(now, _5_minutes = 300)
+      assert {1, nil} == Accounts.update_last_active(user_id, later)
 
-      assert {1, nil} == Accounts.update_last_active(user_id)
-      refute last_active == Accounts.get_profile!(user_id).last_active
+      %Profile{last_active: last_active} = Accounts.get_profile!(user_id)
+      assert last_active == ~U[2021-12-29 09:15:47Z]
     end
   end
 

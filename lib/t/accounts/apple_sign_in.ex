@@ -2,12 +2,12 @@ defmodule T.Accounts.AppleSignIn do
   @moduledoc false
   alias JOSE.{JWS, JWT}
 
-  @apple_keys_url "https://appleid.apple.com/auth/keys"
+  @adapter Application.compile_env!(:t, [__MODULE__, :adapter])
 
-  @spec fields_from_token(String.t(), [map()]) ::
+  @spec fields_from_token(String.t(), [map]) ::
           {:ok, %{user_id: String.t(), email: String.t()}}
           | {:error, :invalid_key_id | :invalid_token}
-  def fields_from_token(id_token, keys \\ fetch_keys()) do
+  def fields_from_token(id_token, keys \\ @adapter.fetch_keys()) do
     with {:key, key} when not is_nil(key) <- {:key, key_for_token(keys, id_token)},
          {:verify, {:ok, fields}} <- {:verify, verify_token(key, id_token)} do
       {:ok, extract_user_id(fields)}
@@ -41,15 +41,5 @@ defmodule T.Accounts.AppleSignIn do
       {true, %JWT{fields: fields}, _jws} -> {:ok, fields}
       _other -> :error
     end
-  end
-
-  # TODO can cache? probably not
-  # TODO add retries then
-  @spec fetch_keys :: [map()]
-  def fetch_keys do
-    req = Finch.build(:get, @apple_keys_url)
-    {:ok, %Finch.Response{status: 200, body: body}} = Finch.request(req, T.Finch)
-    %{"keys" => keys} = Jason.decode!(body)
-    keys
   end
 end

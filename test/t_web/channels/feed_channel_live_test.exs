@@ -283,10 +283,10 @@ defmodule TWeb.FeedChanneLiveTest do
       we = onboarded_user(gender: "M", accept_genders: ["F", "N"])
       joined_mate(%{mate: we})
 
-      p1 = onboarded_user(gender: "F", accept_genders: ["F", "N", "M"])
+      %{id: user_id} = p1 = onboarded_user(gender: "F", accept_genders: ["F", "N", "M"])
       joined_mate(%{mate: p1})
 
-      assert_push("activated_profile", _profile)
+      assert_push "activated_profile", %{"profile" => %{user_id: ^user_id}}
     end
 
     test "we are not notified if new user doesn't match our filter" do
@@ -294,10 +294,10 @@ defmodule TWeb.FeedChanneLiveTest do
       we = onboarded_user(gender: "M", accept_genders: ["F", "N"])
       joined_mate(%{mate: we})
 
-      p1 = onboarded_user(gender: "M", accept_genders: ["F", "N", "M"])
+      %{id: user_id} = p1 = onboarded_user(gender: "M", accept_genders: ["F", "N", "M"])
       joined_mate(%{mate: p1})
 
-      refute_push("activated_profile", _profile)
+      refute_push "activated_profile", %{"profile" => %{user_id: ^user_id}}
     end
 
     test "we are not notified if we do not match new user's filter" do
@@ -305,22 +305,24 @@ defmodule TWeb.FeedChanneLiveTest do
       we = onboarded_user(gender: "M", accept_genders: ["F", "N"])
       joined_mate(%{mate: we})
 
-      p1 = onboarded_user(gender: "F", accept_genders: ["F", "N"])
+      %{id: user_id} = p1 = onboarded_user(gender: "F", accept_genders: ["F", "N"])
       joined_mate(%{mate: p1})
 
-      refute_push("activated_profile", _profile)
+      refute_push "activated_profile", %{"profile" => %{user_id: ^user_id}}
     end
 
     test "we are notified if mate comes online" do
       we = onboarded_user(gender: "M", accept_genders: ["F", "N"])
       joined_mate(%{mate: we})
 
-      p1 = onboarded_user(gender: "F", accept_genders: ["F", "N"])
-      _m1 = insert(:match, user_id_1: we.id, user_id_2: p1.id)
+      %{id: user_id} = p1 = onboarded_user(gender: "F", accept_genders: ["F", "N"])
+      %{id: match_id} = insert(:match, user_id_1: we.id, user_id_2: p1.id)
 
       joined_mate(%{mate: p1})
 
-      assert_push("activated_match", _match)
+      assert_push "activated_match", %{
+        "match" => %{"id" => ^match_id, "profile" => %{user_id: ^user_id}}
+      }
     end
   end
 

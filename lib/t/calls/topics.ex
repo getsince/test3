@@ -17,7 +17,7 @@ defmodule T.Calls.Topics do
   @spec list_topics(String.t()) :: [String.t()]
   def list_topics(locale)
 
-  @spec topics_json_fragment(String.t()) :: Jason.Fragment.t()
+  @spec topics_json_fragment(String.t()) :: %Jason.Fragment{}
   def topics_json_fragment(locale)
 
   for {locale, topics} <- @topics_by_locale do

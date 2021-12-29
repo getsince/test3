@@ -114,19 +114,18 @@ defmodule DevAPNS do
   # https://gist.github.com/ruslandoga/8332cc8a2cf260c4c3a6d23386c8a06a
 
   def notification do
-    %{
-      device_id: "2DAE2436E3D183F3683907FACD8EF8D515FAF541CA55A265A4144371C2A83137",
-      env: :prod,
-      payload: %{
+    APNS.build_notification(
+      _device_id = "2DAE2436E3D183F3683907FACD8EF8D515FAF541CA55A265A4144371C2A83137",
+      _topic = "since.app.ios",
+      _payload = %{
         "aps" => %{
           "alert" => %{"body" => "Come look!", "title" => "That's a match!"},
           "badge" => 1
         },
         "type" => "match"
       },
-      push_type: "alert",
-      topic: "since.app.ios"
-    }
+      _env = :prod
+    )
   end
 
   def retrace do

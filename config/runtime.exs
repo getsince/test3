@@ -290,6 +290,7 @@ if config_env() == :test do
   config :t, T.Feeds.SeenPruner, disabled?: true
   config :t, T.Matches.MatchExpirer, disabled?: true
   config :t, T.PushNotifications.ScheduledPushes, disabled?: true
+  config :t, Finch, disabled?: true
 
   # there is no user with this id, it's been generated just for the tests
   config :t, oldies: ["0000017d-d720-1f6a-06e9-e8bbc6570000"]

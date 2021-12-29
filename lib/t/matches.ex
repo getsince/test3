@@ -73,19 +73,31 @@ defmodule T.Matches do
   end
 
   defp maybe_notify_match(
-         %Match{id: match_id},
+         %Match{id: match_id} = match,
          [by_user_id_settings, user_id_settings],
          by_user_id,
          user_id
        ) do
     broadcast_from_for_user(
       by_user_id,
-      {__MODULE__, :matched, %{id: match_id, mate: user_id, audio_only: user_id_settings}}
+      {__MODULE__, :matched,
+       %{
+         id: match_id,
+         expiration_date: expiration_date(match),
+         mate: user_id,
+         audio_only: user_id_settings
+       }}
     )
 
     broadcast_for_user(
       user_id,
-      {__MODULE__, :matched, %{id: match_id, mate: by_user_id, audio_only: by_user_id_settings}}
+      {__MODULE__, :matched,
+       %{
+         id: match_id,
+         expiration_date: expiration_date(match),
+         mate: by_user_id,
+         audio_only: by_user_id_settings
+       }}
     )
   end
 
@@ -302,18 +314,35 @@ defmodule T.Matches do
 
   @spec list_matches(uuid) :: [%Match{}]
   def list_matches(user_id) do
-    Match
-    |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
-    |> where([m], m.id not in subquery(archived_match_ids_q(user_id)))
+    matches_with_undying_events_q()
+    |> where([match: m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
+    |> where([match: m], m.id not in subquery(archived_match_ids_q(user_id)))
     |> order_by(desc: :inserted_at)
-    |> join(:left, [m], t in Timeslot, on: m.id == t.match_id)
-    |> join(:left, [m, t], c in MatchContact, on: m.id == c.match_id)
-    |> select([m, t, c], {m, t, c})
+    |> join(:left, [match: m], t in Timeslot, as: :t, on: m.id == t.match_id)
+    |> join(:left, [match: m], c in MatchContact, as: :c, on: m.id == c.match_id)
+    |> select([match: m, undying_event: e, t: t, c: c], {m, t, c, e.timestamp})
     |> Repo.all()
-    |> Enum.map(fn {match, timeslot, contact} ->
-      %Match{match | timeslot: timeslot, contact: contact}
+    |> Enum.map(fn {match, timeslot, contact, undying_event_timestamp} ->
+      expiration_date =
+        unless undying_event_timestamp do
+          expiration_date(match)
+        end
+
+      %Match{
+        match
+        | timeslot: timeslot,
+          contact: contact,
+          expiration_date: expiration_date,
+          interaction: timeslot || contact
+      }
     end)
     |> preload_match_profiles(user_id)
+  end
+
+  defp expiration_date(%Match{inserted_at: inserted_at}) do
+    inserted_at
+    |> DateTime.from_naive!("Etc/UTC")
+    |> DateTime.add(@match_ttl)
   end
 
   defp archived_match_ids_q(user_id) do
@@ -814,15 +843,15 @@ defmodule T.Matches do
     :ok
   end
 
-  def save_contact_offer_for_match(offerer, match_id, contact) do
+  def save_contacts_offer_for_match(offerer, match_id, contacts) do
     %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} =
       get_match_for_user!(match_id, offerer)
 
     [mate] = [uid1, uid2] -- [offerer]
-    save_contact_offer(offerer, mate, match_id, contact)
+    save_contacts_offer(offerer, mate, match_id, contacts)
   end
 
-  defp save_contact_offer(offerer, mate, match_id, contacts) do
+  defp save_contacts_offer(offerer, mate, match_id, contacts) do
     {offerer_name, _number_of_matches1} = user_info(offerer)
     {mate_name, _umber_of_matches2} = user_info(mate)
 
@@ -865,17 +894,17 @@ defmodule T.Matches do
     end
   end
 
-  @spec cancel_contact_for_match(uuid, uuid) :: :ok
-  def cancel_contact_for_match(by_user_id, match_id) do
+  @spec cancel_contacts_for_match(uuid, uuid) :: :ok
+  def cancel_contacts_for_match(by_user_id, match_id) do
     %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} =
       get_match_for_user!(match_id, by_user_id)
 
     [mate] = [uid1, uid2] -- [by_user_id]
-    cancel_contact(by_user_id, mate, match_id)
+    cancel_contacts(by_user_id, mate, match_id)
   end
 
-  @spec cancel_contact(uuid, uuid, uuid) :: :ok
-  defp cancel_contact(by_user_id, mate_id, match_id) do
+  @spec cancel_contacts(uuid, uuid, uuid) :: :ok
+  defp cancel_contacts(by_user_id, mate_id, match_id) do
     m = "cancelling contact for match #{match_id} (with mate #{mate_id}) by #{by_user_id}"
 
     Logger.warn(m)
@@ -1055,23 +1084,27 @@ defmodule T.Matches do
     })
   end
 
-  def match_expired_check() do
-    expiration_date = DateTime.add(DateTime.utc_now(), -7 * 24 * 60 * 60)
+  def match_expired_check(reference \\ DateTime.utc_now()) do
+    expiration_date = DateTime.add(reference, -@match_ttl)
 
     expiring_matches_q()
-    |> where([m, e, c], e.timestamp < ^expiration_date)
-    |> select([m, e, c], {m.id, m.user_id_1, m.user_id_2})
+    |> where([m, c], m.inserted_at < ^expiration_date)
+    |> select([m], {m.id, m.user_id_1, m.user_id_2})
     |> T.Repo.all()
     |> Enum.map(fn {match_id, user_id_1, user_id_2} ->
       expire_match(match_id, user_id_1, user_id_2)
     end)
   end
 
-  def match_soon_to_expire_check() do
+  def match_soon_to_expire_check(reference \\ DateTime.utc_now()) do
+    day_before_expiration = reference |> DateTime.add(-@match_ttl) |> DateTime.add(24 * 3600)
+    almost_day_before_expiration = DateTime.add(day_before_expiration, -60)
+
     expiring_matches_q()
-    |> where([m, e, c], e.timestamp <= fragment("now() - interval '6 days'"))
-    |> where([m, e, c], e.timestamp > fragment("now() - interval '6 days 1 minute'"))
-    |> select([m, e, c], m.id)
+    |> where([m], m.inserted_at <= ^day_before_expiration)
+    # TODO can result in duplicates with more than one worker
+    |> where([m], m.inserted_at > ^almost_day_before_expiration)
+    |> select([m], m.id)
     |> T.Repo.all()
     |> Enum.map(fn match_id ->
       schedule_match_about_to_expire(match_id)
@@ -1089,63 +1122,30 @@ defmodule T.Matches do
     |> Repo.delete_all()
   end
 
-  def expiration_date(match_id) do
-    MatchEvent
-    |> where(match_id: ^match_id)
-    |> where(event: "created")
-    |> first()
-    |> join(
-      :left_lateral,
-      [e],
-      c in fragment(
-        "SELECT c.timestamp
-        FROM match_events c
-        WHERE c.match_id = ? AND (c.event = 'call_start' OR c.event = 'meeting_report')
-        LIMIT 1",
-        e.match_id
-      )
-    )
-    |> where([e, c], is_nil(c.timestamp))
-    |> select([e, c], e.timestamp)
-    |> Repo.one()
-    |> case do
-      nil -> nil
-      some -> some |> DateTime.add(@match_ttl)
-    end
+  defp named_match_q do
+    from m in Match, as: :match
   end
 
-  def expiration_date(user_id_1, user_id_2) do
-    [uid1, uid2] = Enum.sort([user_id_1, user_id_2])
-    match_id = get_match_id_for_users!(uid1, uid2)
-
-    expiration_date(match_id)
+  defp expiring_matches_q(query \\ named_match_q()) do
+    query
+    |> matches_with_undying_events_q()
+    |> where([undying_event: e], is_nil(e.timestamp))
   end
 
-  defp expiring_matches_q() do
-    Match
-    |> join(
-      :inner_lateral,
-      [m],
-      e in fragment(
-        "SELECT e.timestamp
-        FROM match_events e
-        WHERE e.match_id = ? AND e.event = 'created'
-        LIMIT 1",
-        m.id
-      )
-    )
-    |> join(
+  defp matches_with_undying_events_q(query \\ named_match_q()) do
+    join(
+      query,
       :left_lateral,
       [m, e],
-      c in fragment(
-        "SELECT c.timestamp
-        FROM match_events c
-        WHERE c.match_id = ? AND (c.event = 'call_start' OR c.event = 'meeting_report')
-        LIMIT 1",
-        m.id
-      )
+      c in subquery(
+        MatchEvent
+        |> where(match_id: parent_as(:match).id)
+        |> where([e], e.event == "call_start" or e.event == "meeting_report")
+        |> select([e], e.timestamp)
+        |> limit(1)
+      ),
+      as: :undying_event
     )
-    |> where([m, e, c], is_nil(c.timestamp))
   end
 
   # Contact Exchange

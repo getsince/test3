@@ -28,8 +28,14 @@ defmodule T.Accounts.BlockingTest do
       assert {:ok, %{match: %Match{id: match_id}}} = Matches.like_user(reported.id, reporter.id)
 
       # notification for reporter
-      assert_receive {Matches, :matched, match}
-      assert match == %{id: match_id, mate: reported.id, audio_only: false}
+      assert_receive {Matches, :matched, %{expiration_date: expiration_date} = match}
+
+      assert match == %{
+               id: match_id,
+               mate: reported.id,
+               audio_only: false,
+               expiration_date: expiration_date
+             }
 
       assert :ok == Accounts.report_user(reporter.id, reported.id, "he show dicky")
       assert_receive {Matches, :unmatched, ^match_id}

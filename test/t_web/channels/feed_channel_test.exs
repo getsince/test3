@@ -47,21 +47,25 @@ defmodule TWeb.FeedChannelTest do
         DateTime.new!(date, Time.new!(next_hour, 45, 0))
       ]
 
-      insert(:timeslot, match_id: m2.id, slots: slots, picker_id: me.id)
-      insert(:timeslot, match_id: m3.id, slots: slots, selected_slot: s2, picker_id: p3.id)
+      raw_slots = Enum.map(slots, &DateTime.to_iso8601/1)
+
+      Matches.save_slots_offer_for_match(p2.id, m2.id, raw_slots)
+
+      Matches.save_slots_offer_for_match(me.id, m3.id, raw_slots)
+      Matches.accept_slot_for_match(p3.id, m3.id, DateTime.to_iso8601(s2))
 
       # add contact to m1
-      insert(:match_contact,
-        match_id: m1.id,
-        contacts: %{"telegram" => "@abcde"},
-        picker_id: p1.id
+
+      Matches.save_contacts_offer_for_match(
+        me.id,
+        m1.id,
+        _contacts = %{"telegram" => "@abcde"}
       )
 
-      # add contact to m2, but it won't be returned since there is a timeslot as well
-      insert(:match_contact,
-        match_id: m2.id,
-        contacts: %{"whatsapp" => "+79666666666"},
-        picker_id: p2.id
+      Matches.save_contacts_offer_for_match(
+        me.id,
+        m2.id,
+        _contacts = %{"whatsapp" => "+79666666666"}
       )
 
       assert {:ok, %{"matches" => matches}, _socket} =
@@ -72,17 +76,18 @@ defmodule TWeb.FeedChannelTest do
                  "id" => m3.id,
                  "profile" => %{name: "mate-3", story: [], user_id: p3.id, gender: "M"},
                  "timeslot" => %{"selected_slot" => s2},
-                 "audio_only" => false
+                 "audio_only" => false,
+                 "expiration_date" => ~U[2021-10-07 12:16:07Z]
                },
                %{
                  "id" => m2.id,
                  "profile" => %{name: "mate-2", story: [], user_id: p2.id, gender: "N"},
-                 "contact" => %{
-                   "contacts" => %{"whatsapp" => "+79666666666"},
-                   "picker" => p2.id,
-                   "opened_contact_type" => nil
+                 "timeslot" => %{
+                   "picker" => me.id,
+                   "slots" => slots
                  },
-                 "audio_only" => false
+                 "audio_only" => false,
+                 "expiration_date" => ~U[2021-10-07 12:16:06Z]
                },
                %{
                  "id" => m1.id,
@@ -92,7 +97,8 @@ defmodule TWeb.FeedChannelTest do
                    "picker" => p1.id,
                    "opened_contact_type" => nil
                  },
-                 "audio_only" => false
+                 "audio_only" => false,
+                 "expiration_date" => ~U[2021-10-07 12:16:05Z]
                }
              ]
     end
@@ -103,6 +109,9 @@ defmodule TWeb.FeedChannelTest do
       m1 =
         insert(:match, user_id_1: me.id, user_id_2: p1.id, inserted_at: ~N[2021-09-30 12:16:05])
 
+      expiration_date =
+        m1.inserted_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.add(@match_ttl)
+
       assert {:ok, %{"matches" => matches}, socket} =
                join(socket, "feed:" <> me.id, %{"mode" => "normal"})
 
@@ -110,7 +119,8 @@ defmodule TWeb.FeedChannelTest do
                %{
                  "id" => m1.id,
                  "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
-                 "audio_only" => false
+                 "audio_only" => false,
+                 "expiration_date" => expiration_date
                }
              ]
 
@@ -129,7 +139,8 @@ defmodule TWeb.FeedChannelTest do
                %{
                  "id" => m1.id,
                  "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
-                 "audio_only" => false
+                 "audio_only" => false,
+                 "expiration_date" => expiration_date
                }
              ]
     end
@@ -192,6 +203,9 @@ defmodule TWeb.FeedChannelTest do
 
       match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
 
+      expiration_date =
+        match.inserted_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.add(@match_ttl)
+
       # mate calls me
       {:ok, call_id1} = Calls.call(mate.id, me.id)
 
@@ -248,6 +262,7 @@ defmodule TWeb.FeedChannelTest do
                  %{
                    "id" => match.id,
                    "audio_only" => false,
+                   "expiration_date" => expiration_date,
                    "profile" => %{gender: "F", name: "mate", story: [], user_id: mate.id}
                  }
                ],
@@ -277,7 +292,8 @@ defmodule TWeb.FeedChannelTest do
                  %{
                    "id" => match.id,
                    "profile" => %{gender: "F", name: "mate", story: [], user_id: mate.id},
-                   "audio_only" => false
+                   "audio_only" => false,
+                   "expiration_date" => expiration_date
                  }
                ],
                "match_expiration_duration" => @match_ttl
@@ -732,20 +748,23 @@ defmodule TWeb.FeedChannelTest do
       assert_reply(ref, :ok, reply)
       assert reply == %{}
 
-      exp_date = expiration_date()
-
       # now mate likes us
       ref = push(mate_socket, "like", %{"user_id" => me.id})
       assert_reply(ref, :ok, %{"match_id" => match_id})
       assert is_binary(match_id)
 
-      assert_push("matched", push)
+      assert_push "matched", %{"match" => match} = push
+
+      now = DateTime.utc_now()
+      expected_expiration_date = DateTime.add(now, @match_ttl)
+      assert expiration_date = match["expiration_date"]
+      assert abs(DateTime.diff(expiration_date, expected_expiration_date)) <= 1
 
       assert push == %{
                "match" => %{
                  "id" => match_id,
                  "profile" => %{name: "mate", story: [], user_id: mate.id, gender: "M"},
-                 "expiration_date" => exp_date,
+                 "expiration_date" => expiration_date,
                  "audio_only" => false
                }
              }
@@ -1379,7 +1398,8 @@ defmodule TWeb.FeedChannelTest do
                    "picker" => p1.id,
                    "opened_contact_type" => "telegram"
                  },
-                 "audio_only" => false
+                 "audio_only" => false,
+                 "expiration_date" => ~U[2021-10-07 12:16:05Z]
                }
              ]
 
@@ -1397,7 +1417,8 @@ defmodule TWeb.FeedChannelTest do
                    "picker" => p1.id,
                    "opened_contact_type" => nil
                  },
-                 "audio_only" => false
+                 "audio_only" => false,
+                 "expiration_date" => ~U[2021-10-07 12:16:05Z]
                }
              ]
 
@@ -1430,9 +1451,5 @@ defmodule TWeb.FeedChannelTest do
     socket = connected_socket(mate)
     {:ok, _reply, socket} = join(socket, "feed:" <> mate.id, %{"mode" => "normal"})
     {:ok, mate_socket: socket}
-  end
-
-  defp expiration_date() do
-    DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.add(@match_ttl)
   end
 end

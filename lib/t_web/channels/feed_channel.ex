@@ -99,7 +99,7 @@ defmodule TWeb.FeedChannel do
     expired_matches =
       user_id
       |> Matches.list_expired_matches()
-      |> render_expired_matches(screen_width)
+      |> render_matches(screen_width)
 
     since_live_date = Feeds.live_next_real_at(utc_now(socket))
 
@@ -179,7 +179,7 @@ defmodule TWeb.FeedChannel do
     archived_matches =
       user.id
       |> Matches.list_archived_matches()
-      |> render_archived_matches(screen_width)
+      |> render_matches(screen_width)
 
     {:reply, {:ok, %{"archived_matches" => archived_matches}}, socket}
   end
@@ -305,7 +305,7 @@ defmodule TWeb.FeedChannel do
     me = me_id(socket)
 
     {:ok, %Matches.MatchContact{contacts: contacts}} =
-      Matches.save_contact_offer_for_match(me, match_id, contacts)
+      Matches.save_contacts_offer_for_match(me, match_id, contacts)
 
     {:reply, {:ok, %{"contacts" => contacts}}, socket}
   end
@@ -313,7 +313,7 @@ defmodule TWeb.FeedChannel do
   def handle_in("cancel-contact", %{"match_id" => match_id}, socket) do
     me = me_id(socket)
 
-    :ok = Matches.cancel_contact_for_match(me, match_id)
+    :ok = Matches.cancel_contacts_for_match(me, match_id)
 
     {:reply, :ok, socket}
   end
@@ -381,13 +381,25 @@ defmodule TWeb.FeedChannel do
 
   def handle_info({Matches, :matched, match}, socket) do
     %{screen_width: screen_width} = socket.assigns
-    %{id: match_id, mate: mate_id, audio_only: audio_only} = match
+
+    %{
+      id: match_id,
+      expiration_date: expiration_date,
+      mate: mate_id,
+      audio_only: audio_only
+    } = match
 
     if profile = Feeds.get_mate_feed_profile(mate_id) do
-      rendered =
-        render_match(match_id, audio_only, profile, _timeslot = nil, _contact = nil, screen_width)
-
-      push(socket, "matched", %{"match" => rendered})
+      push(socket, "matched", %{
+        "match" =>
+          render_match(%{
+            id: match_id,
+            audio_only: audio_only,
+            profile: profile,
+            screen_width: screen_width,
+            expiration_date: expiration_date
+          })
+      })
     end
 
     {:noreply, socket}
@@ -506,19 +518,8 @@ defmodule TWeb.FeedChannel do
         socket
       ) do
     %{screen_width: screen_width} = socket.assigns
-
-    match =
-      render_match(
-        match_id,
-        _audio_only = nil,
-        feed_profile,
-        _timeslot = nil,
-        _contact = nil,
-        screen_width
-      )
-
+    match = render_match(%{id: match_id, profile: feed_profile, screen_width: screen_width})
     push(socket, "activated_match", %{"match" => match})
-
     {:noreply, socket}
   end
 
@@ -558,56 +559,39 @@ defmodule TWeb.FeedChannel do
   end
 
   defp render_matches(matches, screen_width) do
-    Enum.map(matches, fn match ->
+    Enum.map(matches, fn
       %Matches.Match{
         id: match_id,
         audio_only: audio_only,
         profile: profile,
-        timeslot: timeslot,
-        contact: contact
-      } = match
+        interaction: interaction,
+        expiration_date: expiration_date
+      } ->
+        render_match(%{
+          id: match_id,
+          audio_only: audio_only,
+          profile: profile,
+          interaction: interaction,
+          screen_width: screen_width,
+          expiration_date: expiration_date
+        })
 
-      render_match(match_id, audio_only, profile, timeslot, contact, screen_width)
-    end)
-  end
-
-  defp render_expired_matches(expired_matches, screen_width) do
-    Enum.map(expired_matches, fn expired_match ->
       %Matches.ExpiredMatch{
         match_id: match_id,
         profile: profile
-      } = expired_match
+      } ->
+        render_match(%{id: match_id, profile: profile, screen_width: screen_width})
 
-      render_match(match_id, nil, profile, nil, nil, screen_width)
-    end)
-  end
-
-  defp render_archived_matches(archived_matches, screen_width) do
-    Enum.map(archived_matches, fn archived_match ->
       %Matches.ArchivedMatch{
         match_id: match_id,
         profile: profile
-      } = archived_match
-
-      render_match(match_id, nil, profile, nil, nil, screen_width)
+      } ->
+        render_match(%{id: match_id, profile: profile, screen_width: screen_width})
     end)
   end
 
-  defp render_match(
-         match_id,
-         maybe_audio_only,
-         mate_feed_profile,
-         maybe_timeslot,
-         maybe_contact,
-         screen_width
-       ) do
-    render(MatchView, "match.json",
-      id: match_id,
-      audio_only: maybe_audio_only,
-      timeslot: maybe_timeslot,
-      contact: maybe_contact,
-      profile: mate_feed_profile,
-      screen_width: screen_width
-    )
+  @compile inline: [render_match: 1]
+  defp render_match(assigns) do
+    render(MatchView, "match.json", assigns)
   end
 end

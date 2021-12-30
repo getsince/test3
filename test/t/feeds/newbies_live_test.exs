@@ -1,5 +1,5 @@
 defmodule T.Feeds.NewbiesLiveTest do
-  use T.DataCase, async: true
+  use T.DataCase
   use Oban.Testing, repo: Repo
   alias T.Feeds
 

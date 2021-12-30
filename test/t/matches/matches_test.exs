@@ -157,6 +157,44 @@ defmodule T.MatchesTest do
     end
   end
 
+  describe "match interactions overwrite" do
+    setup do
+      u1 = onboarded_user()
+      u2 = onboarded_user()
+
+      {:ok, %{match: nil}} = Matches.like_user(u1.id, u2.id)
+      {:ok, %{match: %Match{} = match}} = Matches.like_user(u2.id, u1.id)
+
+      {:ok, users: [u1, u2], match: match}
+    end
+
+    test "timeslot offer deletes contacts", %{users: [u1, u2], match: %{id: match_id}} do
+      # this contact will be deleted
+      {:ok, %Matches.MatchContact{match_id: ^match_id}} =
+        Matches.save_contacts_offer_for_match(u1.id, match_id, %{"telegram" => "@ruslandoga"})
+
+      now = ~U[2021-12-30 07:53:12.115371Z]
+      slots = ["2021-12-30T10:00:00Z", "2021-12-30T10:30:00Z"]
+      {:ok, %Matches.Timeslot{}} = Matches.save_slots_offer_for_match(u2.id, match_id, slots, now)
+
+      refute Matches.MatchContact |> where(match_id: ^match_id) |> Repo.exists?()
+    end
+
+    test "contact offer deletes timeslots", %{users: [u1, u2], match: %{id: match_id}} do
+      now = ~U[2021-12-30 07:53:12.115371Z]
+      slots = ["2021-12-30T10:00:00Z", "2021-12-30T10:30:00Z"]
+
+      # this timeslots will be deleted
+      {:ok, %Matches.Timeslot{match_id: ^match_id}} =
+        Matches.save_slots_offer_for_match(u2.id, match_id, slots, now)
+
+      {:ok, %Matches.MatchContact{}} =
+        Matches.save_contacts_offer_for_match(u1.id, match_id, %{"telegram" => "@ruslandoga"})
+
+      refute Matches.Timeslot |> where(match_id: ^match_id) |> Repo.exists?()
+    end
+  end
+
   defp list_likes_for(user_id) do
     Like
     |> where(user_id: ^user_id)

@@ -62,6 +62,7 @@ defmodule TWeb.FeedChannelTest do
         _contacts = %{"telegram" => "@abcde"}
       )
 
+      # contacts overwrite timeslots for second match
       Matches.save_contacts_offer_for_match(
         me.id,
         m2.id,
@@ -82,9 +83,10 @@ defmodule TWeb.FeedChannelTest do
                %{
                  "id" => m2.id,
                  "profile" => %{name: "mate-2", story: [], user_id: p2.id, gender: "N"},
-                 "timeslot" => %{
-                   "picker" => me.id,
-                   "slots" => slots
+                 "contact" => %{
+                   "contacts" => %{"whatsapp" => "+79666666666"},
+                   "opened_contact_type" => nil,
+                   "picker" => p2.id
                  },
                  "audio_only" => false,
                  "expiration_date" => ~U[2021-10-07 12:16:06Z]

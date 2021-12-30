@@ -6,8 +6,6 @@ defmodule TWeb.FeedChannel do
   alias T.{Feeds, Calls, Matches, Accounts}
   alias T.Feeds.FeedFilter
 
-  @match_ttl 604_800
-
   @impl true
   def join("feed:" <> user_id, params, socket) do
     if ChannelHelpers.valid_user_topic?(socket, user_id) do
@@ -106,7 +104,7 @@ defmodule TWeb.FeedChannel do
     reply =
       %{"mode" => "normal"}
       |> Map.put("since_live_date", since_live_date)
-      |> Map.put("match_expiration_duration", @match_ttl)
+      |> Map.put("match_expiration_duration", Matches.match_ttl())
       |> maybe_put("missed_calls", missed_calls)
       |> maybe_put("likes", likes)
       |> maybe_put("matches", matches)
@@ -234,7 +232,7 @@ defmodule TWeb.FeedChannel do
            audio_only: [_our, mate_audio_only],
            event: %{timestamp: timestamp}
          }} ->
-          expiration_date = timestamp |> DateTime.add(@match_ttl)
+          expiration_date = DateTime.add(timestamp, Matches.match_ttl())
 
           {:ok,
            %{
@@ -366,6 +364,18 @@ defmodule TWeb.FeedChannel do
     {:reply, :ok, socket}
   end
 
+  # voicemail
+
+  def handle_in("send-voicemail", %{"match_id" => match_id, "s3_key" => s3_key}, socket) do
+    reply =
+      case Calls.voicemail_save_message(me_id(socket), match_id, s3_key) do
+        {:ok, %Calls.Voicemail{id: message_id}} -> {:ok, %{"id" => message_id}}
+        {:error, reason} -> {:error, %{"reason" => reason}}
+      end
+
+    {:reply, reply, socket}
+  end
+
   @impl true
   def handle_info({Matches, :liked, like}, socket) do
     %{screen_width: screen_width} = socket.assigns
@@ -397,7 +407,8 @@ defmodule TWeb.FeedChannel do
             audio_only: audio_only,
             profile: profile,
             screen_width: screen_width,
-            expiration_date: expiration_date
+            expiration_date: expiration_date,
+            exchanged_voice: false
           })
       })
     end
@@ -565,7 +576,8 @@ defmodule TWeb.FeedChannel do
         audio_only: audio_only,
         profile: profile,
         interaction: interaction,
-        expiration_date: expiration_date
+        expiration_date: expiration_date,
+        exchanged_voicemail: exchanged_voice
       } ->
         render_match(%{
           id: match_id,
@@ -573,7 +585,8 @@ defmodule TWeb.FeedChannel do
           profile: profile,
           interaction: interaction,
           screen_width: screen_width,
-          expiration_date: expiration_date
+          expiration_date: expiration_date,
+          exchanged_voice: exchanged_voice
         })
 
       %Matches.ExpiredMatch{

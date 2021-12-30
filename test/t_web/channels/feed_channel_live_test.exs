@@ -36,11 +36,13 @@ defmodule TWeb.FeedChanneLiveTest do
       assert matches == [
                %{
                  "id" => m2.id,
-                 "profile" => %{name: "mate-2", story: [], user_id: p2.id, gender: "N"}
+                 "profile" => %{name: "mate-2", story: [], user_id: p2.id, gender: "N"},
+                 "exchanged_voice" => false
                },
                %{
                  "id" => m1.id,
-                 "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"}
+                 "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
+                 "exchanged_voice" => false
                }
              ]
     end
@@ -87,7 +89,8 @@ defmodule TWeb.FeedChanneLiveTest do
       assert matches == [
                %{
                  "id" => m1.id,
-                 "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"}
+                 "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
+                 "exchanged_voice" => false
                }
              ]
 
@@ -99,7 +102,8 @@ defmodule TWeb.FeedChanneLiveTest do
       assert matches == [
                %{
                  "id" => m1.id,
-                 "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"}
+                 "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
+                 "exchanged_voice" => false
                }
              ]
     end

@@ -2,9 +2,12 @@ defmodule TWeb.MatchView do
   use TWeb, :view
   alias TWeb.FeedView
   alias T.Matches.{Timeslot, MatchContact}
+  alias T.Calls
+  alias T.Calls.Voicemail
 
   def render("match.json", %{id: id} = assigns) do
     %{"id" => id, "profile" => render(FeedView, "feed_profile.json", assigns)}
+    |> maybe_put("exchanged_voice", assigns[:exchanged_voice])
     |> maybe_put("audio_only", assigns[:audio_only])
     |> maybe_put("expiration_date", assigns[:expiration_date])
     |> maybe_put_interaction(assigns[:interaction])
@@ -16,6 +19,10 @@ defmodule TWeb.MatchView do
 
   defp maybe_put_interaction(match, %MatchContact{} = contact) do
     Map.put(match, "contact", render_contact(contact))
+  end
+
+  defp maybe_put_interaction(match, [%Voicemail{} | _rest] = voicemail) do
+    Map.put(match, "voicemail", render_voicemail(voicemail))
   end
 
   defp maybe_put_interaction(match, nil) do
@@ -41,6 +48,17 @@ defmodule TWeb.MatchView do
       "picker" => picker,
       "opened_contact_type" => opened_contact_type
     }
+  end
+
+  defp render_voicemail(voicemail) do
+    Enum.map(voicemail, fn %Voicemail{id: id, inserted_at: inserted_at, s3_key: s3_key} ->
+      %{
+        id: id,
+        inserted_at: DateTime.from_naive!(inserted_at, "Etc/UTC"),
+        s3_key: s3_key,
+        url: Calls.voicemail_url(s3_key)
+      }
+    end)
   end
 
   defp maybe_put(map, _k, nil), do: map

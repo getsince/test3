@@ -3,7 +3,7 @@ defmodule T.Factory do
   alias T.Accounts.{User, Profile, GenderPreference, UserSettings, APNSDevice, UserToken}
   alias T.Feeds.{SeenProfile, LiveSession, LiveInvite}
   alias T.Matches.{Match, Timeslot, ExpiredMatch, MatchEvent, MatchContact}
-  alias T.Calls.Call
+  alias T.Calls.{Call, Voicemail}
 
   def user_factory do
     %User{apple_id: apple_id(), settings: build(:user_settings)}
@@ -39,6 +39,10 @@ defmodule T.Factory do
       caller: build(:user),
       called: build(:user)
     }
+  end
+
+  def voicemail_factory do
+    %Voicemail{}
   end
 
   def expired_match_factory do

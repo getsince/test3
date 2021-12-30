@@ -668,6 +668,7 @@ defmodule T.Matches do
     conflict_opts = [on_conflict: :replace_all, conflict_target: [:match_id]]
 
     Multi.new()
+    |> Multi.delete_all(:contacts, where(MatchContact, match_id: ^match_id))
     |> Multi.insert(:timeslot, changeset, conflict_opts)
     |> Multi.insert(:match_event, %MatchEvent{
       timestamp: DateTime.truncate(DateTime.utc_now(), :second),
@@ -874,6 +875,7 @@ defmodule T.Matches do
     conflict_opts = [on_conflict: :replace_all, conflict_target: [:match_id]]
 
     Multi.new()
+    |> Multi.delete_all(:timeslots, where(Timeslot, match_id: ^match_id))
     |> Multi.insert(:match_contact, changeset, conflict_opts)
     |> Multi.insert(:match_event, %MatchEvent{
       timestamp: DateTime.truncate(DateTime.utc_now(), :second),
@@ -886,7 +888,6 @@ defmodule T.Matches do
       {:ok, %{match_contact: %MatchContact{} = match_contact}} ->
         maybe_unarchive_match(match_id)
         broadcast_for_user(mate, {__MODULE__, [:contact, :offered], match_contact})
-
         {:ok, match_contact}
 
       {:error, :match_contact, %Ecto.Changeset{} = changeset, _changes} ->

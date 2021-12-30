@@ -6,9 +6,9 @@ defmodule T.Calls do
   require Logger
 
   alias T.{Repo, Twilio, Accounts, Feeds, Matches}
-  alias T.Calls.Call
+  alias T.Calls.{Call, Voicemail}
   alias T.Feeds.{FeedProfile}
-  alias T.Matches.{Match, MatchEvent}
+  alias T.Matches.{Match, MatchEvent, MatchContact, Timeslot}
   alias T.PushNotifications.APNS
   alias T.Bot
 
@@ -291,5 +291,76 @@ defmodule T.Calls do
     |> join(:inner, [c], p in FeedProfile, on: c.caller_id == p.user_id)
     |> select([c, p], {c, p})
     |> Repo.all()
+  end
+
+  alias T.Media
+
+  def voicemail_s3_url do
+    Media.user_s3_url()
+  end
+
+  def voicemail_url(s3_key) do
+    Media.user_presigned_url(s3_key)
+  end
+
+  def voicemail_upload_form(content_type) do
+    Media.sign_form_upload(
+      key: Ecto.UUID.generate(),
+      content_type: content_type,
+      # 50 MB
+      max_file_size: 50_000_000,
+      expires_in: :timer.hours(1),
+      acl: "private"
+    )
+  end
+
+  @spec voicemail_save_message(uuid, uuid, uuid) ::
+          {:ok, %Voicemail{}} | {:error, reason :: String.t()}
+  def voicemail_save_message(caller_id, match_id, s3_key) do
+    with :ok <- ensure_voicemail_allowed(caller_id, match_id) do
+      voicemail = %Voicemail{caller_id: caller_id, match_id: match_id, s3_key: s3_key}
+
+      {:ok, %{voicemail: voicemail}} =
+        Multi.new()
+        |> Multi.delete_all(:contacts, where(MatchContact, match_id: ^match_id))
+        |> Multi.delete_all(:timeslots, where(Timeslot, match_id: ^match_id))
+        |> Multi.insert(:voicemail, voicemail)
+        |> Repo.transaction()
+
+      {:ok, voicemail}
+    end
+  end
+
+  @spec voicemail_delete_all(uuid) :: :ok
+  def voicemail_delete_all(match_id) do
+    {_count, s3_keys} =
+      Voicemail
+      |> where(match_id: ^match_id)
+      |> select([v], v.s3_key)
+      |> Repo.delete_all()
+
+    bucket = Media.user_bucket()
+
+    s3_keys
+    |> Enum.map(fn s3_key -> Media.S3DeleteJob.new(%{"bucket" => bucket, "s3_key" => s3_key}) end)
+    |> Oban.insert_all()
+
+    :ok
+  end
+
+  defp in_match?(user_id, match_id) do
+    Match
+    |> where(id: ^match_id)
+    |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
+    |> Repo.exists?()
+  end
+
+  @spec ensure_voicemail_allowed(uuid, uuid) :: :ok | {:error, reason :: String.t()}
+  defp ensure_voicemail_allowed(caller_id, match_id) do
+    cond do
+      in_match?(caller_id, match_id) -> :ok
+      # in_live_mode?(caller_id, called_id) -> :ok
+      true -> {:error, "voicemail not allowed"}
+    end
   end
 end

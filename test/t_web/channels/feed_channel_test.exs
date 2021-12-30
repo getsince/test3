@@ -8,8 +8,6 @@ defmodule TWeb.FeedChannelTest do
   import Mox
   setup :verify_on_exit!
 
-  @match_ttl 604_800
-
   setup do
     me = onboarded_user(location: moscow_location(), accept_genders: ["F", "N", "M"])
     {:ok, me: me, socket: connected_socket(me)}
@@ -21,16 +19,20 @@ defmodule TWeb.FeedChannelTest do
     end
 
     test "with matches", %{socket: socket, me: me} do
-      [p1, p2, p3] = [
+      [p1, p2, p3, p4, p5] = [
         onboarded_user(story: [], name: "mate-1", location: apple_location(), gender: "F"),
         onboarded_user(story: [], name: "mate-2", location: apple_location(), gender: "N"),
-        onboarded_user(story: [], name: "mate-3", location: apple_location(), gender: "M")
+        onboarded_user(story: [], name: "mate-3", location: apple_location(), gender: "M"),
+        onboarded_user(story: [], name: "mate-4", location: apple_location(), gender: "F"),
+        onboarded_user(story: [], name: "mate-5", location: apple_location(), gender: "F")
       ]
 
-      [m1, m2, m3] = [
+      [m1, m2, m3, m4, m5] = [
         insert(:match, user_id_1: me.id, user_id_2: p1.id, inserted_at: ~N[2021-09-30 12:16:05]),
         insert(:match, user_id_1: me.id, user_id_2: p2.id, inserted_at: ~N[2021-09-30 12:16:06]),
-        insert(:match, user_id_1: me.id, user_id_2: p3.id, inserted_at: ~N[2021-09-30 12:16:07])
+        insert(:match, user_id_1: me.id, user_id_2: p3.id, inserted_at: ~N[2021-09-30 12:16:07]),
+        insert(:match, user_id_1: me.id, user_id_2: p4.id, inserted_at: ~N[2021-09-30 12:16:08]),
+        insert(:match, user_id_1: me.id, user_id_2: p5.id, inserted_at: ~N[2021-09-30 12:16:09])
       ]
 
       # if it's 14:47 right now ...
@@ -49,30 +51,73 @@ defmodule TWeb.FeedChannelTest do
 
       raw_slots = Enum.map(slots, &DateTime.to_iso8601/1)
 
-      Matches.save_slots_offer_for_match(p2.id, m2.id, raw_slots)
-
-      Matches.save_slots_offer_for_match(me.id, m3.id, raw_slots)
-      Matches.accept_slot_for_match(p3.id, m3.id, DateTime.to_iso8601(s2))
-
-      # add contact to m1
-
+      # first match is in contacts exchange interaction mode
       Matches.save_contacts_offer_for_match(
         me.id,
         m1.id,
         _contacts = %{"telegram" => "@abcde"}
       )
 
-      # contacts overwrite timeslots for second match
+      # second match starts off as timeslots exchange
+      Matches.save_slots_offer_for_match(p2.id, m2.id, raw_slots)
+      # but turns into contacs exchange as well
       Matches.save_contacts_offer_for_match(
         me.id,
         m2.id,
         _contacts = %{"whatsapp" => "+79666666666"}
       )
 
+      # third match is in timeslots exchange interaction mode
+      Matches.save_slots_offer_for_match(me.id, m3.id, raw_slots)
+      Matches.accept_slot_for_match(p3.id, m3.id, DateTime.to_iso8601(s2))
+
+      # fourth match doesn't have any interaction
+      # ¯\_ (ツ)_/¯
+
+      # fifth match has some voicemail
+      audios = %{
+        # from me
+        me.id => ["0b1124d1-9064-4077-9094-48ade2a90267", "2ba1da54-d873-4ab7-a66b-8359e073dbc0"],
+        # from mate
+        p5.id => ["23f442c7-e610-4aa9-ad4c-7795bb568c4e"]
+      }
+
+      for {caller_id, s3_keys} <- audios do
+        for s3_key <- s3_keys do
+          Calls.voicemail_save_message(caller_id, m5.id, s3_key)
+        end
+      end
+
       assert {:ok, %{"matches" => matches}, _socket} =
                join(socket, "feed:" <> me.id, %{"mode" => "normal"})
 
+      %{"voicemail" => voicemail_m5} = Enum.at(matches, 0)
+
+      assert [
+               %{
+                 id: _id,
+                 inserted_at: _inserted_at,
+                 s3_key: "23f442c7-e610-4aa9-ad4c-7795bb568c4e",
+                 url: _url
+               }
+             ] = voicemail_m5
+
       assert matches == [
+               %{
+                 "id" => m5.id,
+                 "profile" => %{name: "mate-5", story: [], user_id: p5.id, gender: "F"},
+                 "audio_only" => false,
+                 "voicemail" => voicemail_m5,
+                 "expiration_date" => ~U[2021-10-07 12:16:09Z]
+               },
+               #  TODO match with one-side voicemail, expiration should still be two days
+               %{
+                 "id" => m4.id,
+                 "profile" => %{name: "mate-4", story: [], user_id: p4.id, gender: "F"},
+                 "audio_only" => false,
+                 #  TODO should be two days
+                 "expiration_date" => ~U[2021-10-07 12:16:08Z]
+               },
                %{
                  "id" => m3.id,
                  "profile" => %{name: "mate-3", story: [], user_id: p3.id, gender: "M"},
@@ -112,7 +157,7 @@ defmodule TWeb.FeedChannelTest do
         insert(:match, user_id_1: me.id, user_id_2: p1.id, inserted_at: ~N[2021-09-30 12:16:05])
 
       expiration_date =
-        m1.inserted_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.add(@match_ttl)
+        m1.inserted_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.add(Matches.match_ttl())
 
       assert {:ok, %{"matches" => matches}, socket} =
                join(socket, "feed:" <> me.id, %{"mode" => "normal"})
@@ -167,7 +212,7 @@ defmodule TWeb.FeedChannelTest do
                    }
                  }
                ],
-               "match_expiration_duration" => @match_ttl
+               "match_expiration_duration" => Matches.match_ttl()
              }
     end
 
@@ -206,7 +251,7 @@ defmodule TWeb.FeedChannelTest do
       match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
 
       expiration_date =
-        match.inserted_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.add(@match_ttl)
+        match.inserted_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.add(Matches.match_ttl())
 
       # mate calls me
       {:ok, call_id1} = Calls.call(mate.id, me.id)
@@ -268,7 +313,7 @@ defmodule TWeb.FeedChannelTest do
                    "profile" => %{gender: "F", name: "mate", story: [], user_id: mate.id}
                  }
                ],
-               "match_expiration_duration" => @match_ttl
+               "match_expiration_duration" => Matches.match_ttl()
              }
 
       # now with missed_calls_cursor
@@ -298,7 +343,7 @@ defmodule TWeb.FeedChannelTest do
                    "expiration_date" => expiration_date
                  }
                ],
-               "match_expiration_duration" => @match_ttl
+               "match_expiration_duration" => Matches.match_ttl()
              }
     end
   end
@@ -758,7 +803,7 @@ defmodule TWeb.FeedChannelTest do
       assert_push "matched", %{"match" => match} = push
 
       now = DateTime.utc_now()
-      expected_expiration_date = DateTime.add(now, @match_ttl)
+      expected_expiration_date = DateTime.add(now, Matches.match_ttl())
       assert expiration_date = match["expiration_date"]
       assert abs(DateTime.diff(expiration_date, expected_expiration_date)) <= 1
 
@@ -1439,6 +1484,45 @@ defmodule TWeb.FeedChannelTest do
                  "audio_only" => false
                }
              ]
+    end
+  end
+
+  describe "send-voicemail" do
+    setup :joined
+
+    test "failure: when match doesn't exist", %{socket: socket} do
+      match_id = Ecto.UUID.generate()
+      s3_key = Ecto.UUID.generate()
+
+      ref = push(socket, "send-voicemail", %{"match_id" => match_id, "s3_key" => s3_key})
+      assert_reply ref, :error, error
+      assert error == %{"reason" => "voicemail not allowed"}
+    end
+
+    test "failure: when me is not part of the match", %{socket: socket} do
+      u1 = onboarded_user()
+      u2 = onboarded_user()
+      %{id: match_id} = insert(:match, user_id_1: u1.id, user_id_2: u2.id)
+      s3_key = Ecto.UUID.generate()
+
+      ref = push(socket, "send-voicemail", %{"match_id" => match_id, "s3_key" => s3_key})
+      assert_reply ref, :error, error
+      assert error == %{"reason" => "voicemail not allowed"}
+    end
+
+    # TODO test channel side effects (broadcasts) here as well?
+    test "success: when users are matched, voicemail is saved", ctx do
+      %{socket: socket, me: %{id: me_id}} = ctx
+      %{id: mate_id} = onboarded_user()
+      %{id: match_id} = insert(:match, user_id_1: me_id, user_id_2: mate_id)
+      s3_key = Ecto.UUID.generate()
+
+      ref = push(socket, "send-voicemail", %{"match_id" => match_id, "s3_key" => s3_key})
+      assert_reply ref, :ok, reply
+      assert %{"id" => voicemail_id} = reply
+
+      assert %Calls.Voicemail{caller_id: ^me_id, match_id: ^match_id, s3_key: ^s3_key} =
+               Repo.get(Calls.Voicemail, voicemail_id)
     end
   end
 

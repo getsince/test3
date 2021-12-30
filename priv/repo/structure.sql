@@ -219,6 +219,19 @@ CREATE TABLE public.match_timeslot (
 
 
 --
+-- Name: match_voicemail; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.match_voicemail (
+    id uuid NOT NULL,
+    caller_id uuid NOT NULL,
+    match_id uuid NOT NULL,
+    s3_key character varying(255),
+    inserted_at timestamp(0) without time zone NOT NULL
+);
+
+
+--
 -- Name: matches; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -476,6 +489,14 @@ ALTER TABLE ONLY public.match_contact
 
 ALTER TABLE ONLY public.match_timeslot
     ADD CONSTRAINT match_timeslot_pkey PRIMARY KEY (match_id);
+
+
+--
+-- Name: match_voicemail match_voicemail_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.match_voicemail
+    ADD CONSTRAINT match_voicemail_pkey PRIMARY KEY (id);
 
 
 --
@@ -902,6 +923,22 @@ ALTER TABLE ONLY public.match_timeslot
 
 
 --
+-- Name: match_voicemail match_voicemail_caller_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.match_voicemail
+    ADD CONSTRAINT match_voicemail_caller_id_fkey FOREIGN KEY (caller_id) REFERENCES public.profiles(user_id) ON DELETE CASCADE;
+
+
+--
+-- Name: match_voicemail match_voicemail_match_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.match_voicemail
+    ADD CONSTRAINT match_voicemail_match_id_fkey FOREIGN KEY (match_id) REFERENCES public.matches(id) ON DELETE CASCADE;
+
+
+--
 -- Name: matches matches_user_id_1_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1025,3 +1062,5 @@ INSERT INTO public."schema_migrations" (version) VALUES (20211221114359);
 INSERT INTO public."schema_migrations" (version) VALUES (20211221152318);
 INSERT INTO public."schema_migrations" (version) VALUES (20211221161830);
 INSERT INTO public."schema_migrations" (version) VALUES (20211222133341);
+INSERT INTO public."schema_migrations" (version) VALUES (20211225072543);
+INSERT INTO public."schema_migrations" (version) VALUES (20211229125434);

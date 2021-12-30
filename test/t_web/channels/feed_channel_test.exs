@@ -8,8 +8,6 @@ defmodule TWeb.FeedChannelTest do
   import Mox
   setup :verify_on_exit!
 
-  @match_ttl 604_800
-
   setup do
     me = onboarded_user(location: moscow_location(), accept_genders: ["F", "N", "M"])
     {:ok, me: me, socket: connected_socket(me)}
@@ -112,7 +110,7 @@ defmodule TWeb.FeedChannelTest do
         insert(:match, user_id_1: me.id, user_id_2: p1.id, inserted_at: ~N[2021-09-30 12:16:05])
 
       expiration_date =
-        m1.inserted_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.add(@match_ttl)
+        m1.inserted_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.add(Matches.match_ttl())
 
       assert {:ok, %{"matches" => matches}, socket} =
                join(socket, "feed:" <> me.id, %{"mode" => "normal"})
@@ -167,7 +165,7 @@ defmodule TWeb.FeedChannelTest do
                    }
                  }
                ],
-               "match_expiration_duration" => @match_ttl
+               "match_expiration_duration" => Matches.match_ttl()
              }
     end
 
@@ -206,7 +204,7 @@ defmodule TWeb.FeedChannelTest do
       match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
 
       expiration_date =
-        match.inserted_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.add(@match_ttl)
+        match.inserted_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.add(Matches.match_ttl())
 
       # mate calls me
       {:ok, call_id1} = Calls.call(mate.id, me.id)
@@ -268,7 +266,7 @@ defmodule TWeb.FeedChannelTest do
                    "profile" => %{gender: "F", name: "mate", story: [], user_id: mate.id}
                  }
                ],
-               "match_expiration_duration" => @match_ttl
+               "match_expiration_duration" => Matches.match_ttl()
              }
 
       # now with missed_calls_cursor
@@ -298,7 +296,7 @@ defmodule TWeb.FeedChannelTest do
                    "expiration_date" => expiration_date
                  }
                ],
-               "match_expiration_duration" => @match_ttl
+               "match_expiration_duration" => Matches.match_ttl()
              }
     end
   end
@@ -758,7 +756,7 @@ defmodule TWeb.FeedChannelTest do
       assert_push "matched", %{"match" => match} = push
 
       now = DateTime.utc_now()
-      expected_expiration_date = DateTime.add(now, @match_ttl)
+      expected_expiration_date = DateTime.add(now, Matches.match_ttl())
       assert expiration_date = match["expiration_date"]
       assert abs(DateTime.diff(expiration_date, expected_expiration_date)) <= 1
 

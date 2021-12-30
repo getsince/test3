@@ -10,6 +10,7 @@ defmodule T.Matches do
   alias T.Matches.{Match, Like, Timeslot, MatchEvent, ExpiredMatch, MatchContact, ArchivedMatch}
   alias T.Feeds.{FeedProfile, LiveSession}
   alias T.Accounts.{Profile, UserSettings}
+  alias T.Calls.Voicemail
   alias T.PushNotifications.DispatchJob
   alias T.Bot
 
@@ -20,7 +21,10 @@ defmodule T.Matches do
   @pubsub T.PubSub
   @topic "__m"
 
-  @match_ttl 604_800
+  @seven_days 7 * 24 * 60 * 60
+
+  @doc "Time-to-live for a match without life-prolonging events like calls, meetings, voice-messages"
+  def match_ttl, do: @seven_days
 
   defp pubsub_user_topic(user_id) when is_binary(user_id) do
     @topic <> ":u:" <> String.downcase(user_id)
@@ -318,11 +322,14 @@ defmodule T.Matches do
     |> where([match: m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
     |> where([match: m], m.id not in subquery(archived_match_ids_q(user_id)))
     |> order_by(desc: :inserted_at)
-    |> join(:left, [match: m], t in Timeslot, as: :t, on: m.id == t.match_id)
-    |> join(:left, [match: m], c in MatchContact, as: :c, on: m.id == c.match_id)
-    |> select([match: m, undying_event: e, t: t, c: c], {m, t, c, e.timestamp})
+    |> join(:left, [m], t in assoc(m, :timeslot), as: :t)
+    |> join(:left, [m], c in assoc(m, :contact), as: :c)
+    |> join(:left, [m], v in assoc(m, :voicemail), as: :v, on: v.caller_id != ^user_id)
+    # TODO aggregate voicemail
+    |> preload([t: t, c: c, v: v], timeslot: t, contact: c, voicemail: v)
+    |> select([match: m, undying_event: e], {m, e.timestamp})
     |> Repo.all()
-    |> Enum.map(fn {match, timeslot, contact, undying_event_timestamp} ->
+    |> Enum.map(fn {match, undying_event_timestamp} ->
       expiration_date =
         unless undying_event_timestamp do
           expiration_date(match)
@@ -330,19 +337,27 @@ defmodule T.Matches do
 
       %Match{
         match
-        | timeslot: timeslot,
-          contact: contact,
-          expiration_date: expiration_date,
-          interaction: timeslot || contact
+        | expiration_date: expiration_date,
+          interaction: interaction(match)
       }
     end)
     |> preload_match_profiles(user_id)
   end
 
+  defp interaction(%Match{timeslot: %Timeslot{} = timeslot}), do: timeslot
+  defp interaction(%Match{contact: %MatchContact{} = contact}), do: contact
+
+  # TODO order voicemail in db
+  defp interaction(%Match{voicemail: [%Voicemail{} | _rest] = voicemail}) do
+    Enum.sort_by(voicemail, & &1.id)
+  end
+
+  defp interaction(%Match{}), do: nil
+
   defp expiration_date(%Match{inserted_at: inserted_at}) do
     inserted_at
     |> DateTime.from_naive!("Etc/UTC")
-    |> DateTime.add(@match_ttl)
+    |> DateTime.add(match_ttl())
   end
 
   defp archived_match_ids_q(user_id) do
@@ -396,6 +411,7 @@ defmodule T.Matches do
     Logger.warn("#{by_user_id} unmatches match-id=#{match_id}")
 
     Multi.new()
+    |> delete_voicemail(match_id)
     |> Multi.run(:unmatch, fn _repo, _changes ->
       Match
       |> where(id: ^match_id)
@@ -426,14 +442,24 @@ defmodule T.Matches do
     [user_id_1, user_id_2] = Enum.sort([by_user_id, mate])
 
     Multi.run(multi, :unmatch, fn _repo, _changes ->
-      Match
-      |> where(user_id_1: ^user_id_1)
-      |> where(user_id_2: ^user_id_2)
-      |> select([m], m.id)
-      |> Repo.delete_all()
-      |> case do
-        {1, [match_id]} -> {:ok, fn -> notify_unmatch(by_user_id, mate, match_id) end}
-        {0, _} -> {:ok, nil}
+      match_id =
+        Match
+        |> where(user_id_1: ^user_id_1)
+        |> where(user_id_2: ^user_id_2)
+        |> select([m], m.id)
+        |> Repo.one()
+
+      if match_id do
+        :ok = T.Calls.voicemail_delete_all(match_id)
+
+        {1, _} =
+          Match
+          |> where(id: ^match_id)
+          |> Repo.delete_all()
+
+        {:ok, fn -> notify_unmatch(by_user_id, mate, match_id) end}
+      else
+        {:ok, nil}
       end
     end)
   end
@@ -453,14 +479,24 @@ defmodule T.Matches do
 
     Multi.new()
     |> Multi.run(:unmatch, fn _repo, _changes ->
-      Match
-      |> where(user_id_1: ^uid1)
-      |> where(user_id_2: ^uid2)
-      |> select([m], %{id: m.id, users: [m.user_id_1, m.user_id_2]})
-      |> Repo.delete_all()
-      |> case do
-        {1, [match]} -> {:ok, match}
-        {0, _} -> {:error, :match_not_found}
+      match_id =
+        Match
+        |> where(user_id_1: ^uid1)
+        |> where(user_id_2: ^uid2)
+        |> select([m], m.id)
+        |> Repo.one()
+
+      if match_id do
+        :ok = T.Calls.voicemail_delete_all(match_id)
+
+        {1, _} =
+          Match
+          |> where(id: ^match_id)
+          |> Repo.delete_all()
+
+        {:ok, %{id: match_id, users: [uid1, uid2]}}
+      else
+        {:error, :match_not_found}
       end
     end)
     |> delete_likes()
@@ -496,6 +532,7 @@ defmodule T.Matches do
     Bot.async_post_message(m)
 
     Multi.new()
+    |> delete_voicemail(match_id)
     |> Multi.run(:unmatch, fn _repo, _changes ->
       Match
       |> where(user_id_1: ^user_id_1)
@@ -592,6 +629,16 @@ defmodule T.Matches do
     end)
   end
 
+  # note this needs to run before match delete
+  # otherwise DB records would be CASCADE deleted already
+  # and we wouldn't know s3_keys to delete
+  defp delete_voicemail(multi, match_id) do
+    Multi.run(multi, :voicemail, fn _repo, _changes ->
+      :ok = T.Calls.voicemail_delete_all(match_id)
+      {:ok, nil}
+    end)
+  end
+
   defp insert_expired_match(multi) do
     Multi.insert_all(multi, :insert_expired_match, ExpiredMatch, fn %{unmatch: unmatch} ->
       %{id: match_id, users: [user_id_1, user_id_2]} = unmatch
@@ -669,6 +716,7 @@ defmodule T.Matches do
 
     Multi.new()
     |> Multi.delete_all(:contacts, where(MatchContact, match_id: ^match_id))
+    |> delete_voicemail(match_id)
     |> Multi.insert(:timeslot, changeset, conflict_opts)
     |> Multi.insert(:match_event, %MatchEvent{
       timestamp: DateTime.truncate(DateTime.utc_now(), :second),
@@ -876,6 +924,7 @@ defmodule T.Matches do
 
     Multi.new()
     |> Multi.delete_all(:timeslots, where(Timeslot, match_id: ^match_id))
+    |> delete_voicemail(match_id)
     |> Multi.insert(:match_contact, changeset, conflict_opts)
     |> Multi.insert(:match_event, %MatchEvent{
       timestamp: DateTime.truncate(DateTime.utc_now(), :second),
@@ -1086,7 +1135,7 @@ defmodule T.Matches do
   end
 
   def match_expired_check(reference \\ DateTime.utc_now()) do
-    expiration_date = DateTime.add(reference, -@match_ttl)
+    expiration_date = DateTime.add(reference, -match_ttl())
 
     expiring_matches_q()
     |> where([m, c], m.inserted_at < ^expiration_date)
@@ -1098,7 +1147,7 @@ defmodule T.Matches do
   end
 
   def match_soon_to_expire_check(reference \\ DateTime.utc_now()) do
-    day_before_expiration = reference |> DateTime.add(-@match_ttl) |> DateTime.add(24 * 3600)
+    day_before_expiration = reference |> DateTime.add(-match_ttl()) |> DateTime.add(24 * 3600)
     almost_day_before_expiration = DateTime.add(day_before_expiration, -60)
 
     expiring_matches_q()

@@ -9,8 +9,11 @@ defmodule T.Matches.Match do
     field :user_id_2, Ecto.Bigflake.UUID
     # TODO
     field :profile, :map, virtual: true
-    field :timeslot, :map, virtual: true
-    field :contact, :map, virtual: true
+
+    has_one :timeslot, T.Matches.Timeslot
+    has_one :contact, T.Matches.MatchContact
+    has_many :voicemail, T.Calls.Voicemail
+
     field :expiration_date, :utc_datetime, virtual: true
     field :interaction, :map, virtual: true
     field :audio_only, :boolean, virtual: true

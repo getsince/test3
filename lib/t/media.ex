@@ -24,20 +24,20 @@ defmodule T.Media do
     Application.fetch_env!(:t, __MODULE__)[name]
   end
 
-  # TODO presigned urls are not used right now
-  # probably we should start using them at some point
-  # def user_presigned_url(method \\ :get, key) do
-  #   presigned_url(method, user_bucket(), key)
-  # end
+  # TODO use presigned urls for photos as well
+  @doc "Returns a pre-signed URL for an object"
+  def user_presigned_url(method \\ :get, key) do
+    presigned_url(method, user_bucket(), key)
+  end
 
   # def static_presigned_url(method \\ :get, key) do
   #   presigned_url(method, static_bucket(), key)
   # end
 
-  # defp presigned_url(method, bucket, key) do
-  #   {:ok, url} = ExAws.S3.presigned_url(ExAws.Config.new(:s3), method, bucket, key)
-  #   url
-  # end
+  defp presigned_url(method, bucket, key) do
+    {:ok, url} = ExAws.S3.presigned_url(ExAws.Config.new(:s3), method, bucket, key)
+    url
+  end
 
   @doc """
   Builds a URL to an image on S3 that gets resized by imgproxy and cached by a CDN.
@@ -122,6 +122,7 @@ defmodule T.Media do
     * `:content_type` - The required MIME type of the file to be uploaded.
     * `:expires_in` - The required expiration time in milliseconds from now
       before the signed upload expires.
+    * `:acl` - ACL to apply to the object, defaults to `"private"`.
 
   ## Examples
 
@@ -145,6 +146,7 @@ defmodule T.Media do
     max_file_size = Keyword.fetch!(opts, :max_file_size)
     content_type = Keyword.fetch!(opts, :content_type)
     expires_in = Keyword.fetch!(opts, :expires_in)
+    acl = opts[:acl] || "private"
 
     expires_at = DateTime.add(DateTime.utc_now(), expires_in, :millisecond)
     amz_date = amz_date(expires_at)
@@ -157,7 +159,7 @@ defmodule T.Media do
         "conditions": [
           {"bucket": "#{bucket}"},
           ["eq", "$key", "#{key}"],
-          {"acl": "public-read"},
+          {"acl": "#{acl}"},
           ["eq", "$Content-Type", "#{content_type}"],
           ["content-length-range", 0, #{max_file_size}],
           {"x-amz-server-side-encryption": "AES256"},
@@ -170,7 +172,7 @@ defmodule T.Media do
 
     fields = %{
       "key" => key,
-      "acl" => "public-read",
+      "acl" => acl,
       "content-type" => content_type,
       "x-amz-server-side-encryption" => "AES256",
       "x-amz-credential" => credential,

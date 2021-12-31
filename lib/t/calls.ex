@@ -8,9 +8,24 @@ defmodule T.Calls do
   alias T.{Repo, Twilio, Accounts, Feeds, Matches}
   alias T.Calls.{Call, Voicemail}
   alias T.Feeds.{FeedProfile}
-  alias T.Matches.{Match, MatchEvent, MatchContact, Timeslot}
-  alias T.PushNotifications.APNS
+  alias T.Matches.{Match, MatchEvent, MatchContact, Timeslot, ArchivedMatch}
+  alias T.PushNotifications.{APNS, DispatchJob}
   alias T.Bot
+
+  @pubsub T.PubSub
+  @topic "__c"
+
+  defp pubsub_user_topic(user_id) when is_binary(user_id) do
+    @topic <> ":u:" <> String.downcase(user_id)
+  end
+
+  def subscribe_for_user(user_id) do
+    Phoenix.PubSub.subscribe(@pubsub, pubsub_user_topic(user_id))
+  end
+
+  defp broadcast_for_user(user_id, message) do
+    Phoenix.PubSub.broadcast(@pubsub, pubsub_user_topic(user_id), message)
+  end
 
   @type uuid :: Ecto.Bigflake.UUID.t()
 
@@ -317,15 +332,38 @@ defmodule T.Calls do
   @spec voicemail_save_message(uuid, uuid, uuid) ::
           {:ok, %Voicemail{}} | {:error, reason :: String.t()}
   def voicemail_save_message(caller_id, match_id, s3_key) do
-    with :ok <- ensure_voicemail_allowed(caller_id, match_id) do
+    with {:ok, mate} <- ensure_voicemail_allowed(caller_id, match_id) do
       voicemail = %Voicemail{caller_id: caller_id, match_id: match_id, s3_key: s3_key}
+
+      push_job =
+        DispatchJob.new(%{
+          "type" => "voicemail_sent",
+          "match_id" => match_id,
+          "caller_id" => caller_id,
+          "receiver_id" => mate
+        })
 
       {:ok, %{voicemail: voicemail}} =
         Multi.new()
         |> Multi.delete_all(:contacts, where(MatchContact, match_id: ^match_id))
         |> Multi.delete_all(:timeslots, where(Timeslot, match_id: ^match_id))
         |> Multi.insert(:voicemail, voicemail)
+        |> Oban.insert(:push, push_job)
         |> Repo.transaction()
+
+      m =
+        "voicemail from #{fetch_name(caller_id)} (#{caller_id}) to #{fetch_name(mate)} (#{mate})"
+
+      Logger.warn(m)
+      Bot.async_post_message(m)
+
+      maybe_unarchive_match(match_id)
+
+      broadcast_for_user(
+        mate,
+        {__MODULE__, [:voicemail, :sent],
+         %Voicemail{voicemail | url: voicemail_url(voicemail.s3_key)}}
+      )
 
       {:ok, voicemail}
     end
@@ -348,19 +386,35 @@ defmodule T.Calls do
     :ok
   end
 
-  defp in_match?(user_id, match_id) do
+  defp mate_match?(user_id, match_id) do
     Match
     |> where(id: ^match_id)
     |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
-    |> Repo.exists?()
+    |> select([m], {m.user_id_1, m.user_id_2})
+    |> Repo.one()
+    |> case do
+      {uid1, uid2} ->
+        [mate_id] = [uid1, uid2] -- [user_id]
+        mate_id
+
+      nil ->
+        nil
+    end
   end
 
-  @spec ensure_voicemail_allowed(uuid, uuid) :: :ok | {:error, reason :: String.t()}
+  @spec ensure_voicemail_allowed(uuid, uuid) :: {:ok, uuid} | {:error, reason :: String.t()}
   defp ensure_voicemail_allowed(caller_id, match_id) do
-    cond do
-      in_match?(caller_id, match_id) -> :ok
-      # in_live_mode?(caller_id, called_id) -> :ok
-      true -> {:error, "voicemail not allowed"}
+    case mate_match?(caller_id, match_id) do
+      nil ->
+        {:error, "voicemail not allowed"}
+
+      mate_id ->
+        {:ok, mate_id}
+        # in_live_mode?(caller_id, called_id) -> :ok
     end
+  end
+
+  defp maybe_unarchive_match(match_id) do
+    ArchivedMatch |> where(match_id: ^match_id) |> Repo.delete_all()
   end
 end

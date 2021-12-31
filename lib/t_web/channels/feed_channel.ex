@@ -13,6 +13,7 @@ defmodule TWeb.FeedChannel do
       %{screen_width: screen_width} = socket.assigns
 
       :ok = Matches.subscribe_for_user(user_id)
+      :ok = Calls.subscribe_for_user(user_id)
       :ok = Accounts.subscribe_for_user(user_id)
       :ok = Feeds.subscribe_for_mode_change()
 
@@ -488,6 +489,14 @@ defmodule TWeb.FeedChannel do
     push(socket, "contact_cancelled", %{
       "match_id" => match_id
     })
+
+    {:noreply, socket}
+  end
+
+  def handle_info({Calls, [:voicemail, :sent], voicemail}, socket) do
+    %Calls.Voicemail{url: url, match_id: match_id} = voicemail
+
+    push(socket, "voicemail_sent", %{"match_id" => match_id, "url" => url})
 
     {:noreply, socket}
   end

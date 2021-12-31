@@ -75,32 +75,29 @@ defmodule TWeb.FeedChannelTest do
       # ¯\_ (ツ)_/¯
 
       # fifth match has some voicemail
-      audios = %{
-        # from me
-        me.id => ["0b1124d1-9064-4077-9094-48ade2a90267", "2ba1da54-d873-4ab7-a66b-8359e073dbc0"],
-        # from mate
-        p5.id => ["23f442c7-e610-4aa9-ad4c-7795bb568c4e"]
-      }
-
-      for {caller_id, s3_keys} <- audios do
-        for s3_key <- s3_keys do
-          Calls.voicemail_save_message(caller_id, m5.id, s3_key)
-        end
-      end
+      # these messages will be overwritten by ...
+      Calls.voicemail_save_message(me.id, m5.id, _s3_key = "0b1124d1-9064-4077-9094-48ade2a90267")
+      Calls.voicemail_save_message(me.id, m5.id, _s3_key = "2ba1da54-d873-4ab7-a66b-8359e073dbc0")
+      # ... message from mate
+      Calls.voicemail_save_message(p5.id, m5.id, _s3_key = "23f442c7-e610-4aa9-ad4c-7795bb568c4e")
 
       assert {:ok, %{"matches" => matches}, _socket} =
                join(socket, "feed:" <> me.id, %{"mode" => "normal"})
 
       %{"voicemail" => voicemail_m5} = Enum.at(matches, 0)
+      %{id: p5_id} = p5
 
-      assert [
-               %{
-                 id: _id,
-                 inserted_at: _inserted_at,
-                 s3_key: "23f442c7-e610-4aa9-ad4c-7795bb568c4e",
-                 url: _url
-               }
-             ] = voicemail_m5
+      assert %{
+               "caller_id" => ^p5_id,
+               "messages" => [
+                 %{
+                   id: _,
+                   inserted_at: _,
+                   s3_key: "23f442c7-e610-4aa9-ad4c-7795bb568c4e",
+                   url: _
+                 }
+               ]
+             } = voicemail_m5
 
       assert matches == [
                %{

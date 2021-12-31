@@ -8,16 +8,20 @@ defmodule TWeb.MatchViewTest do
   import Phoenix.View
 
   test "renders voicemail" do
+    mate_id = "0000017e-116e-e580-06e9-e8bbc6570000"
+
     match = %Match{
       id: "0000017e-0be1-dc5f-06e9-e8bbc6570000",
       interaction: [
         %Voicemail{
           id: "0000017e-0c0c-d02f-06e9-e8bbc6570000",
+          caller_id: mate_id,
           s3_key: "f2cb52d1-423e-4fd9-be7c-24287e0d977c",
           inserted_at: ~N[2021-12-30 15:54:41]
         },
         %Voicemail{
           id: "0000017e-0c0c-ef71-06e9-e8bbc6570000",
+          caller_id: mate_id,
           s3_key: "de0253e8-a0f3-4206-80a3-2f26a0fffb29",
           inserted_at: ~N[2021-12-30 15:54:41]
         }
@@ -25,7 +29,7 @@ defmodule TWeb.MatchViewTest do
     }
 
     profile = %FeedProfile{
-      user_id: "72c139a5-930f-4d68-8292-8d4061857dee",
+      user_id: mate_id,
       story: [],
       gender: "F",
       name: "Pobeda"
@@ -51,20 +55,23 @@ defmodule TWeb.MatchViewTest do
              "voicemail" => voicemail
            }
 
-    assert [
-             %{
-               id: "0000017e-0c0c-d02f-06e9-e8bbc6570000",
-               url: _v1_url,
-               inserted_at: ~U[2021-12-30 15:54:41Z],
-               s3_key: "f2cb52d1-423e-4fd9-be7c-24287e0d977c"
-             },
-             %{
-               id: "0000017e-0c0c-ef71-06e9-e8bbc6570000",
-               url: v2_url,
-               inserted_at: ~U[2021-12-30 15:54:41Z],
-               s3_key: "de0253e8-a0f3-4206-80a3-2f26a0fffb29"
-             }
-           ] = voicemail
+    assert %{
+             "caller_id" => ^mate_id,
+             "messages" => [
+               %{
+                 id: "0000017e-0c0c-d02f-06e9-e8bbc6570000",
+                 url: _v1_url,
+                 inserted_at: ~U[2021-12-30 15:54:41Z],
+                 s3_key: "f2cb52d1-423e-4fd9-be7c-24287e0d977c"
+               },
+               %{
+                 id: "0000017e-0c0c-ef71-06e9-e8bbc6570000",
+                 url: v2_url,
+                 inserted_at: ~U[2021-12-30 15:54:41Z],
+                 s3_key: "de0253e8-a0f3-4206-80a3-2f26a0fffb29"
+               }
+             ]
+           } = voicemail
 
     # voicemail url looks like:
     # "https://s3.eu-north-1.amazonaws.com/pretend-this-is-real/" <>

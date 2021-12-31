@@ -337,13 +337,16 @@ defmodule T.Calls do
     end)
     |> Multi.delete_all(:contacts, where(MatchContact, match_id: ^match_id))
     |> Multi.delete_all(:timeslots, where(Timeslot, match_id: ^match_id))
-    |> Multi.insert(:voicemail, voicemail)
     |> Multi.run(:exchanged_voicemail, fn _repo, %{mate: mate} ->
-      mate_sent_voicemail? =
+      {count, s3_keys} =
         Voicemail
         |> where(match_id: ^match_id)
         |> where(caller_id: ^mate)
-        |> Repo.exists?()
+        |> select([v], v.s3_key)
+        |> Repo.delete_all()
+
+      schedule_s3_delete(s3_keys)
+      mate_sent_voicemail? = count >= 1
 
       if mate_sent_voicemail? do
         Match
@@ -355,6 +358,7 @@ defmodule T.Calls do
         {:ok, false}
       end
     end)
+    |> Multi.insert(:voicemail, voicemail)
     |> Repo.transaction()
     |> case do
       {:ok, %{voicemail: voicemail}} -> {:ok, voicemail}
@@ -370,12 +374,16 @@ defmodule T.Calls do
       |> select([v], v.s3_key)
       |> Repo.delete_all()
 
+    schedule_s3_delete(s3_keys)
+
+    :ok
+  end
+
+  defp schedule_s3_delete(s3_keys) do
     bucket = Media.user_bucket()
 
     s3_keys
     |> Enum.map(fn s3_key -> Media.S3DeleteJob.new(%{"bucket" => bucket, "s3_key" => s3_key}) end)
     |> Oban.insert_all()
-
-    :ok
   end
 end

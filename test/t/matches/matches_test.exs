@@ -309,11 +309,9 @@ defmodule T.MatchesTest do
           _s3_key = "79c3a8d1-e8b6-4517-a8f2-311d90afaf70"
         )
 
-      # I don't have any `interaction` from mate since mate didn't send me any voicemail
-      assert [%Match{id: ^match_id, interaction: nil}] = Matches.list_matches(me.id)
-
-      # mate has voicemail left by me as `interaction`
-      assert [%Match{id: ^match_id, interaction: voicemail}] = Matches.list_matches(mate.id)
+      # both me and mate receive current voicemail in interaction, no matter who left it
+      assert [%Match{id: ^match_id, interaction: voicemail}] = Matches.list_matches(me.id)
+      assert [%Match{id: ^match_id, interaction: ^voicemail}] = Matches.list_matches(mate.id)
       assert voicemail == [v1, v2]
     end
   end

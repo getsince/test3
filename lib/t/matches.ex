@@ -328,7 +328,7 @@ defmodule T.Matches do
     |> order_by(desc: :inserted_at)
     |> join(:left, [m], t in assoc(m, :timeslot), as: :t)
     |> join(:left, [m], c in assoc(m, :contact), as: :c)
-    |> join(:left, [m], v in assoc(m, :voicemail), as: :v, on: v.caller_id != ^user_id)
+    |> join(:left, [m], v in assoc(m, :voicemail), as: :v)
     # TODO aggregate voicemail
     |> preload([t: t, c: c, v: v], timeslot: t, contact: c, voicemail: v)
     |> select([match: m, undying_event: e], {m, e.timestamp})

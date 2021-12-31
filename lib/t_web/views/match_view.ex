@@ -51,14 +51,22 @@ defmodule TWeb.MatchView do
   end
 
   defp render_voicemail(voicemail) do
-    Enum.map(voicemail, fn %Voicemail{id: id, inserted_at: inserted_at, s3_key: s3_key} ->
-      %{
-        id: id,
-        inserted_at: DateTime.from_naive!(inserted_at, "Etc/UTC"),
-        s3_key: s3_key,
-        url: Calls.voicemail_url(s3_key)
-      }
-    end)
+    grouped =
+      Enum.group_by(voicemail, & &1.caller_id, fn voicemail ->
+        %Voicemail{id: id, inserted_at: inserted_at, s3_key: s3_key} = voicemail
+
+        %{
+          id: id,
+          inserted_at: DateTime.from_naive!(inserted_at, "Etc/UTC"),
+          s3_key: s3_key,
+          url: Calls.voicemail_url(s3_key)
+        }
+      end)
+
+    [caller_id] = Map.keys(grouped)
+    [messages] = Map.values(grouped)
+
+    %{"caller_id" => caller_id, "messages" => messages}
   end
 
   defp maybe_put(map, _k, nil), do: map

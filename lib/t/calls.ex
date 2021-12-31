@@ -348,6 +348,12 @@ defmodule T.Calls do
         |> Multi.delete_all(:contacts, where(MatchContact, match_id: ^match_id))
         |> Multi.delete_all(:timeslots, where(Timeslot, match_id: ^match_id))
         |> Multi.insert(:voicemail, voicemail)
+        # TODO maybe add by_user_id to match_events table to easier determine voice exchange timer reset?
+        |> Multi.insert(:match_event, %MatchEvent{
+          timestamp: DateTime.truncate(DateTime.utc_now(), :second),
+          match_id: match_id,
+          event: "voicemail_sent"
+        })
         |> Oban.insert(:push, push_job)
         |> Repo.transaction()
 

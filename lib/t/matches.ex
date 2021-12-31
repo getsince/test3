@@ -91,7 +91,7 @@ defmodule T.Matches do
       {__MODULE__, :matched,
        %{
          id: match_id,
-         expiration_date: expiration_date(match),
+         expiration_date: pre_voicemail_expiration_date(match),
          mate: user_id,
          audio_only: user_id_settings
        }}
@@ -102,7 +102,7 @@ defmodule T.Matches do
       {__MODULE__, :matched,
        %{
          id: match_id,
-         expiration_date: expiration_date(match),
+         expiration_date: pre_voicemail_expiration_date(match),
          mate: by_user_id,
          audio_only: by_user_id_settings
        }}
@@ -335,8 +335,10 @@ defmodule T.Matches do
     |> Repo.all()
     |> Enum.map(fn {match, undying_event_timestamp} ->
       expiration_date =
-        unless undying_event_timestamp do
-          expiration_date(match)
+        cond do
+          undying_event_timestamp -> nil
+          match.exchanged_voicemail -> post_voicemail_expiration_date(match)
+          true -> pre_voicemail_expiration_date(match)
         end
 
       %Match{
@@ -358,10 +360,16 @@ defmodule T.Matches do
 
   defp interaction(%Match{}), do: nil
 
-  defp expiration_date(%Match{inserted_at: inserted_at}) do
+  defp post_voicemail_expiration_date(%Match{inserted_at: inserted_at}) do
     inserted_at
     |> DateTime.from_naive!("Etc/UTC")
     |> DateTime.add(match_ttl())
+  end
+
+  defp pre_voicemail_expiration_date(%Match{inserted_at: inserted_at}) do
+    inserted_at
+    |> DateTime.from_naive!("Etc/UTC")
+    |> DateTime.add(pre_voicemail_ttl())
   end
 
   defp archived_match_ids_q(user_id) do

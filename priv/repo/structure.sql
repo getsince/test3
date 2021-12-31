@@ -239,7 +239,8 @@ CREATE TABLE public.matches (
     id uuid NOT NULL,
     user_id_1 uuid NOT NULL,
     user_id_2 uuid NOT NULL,
-    inserted_at timestamp(0) without time zone NOT NULL
+    inserted_at timestamp(0) without time zone NOT NULL,
+    exchanged_voicemail boolean DEFAULT false NOT NULL
 );
 
 
@@ -1064,3 +1065,4 @@ INSERT INTO public."schema_migrations" (version) VALUES (20211221161830);
 INSERT INTO public."schema_migrations" (version) VALUES (20211222133341);
 INSERT INTO public."schema_migrations" (version) VALUES (20211225072543);
 INSERT INTO public."schema_migrations" (version) VALUES (20211229125434);
+INSERT INTO public."schema_migrations" (version) VALUES (20220101121429);

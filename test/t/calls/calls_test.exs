@@ -42,6 +42,51 @@ defmodule T.CallsTest do
     test "lists calls without accepted_at"
   end
 
+  describe "voicemail_save_message/3" do
+    test "failure: when not in match" do
+      caller_id = Ecto.Bigflake.UUID.generate()
+      match_id = Ecto.Bigflake.UUID.generate()
+      s3_key = Ecto.UUID.generate()
+
+      assert {:error, "voicemail not allowed"} =
+               Calls.voicemail_save_message(caller_id, match_id, s3_key)
+
+      # with real caller
+      caller = onboarded_user()
+
+      assert {:error, "voicemail not allowed"} =
+               Calls.voicemail_save_message(caller.id, match_id, s3_key)
+
+      # with real match caller is not part of
+      match = insert(:match, user_id_1: insert(:user).id, user_id_2: insert(:user).id)
+
+      assert {:error, "voicemail not allowed"} =
+               Calls.voicemail_save_message(caller.id, match.id, s3_key)
+    end
+
+    test "success: saves voicemail and updates match.exchanged_voicemail" do
+      me = onboarded_user()
+      mate = onboarded_user()
+
+      match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
+      refute match.exchanged_voicemail
+
+      # me -voice> mate
+
+      assert {:ok, %Calls.Voicemail{}} =
+               Calls.voicemail_save_message(me.id, match.id, _s3_key = Ecto.UUID.generate())
+
+      refute Repo.get(Matches.Match, match.id).exchanged_voicemail
+
+      # mate -voice> me
+
+      assert {:ok, %Calls.Voicemail{}} =
+               Calls.voicemail_save_message(mate.id, match.id, _s3_key = Ecto.UUID.generate())
+
+      assert Repo.get(Matches.Match, match.id).exchanged_voicemail
+    end
+  end
+
   describe "voicemail_delete_all/1" do
     test "deletes all voicemail and schedules deletions from s3" do
       me = onboarded_user()

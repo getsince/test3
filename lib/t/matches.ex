@@ -22,9 +22,13 @@ defmodule T.Matches do
   @topic "__m"
 
   @seven_days 7 * 24 * 60 * 60
+  @two_days 2 * 24 * 60 * 60
 
   @doc "Time-to-live for a match without life-prolonging events like calls, meetings, voice-messages"
   def match_ttl, do: @seven_days
+
+  @doc "Time-to-live for a match before voicemail has been exchanged both ways"
+  def pre_voicemail_ttl, do: @two_days
 
   defp pubsub_user_topic(user_id) when is_binary(user_id) do
     @topic <> ":u:" <> String.downcase(user_id)
@@ -87,7 +91,7 @@ defmodule T.Matches do
       {__MODULE__, :matched,
        %{
          id: match_id,
-         expiration_date: expiration_date(match),
+         expiration_date: pre_voicemail_expiration_date(match),
          mate: user_id,
          audio_only: user_id_settings
        }}
@@ -98,7 +102,7 @@ defmodule T.Matches do
       {__MODULE__, :matched,
        %{
          id: match_id,
-         expiration_date: expiration_date(match),
+         expiration_date: pre_voicemail_expiration_date(match),
          mate: by_user_id,
          audio_only: by_user_id_settings
        }}
@@ -331,8 +335,10 @@ defmodule T.Matches do
     |> Repo.all()
     |> Enum.map(fn {match, undying_event_timestamp} ->
       expiration_date =
-        unless undying_event_timestamp do
-          expiration_date(match)
+        cond do
+          undying_event_timestamp -> nil
+          match.exchanged_voicemail -> post_voicemail_expiration_date(match)
+          true -> pre_voicemail_expiration_date(match)
         end
 
       %Match{
@@ -354,10 +360,16 @@ defmodule T.Matches do
 
   defp interaction(%Match{}), do: nil
 
-  defp expiration_date(%Match{inserted_at: inserted_at}) do
+  defp post_voicemail_expiration_date(%Match{inserted_at: inserted_at}) do
     inserted_at
     |> DateTime.from_naive!("Etc/UTC")
     |> DateTime.add(match_ttl())
+  end
+
+  defp pre_voicemail_expiration_date(%Match{inserted_at: inserted_at}) do
+    inserted_at
+    |> DateTime.from_naive!("Etc/UTC")
+    |> DateTime.add(pre_voicemail_ttl())
   end
 
   defp archived_match_ids_q(user_id) do
@@ -1126,7 +1138,7 @@ defmodule T.Matches do
 
   # Expired Matches
 
-  def insert_match_event(match_id, event) do
+  defp insert_match_event(match_id, event) do
     Repo.insert(%MatchEvent{
       timestamp: DateTime.truncate(DateTime.utc_now(), :second),
       match_id: match_id,
@@ -1134,36 +1146,69 @@ defmodule T.Matches do
     })
   end
 
-  def match_expired_check(reference \\ DateTime.utc_now()) do
-    expiration_date = DateTime.add(reference, -match_ttl())
-
-    expiring_matches_q()
-    |> where([m, c], m.inserted_at < ^expiration_date)
-    |> select([m], {m.id, m.user_id_1, m.user_id_2})
-    |> T.Repo.all()
-    |> Enum.map(fn {match_id, user_id_1, user_id_2} ->
+  def expiration_prune(reference \\ DateTime.utc_now()) do
+    reference
+    |> expiration_list_expired_matches()
+    |> Enum.each(fn %{id: match_id, user_id_1: user_id_1, user_id_2: user_id_2} ->
       expire_match(match_id, user_id_1, user_id_2)
     end)
   end
 
-  def match_soon_to_expire_check(reference \\ DateTime.utc_now()) do
-    day_before_expiration = reference |> DateTime.add(-match_ttl()) |> DateTime.add(24 * 3600)
-    almost_day_before_expiration = DateTime.add(day_before_expiration, -60)
+  def expiration_list_expired_matches(reference \\ DateTime.utc_now()) do
+    post_voicemail_expiration_date = DateTime.add(reference, -match_ttl())
+    pre_voicemail_expiration_date = DateTime.add(reference, -pre_voicemail_ttl())
 
     expiring_matches_q()
-    |> where([m], m.inserted_at <= ^day_before_expiration)
-    # TODO can result in duplicates with more than one worker
-    |> where([m], m.inserted_at > ^almost_day_before_expiration)
-    |> select([m], m.id)
-    |> T.Repo.all()
-    |> Enum.map(fn match_id ->
-      schedule_match_about_to_expire(match_id)
-    end)
+    |> where(
+      [match: m],
+      (not m.exchanged_voicemail and m.inserted_at < ^pre_voicemail_expiration_date) or
+        m.inserted_at < ^post_voicemail_expiration_date
+    )
+    |> select([match: m], map(m, [:id, :user_id_1, :user_id_2]))
+    |> Repo.all()
   end
 
-  defp schedule_match_about_to_expire(match_id) do
-    job = DispatchJob.new(%{"type" => "match_about_to_expire", "match_id" => match_id})
-    Oban.insert(job)
+  def expiration_notify_soon_to_expire(reference \\ DateTime.utc_now()) do
+    expiration_list_soon_to_expire(reference)
+    |> Enum.map(fn match_id ->
+      DispatchJob.new(%{"type" => "match_about_to_expire", "match_id" => match_id})
+    end)
+    |> Oban.insert_all()
+  end
+
+  defp expiration_pre_voicemail_notification_interval(reference) do
+    to =
+      reference
+      |> DateTime.add(-pre_voicemail_ttl())
+      |> DateTime.add(_3_hours = 3 * 3600)
+
+    from = DateTime.add(to, -60)
+    {from, to}
+  end
+
+  defp expiration_post_voicemail_notification_interval(reference) do
+    to =
+      reference
+      |> DateTime.add(-match_ttl())
+      |> DateTime.add(_24_hours = 24 * 3600)
+
+    from = DateTime.add(to, -60)
+    {from, to}
+  end
+
+  def expiration_list_soon_to_expire(reference \\ DateTime.utc_now()) do
+    {from1, to1} = expiration_pre_voicemail_notification_interval(reference)
+    {from2, to2} = expiration_post_voicemail_notification_interval(reference)
+
+    expiring_matches_q()
+    # TODO can result in duplicates with more than one worker
+    |> where(
+      [match: m],
+      (not m.exchanged_voicemail and (m.inserted_at > ^from1 and m.inserted_at <= ^to1)) or
+        (m.inserted_at > ^from2 and m.inserted_at <= ^to2)
+    )
+    |> select([m], m.id)
+    |> Repo.all()
   end
 
   def delete_expired_match(match_id, by_user_id) do
@@ -1183,19 +1228,14 @@ defmodule T.Matches do
   end
 
   defp matches_with_undying_events_q(query \\ named_match_q()) do
-    join(
-      query,
-      :left_lateral,
-      [m, e],
-      c in subquery(
-        MatchEvent
-        |> where(match_id: parent_as(:match).id)
-        |> where([e], e.event == "call_start" or e.event == "meeting_report")
-        |> select([e], e.timestamp)
-        |> limit(1)
-      ),
-      as: :undying_event
-    )
+    undying_events_q =
+      MatchEvent
+      |> where(match_id: parent_as(:match).id)
+      |> where([e], e.event == "call_start" or e.event == "meeting_report")
+      |> select([e], e.timestamp)
+      |> limit(1)
+
+    join(query, :left_lateral, [m], e in subquery(undying_events_q), as: :undying_event)
   end
 
   # Contact Exchange

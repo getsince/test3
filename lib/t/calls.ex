@@ -317,17 +317,48 @@ defmodule T.Calls do
   @spec voicemail_save_message(uuid, uuid, uuid) ::
           {:ok, %Voicemail{}} | {:error, reason :: String.t()}
   def voicemail_save_message(caller_id, match_id, s3_key) do
-    with :ok <- ensure_voicemail_allowed(caller_id, match_id) do
-      voicemail = %Voicemail{caller_id: caller_id, match_id: match_id, s3_key: s3_key}
+    voicemail = %Voicemail{caller_id: caller_id, match_id: match_id, s3_key: s3_key}
 
-      {:ok, %{voicemail: voicemail}} =
-        Multi.new()
-        |> Multi.delete_all(:contacts, where(MatchContact, match_id: ^match_id))
-        |> Multi.delete_all(:timeslots, where(Timeslot, match_id: ^match_id))
-        |> Multi.insert(:voicemail, voicemail)
-        |> Repo.transaction()
+    Multi.new()
+    |> Multi.run(:mate, fn _repo, _changes ->
+      users =
+        Match
+        |> where(id: ^match_id)
+        |> where([m], m.user_id_1 == ^caller_id or m.user_id_2 == ^caller_id)
+        |> select([m], [m.user_id_1, m.user_id_2])
+        |> Repo.one()
 
-      {:ok, voicemail}
+      if users do
+        [mate] = users -- [caller_id]
+        {:ok, mate}
+      else
+        {:error, :not_found}
+      end
+    end)
+    |> Multi.delete_all(:contacts, where(MatchContact, match_id: ^match_id))
+    |> Multi.delete_all(:timeslots, where(Timeslot, match_id: ^match_id))
+    |> Multi.insert(:voicemail, voicemail)
+    |> Multi.run(:exchanged_voicemail, fn _repo, %{mate: mate} ->
+      mate_sent_voicemail? =
+        Voicemail
+        |> where(match_id: ^match_id)
+        |> where(caller_id: ^mate)
+        |> Repo.exists?()
+
+      if mate_sent_voicemail? do
+        Match
+        |> where(id: ^match_id)
+        |> Repo.update_all(set: [exchanged_voicemail: true])
+
+        {:ok, true}
+      else
+        {:ok, false}
+      end
+    end)
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{voicemail: voicemail}} -> {:ok, voicemail}
+      {:error, :mate, :not_found, _changes} -> {:error, "voicemail not allowed"}
     end
   end
 
@@ -346,21 +377,5 @@ defmodule T.Calls do
     |> Oban.insert_all()
 
     :ok
-  end
-
-  defp in_match?(user_id, match_id) do
-    Match
-    |> where(id: ^match_id)
-    |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
-    |> Repo.exists?()
-  end
-
-  @spec ensure_voicemail_allowed(uuid, uuid) :: :ok | {:error, reason :: String.t()}
-  defp ensure_voicemail_allowed(caller_id, match_id) do
-    cond do
-      in_match?(caller_id, match_id) -> :ok
-      # in_live_mode?(caller_id, called_id) -> :ok
-      true -> {:error, "voicemail not allowed"}
-    end
   end
 end

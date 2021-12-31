@@ -578,7 +578,7 @@ defmodule TWeb.FeedChannel do
       } ->
         render_match(%{
           id: match_id,
-          inserted_at: DateTime.from_naive!(inserted_at, "Etc/UTC"),
+          inserted_at: inserted_at,
           audio_only: audio_only,
           profile: profile,
           interaction: interaction,

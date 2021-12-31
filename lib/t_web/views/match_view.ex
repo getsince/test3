@@ -7,6 +7,7 @@ defmodule TWeb.MatchView do
 
   def render("match.json", %{id: id} = assigns) do
     %{"id" => id, "profile" => render(FeedView, "feed_profile.json", assigns)}
+    |> maybe_put("inserted_at", assigns[:inserted_at])
     |> maybe_put("audio_only", assigns[:audio_only])
     |> maybe_put("expiration_date", assigns[:expiration_date])
     |> maybe_put_interaction(assigns[:interaction])

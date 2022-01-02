@@ -47,7 +47,6 @@ defmodule TWeb.FeedChannel do
     Feeds.maybe_activate_session(user_id, gender, feed_filter)
 
     {_type, [session_start, session_end]} = Feeds.live_today(utc_now(socket))
-    live_session_duration = DateTime.diff(session_end, session_start)
 
     missed_calls =
       user_id
@@ -66,8 +65,8 @@ defmodule TWeb.FeedChannel do
 
     reply =
       %{"mode" => "live"}
-      |> Map.put("session_expiration_date", session_end)
-      |> Map.put("live_session_duration", live_session_duration)
+      |> Map.put("session_start_date", session_start)
+      |> Map.put("session_end_date", session_end)
       |> maybe_put("missed_calls", missed_calls)
       |> maybe_put("invites", invites)
       |> maybe_put("matches", matches)
@@ -103,8 +102,7 @@ defmodule TWeb.FeedChannel do
 
     reply =
       %{"mode" => "normal"}
-      |> Map.put("since_live_date", since_live_date)
-      |> Map.put("match_expiration_duration", Matches.match_ttl())
+      |> maybe_put("since_live_date", since_live_date)
       |> maybe_put("missed_calls", missed_calls)
       |> maybe_put("likes", likes)
       |> maybe_put("matches", matches)
@@ -584,6 +582,7 @@ defmodule TWeb.FeedChannel do
     Enum.map(matches, fn
       %Matches.Match{
         id: match_id,
+        inserted_at: inserted_at,
         audio_only: audio_only,
         profile: profile,
         interaction: interaction,
@@ -592,6 +591,7 @@ defmodule TWeb.FeedChannel do
       } ->
         render_match(%{
           id: match_id,
+          inserted_at: inserted_at,
           audio_only: audio_only,
           profile: profile,
           interaction: interaction,

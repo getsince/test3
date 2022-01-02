@@ -37,12 +37,14 @@ defmodule TWeb.FeedChanneLiveTest do
                %{
                  "id" => m2.id,
                  "profile" => %{name: "mate-2", story: [], user_id: p2.id, gender: "N"},
-                 "exchanged_voice" => false
+                 "exchanged_voice" => false,
+                 "inserted_at" => ~U[2021-09-30 12:16:06Z]
                },
                %{
                  "id" => m1.id,
                  "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
-                 "exchanged_voice" => false
+                 "exchanged_voice" => false,
+                 "inserted_at" => ~U[2021-09-30 12:16:05Z]
                }
              ]
     end
@@ -56,12 +58,12 @@ defmodule TWeb.FeedChanneLiveTest do
       Feeds.live_invite_user(mate.id, me.id)
 
       assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id, %{"mode" => "live"})
-      {duration, expiration_date} = session_expiration_date()
+      {start_date, end_date} = session_start_and_end_dates()
 
       assert reply == %{
                "mode" => "live",
-               "session_expiration_date" => expiration_date,
-               "live_session_duration" => duration,
+               "session_start_date" => start_date,
+               "session_end_date" => end_date,
                "invites" => [
                  %{
                    "profile" => %{
@@ -90,7 +92,8 @@ defmodule TWeb.FeedChanneLiveTest do
                %{
                  "id" => m1.id,
                  "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
-                 "exchanged_voice" => false
+                 "exchanged_voice" => false,
+                 "inserted_at" => ~U[2021-09-30 12:16:05Z]
                }
              ]
 
@@ -103,7 +106,8 @@ defmodule TWeb.FeedChanneLiveTest do
                %{
                  "id" => m1.id,
                  "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
-                 "exchanged_voice" => false
+                 "exchanged_voice" => false,
+                 "inserted_at" => ~U[2021-09-30 12:16:05Z]
                }
              ]
     end
@@ -113,28 +117,28 @@ defmodule TWeb.FeedChanneLiveTest do
 
       _match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
 
-      {duration, expiration_date} = session_expiration_date()
+      {start_date, end_date} = session_start_and_end_dates()
 
       call =
         insert(:call,
           called: me,
           caller: mate,
-          inserted_at: expiration_date,
-          ended_at: expiration_date
+          inserted_at: end_date,
+          ended_at: end_date
         )
 
       assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id, %{"mode" => "live"})
 
       assert reply == %{
                "mode" => "live",
-               "session_expiration_date" => expiration_date,
-               "live_session_duration" => duration,
+               "session_start_date" => start_date,
+               "session_end_date" => end_date,
                "missed_calls" => [
                  %{
                    "call" => %{
                      "id" => call.id,
-                     "started_at" => expiration_date,
-                     "ended_at" => expiration_date
+                     "started_at" => end_date,
+                     "ended_at" => end_date
                    },
                    "profile" => %{name: "mate", story: [], user_id: mate.id, gender: "F"}
                  }
@@ -554,9 +558,8 @@ defmodule TWeb.FeedChanneLiveTest do
     {:ok, mate_socket: socket}
   end
 
-  defp session_expiration_date() do
+  defp session_start_and_end_dates() do
     {_type, [start_date, end_date]} = Feeds.live_today()
-    duration = DateTime.diff(end_date, start_date)
-    {duration, end_date}
+    {start_date, end_date}
   end
 end

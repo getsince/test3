@@ -6,8 +6,14 @@ defmodule TWeb.MatchView do
   alias T.Calls.Voicemail
 
   def render("match.json", %{id: id} = assigns) do
+    inserted_at =
+      if naive = assigns[:inserted_at] do
+        DateTime.from_naive!(naive, "Etc/UTC")
+      end
+
     %{"id" => id, "profile" => render(FeedView, "feed_profile.json", assigns)}
     |> maybe_put("exchanged_voice", assigns[:exchanged_voice])
+    |> maybe_put("inserted_at", inserted_at)
     |> maybe_put("audio_only", assigns[:audio_only])
     |> maybe_put("expiration_date", assigns[:expiration_date])
     |> maybe_put_interaction(assigns[:interaction])

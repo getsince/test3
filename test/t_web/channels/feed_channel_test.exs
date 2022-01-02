@@ -106,14 +106,16 @@ defmodule TWeb.FeedChannelTest do
                  "audio_only" => false,
                  "voicemail" => voicemail_m5,
                  "expiration_date" => ~U[2021-10-07 12:16:09Z],
-                 "exchanged_voice" => true
+                 "exchanged_voice" => true,
+                 "inserted_at" => ~U[2021-09-30 12:16:09Z]
                },
                %{
                  "id" => m4.id,
                  "profile" => %{name: "mate-4", story: [], user_id: p4.id, gender: "F"},
                  "audio_only" => false,
                  "expiration_date" => ~U[2021-10-02 12:16:08Z],
-                 "exchanged_voice" => false
+                 "exchanged_voice" => false,
+                 "inserted_at" => ~U[2021-09-30 12:16:08Z]
                },
                %{
                  "id" => m3.id,
@@ -121,7 +123,8 @@ defmodule TWeb.FeedChannelTest do
                  "timeslot" => %{"selected_slot" => s2},
                  "audio_only" => false,
                  "expiration_date" => ~U[2021-10-02 12:16:07Z],
-                 "exchanged_voice" => false
+                 "exchanged_voice" => false,
+                 "inserted_at" => ~U[2021-09-30 12:16:07Z]
                },
                %{
                  "id" => m2.id,
@@ -133,7 +136,8 @@ defmodule TWeb.FeedChannelTest do
                  },
                  "audio_only" => false,
                  "expiration_date" => ~U[2021-10-02 12:16:06Z],
-                 "exchanged_voice" => false
+                 "exchanged_voice" => false,
+                 "inserted_at" => ~U[2021-09-30 12:16:06Z]
                },
                %{
                  "id" => m1.id,
@@ -145,7 +149,8 @@ defmodule TWeb.FeedChannelTest do
                  },
                  "audio_only" => false,
                  "expiration_date" => ~U[2021-10-02 12:16:05Z],
-                 "exchanged_voice" => false
+                 "exchanged_voice" => false,
+                 "inserted_at" => ~U[2021-09-30 12:16:05Z]
                }
              ]
     end
@@ -170,7 +175,8 @@ defmodule TWeb.FeedChannelTest do
                  "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
                  "audio_only" => false,
                  "expiration_date" => expiration_date,
-                 "exchanged_voice" => false
+                 "exchanged_voice" => false,
+                 "inserted_at" => ~U[2021-09-30 12:16:05Z]
                }
              ]
 
@@ -191,7 +197,8 @@ defmodule TWeb.FeedChannelTest do
                  "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
                  "audio_only" => false,
                  "expiration_date" => expiration_date,
-                 "exchanged_voice" => false
+                 "exchanged_voice" => false,
+                 "inserted_at" => ~U[2021-09-30 12:16:05Z]
                }
              ]
     end
@@ -215,8 +222,7 @@ defmodule TWeb.FeedChannelTest do
                      gender: "F"
                    }
                  }
-               ],
-               "match_expiration_duration" => Matches.match_ttl()
+               ]
              }
     end
 
@@ -252,7 +258,8 @@ defmodule TWeb.FeedChannelTest do
       # prepare apns mock
       expect(MockAPNS, :push, 3, fn _notification -> :ok end)
 
-      match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
+      match =
+        insert(:match, user_id_1: me.id, user_id_2: mate.id, inserted_at: ~N[2021-09-30 12:16:05])
 
       expiration_date =
         match.inserted_at
@@ -317,10 +324,10 @@ defmodule TWeb.FeedChannelTest do
                    "audio_only" => false,
                    "expiration_date" => expiration_date,
                    "exchanged_voice" => false,
+                   "inserted_at" => ~U[2021-09-30 12:16:05Z],
                    "profile" => %{gender: "F", name: "mate", story: [], user_id: mate.id}
                  }
-               ],
-               "match_expiration_duration" => Matches.match_ttl()
+               ]
              }
 
       # now with missed_calls_cursor
@@ -348,10 +355,10 @@ defmodule TWeb.FeedChannelTest do
                    "profile" => %{gender: "F", name: "mate", story: [], user_id: mate.id},
                    "audio_only" => false,
                    "expiration_date" => expiration_date,
-                   "exchanged_voice" => false
+                   "exchanged_voice" => false,
+                   "inserted_at" => ~U[2021-09-30 12:16:05Z]
                  }
-               ],
-               "match_expiration_duration" => Matches.match_ttl()
+               ]
              }
     end
   end
@@ -1456,7 +1463,8 @@ defmodule TWeb.FeedChannelTest do
                  },
                  "audio_only" => false,
                  "expiration_date" => ~U[2021-10-02 12:16:05Z],
-                 "exchanged_voice" => false
+                 "exchanged_voice" => false,
+                 "inserted_at" => ~U[2021-09-30 12:16:05Z]
                }
              ]
 
@@ -1476,7 +1484,8 @@ defmodule TWeb.FeedChannelTest do
                  },
                  "audio_only" => false,
                  "expiration_date" => ~U[2021-10-02 12:16:05Z],
-                 "exchanged_voice" => false
+                 "exchanged_voice" => false,
+                 "inserted_at" => ~U[2021-09-30 12:16:05Z]
                }
              ]
 
@@ -1493,7 +1502,8 @@ defmodule TWeb.FeedChannelTest do
                  "id" => m1.id,
                  "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
                  "audio_only" => false,
-                 "exchanged_voice" => false
+                 "exchanged_voice" => false,
+                 "inserted_at" => ~U[2021-09-30 12:16:05Z]
                }
              ]
     end

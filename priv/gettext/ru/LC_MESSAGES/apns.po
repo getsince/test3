@@ -186,37 +186,37 @@ msgid "Wait for the real party %{on_weekday} 👀"
 msgstr "Жди следующую вечеринку %{on_weekday} 👀"
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:330
+#: lib/t/push_notifications/apns.ex:350
 msgid "on Friday"
 msgstr "в пятницу"
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:326
+#: lib/t/push_notifications/apns.ex:346
 msgid "on Monday"
 msgstr "в понедельник"
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:331
+#: lib/t/push_notifications/apns.ex:351
 msgid "on Saturday"
 msgstr "в субботу"
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:329
+#: lib/t/push_notifications/apns.ex:349
 msgid "on Thursday"
 msgstr "в четверг"
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:327
+#: lib/t/push_notifications/apns.ex:347
 msgid "on Tuesday"
 msgstr "во вторник"
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:328
+#: lib/t/push_notifications/apns.ex:348
 msgid "on Wednesday"
 msgstr "в среду"
 
 #, elixir-format
-#: lib/t/push_notifications/apns.ex:332
+#: lib/t/push_notifications/apns.ex:352
 msgid "on Sunday"
 msgstr "в воскресенье"
 
@@ -230,8 +230,28 @@ msgstr "Жди следующую вечеринку %{on_weekday} 👀"
 msgid "Since Live for newbies is over ✌️"
 msgstr "Since Live для новеньких закончился ✌️"
 
-#, elixir-format
+#, elixir-format, ex-autogen
 #: lib/t/push_notifications/apns.ex:234
 #: lib/t/push_notifications/apns.ex:279
 msgid "Come to the party at %{time} MSK, it will be 🔥"
 msgstr "Приходи на вечеринку к %{time} MSK, будет классно 🔥"
+
+#, elixir-format, ex-autogen
+#: lib/t/push_notifications/apns.ex:321
+msgid "%{name} прислал тебe аудио-сообщение!"
+msgstr ""
+
+#, elixir-format, ex-autogen
+#: lib/t/push_notifications/apns.ex:319
+msgid "%{name} прислала тебe аудио-сообщение!"
+msgstr ""
+
+#, elixir-format, ex-autogen
+#: lib/t/push_notifications/apns.ex:320
+msgid "%{name} прислали тебe аудио-сообщение!"
+msgstr ""
+
+#, elixir-format, ex-autogen, fuzzy
+#: lib/t/push_notifications/apns.ex:327
+msgid "Заходи, чтобы просмотреть и ответить ✨"
+msgstr ""

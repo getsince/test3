@@ -517,6 +517,17 @@ defmodule TWeb.FeedChannel do
     {:noreply, socket}
   end
 
+  def handle_info({Feeds, [:voicemail, :received], voicemail}, socket) do
+    %Calls.Voicemail{s3_key: s3_key, match_id: match_id} = voicemail
+
+    push(socket, "voicemail_received", %{
+      "match_id" => match_id,
+      "url" => Calls.voicemail_url(s3_key)
+    })
+
+    {:noreply, socket}
+  end
+
   # TODO test
   def handle_info({Feeds, :live, %{profile: feed_profile}}, socket) do
     %{screen_width: screen_width} = socket.assigns

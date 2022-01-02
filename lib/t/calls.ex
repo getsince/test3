@@ -8,8 +8,8 @@ defmodule T.Calls do
   alias T.{Repo, Twilio, Accounts, Feeds, Matches}
   alias T.Calls.{Call, Voicemail}
   alias T.Feeds.{FeedProfile}
-  alias T.Matches.{Match, MatchEvent, MatchContact, Timeslot}
-  alias T.PushNotifications.APNS
+  alias T.Matches.{Match, MatchEvent, MatchContact, Timeslot, ArchivedMatch}
+  alias T.PushNotifications.{APNS, DispatchJob}
   alias T.Bot
 
   @type uuid :: Ecto.Bigflake.UUID.t()
@@ -359,10 +359,30 @@ defmodule T.Calls do
       end
     end)
     |> Multi.insert(:voicemail, voicemail)
+    |> Oban.insert(:push, fn %{mate: mate} ->
+      DispatchJob.new(%{
+        "type" => "voicemail_sent",
+        "match_id" => match_id,
+        "caller_id" => caller_id,
+        "receiver_id" => mate
+      })
+    end)
+    |> Multi.delete_all(:unarchive, where(ArchivedMatch, match_id: ^match_id))
     |> Repo.transaction()
     |> case do
-      {:ok, %{voicemail: voicemail}} -> {:ok, voicemail}
-      {:error, :mate, :not_found, _changes} -> {:error, "voicemail not allowed"}
+      {:ok, %{voicemail: voicemail, mate: mate}} ->
+        m =
+          "voicemail from #{fetch_name(caller_id)} (#{caller_id}) to #{fetch_name(mate)} (#{mate})"
+
+        Logger.warn(m)
+        Bot.async_post_message(m)
+
+        Feeds.broadcast_for_user(mate, {__MODULE__, [:voicemail, :received], voicemail})
+
+        {:ok, voicemail}
+
+      {:error, :mate, :not_found, _changes} ->
+        {:error, "voicemail not allowed"}
     end
   end
 

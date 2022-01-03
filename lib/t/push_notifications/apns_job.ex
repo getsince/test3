@@ -40,4 +40,7 @@ defmodule T.PushNotifications.APNSJob do
         other
     end
   end
+
+  @impl true
+  def timeout(_job), do: :timer.seconds(5)
 end

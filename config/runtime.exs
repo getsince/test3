@@ -69,7 +69,6 @@ if config_env() == :prod do
 
   config :logger, backends: [:console, CloudWatch, Sentry.LoggerBackend]
   config :logger, :console, level: :info
-  config :logger, T.PubSubLoggerBackend, level: :debug
 
   config :logger, CloudWatch,
     level: :warn,
@@ -159,7 +158,6 @@ end
 if config_env() == :dev do
   config :logger, :console, level: :warn
   config :logger, backends: [:console]
-  config :logger, T.PubSubLoggerBackend, level: :debug
 
   config :t, APNS,
     keys: [

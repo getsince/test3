@@ -59,8 +59,6 @@ defmodule TWeb.Router do
 
       live "/reports", ReportLive.Index, :index
 
-      live "/logs", LogLive.Index, :index
-
       live "/stickers", StickerLive.Index, :index
       live "/tokens", TokenLive.Index, :index
     end

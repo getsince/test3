@@ -53,14 +53,16 @@ defmodule TWeb.FeedChannelTest do
       Matches.save_contacts_offer_for_match(
         me.id,
         m1.id,
-        _contacts = %{"telegram" => "@abcde"}
+        _contacts = %{"telegram" => "@abcde"},
+        now
       )
 
       # contacts overwrite timeslots for second match
       Matches.save_contacts_offer_for_match(
         me.id,
         m2.id,
-        _contacts = %{"whatsapp" => "+79666666666"}
+        _contacts = %{"whatsapp" => "+79666666666"},
+        now
       )
 
       assert {:ok, %{"matches" => matches}, _socket} =
@@ -80,7 +82,8 @@ defmodule TWeb.FeedChannelTest do
                  "contact" => %{
                    "contacts" => %{"whatsapp" => "+79666666666"},
                    "opened_contact_type" => nil,
-                   "picker" => p2.id
+                   "picker" => p2.id,
+                   "inserted_at" => ~U[2021-09-30 14:47:00Z]
                  },
                  "audio_only" => false,
                  "expiration_date" => ~U[2021-10-07 12:16:06Z]
@@ -91,7 +94,8 @@ defmodule TWeb.FeedChannelTest do
                  "contact" => %{
                    "contacts" => %{"telegram" => "@abcde"},
                    "picker" => p1.id,
-                   "opened_contact_type" => nil
+                   "opened_contact_type" => nil,
+                   "inserted_at" => ~U[2021-09-30 14:47:00Z]
                  },
                  "audio_only" => false,
                  "expiration_date" => ~U[2021-10-07 12:16:05Z]
@@ -1376,7 +1380,8 @@ defmodule TWeb.FeedChannelTest do
       insert(:match_contact,
         match_id: m1.id,
         contacts: %{"telegram" => "@abcde"},
-        picker_id: p1.id
+        picker_id: p1.id,
+        inserted_at: ~N[2021-09-30 13:16:05]
       )
 
       ref = push(socket, "open-contact", %{"match_id" => m1.id, "contact_type" => "telegram"})
@@ -1392,7 +1397,8 @@ defmodule TWeb.FeedChannelTest do
                  "contact" => %{
                    "contacts" => %{"telegram" => "@abcde"},
                    "picker" => p1.id,
-                   "opened_contact_type" => "telegram"
+                   "opened_contact_type" => "telegram",
+                   "inserted_at" => ~U[2021-09-30 13:16:05Z]
                  },
                  "audio_only" => false,
                  "expiration_date" => ~U[2021-10-07 12:16:05Z]
@@ -1411,7 +1417,8 @@ defmodule TWeb.FeedChannelTest do
                  "contact" => %{
                    "contacts" => %{"telegram" => "@abcde"},
                    "picker" => p1.id,
-                   "opened_contact_type" => nil
+                   "opened_contact_type" => nil,
+                   "inserted_at" => ~U[2021-09-30 13:16:05Z]
                  },
                  "audio_only" => false,
                  "expiration_date" => ~U[2021-10-07 12:16:05Z]

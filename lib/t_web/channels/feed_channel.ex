@@ -604,7 +604,9 @@ defmodule TWeb.FeedChannel do
         inserted_at: inserted_at,
         audio_only: audio_only,
         profile: profile,
-        interaction: interaction,
+        timeslot: timeslot,
+        contact: contact,
+        voicemail: voicemail,
         expiration_date: expiration_date,
         exchanged_voicemail: exchanged_voice
       } ->
@@ -613,7 +615,9 @@ defmodule TWeb.FeedChannel do
           inserted_at: inserted_at,
           audio_only: audio_only,
           profile: profile,
-          interaction: interaction,
+          timeslot: timeslot,
+          contact: contact,
+          voicemail: voicemail,
           screen_width: screen_width,
           expiration_date: expiration_date,
           exchanged_voice: exchanged_voice

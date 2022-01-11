@@ -43,13 +43,26 @@ defmodule TWeb.MatchView do
          selected_slot: nil,
          accepted_at: nil,
          picker_id: picker,
-         slots: slots
+         slots: slots,
+         inserted_at: inserted_at
        }) do
-    %{"slots" => slots, "picker" => picker}
+    %{
+      "slots" => slots,
+      "picker" => picker,
+      "inserted_at" => DateTime.from_naive!(inserted_at, "Etc/UTC")
+    }
   end
 
-  defp render_timeslot(%Timeslot{selected_slot: selected_slot, accepted_at: accepted_at}) do
-    %{"selected_slot" => selected_slot, "accepted_at" => accepted_at}
+  defp render_timeslot(%Timeslot{
+         selected_slot: selected_slot,
+         accepted_at: accepted_at,
+         inserted_at: inserted_at
+       }) do
+    %{
+      "selected_slot" => selected_slot,
+      "accepted_at" => accepted_at,
+      "inserted_at" => DateTime.from_naive!(inserted_at, "Etc/UTC")
+    }
   end
 
   defp render_contact(%MatchContact{

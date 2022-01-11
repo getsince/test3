@@ -116,7 +116,11 @@ defmodule TWeb.FeedChannelTest do
                %{
                  "id" => m3.id,
                  "profile" => %{name: "mate-3", story: [], user_id: p3.id, gender: "M"},
-                 "timeslot" => %{"selected_slot" => s2, "accepted_at" => ~U[2021-09-30 14:47:00Z]},
+                 "timeslot" => %{
+                   "selected_slot" => s2,
+                   "accepted_at" => ~U[2021-09-30 14:47:00Z],
+                   "inserted_at" => ~U[2021-09-30 14:47:00Z]
+                 },
                  "audio_only" => false,
                  "expiration_date" => ~U[2021-10-02 12:16:07Z],
                  "exchanged_voice" => false,
@@ -131,7 +135,8 @@ defmodule TWeb.FeedChannelTest do
                      ~U[2021-09-30 15:15:00Z],
                      ~U[2021-09-30 15:30:00Z],
                      ~U[2021-09-30 15:45:00Z]
-                   ]
+                   ],
+                   "inserted_at" => ~U[2021-09-30 14:47:00Z]
                  },
                  "contact" => %{
                    "contacts" => %{"whatsapp" => "+79666666666"},

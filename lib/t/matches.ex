@@ -680,10 +680,12 @@ defmodule T.Matches do
       "saving slots offer for match #{match_id} (users #{offerer_id}, #{mate_id}) from #{offerer_id}: #{inspect(slots)}"
 
     Logger.warn(m)
+    now = DateTime.truncate(reference, :second)
+    inserted_at = DateTime.to_naive(now)
 
     changeset =
       timeslot_changeset(
-        %Timeslot{match_id: match_id, picker_id: mate_id},
+        %Timeslot{match_id: match_id, picker_id: mate_id, inserted_at: inserted_at},
         %{slots: slots},
         reference
       )

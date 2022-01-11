@@ -145,10 +145,10 @@ defmodule T.Matches.ExpiredMatchTest do
       %{user: u2} = insert(:profile)
       %{id: match_id} = insert(:match, user_id_1: u1.id, user_id_2: u2.id)
 
-      {:ok, %Calls.Voicemail{id: v1_id}} =
+      {:ok, %Calls.Voicemail{id: v1_id}, _new_match_expiration_date = nil} =
         Calls.voicemail_save_message(u1.id, match_id, s3_key_1 = Ecto.UUID.generate())
 
-      {:ok, %Calls.Voicemail{id: v2_id}} =
+      {:ok, %Calls.Voicemail{id: v2_id}, _new_match_expiration_date = nil} =
         Calls.voicemail_save_message(u1.id, match_id, s3_key_2 = Ecto.UUID.generate())
 
       Matches.expire_match(match_id, u1.id, u2.id)

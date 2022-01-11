@@ -56,10 +56,10 @@ defmodule T.Accounts.BlockingTest do
     test "deletes voicemail", %{reporter: reporter, reported: reported} do
       %{id: match_id} = insert(:match, user_id_1: reporter.id, user_id_2: reported.id)
 
-      {:ok, %Calls.Voicemail{id: v1_id}} =
+      {:ok, %Calls.Voicemail{id: v1_id}, _new_match_expiration_date = nil} =
         Calls.voicemail_save_message(reported.id, match_id, s3_key_1 = Ecto.UUID.generate())
 
-      {:ok, %Calls.Voicemail{id: v2_id}} =
+      {:ok, %Calls.Voicemail{id: v2_id}, _new_match_expiration_date = nil} =
         Calls.voicemail_save_message(reported.id, match_id, s3_key_2 = Ecto.UUID.generate())
 
       assert :ok == Accounts.report_user(reporter.id, reported.id, "he show dicky")

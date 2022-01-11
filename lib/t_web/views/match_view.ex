@@ -38,12 +38,14 @@ defmodule TWeb.MatchView do
   defp render_contact(%MatchContact{
          contacts: contacts,
          picker_id: picker,
-         opened_contact_type: opened_contact_type
+         opened_contact_type: opened_contact_type,
+         inserted_at: inserted_at
        }) do
     %{
       "contacts" => contacts,
       "picker" => picker,
-      "opened_contact_type" => opened_contact_type
+      "opened_contact_type" => opened_contact_type,
+      "inserted_at" => DateTime.from_naive!(inserted_at, "Etc/UTC")
     }
   end
 

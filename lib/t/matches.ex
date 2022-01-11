@@ -845,17 +845,19 @@ defmodule T.Matches do
     :ok
   end
 
-  def save_contacts_offer_for_match(offerer, match_id, contacts) do
+  def save_contacts_offer_for_match(offerer, match_id, contacts, now \\ DateTime.utc_now()) do
     %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} =
       get_match_for_user!(match_id, offerer)
 
     [mate] = [uid1, uid2] -- [offerer]
-    save_contacts_offer(offerer, mate, match_id, contacts)
+    save_contacts_offer(offerer, mate, match_id, contacts, now)
   end
 
-  defp save_contacts_offer(offerer, mate, match_id, contacts) do
+  defp save_contacts_offer(offerer, mate, match_id, contacts, now) do
     {offerer_name, _number_of_matches1} = user_info(offerer)
     {mate_name, _umber_of_matches2} = user_info(mate)
+    now = DateTime.truncate(now, :second)
+    inserted_at = DateTime.to_naive(now)
 
     m = "contact offer from #{offerer_name} (#{offerer}) to #{mate_name} (#{mate})"
 
@@ -863,7 +865,10 @@ defmodule T.Matches do
     Bot.async_post_message(m)
 
     changeset =
-      contact_changeset(%MatchContact{match_id: match_id, picker_id: mate}, %{contacts: contacts})
+      contact_changeset(
+        %MatchContact{match_id: match_id, picker_id: mate, inserted_at: inserted_at},
+        %{contacts: contacts}
+      )
 
     push_job =
       DispatchJob.new(%{
@@ -879,7 +884,7 @@ defmodule T.Matches do
     |> Multi.delete_all(:timeslots, where(Timeslot, match_id: ^match_id))
     |> Multi.insert(:match_contact, changeset, conflict_opts)
     |> Multi.insert(:match_event, %MatchEvent{
-      timestamp: DateTime.truncate(DateTime.utc_now(), :second),
+      timestamp: now,
       match_id: match_id,
       event: "contact_offer"
     })

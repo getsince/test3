@@ -5,7 +5,7 @@ defmodule T.MatchesTest do
   alias T.{Matches, Feeds, Calls, PushNotifications.DispatchJob}
   alias T.Feeds.FeedProfile
   alias T.Calls.{Call, Voicemail}
-  alias T.Matches.{Match, Like, MatchContact, Timeslot}
+  alias T.Matches.{Match, Like}
 
   describe "unmatch_match/2" do
     test "match no longer, likes no longer, unmatched broadcasted" do
@@ -213,134 +213,6 @@ defmodule T.MatchesTest do
       }
 
       refute Matches.maybe_match_after_end_call(unanswered_call)
-    end
-  end
-
-  describe "match interactions overwrite" do
-    setup do
-      u1 = onboarded_user()
-      u2 = onboarded_user()
-
-      {:ok, %{match: nil}} = Matches.like_user(u1.id, u2.id)
-      {:ok, %{match: %Match{} = match}} = Matches.like_user(u2.id, u1.id)
-
-      {:ok, users: [u1, u2], match: match}
-    end
-
-    test "timeslot offer deletes contacts", ctx do
-      %{users: [u1, u2], match: %{id: match_id}} = ctx
-
-      # this contact will be deleted
-      {:ok, %MatchContact{match_id: ^match_id}} =
-        Matches.save_contacts_offer_for_match(u1.id, match_id, %{"telegram" => "@ruslandoga"})
-
-      now = ~U[2021-12-30 07:53:12.115371Z]
-      slots = ["2021-12-30T10:00:00Z", "2021-12-30T10:30:00Z"]
-      {:ok, %Timeslot{}} = Matches.save_slots_offer_for_match(u2.id, match_id, slots, now)
-
-      refute MatchContact |> where(match_id: ^match_id) |> Repo.exists?()
-    end
-
-    test "timeslot offer deletes voicemail", ctx do
-      %{users: [u1, u2], match: %{id: match_id}} = ctx
-
-      # this voicemail will be deleted
-      {:ok, %Voicemail{match_id: ^match_id}} =
-        Calls.voicemail_save_message(
-          u1.id,
-          match_id,
-          _s3_key = "9f91fdcd-c233-4c50-8009-0bf31a615c05"
-        )
-
-      now = ~U[2021-12-30 07:53:12.115371Z]
-      slots = ["2021-12-30T10:00:00Z", "2021-12-30T10:30:00Z"]
-      {:ok, %Timeslot{}} = Matches.save_slots_offer_for_match(u2.id, match_id, slots, now)
-
-      refute Voicemail |> where(match_id: ^match_id) |> Repo.exists?()
-
-      assert [
-               %{
-                 "bucket" => "pretend-this-is-real",
-                 "s3_key" => "9f91fdcd-c233-4c50-8009-0bf31a615c05"
-               }
-             ] = all_enqueued(worker: T.Media.S3DeleteJob) |> Enum.map(& &1.args)
-    end
-
-    test "contact offer deletes timeslots", ctx do
-      %{users: [u1, u2], match: %{id: match_id}} = ctx
-
-      now = ~U[2021-12-30 07:53:12.115371Z]
-      slots = ["2021-12-30T10:00:00Z", "2021-12-30T10:30:00Z"]
-
-      # this timeslots will be deleted
-      {:ok, %Timeslot{match_id: ^match_id}} =
-        Matches.save_slots_offer_for_match(u2.id, match_id, slots, now)
-
-      {:ok, %MatchContact{}} =
-        Matches.save_contacts_offer_for_match(u1.id, match_id, %{"telegram" => "@ruslandoga"})
-
-      refute Timeslot |> where(match_id: ^match_id) |> Repo.exists?()
-    end
-
-    test "contact offer deletes voicemail", ctx do
-      %{users: [u1, u2], match: %{id: match_id}} = ctx
-
-      # this voicemail will be deleted
-      {:ok, %Voicemail{match_id: ^match_id}} =
-        Calls.voicemail_save_message(
-          u2.id,
-          match_id,
-          _s3_key = "9f91fdcd-c233-4c50-8009-0bf31a615c05"
-        )
-
-      {:ok, %MatchContact{}} =
-        Matches.save_contacts_offer_for_match(u1.id, match_id, %{"telegram" => "@ruslandoga"})
-
-      refute Voicemail |> where(match_id: ^match_id) |> Repo.exists?()
-
-      assert [
-               %{
-                 "bucket" => "pretend-this-is-real",
-                 "s3_key" => "9f91fdcd-c233-4c50-8009-0bf31a615c05"
-               }
-             ] = all_enqueued(worker: T.Media.S3DeleteJob) |> Enum.map(& &1.args)
-    end
-
-    test "voicemail deletes timeslots", ctx do
-      %{users: [u1, u2], match: %{id: match_id}} = ctx
-
-      now = ~U[2021-12-30 07:53:12.115371Z]
-      slots = ["2021-12-30T10:00:00Z", "2021-12-30T10:30:00Z"]
-
-      # this timeslots will be deleted
-      {:ok, %Timeslot{match_id: ^match_id}} =
-        Matches.save_slots_offer_for_match(u2.id, match_id, slots, now)
-
-      {:ok, %Voicemail{}} =
-        Calls.voicemail_save_message(
-          u1.id,
-          match_id,
-          _s3_key = "9f91fdcd-c233-4c50-8009-0bf31a615c05"
-        )
-
-      refute Timeslot |> where(match_id: ^match_id) |> Repo.exists?()
-    end
-
-    test "voicemail deletes contacts", ctx do
-      %{users: [u1, u2], match: %{id: match_id}} = ctx
-
-      # this contact will be deleted
-      {:ok, %MatchContact{match_id: ^match_id}} =
-        Matches.save_contacts_offer_for_match(u1.id, match_id, %{"telegram" => "@ruslandoga"})
-
-      {:ok, %Voicemail{}} =
-        Calls.voicemail_save_message(
-          u2.id,
-          match_id,
-          _s3_key = "9f91fdcd-c233-4c50-8009-0bf31a615c05"
-        )
-
-      refute MatchContact |> where(match_id: ^match_id) |> Repo.exists?()
     end
   end
 

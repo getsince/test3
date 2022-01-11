@@ -8,7 +8,7 @@ defmodule T.Calls do
   alias T.{Repo, Twilio, Accounts, Feeds, Matches}
   alias T.Calls.{Call, Voicemail}
   alias T.Feeds.{FeedProfile}
-  alias T.Matches.{Match, MatchEvent, MatchContact, Timeslot, ArchivedMatch}
+  alias T.Matches.{Match, MatchEvent, ArchivedMatch}
   alias T.PushNotifications.{APNS, DispatchJob}
   alias T.Bot
 
@@ -335,9 +335,8 @@ defmodule T.Calls do
         {:error, :not_found}
       end
     end)
-    |> Multi.delete_all(:contacts, where(MatchContact, match_id: ^match_id))
-    |> Multi.delete_all(:timeslots, where(Timeslot, match_id: ^match_id))
     |> Multi.run(:exchanged_voicemail, fn _repo, %{mate: mate} ->
+      # TODO should still be deleted?
       {count, s3_keys} =
         Voicemail
         |> where(match_id: ^match_id)

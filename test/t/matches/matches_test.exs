@@ -74,10 +74,10 @@ defmodule T.MatchesTest do
       %{user: u2} = insert(:profile)
       %{id: match_id} = insert(:match, user_id_1: u1.id, user_id_2: u2.id)
 
-      {:ok, %Calls.Voicemail{id: v1_id}} =
+      {:ok, %Calls.Voicemail{id: v1_id}, _new_match_expiration_date = nil} =
         Calls.voicemail_save_message(u1.id, match_id, s3_key_1 = Ecto.UUID.generate())
 
-      {:ok, %Calls.Voicemail{id: v2_id}} =
+      {:ok, %Calls.Voicemail{id: v2_id}, _new_match_expiration_date = nil} =
         Calls.voicemail_save_message(u1.id, match_id, s3_key_2 = Ecto.UUID.generate())
 
       Matches.unmatch_match(u1.id, match_id)
@@ -104,10 +104,10 @@ defmodule T.MatchesTest do
       %{user: u2} = insert(:profile)
       %{id: match_id} = insert(:match, user_id_1: u1.id, user_id_2: u2.id)
 
-      {:ok, %Calls.Voicemail{id: v1_id}} =
+      {:ok, %Calls.Voicemail{id: v1_id}, _new_match_expiration_date = nil} =
         Calls.voicemail_save_message(u1.id, match_id, s3_key_1 = Ecto.UUID.generate())
 
-      {:ok, %Calls.Voicemail{id: v2_id}} =
+      {:ok, %Calls.Voicemail{id: v2_id}, _new_match_expiration_date = nil} =
         Calls.voicemail_save_message(u1.id, match_id, s3_key_2 = Ecto.UUID.generate())
 
       Matches.unmatch_with_user(u1.id, u2.id)
@@ -227,14 +227,14 @@ defmodule T.MatchesTest do
     test "can list multiple voicemail messages", ctx do
       %{profiles: [%{user_id: u1_id}, %{user_id: u2_id}], match: %{id: match_id}} = ctx
 
-      {:ok, %Voicemail{} = v1} =
+      {:ok, %Voicemail{} = v1, _new_match_expiration_date = nil} =
         Calls.voicemail_save_message(
           u1_id,
           match_id,
           _s3_key = "4f5509bd-b26a-45c0-b858-6f48172678d5"
         )
 
-      {:ok, %Voicemail{} = v2} =
+      {:ok, %Voicemail{} = v2, _new_match_expiration_date = nil} =
         Calls.voicemail_save_message(
           u1_id,
           match_id,
@@ -274,6 +274,8 @@ defmodule T.MatchesTest do
         match: %{id: match_id, inserted_at: inserted_at}
       } = ctx
 
+      Feeds.subscribe_for_user(u2_id)
+
       expected_expiration_date =
         inserted_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.add(_48_hours = 2 * 24 * 3600)
 
@@ -285,8 +287,11 @@ defmodule T.MatchesTest do
 
       # incomplete (one-way) voicemail exchange doesn't change the expiration date
 
-      {:ok, _voicemail} =
+      {:ok, %Voicemail{}, _new_match_expiration_date = nil} =
         Calls.voicemail_save_message(u1_id, match_id, _s3_key = Ecto.UUID.generate())
+
+      assert_receive {Calls, [:voicemail, :received],
+                      %{expiration_date: nil, voicemail: %Voicemail{}}}
 
       assert [%Match{id: ^match_id, expiration_date: ^expected_expiration_date}] =
                Matches.list_matches(u1_id)
@@ -301,14 +306,19 @@ defmodule T.MatchesTest do
         match: %{id: match_id, inserted_at: inserted_at}
       } = ctx
 
-      {:ok, _voicemail} =
-        Calls.voicemail_save_message(u1_id, match_id, _s3_key = Ecto.UUID.generate())
-
-      {:ok, _voicemail} =
-        Calls.voicemail_save_message(u2_id, match_id, _s3_key = Ecto.UUID.generate())
+      Feeds.subscribe_for_user(u1_id)
 
       expected_expiration_date =
         inserted_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.add(_7_days = 7 * 24 * 3600)
+
+      {:ok, %Voicemail{}, _new_match_expiration_date = nil} =
+        Calls.voicemail_save_message(u1_id, match_id, _s3_key = Ecto.UUID.generate())
+
+      {:ok, %Voicemail{}, ^expected_expiration_date} =
+        Calls.voicemail_save_message(u2_id, match_id, _s3_key = Ecto.UUID.generate())
+
+      assert_receive {Calls, [:voicemail, :received],
+                      %{expiration_date: ^expected_expiration_date, voicemail: %Voicemail{}}}
 
       assert [%Match{id: ^match_id, expiration_date: ^expected_expiration_date}] =
                Matches.list_matches(u1_id)

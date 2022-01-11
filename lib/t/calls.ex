@@ -6,10 +6,10 @@ defmodule T.Calls do
   require Logger
 
   alias T.{Repo, Twilio, Accounts, Feeds, Matches}
-  alias T.Calls.Call
+  alias T.Calls.{Call, Voicemail}
   alias T.Feeds.{FeedProfile}
-  alias T.Matches.{Match, MatchEvent}
-  alias T.PushNotifications.APNS
+  alias T.Matches.{Match, MatchEvent, MatchContact, Timeslot, ArchivedMatch}
+  alias T.PushNotifications.{APNS, DispatchJob}
   alias T.Bot
 
   @type uuid :: Ecto.Bigflake.UUID.t()
@@ -291,5 +291,119 @@ defmodule T.Calls do
     |> join(:inner, [c], p in FeedProfile, on: c.caller_id == p.user_id)
     |> select([c, p], {c, p})
     |> Repo.all()
+  end
+
+  alias T.Media
+
+  def voicemail_s3_url do
+    Media.user_s3_url()
+  end
+
+  def voicemail_url(s3_key) do
+    Media.user_presigned_url(s3_key)
+  end
+
+  def voicemail_upload_form(content_type) do
+    Media.sign_form_upload(
+      key: Ecto.UUID.generate(),
+      content_type: content_type,
+      # 50 MB
+      max_file_size: 50_000_000,
+      expires_in: :timer.hours(1),
+      acl: "private"
+    )
+  end
+
+  @spec voicemail_save_message(uuid, uuid, uuid) ::
+          {:ok, %Voicemail{}} | {:error, reason :: String.t()}
+  def voicemail_save_message(caller_id, match_id, s3_key) do
+    voicemail = %Voicemail{caller_id: caller_id, match_id: match_id, s3_key: s3_key}
+
+    Multi.new()
+    |> Multi.run(:mate, fn _repo, _changes ->
+      users =
+        Match
+        |> where(id: ^match_id)
+        |> where([m], m.user_id_1 == ^caller_id or m.user_id_2 == ^caller_id)
+        |> select([m], [m.user_id_1, m.user_id_2])
+        |> Repo.one()
+
+      if users do
+        [mate] = users -- [caller_id]
+        {:ok, mate}
+      else
+        {:error, :not_found}
+      end
+    end)
+    |> Multi.delete_all(:contacts, where(MatchContact, match_id: ^match_id))
+    |> Multi.delete_all(:timeslots, where(Timeslot, match_id: ^match_id))
+    |> Multi.run(:exchanged_voicemail, fn _repo, %{mate: mate} ->
+      {count, s3_keys} =
+        Voicemail
+        |> where(match_id: ^match_id)
+        |> where(caller_id: ^mate)
+        |> select([v], v.s3_key)
+        |> Repo.delete_all()
+
+      schedule_s3_delete(s3_keys)
+      mate_sent_voicemail? = count >= 1
+
+      if mate_sent_voicemail? do
+        Match
+        |> where(id: ^match_id)
+        |> Repo.update_all(set: [exchanged_voicemail: true])
+
+        {:ok, true}
+      else
+        {:ok, false}
+      end
+    end)
+    |> Multi.insert(:voicemail, voicemail)
+    |> Oban.insert(:push, fn %{mate: mate} ->
+      DispatchJob.new(%{
+        "type" => "voicemail_sent",
+        "match_id" => match_id,
+        "caller_id" => caller_id,
+        "receiver_id" => mate
+      })
+    end)
+    |> Multi.delete_all(:unarchive, where(ArchivedMatch, match_id: ^match_id))
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{voicemail: voicemail, mate: mate}} ->
+        m =
+          "voicemail from #{fetch_name(caller_id)} (#{caller_id}) to #{fetch_name(mate)} (#{mate})"
+
+        Logger.warn(m)
+        Bot.async_post_message(m)
+
+        Feeds.broadcast_for_user(mate, {__MODULE__, [:voicemail, :received], voicemail})
+
+        {:ok, voicemail}
+
+      {:error, :mate, :not_found, _changes} ->
+        {:error, "voicemail not allowed"}
+    end
+  end
+
+  @spec voicemail_delete_all(uuid) :: :ok
+  def voicemail_delete_all(match_id) do
+    {_count, s3_keys} =
+      Voicemail
+      |> where(match_id: ^match_id)
+      |> select([v], v.s3_key)
+      |> Repo.delete_all()
+
+    schedule_s3_delete(s3_keys)
+
+    :ok
+  end
+
+  defp schedule_s3_delete(s3_keys) do
+    bucket = Media.user_bucket()
+
+    s3_keys
+    |> Enum.map(fn s3_key -> Media.S3DeleteJob.new(%{"bucket" => bucket, "s3_key" => s3_key}) end)
+    |> Oban.insert_all()
   end
 end

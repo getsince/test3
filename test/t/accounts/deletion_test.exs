@@ -32,16 +32,24 @@ defmodule T.Accounts.DeletionTest do
       Matches.subscribe_for_user(p2.user_id)
 
       assert {:ok, %{match: nil}} = Matches.like_user(p2.user_id, user.id)
-      assert {:ok, %{match: %Match{id: match_id}}} = Matches.like_user(user.id, p2.user_id)
 
-      assert_receive {Matches, :matched, %{expiration_date: expiration_date} = match}
+      assert {:ok, %{match: %Match{id: match_id, inserted_at: inserted_at}}} =
+               Matches.like_user(user.id, p2.user_id)
+
+      expiration_date =
+        inserted_at
+        |> DateTime.from_naive!("Etc/UTC")
+        |> DateTime.add(Matches.pre_voicemail_ttl())
+
+      assert_receive {Matches, :matched, match}
       user_id = user.id
 
       assert match == %{
                id: match_id,
                mate: user_id,
                audio_only: false,
-               expiration_date: expiration_date
+               expiration_date: expiration_date,
+               inserted_at: inserted_at
              }
 
       assert {:ok, %{delete_user: true, unmatch: [true]}} = Accounts.delete_user(user.id)

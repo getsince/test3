@@ -6,8 +6,6 @@ defmodule TWeb.FeedChannel do
   alias T.{Feeds, Calls, Matches, Accounts}
   alias T.Feeds.FeedFilter
 
-  @match_ttl 604_800
-
   @impl true
   def join("feed:" <> user_id, params, socket) do
     if ChannelHelpers.valid_user_topic?(socket, user_id) do
@@ -16,6 +14,7 @@ defmodule TWeb.FeedChannel do
 
       :ok = Matches.subscribe_for_user(user_id)
       :ok = Accounts.subscribe_for_user(user_id)
+      :ok = Feeds.subscribe_for_user(user_id)
       :ok = Feeds.subscribe_for_mode_change()
 
       newbies_live_enabled? = Application.get_env(:t, :newbies_live_enabled?)
@@ -39,8 +38,6 @@ defmodule TWeb.FeedChannel do
   end
 
   defp join_live_mode(user_id, screen_width, socket) do
-    :ok = Feeds.subscribe_for_user(user_id)
-
     %FeedFilter{genders: want_genders} = feed_filter = Feeds.get_feed_filter(user_id)
     {_location, gender} = Accounts.get_location_and_gender!(user_id)
 
@@ -68,8 +65,12 @@ defmodule TWeb.FeedChannel do
 
     reply =
       %{"mode" => "live"}
+      # TODO remove
       |> Map.put("session_expiration_date", session_end)
+      # TODO remove
       |> Map.put("live_session_duration", live_session_duration)
+      |> Map.put("session_start_date", session_start)
+      |> Map.put("session_end_date", session_end)
       |> maybe_put("missed_calls", missed_calls)
       |> maybe_put("invites", invites)
       |> maybe_put("matches", matches)
@@ -106,7 +107,8 @@ defmodule TWeb.FeedChannel do
     reply =
       %{"mode" => "normal"}
       |> Map.put("since_live_date", since_live_date)
-      |> Map.put("match_expiration_duration", @match_ttl)
+      # TODO remove?
+      |> Map.put("match_expiration_duration", Matches.pre_voicemail_ttl())
       |> maybe_put("missed_calls", missed_calls)
       |> maybe_put("likes", likes)
       |> maybe_put("matches", matches)
@@ -230,17 +232,20 @@ defmodule TWeb.FeedChannel do
 
         {:ok,
          %{
-           match: %{id: match_id},
-           audio_only: [_our, mate_audio_only],
-           event: %{timestamp: timestamp}
+           match: %{id: match_id, inserted_at: inserted_at},
+           audio_only: [_our, mate_audio_only]
          }} ->
-          expiration_date = timestamp |> DateTime.add(@match_ttl)
+          # TODO return these timestamps from like_user
+          inserted_at = DateTime.from_naive!(inserted_at, "Etc/UTC")
+          expiration_date = DateTime.add(inserted_at, Matches.pre_voicemail_ttl())
 
           {:ok,
            %{
              "match_id" => match_id,
              "audio_only" => mate_audio_only,
-             "expiration_date" => expiration_date
+             "expiration_date" => expiration_date,
+             "inserted_at" => inserted_at,
+             "exchanged_voicemail" => false
            }}
 
         {:error, _step, _reason, _changes} ->
@@ -366,6 +371,18 @@ defmodule TWeb.FeedChannel do
     {:reply, :ok, socket}
   end
 
+  # voicemail
+
+  def handle_in("send-voicemail", %{"match_id" => match_id, "s3_key" => s3_key}, socket) do
+    reply =
+      case Calls.voicemail_save_message(me_id(socket), match_id, s3_key) do
+        {:ok, %Calls.Voicemail{id: message_id}} -> {:ok, %{"id" => message_id}}
+        {:error, reason} -> {:error, %{"reason" => reason}}
+      end
+
+    {:reply, reply, socket}
+  end
+
   @impl true
   def handle_info({Matches, :liked, like}, socket) do
     %{screen_width: screen_width} = socket.assigns
@@ -384,6 +401,7 @@ defmodule TWeb.FeedChannel do
 
     %{
       id: match_id,
+      inserted_at: inserted_at,
       expiration_date: expiration_date,
       mate: mate_id,
       audio_only: audio_only
@@ -397,7 +415,9 @@ defmodule TWeb.FeedChannel do
             audio_only: audio_only,
             profile: profile,
             screen_width: screen_width,
-            expiration_date: expiration_date
+            inserted_at: inserted_at,
+            expiration_date: expiration_date,
+            exchanged_voice: false
           })
       })
     end
@@ -488,6 +508,25 @@ defmodule TWeb.FeedChannel do
     {:noreply, assign(socket, :feed_filter, feed_filter)}
   end
 
+  def handle_info({Calls, [:voicemail, :received], voicemail}, socket) do
+    %Calls.Voicemail{
+      id: id,
+      s3_key: s3_key,
+      match_id: match_id,
+      inserted_at: inserted_at
+    } = voicemail
+
+    push(socket, "voicemail_received", %{
+      "match_id" => match_id,
+      "id" => id,
+      "s3_key" => s3_key,
+      "url" => Calls.voicemail_url(s3_key),
+      "inserted_at" => DateTime.from_naive!(inserted_at, "Etc/UTC")
+    })
+
+    {:noreply, socket}
+  end
+
   def handle_info({Feeds, [:mode_change, event]}, socket) do
     socket =
       case {event, socket.assigns[:mode]} do
@@ -562,18 +601,22 @@ defmodule TWeb.FeedChannel do
     Enum.map(matches, fn
       %Matches.Match{
         id: match_id,
+        inserted_at: inserted_at,
         audio_only: audio_only,
         profile: profile,
         interaction: interaction,
-        expiration_date: expiration_date
+        expiration_date: expiration_date,
+        exchanged_voicemail: exchanged_voice
       } ->
         render_match(%{
           id: match_id,
+          inserted_at: inserted_at,
           audio_only: audio_only,
           profile: profile,
           interaction: interaction,
           screen_width: screen_width,
-          expiration_date: expiration_date
+          expiration_date: expiration_date,
+          exchanged_voice: exchanged_voice
         })
 
       %Matches.ExpiredMatch{

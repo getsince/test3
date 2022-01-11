@@ -1,6 +1,16 @@
 defmodule T.Factory do
   use ExMachina.Ecto, repo: T.Repo
-  alias T.Accounts.{User, Profile, GenderPreference, UserSettings, APNSDevice, UserToken}
+
+  alias T.Accounts.{
+    User,
+    Profile,
+    GenderPreference,
+    UserSettings,
+    APNSDevice,
+    PushKitDevice,
+    UserToken
+  }
+
   alias T.Feeds.{SeenProfile, LiveSession, LiveInvite}
   alias T.Matches.{Match, Timeslot, ExpiredMatch, MatchEvent, MatchContact}
   alias T.Calls.Call
@@ -80,6 +90,19 @@ defmodule T.Factory do
       topic: APNS.default_topic(),
       env: "sandbox",
       locale: "en",
+      token: build(:user_token, user: user)
+    }
+  end
+
+  def push_kit_device_factory do
+    alias T.PushNotifications.APNS
+
+    user = build(:user)
+
+    %PushKitDevice{
+      user: user,
+      topic: APNS.default_topic(),
+      env: "sandbox",
       token: build(:user_token, user: user)
     }
   end

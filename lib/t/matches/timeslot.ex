@@ -11,6 +11,7 @@ defmodule T.Matches.Timeslot do
 
     field :slots, {:array, :utc_datetime}
     field :selected_slot, :utc_datetime
+    field :accepted_at, :utc_datetime
 
     timestamps(updated_at: false)
   end

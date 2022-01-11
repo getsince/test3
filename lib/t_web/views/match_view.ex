@@ -22,13 +22,17 @@ defmodule TWeb.MatchView do
     match
   end
 
-  defp render_timeslot(%Timeslot{selected_slot: selected_slot})
-       when not is_nil(selected_slot) do
-    %{"selected_slot" => selected_slot}
+  defp render_timeslot(%Timeslot{
+         selected_slot: nil,
+         accepted_at: nil,
+         picker_id: picker,
+         slots: slots
+       }) do
+    %{"slots" => slots, "picker" => picker}
   end
 
-  defp render_timeslot(%Timeslot{picker_id: picker, slots: slots}) do
-    %{"slots" => slots, "picker" => picker}
+  defp render_timeslot(%Timeslot{selected_slot: selected_slot, accepted_at: accepted_at}) do
+    %{"selected_slot" => selected_slot, "accepted_at" => accepted_at}
   end
 
   defp render_contact(%MatchContact{

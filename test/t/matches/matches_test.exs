@@ -242,9 +242,9 @@ defmodule T.MatchesTest do
         )
 
       # both me and mate receive current voicemail in interaction, no matter who left it
-      assert [%Match{id: ^match_id, interaction: voicemail}] = Matches.list_matches(u1_id)
-      assert [%Match{id: ^match_id, interaction: ^voicemail}] = Matches.list_matches(u2_id)
-      assert voicemail == [v1, v2]
+      assert [%Match{id: ^match_id, voicemail: voicemail}] = Matches.list_matches(u1_id)
+      assert [%Match{id: ^match_id, voicemail: ^voicemail}] = Matches.list_matches(u2_id)
+      assert_lists_equal(voicemail, [v1, v2])
     end
 
     test "matches with calls don't have expiration date", ctx do

@@ -13,12 +13,12 @@ defmodule T.Matches.Match do
     # TODO
     field :profile, :map, virtual: true
 
+    # TODO :interactions?
     has_one :timeslot, T.Matches.Timeslot
     has_one :contact, T.Matches.MatchContact
     has_many :voicemail, T.Calls.Voicemail
 
     field :expiration_date, :utc_datetime, virtual: true
-    field :interaction, :map, virtual: true
     field :audio_only, :boolean, virtual: true
 
     # embeds_one :slot_offer, Timeslot do

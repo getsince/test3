@@ -10,7 +10,6 @@ defmodule T.Matches do
   alias T.Matches.{Match, Like, Timeslot, MatchEvent, ExpiredMatch, MatchContact, ArchivedMatch}
   alias T.Feeds.{FeedProfile, LiveSession}
   alias T.Accounts.{Profile, UserSettings}
-  alias T.Calls.Voicemail
   alias T.PushNotifications.DispatchJob
   alias T.Bot
 
@@ -333,24 +332,10 @@ defmodule T.Matches do
           true -> pre_voicemail_expiration_date(match)
         end
 
-      %Match{
-        match
-        | expiration_date: expiration_date,
-          interaction: interaction(match)
-      }
+      %Match{match | expiration_date: expiration_date}
     end)
     |> preload_match_profiles(user_id)
   end
-
-  defp interaction(%Match{timeslot: %Timeslot{} = timeslot}), do: timeslot
-  defp interaction(%Match{contact: %MatchContact{} = contact}), do: contact
-
-  # TODO order voicemail in db
-  defp interaction(%Match{voicemail: [%Voicemail{} | _rest] = voicemail}) do
-    Enum.sort_by(voicemail, & &1.id)
-  end
-
-  defp interaction(%Match{}), do: nil
 
   defp post_voicemail_expiration_date(%Match{inserted_at: inserted_at}) do
     inserted_at

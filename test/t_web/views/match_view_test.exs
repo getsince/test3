@@ -12,7 +12,7 @@ defmodule TWeb.MatchViewTest do
 
     match = %Match{
       id: "0000017e-0be1-dc5f-06e9-e8bbc6570000",
-      interaction: [
+      voicemail: [
         %Voicemail{
           id: "0000017e-0c0c-d02f-06e9-e8bbc6570000",
           caller_id: mate_id,
@@ -37,7 +37,7 @@ defmodule TWeb.MatchViewTest do
 
     assigns = %{
       id: match.id,
-      interaction: match.interaction,
+      voicemail: match.voicemail,
       profile: profile,
       screen_width: 1000
     }

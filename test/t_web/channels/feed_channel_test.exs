@@ -55,7 +55,7 @@ defmodule TWeb.FeedChannelTest do
 
       # second match starts off as timeslots exchange
       Matches.save_slots_offer_for_match(p2.id, m2.id, raw_slots, now)
-      # but turns into contacs exchange as well
+      # and then sends contacts as well
       Matches.save_contacts_offer_for_match(
         me.id,
         m2.id,
@@ -132,6 +132,12 @@ defmodule TWeb.FeedChannelTest do
                      ~U[2021-09-30 15:30:00Z],
                      ~U[2021-09-30 15:45:00Z]
                    ]
+                 },
+                 "contact" => %{
+                   "contacts" => %{"whatsapp" => "+79666666666"},
+                   "inserted_at" => ~U[2021-09-30 14:47:00Z],
+                   "opened_contact_type" => nil,
+                   "picker" => p2.id
                  },
                  "audio_only" => false,
                  "expiration_date" => ~U[2021-10-02 12:16:06Z],

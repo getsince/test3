@@ -11,28 +11,32 @@ defmodule TWeb.MatchView do
         DateTime.from_naive!(naive, "Etc/UTC")
       end
 
+    timeslot =
+      case assigns[:timeslot] do
+        %Timeslot{} = timeslot -> render_timeslot(timeslot)
+        _not_loaded_or_nil -> nil
+      end
+
+    contact =
+      case assigns[:contact] do
+        %MatchContact{} = contact -> render_contact(contact)
+        _not_loaded_or_nil -> nil
+      end
+
+    voicemail =
+      case assigns[:voicemail] do
+        [%Voicemail{} | _rest] = voicemail -> render_voicemail(voicemail)
+        _not_loaded_or_empty -> nil
+      end
+
     %{"id" => id, "profile" => render(FeedView, "feed_profile.json", assigns)}
     |> maybe_put("exchanged_voice", assigns[:exchanged_voice])
     |> maybe_put("inserted_at", inserted_at)
     |> maybe_put("audio_only", assigns[:audio_only])
     |> maybe_put("expiration_date", assigns[:expiration_date])
-    |> maybe_put_interaction(assigns[:interaction])
-  end
-
-  defp maybe_put_interaction(match, %Timeslot{} = timeslot) do
-    Map.put(match, "timeslot", render_timeslot(timeslot))
-  end
-
-  defp maybe_put_interaction(match, %MatchContact{} = contact) do
-    Map.put(match, "contact", render_contact(contact))
-  end
-
-  defp maybe_put_interaction(match, [%Voicemail{} | _rest] = voicemail) do
-    Map.put(match, "voicemail", render_voicemail(voicemail))
-  end
-
-  defp maybe_put_interaction(match, nil) do
-    match
+    |> maybe_put("timeslot", timeslot)
+    |> maybe_put("contact", contact)
+    |> maybe_put("voicemail", voicemail)
   end
 
   defp render_timeslot(%Timeslot{
@@ -64,7 +68,9 @@ defmodule TWeb.MatchView do
 
   defp render_voicemail(voicemail) do
     grouped =
-      Enum.group_by(voicemail, & &1.caller_id, fn voicemail ->
+      voicemail
+      |> Enum.sort_by(& &1.id)
+      |> Enum.group_by(& &1.caller_id, fn voicemail ->
         %Voicemail{id: id, inserted_at: inserted_at, s3_key: s3_key} = voicemail
 
         %{

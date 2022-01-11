@@ -33,26 +33,20 @@ defmodule TWeb.FeedChannelTest do
         insert(:match, user_id_1: me.id, user_id_2: p3.id, inserted_at: ~N[2021-09-30 12:16:07])
       ]
 
-      # if it's 14:47 right now ...
-      %DateTime{hour: next_hour} = dt = DateTime.utc_now() |> DateTime.add(_seconds = 3600)
-      date = DateTime.to_date(dt)
+      now = ~U[2021-09-30 14:47:00.123456Z]
 
-      # ... then the slots are
       slots = [
-        # 15:15
-        DateTime.new!(date, Time.new!(next_hour, 15, 0)),
-        # 15:30
-        s2 = DateTime.new!(date, Time.new!(next_hour, 30, 0)),
-        # 15:45
-        DateTime.new!(date, Time.new!(next_hour, 45, 0))
+        ~U[2021-09-30 15:15:00Z],
+        s2 = ~U[2021-09-30 15:30:00Z],
+        ~U[2021-09-30 15:45:00Z]
       ]
 
       raw_slots = Enum.map(slots, &DateTime.to_iso8601/1)
 
-      Matches.save_slots_offer_for_match(p2.id, m2.id, raw_slots)
+      Matches.save_slots_offer_for_match(p2.id, m2.id, raw_slots, now)
 
-      Matches.save_slots_offer_for_match(me.id, m3.id, raw_slots)
-      Matches.accept_slot_for_match(p3.id, m3.id, DateTime.to_iso8601(s2))
+      Matches.save_slots_offer_for_match(me.id, m3.id, raw_slots, now)
+      Matches.accept_slot_for_match(p3.id, m3.id, DateTime.to_iso8601(s2), now)
 
       # add contact to m1
 
@@ -76,7 +70,7 @@ defmodule TWeb.FeedChannelTest do
                %{
                  "id" => m3.id,
                  "profile" => %{name: "mate-3", story: [], user_id: p3.id, gender: "M"},
-                 "timeslot" => %{"selected_slot" => s2},
+                 "timeslot" => %{"selected_slot" => s2, "accepted_at" => ~U[2021-09-30 14:47:00Z]},
                  "audio_only" => false,
                  "expiration_date" => ~U[2021-10-07 12:16:07Z]
                },

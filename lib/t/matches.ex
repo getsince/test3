@@ -710,6 +710,7 @@ defmodule T.Matches do
     )
 
     {:ok, slot, 0} = DateTime.from_iso8601(slot)
+    accepted_at = DateTime.truncate(reference, :second)
 
     {picker_name, _number_of_matches1} = user_info(picker)
     {mate_name, _umber_of_matches2} = user_info(mate)
@@ -733,7 +734,7 @@ defmodule T.Matches do
       |> where(picker_id: ^picker)
       |> where([t], ^slot in t.slots)
       |> select([t], t)
-      |> Repo.update_all(set: [selected_slot: slot])
+      |> Repo.update_all(set: [selected_slot: slot, accepted_at: accepted_at])
 
     broadcast_for_user(mate, {__MODULE__, [:timeslot, :accepted], timeslot})
 

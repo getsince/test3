@@ -251,7 +251,7 @@ msgstr ""
 msgid "%{name} прислали тебe аудио-сообщение!"
 msgstr ""
 
-#, elixir-format, ex-autogen, fuzzy
+#, elixir-format, ex-autogen
 #: lib/t/push_notifications/apns.ex:327
 msgid "Заходи, чтобы просмотреть и ответить ✨"
 msgstr ""

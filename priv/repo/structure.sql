@@ -190,7 +190,8 @@ CREATE TABLE public.match_contact (
     picker_id uuid NOT NULL,
     inserted_at timestamp(0) without time zone NOT NULL,
     contacts jsonb,
-    opened_contact_type character varying(255)
+    opened_contact_type character varying(255),
+    seen_at timestamp(0) without time zone
 );
 
 
@@ -214,7 +215,8 @@ CREATE TABLE public.match_timeslot (
     picker_id uuid NOT NULL,
     slots timestamp(0) without time zone[] DEFAULT ARRAY[]::timestamp without time zone[],
     selected_slot timestamp(0) without time zone,
-    inserted_at timestamp(0) without time zone NOT NULL
+    inserted_at timestamp(0) without time zone NOT NULL,
+    accepted_at timestamp(0) without time zone
 );
 
 
@@ -227,7 +229,8 @@ CREATE TABLE public.match_voicemail (
     caller_id uuid NOT NULL,
     match_id uuid NOT NULL,
     s3_key character varying(255),
-    inserted_at timestamp(0) without time zone NOT NULL
+    inserted_at timestamp(0) without time zone NOT NULL,
+    listened_at timestamp(0) without time zone
 );
 
 
@@ -1073,3 +1076,6 @@ INSERT INTO public."schema_migrations" (version) VALUES (20211222133341);
 INSERT INTO public."schema_migrations" (version) VALUES (20211225072543);
 INSERT INTO public."schema_migrations" (version) VALUES (20211229125434);
 INSERT INTO public."schema_migrations" (version) VALUES (20220101121429);
+INSERT INTO public."schema_migrations" (version) VALUES (20220111113337);
+INSERT INTO public."schema_migrations" (version) VALUES (20220112131454);
+INSERT INTO public."schema_migrations" (version) VALUES (20220112133053);

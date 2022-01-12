@@ -326,7 +326,7 @@ defmodule TWeb.FeedChannel do
   def handle_in("open-contact", %{"match_id" => match_id, "contact_type" => contact_type}, socket) do
     me = me_id(socket)
 
-    :ok = Matches.open_contact_for_match(me, match_id, contact_type)
+    :ok = Matches.open_contact_for_match(me, match_id, contact_type, utc_now(socket))
 
     {:reply, :ok, socket}
   end

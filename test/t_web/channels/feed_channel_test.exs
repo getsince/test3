@@ -1465,6 +1465,7 @@ defmodule TWeb.FeedChannelTest do
         inserted_at: ~N[2021-09-30 13:16:05]
       )
 
+      freeze_time(socket, ~U[2022-01-12 13:18:42.240988Z])
       ref = push(socket, "open-contact", %{"match_id" => m1.id, "contact_type" => "telegram"})
       assert_reply(ref, :ok, _reply)
 
@@ -1479,7 +1480,8 @@ defmodule TWeb.FeedChannelTest do
                    "contacts" => %{"telegram" => "@abcde"},
                    "picker" => p1.id,
                    "opened_contact_type" => "telegram",
-                   "inserted_at" => ~U[2021-09-30 13:16:05Z]
+                   "inserted_at" => ~U[2021-09-30 13:16:05Z],
+                   "seen_at" => ~U[2022-01-12 13:18:42Z]
                  },
                  "audio_only" => false,
                  "expiration_date" => ~U[2021-10-02 12:16:05Z],
@@ -1501,7 +1503,8 @@ defmodule TWeb.FeedChannelTest do
                    "contacts" => %{"telegram" => "@abcde"},
                    "picker" => p1.id,
                    "opened_contact_type" => nil,
-                   "inserted_at" => ~U[2021-09-30 13:16:05Z]
+                   "inserted_at" => ~U[2021-09-30 13:16:05Z],
+                   "seen_at" => ~U[2022-01-12 13:18:42Z]
                  },
                  "audio_only" => false,
                  "expiration_date" => ~U[2021-10-02 12:16:05Z],

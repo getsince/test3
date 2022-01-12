@@ -966,8 +966,9 @@ defmodule T.Matches do
     :ok
   end
 
-  def open_contact_for_match(me, match_id, contact_type) do
+  def open_contact_for_match(me, match_id, contact_type, now \\ DateTime.utc_now()) do
     m = "contact opened for match #{match_id} by #{me}"
+    seen_at = DateTime.truncate(now, :second)
 
     Logger.warn(m)
     Bot.async_post_message(m)
@@ -975,7 +976,7 @@ defmodule T.Matches do
     {1, _} =
       MatchContact
       |> where(match_id: ^match_id)
-      |> Repo.update_all(set: [opened_contact_type: contact_type])
+      |> Repo.update_all(set: [opened_contact_type: contact_type, seen_at: seen_at])
 
     :ok
   end

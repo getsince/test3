@@ -386,6 +386,11 @@ defmodule TWeb.FeedChannel do
     {:reply, reply, socket}
   end
 
+  def handle_in("listen-voicemail", %{"id" => voicemail_id}, socket) do
+    Calls.voicemail_listen_message(me_id(socket), voicemail_id, utc_now(socket))
+    {:reply, :ok, socket}
+  end
+
   @impl true
   def handle_info({Matches, :liked, like}, socket) do
     %{screen_width: screen_width} = socket.assigns

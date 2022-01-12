@@ -400,6 +400,23 @@ defmodule T.Calls do
     end
   end
 
+  @spec voicemail_listen_message(uuid, uuid, DateTime.t()) :: boolean()
+  def voicemail_listen_message(user_id, voicemail_id, now \\ DateTime.utc_now()) do
+    listened_at = DateTime.truncate(now, :second)
+
+    {count, _} =
+      Voicemail
+      |> where(id: ^voicemail_id)
+      |> join(:inner, [v], m in Match,
+        on: m.id == v.match_id and (m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
+      )
+      |> where([v], v.caller_id != ^user_id)
+      |> where([v, m], v.caller_id == m.user_id_1 or v.caller_id == m.user_id_2)
+      |> Repo.update_all(set: [listened_at: listened_at])
+
+    count == 1
+  end
+
   @spec voicemail_delete_all(uuid) :: :ok
   def voicemail_delete_all(match_id) do
     {_count, s3_keys} =

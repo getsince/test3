@@ -69,14 +69,17 @@ defmodule TWeb.MatchView do
          contacts: contacts,
          picker_id: picker,
          opened_contact_type: opened_contact_type,
-         inserted_at: inserted_at
+         inserted_at: inserted_at,
+         seen_at: seen_at
        }) do
-    %{
+    contact = %{
       "contacts" => contacts,
       "picker" => picker,
       "opened_contact_type" => opened_contact_type,
       "inserted_at" => DateTime.from_naive!(inserted_at, "Etc/UTC")
     }
+
+    maybe_put(contact, "seen_at", seen_at)
   end
 
   defp render_voicemail(voicemail) do

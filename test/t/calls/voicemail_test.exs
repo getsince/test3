@@ -63,6 +63,58 @@ defmodule T.Calls.VoicemailTest do
     end
   end
 
+  describe "voicemail_listen_message/3" do
+    test "failure: caller can't listen to their own message" do
+      caller = onboarded_user()
+      called = onboarded_user()
+
+      match = insert(:match, user_id_1: caller.id, user_id_2: called.id)
+
+      assert {:ok, %Voicemail{} = voicemail, _new_match_expiration_date = nil} =
+               Calls.voicemail_save_message(caller.id, match.id, _s3_key = Ecto.UUID.generate())
+
+      refute Calls.voicemail_listen_message(caller.id, voicemail.id)
+      assert %Voicemail{listened_at: nil} = Repo.get!(Voicemail, voicemail.id)
+    end
+
+    test "failure: user outside of the match can't to listen to their messages" do
+      caller = onboarded_user()
+      called = onboarded_user()
+      spy = onboarded_user()
+
+      match = insert(:match, user_id_1: caller.id, user_id_2: called.id)
+
+      assert {:ok, %Voicemail{} = voicemail, _new_match_expiration_date = nil} =
+               Calls.voicemail_save_message(caller.id, match.id, _s3_key = Ecto.UUID.generate())
+
+      refute Calls.voicemail_listen_message(spy.id, voicemail.id)
+      assert %Voicemail{listened_at: nil} = Repo.get!(Voicemail, voicemail.id)
+    end
+
+    test "failure: can't listen a voicemail that doesn't exist" do
+      me = onboarded_user()
+      refute Calls.voicemail_listen_message(me.id, Ecto.Bigflake.UUID.generate())
+    end
+
+    test "success: sets listened_at" do
+      caller = onboarded_user()
+      called = onboarded_user()
+
+      match = insert(:match, user_id_1: caller.id, user_id_2: called.id)
+
+      assert {:ok, %Voicemail{} = voicemail, _new_match_expiration_date = nil} =
+               Calls.voicemail_save_message(caller.id, match.id, _s3_key = Ecto.UUID.generate())
+
+      refute voicemail.listened_at
+
+      now = DateTime.utc_now()
+      assert Calls.voicemail_listen_message(called.id, voicemail.id, now)
+
+      assert %Voicemail{} = listened_voicemail = Repo.get!(Voicemail, voicemail.id)
+      assert listened_voicemail.listened_at == DateTime.truncate(now, :second)
+    end
+  end
+
   describe "voicemail_delete_all/1" do
     test "deletes all voicemail and schedules deletions from s3" do
       me = onboarded_user()

@@ -11,6 +11,7 @@ defmodule T.Calls.Voicemail do
     belongs_to :caller, User
     belongs_to :match, Match
     field :s3_key, :string
+    field :listened_at, :utc_datetime
     timestamps(updated_at: false)
   end
 end

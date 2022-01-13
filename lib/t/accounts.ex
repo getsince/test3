@@ -490,7 +490,9 @@ defmodule T.Accounts do
       key: Ecto.UUID.generate(),
       content_type: content_type,
       max_file_size: 8_000_000,
-      expires_in: :timer.hours(1)
+      expires_in: :timer.hours(1),
+      # TODO private
+      acl: "public-read"
     )
   end
 

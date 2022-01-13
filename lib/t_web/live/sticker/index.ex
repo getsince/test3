@@ -67,7 +67,8 @@ defmodule TWeb.StickerLive.Index do
         key: key,
         content_type: entry.client_type,
         max_file_size: uploads.sticker.max_file_size,
-        expires_in: :timer.hours(1)
+        expires_in: :timer.hours(1),
+        acl: "public-read"
       )
 
     meta = %{uploader: "S3", key: key, url: Media.static_s3_url(), fields: fields}

@@ -1,23 +1,26 @@
 defmodule T.MatchesTest do
-  use T.DataCase
-  use Oban.Testing, repo: T.Repo
+  use T.DataCase, async: true
+  use Oban.Testing, repo: Repo
 
-  import Assertions
+  alias T.{Matches, Feeds, Calls, PushNotifications.DispatchJob}
+  alias T.Feeds.FeedProfile
+  alias T.Calls.{Call, Voicemail}
+  alias T.Matches.{Match, Like}
 
-  alias T.{Matches, Feeds, Feeds.FeedProfile, Calls.Call, PushNotifications.DispatchJob}
-  alias Matches.{Match, Like}
-
-  describe "unmatch" do
+  describe "unmatch_match/2" do
     test "match no longer, likes no longer, unmatched broadcasted" do
       [%{user_id: p1_id}, %{user_id: p2_id}] = insert_list(2, :profile, hidden?: false)
 
       Matches.subscribe_for_user(p1_id)
       Matches.subscribe_for_user(p2_id)
 
+      parent = self()
+
       spawn(fn ->
         Matches.subscribe_for_user(p1_id)
         Matches.subscribe_for_user(p2_id)
 
+        Ecto.Adapters.SQL.Sandbox.allow(Repo, parent, self())
         assert {:ok, %{match: nil}} = Matches.like_user(p1_id, p2_id)
 
         # TODO why do we get matched message?
@@ -40,10 +43,8 @@ defmodule T.MatchesTest do
       assert [%Match{id: ^match_id, profile: %FeedProfile{user_id: ^p1_id}}] =
                Matches.list_matches(p2_id)
 
-      parent = self()
-
       spawn(fn ->
-        Ecto.Adapters.SQL.Sandbox.allow(T.Repo, parent, self())
+        Ecto.Adapters.SQL.Sandbox.allow(Repo, parent, self())
         assert true == Matches.unmatch_match(p1_id, match_id)
       end)
 
@@ -66,6 +67,64 @@ defmodule T.MatchesTest do
       actual = Enum.map(all_enqueued(worker: DispatchJob), fn job -> job.args end)
 
       assert_lists_equal(expected, actual)
+    end
+
+    test "deletes voicemail" do
+      %{user: u1} = insert(:profile)
+      %{user: u2} = insert(:profile)
+      %{id: match_id} = insert(:match, user_id_1: u1.id, user_id_2: u2.id)
+
+      {:ok, %Calls.Voicemail{id: v1_id}, _new_match_expiration_date = nil} =
+        Calls.voicemail_save_message(u1.id, match_id, s3_key_1 = Ecto.UUID.generate())
+
+      {:ok, %Calls.Voicemail{id: v2_id}, _new_match_expiration_date = nil} =
+        Calls.voicemail_save_message(u1.id, match_id, s3_key_2 = Ecto.UUID.generate())
+
+      Matches.unmatch_match(u1.id, match_id)
+
+      refute Repo.get(Calls.Voicemail, v1_id)
+      refute Repo.get(Calls.Voicemail, v2_id)
+
+      assert [
+               %{
+                 "bucket" => "pretend-this-is-real",
+                 "s3_key" => s3_key_2
+               },
+               %{
+                 "bucket" => "pretend-this-is-real",
+                 "s3_key" => s3_key_1
+               }
+             ] == Enum.map(all_enqueued(worker: T.Media.S3DeleteJob), & &1.args)
+    end
+  end
+
+  describe "unmatch_with_user/2" do
+    test "deletes voicemail" do
+      %{user: u1} = insert(:profile)
+      %{user: u2} = insert(:profile)
+      %{id: match_id} = insert(:match, user_id_1: u1.id, user_id_2: u2.id)
+
+      {:ok, %Calls.Voicemail{id: v1_id}, _new_match_expiration_date = nil} =
+        Calls.voicemail_save_message(u1.id, match_id, s3_key_1 = Ecto.UUID.generate())
+
+      {:ok, %Calls.Voicemail{id: v2_id}, _new_match_expiration_date = nil} =
+        Calls.voicemail_save_message(u1.id, match_id, s3_key_2 = Ecto.UUID.generate())
+
+      Matches.unmatch_with_user(u1.id, u2.id)
+
+      refute Repo.get(Calls.Voicemail, v1_id)
+      refute Repo.get(Calls.Voicemail, v2_id)
+
+      assert [
+               %{
+                 "bucket" => "pretend-this-is-real",
+                 "s3_key" => s3_key_2
+               },
+               %{
+                 "bucket" => "pretend-this-is-real",
+                 "s3_key" => s3_key_1
+               }
+             ] == Enum.map(all_enqueued(worker: T.Media.S3DeleteJob), & &1.args)
     end
   end
 
@@ -157,41 +216,115 @@ defmodule T.MatchesTest do
     end
   end
 
-  describe "match interactions overwrite" do
+  describe "list_matches/1" do
     setup do
-      u1 = onboarded_user()
-      u2 = onboarded_user()
-
-      {:ok, %{match: nil}} = Matches.like_user(u1.id, u2.id)
-      {:ok, %{match: %Match{} = match}} = Matches.like_user(u2.id, u1.id)
-
-      {:ok, users: [u1, u2], match: match}
+      p1 = insert(:profile)
+      p2 = insert(:profile)
+      match = insert(:match, user_id_1: p1.user_id, user_id_2: p2.user_id)
+      {:ok, profiles: [p1, p2], match: match}
     end
 
-    test "timeslot offer deletes contacts", %{users: [u1, u2], match: %{id: match_id}} do
-      # this contact will be deleted
-      {:ok, %Matches.MatchContact{match_id: ^match_id}} =
-        Matches.save_contacts_offer_for_match(u1.id, match_id, %{"telegram" => "@ruslandoga"})
+    test "can list multiple voicemail messages", ctx do
+      %{profiles: [%{user_id: u1_id}, %{user_id: u2_id}], match: %{id: match_id}} = ctx
 
-      now = ~U[2021-12-30 07:53:12.115371Z]
-      slots = ["2021-12-30T10:00:00Z", "2021-12-30T10:30:00Z"]
-      {:ok, %Matches.Timeslot{}} = Matches.save_slots_offer_for_match(u2.id, match_id, slots, now)
+      {:ok, %Voicemail{} = v1, _new_match_expiration_date = nil} =
+        Calls.voicemail_save_message(
+          u1_id,
+          match_id,
+          _s3_key = "4f5509bd-b26a-45c0-b858-6f48172678d5"
+        )
 
-      refute Matches.MatchContact |> where(match_id: ^match_id) |> Repo.exists?()
+      {:ok, %Voicemail{} = v2, _new_match_expiration_date = nil} =
+        Calls.voicemail_save_message(
+          u1_id,
+          match_id,
+          _s3_key = "79c3a8d1-e8b6-4517-a8f2-311d90afaf70"
+        )
+
+      # both me and mate receive current voicemail in interaction, no matter who left it
+      assert [%Match{id: ^match_id, voicemail: voicemail}] = Matches.list_matches(u1_id)
+      assert [%Match{id: ^match_id, voicemail: ^voicemail}] = Matches.list_matches(u2_id)
+      assert_lists_equal(voicemail, [v1, v2])
     end
 
-    test "contact offer deletes timeslots", %{users: [u1, u2], match: %{id: match_id}} do
-      now = ~U[2021-12-30 07:53:12.115371Z]
-      slots = ["2021-12-30T10:00:00Z", "2021-12-30T10:30:00Z"]
+    test "matches with calls don't have expiration date", ctx do
+      %{profiles: [%{user_id: u1_id}, %{user_id: u2_id}], match: %{id: match_id}} = ctx
+      insert(:match_event, match_id: match_id, timestamp: DateTime.utc_now(), event: "call_start")
 
-      # this timeslots will be deleted
-      {:ok, %Matches.Timeslot{match_id: ^match_id}} =
-        Matches.save_slots_offer_for_match(u2.id, match_id, slots, now)
+      assert [%Match{id: ^match_id, expiration_date: nil}] = Matches.list_matches(u1_id)
+      assert [%Match{id: ^match_id, expiration_date: nil}] = Matches.list_matches(u2_id)
+    end
 
-      {:ok, %Matches.MatchContact{}} =
-        Matches.save_contacts_offer_for_match(u1.id, match_id, %{"telegram" => "@ruslandoga"})
+    test "matches with meeting report don't have expiration date", ctx do
+      %{profiles: [%{user_id: u1_id}, %{user_id: u2_id}], match: %{id: match_id}} = ctx
 
-      refute Matches.Timeslot |> where(match_id: ^match_id) |> Repo.exists?()
+      insert(:match_event,
+        match_id: match_id,
+        timestamp: DateTime.utc_now(),
+        event: "meeting_report"
+      )
+
+      assert [%Match{id: ^match_id, expiration_date: nil}] = Matches.list_matches(u1_id)
+      assert [%Match{id: ^match_id, expiration_date: nil}] = Matches.list_matches(u2_id)
+    end
+
+    test "matches w/o full voicemail exchange have expiration date = inserted_at + 48h", ctx do
+      %{
+        profiles: [%{user_id: u1_id}, %{user_id: u2_id}],
+        match: %{id: match_id, inserted_at: inserted_at}
+      } = ctx
+
+      Feeds.subscribe_for_user(u2_id)
+
+      expected_expiration_date =
+        inserted_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.add(_48_hours = 2 * 24 * 3600)
+
+      assert [%Match{id: ^match_id, expiration_date: ^expected_expiration_date}] =
+               Matches.list_matches(u1_id)
+
+      assert [%Match{id: ^match_id, expiration_date: ^expected_expiration_date}] =
+               Matches.list_matches(u2_id)
+
+      # incomplete (one-way) voicemail exchange doesn't change the expiration date
+
+      {:ok, %Voicemail{}, _new_match_expiration_date = nil} =
+        Calls.voicemail_save_message(u1_id, match_id, _s3_key = Ecto.UUID.generate())
+
+      assert_receive {Calls, [:voicemail, :received],
+                      %{expiration_date: nil, voicemail: %Voicemail{}}}
+
+      assert [%Match{id: ^match_id, expiration_date: ^expected_expiration_date}] =
+               Matches.list_matches(u1_id)
+
+      assert [%Match{id: ^match_id, expiration_date: ^expected_expiration_date}] =
+               Matches.list_matches(u2_id)
+    end
+
+    test "matches w/ full voicemail exchange have expiration date = inserted_at + 7 * 24h", ctx do
+      %{
+        profiles: [%{user_id: u1_id}, %{user_id: u2_id}],
+        match: %{id: match_id, inserted_at: inserted_at}
+      } = ctx
+
+      Feeds.subscribe_for_user(u1_id)
+
+      expected_expiration_date =
+        inserted_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.add(_7_days = 7 * 24 * 3600)
+
+      {:ok, %Voicemail{}, _new_match_expiration_date = nil} =
+        Calls.voicemail_save_message(u1_id, match_id, _s3_key = Ecto.UUID.generate())
+
+      {:ok, %Voicemail{}, ^expected_expiration_date} =
+        Calls.voicemail_save_message(u2_id, match_id, _s3_key = Ecto.UUID.generate())
+
+      assert_receive {Calls, [:voicemail, :received],
+                      %{expiration_date: ^expected_expiration_date, voicemail: %Voicemail{}}}
+
+      assert [%Match{id: ^match_id, expiration_date: ^expected_expiration_date}] =
+               Matches.list_matches(u1_id)
+
+      assert [%Match{id: ^match_id, expiration_date: ^expected_expiration_date}] =
+               Matches.list_matches(u2_id)
     end
   end
 

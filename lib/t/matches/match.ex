@@ -7,12 +7,18 @@ defmodule T.Matches.Match do
   schema "matches" do
     field :user_id_1, Ecto.Bigflake.UUID
     field :user_id_2, Ecto.Bigflake.UUID
+
+    field :exchanged_voicemail, :boolean
+
     # TODO
     field :profile, :map, virtual: true
-    field :timeslot, :map, virtual: true
-    field :contact, :map, virtual: true
+
+    # TODO :interactions?
+    has_one :timeslot, T.Matches.Timeslot
+    has_one :contact, T.Matches.MatchContact
+    has_many :voicemail, T.Calls.Voicemail
+
     field :expiration_date, :utc_datetime, virtual: true
-    field :interaction, :map, virtual: true
     field :audio_only, :boolean, virtual: true
 
     # embeds_one :slot_offer, Timeslot do

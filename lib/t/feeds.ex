@@ -40,7 +40,7 @@ defmodule T.Feeds do
     @topic <> ":u:" <> String.downcase(user_id)
   end
 
-  defp broadcast_for_user(user_id, message) do
+  def broadcast_for_user(user_id, message) do
     Phoenix.PubSub.broadcast(@pubsub, pubsub_user_topic(user_id), message)
   end
 

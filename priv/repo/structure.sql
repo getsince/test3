@@ -190,7 +190,8 @@ CREATE TABLE public.match_contact (
     picker_id uuid NOT NULL,
     inserted_at timestamp(0) without time zone NOT NULL,
     contacts jsonb,
-    opened_contact_type character varying(255)
+    opened_contact_type character varying(255),
+    seen_at timestamp(0) without time zone
 );
 
 
@@ -214,7 +215,22 @@ CREATE TABLE public.match_timeslot (
     picker_id uuid NOT NULL,
     slots timestamp(0) without time zone[] DEFAULT ARRAY[]::timestamp without time zone[],
     selected_slot timestamp(0) without time zone,
-    inserted_at timestamp(0) without time zone NOT NULL
+    inserted_at timestamp(0) without time zone NOT NULL,
+    accepted_at timestamp(0) without time zone
+);
+
+
+--
+-- Name: match_voicemail; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.match_voicemail (
+    id uuid NOT NULL,
+    caller_id uuid NOT NULL,
+    match_id uuid NOT NULL,
+    s3_key character varying(255),
+    inserted_at timestamp(0) without time zone NOT NULL,
+    listened_at timestamp(0) without time zone
 );
 
 
@@ -226,7 +242,8 @@ CREATE TABLE public.matches (
     id uuid NOT NULL,
     user_id_1 uuid NOT NULL,
     user_id_2 uuid NOT NULL,
-    inserted_at timestamp(0) without time zone NOT NULL
+    inserted_at timestamp(0) without time zone NOT NULL,
+    exchanged_voicemail boolean DEFAULT false NOT NULL
 );
 
 
@@ -479,6 +496,14 @@ ALTER TABLE ONLY public.match_timeslot
 
 
 --
+-- Name: match_voicemail match_voicemail_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.match_voicemail
+    ADD CONSTRAINT match_voicemail_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: matches matches_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -612,6 +637,13 @@ CREATE INDEX match_events_event_index ON public.match_events USING btree (event)
 --
 
 CREATE INDEX match_events_match_id_timestamp_desc_index ON public.match_events USING btree (match_id, "timestamp" DESC);
+
+
+--
+-- Name: match_voicemail_match_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX match_voicemail_match_id_index ON public.match_voicemail USING btree (match_id);
 
 
 --
@@ -902,6 +934,22 @@ ALTER TABLE ONLY public.match_timeslot
 
 
 --
+-- Name: match_voicemail match_voicemail_caller_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.match_voicemail
+    ADD CONSTRAINT match_voicemail_caller_id_fkey FOREIGN KEY (caller_id) REFERENCES public.profiles(user_id) ON DELETE CASCADE;
+
+
+--
+-- Name: match_voicemail match_voicemail_match_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.match_voicemail
+    ADD CONSTRAINT match_voicemail_match_id_fkey FOREIGN KEY (match_id) REFERENCES public.matches(id) ON DELETE CASCADE;
+
+
+--
 -- Name: matches matches_user_id_1_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1025,3 +1073,9 @@ INSERT INTO public."schema_migrations" (version) VALUES (20211221114359);
 INSERT INTO public."schema_migrations" (version) VALUES (20211221152318);
 INSERT INTO public."schema_migrations" (version) VALUES (20211221161830);
 INSERT INTO public."schema_migrations" (version) VALUES (20211222133341);
+INSERT INTO public."schema_migrations" (version) VALUES (20211225072543);
+INSERT INTO public."schema_migrations" (version) VALUES (20211229125434);
+INSERT INTO public."schema_migrations" (version) VALUES (20220101121429);
+INSERT INTO public."schema_migrations" (version) VALUES (20220111113337);
+INSERT INTO public."schema_migrations" (version) VALUES (20220112131454);
+INSERT INTO public."schema_migrations" (version) VALUES (20220112133053);

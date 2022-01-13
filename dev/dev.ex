@@ -1,16 +1,10 @@
 defmodule Dev do
-  def notify_live_mode_today do
-    Oban.insert!(
-      T.PushNotifications.DispatchJob.new(%{"type" => "live_mode_today", "time" => "20:00"})
-    )
-  end
-
   def force_app_upgrade() do
     alert1_ru = %{
       "aps" => %{
         "alert" => %{
-          "title" => "Обнови приложение 👋",
-          "body" => "Встречай Since LIVE — новый формат вечеринки 🎉"
+          "title" => "Ура, обновление! 🔥",
+          "body" => "Новый режим — голосовая почта 🎤"
         }
       }
     }
@@ -18,8 +12,8 @@ defmodule Dev do
     alert1_en = %{
       "aps" => %{
         "alert" => %{
-          "title" => "Update the app 👋",
-          "body" => "Meet Since LIVE, a new party format 🎉"
+          "title" => "Hurray, this is an update! 🔥",
+          "body" => "Meet new mode: voicemail 🎤"
         }
       }
     }

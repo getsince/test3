@@ -450,12 +450,12 @@ defmodule TWeb.FeedChannel do
     {:noreply, socket}
   end
 
-  def handle_info({Matches, [:timeslot, :start], match_id}, socket) do
+  def handle_info({Matches, [:timeslot, :started], match_id}, socket) do
     push(socket, "timeslot_started", %{"match_id" => match_id})
     {:noreply, socket}
   end
 
-  def handle_info({Matches, [:timeslot, :end], match_id}, socket) do
+  def handle_info({Matches, [:timeslot, :ended], match_id}, socket) do
     push(socket, "timeslot_ended", %{"match_id" => match_id})
     {:noreply, socket}
   end

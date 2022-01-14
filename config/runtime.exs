@@ -230,12 +230,7 @@ if config_env() == :dev do
     static_cdn: System.fetch_env!("STATIC_CDN")
 
   config :t, T.Media.Static, disabled?: !!System.get_env("DISABLE_MEDIA")
-  config :t, T.Feeds.SeenPruner, disabled?: !!System.get_env("DISABLE_SEEN_PRUNER")
-  config :t, T.Matches.MatchExpirer, disabled?: !!System.get_env("DISABLE_MATCH_EXPIRER")
-  config :t, T.Matches.TimeslotPruner, disabled?: !!System.get_env("DISABLE_TIMESLOT_PRUNER")
-
-  config :t, T.PushNotifications.ScheduledPushes,
-    disabled?: !!System.get_env("DISABLE_SCHEDULED_PUSHES")
+  config :t, T.Periodics, disabled?: !!System.get_env("DISABLE_PERIODICS")
 end
 
 if config_env() == :test do
@@ -286,10 +281,7 @@ if config_env() == :test do
 
   config :t, T.PushNotifications.APNS, default_topic: "app.topic"
 
-  config :t, T.Feeds.SeenPruner, disabled?: true
-  config :t, T.Matches.MatchExpirer, disabled?: true
-  config :t, T.PushNotifications.ScheduledPushes, disabled?: true
-  config :t, T.Matches.TimeslotPruner, disabled?: true
+  config :t, T.Periodics, disabled?: true
   config :t, Finch, disabled?: true
 
   # there is no user with this id, it's been generated just for the tests

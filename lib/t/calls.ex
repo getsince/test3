@@ -322,16 +322,16 @@ defmodule T.Calls do
     Multi.new()
     |> Multi.run(:match, fn _repo, _changes ->
       match =
-        Match
+        Matches.matches_with_undying_events_q()
         |> where(id: ^match_id)
         |> where([m], m.user_id_1 == ^caller_id or m.user_id_2 == ^caller_id)
-        |> select([m], {m.inserted_at, [m.user_id_1, m.user_id_2]})
+        |> select([m, undying_event: e], {m.inserted_at, [m.user_id_1, m.user_id_2], e.timestamp})
         |> Repo.one()
 
       case match do
-        {inserted_at, users} ->
+        {inserted_at, users, undying_event_at} ->
           [mate] = users -- [caller_id]
-          {:ok, %{mate: mate, inserted_at: inserted_at}}
+          {:ok, %{mate: mate, inserted_at: inserted_at, undying_event_at: undying_event_at}}
 
         nil ->
           {:error, :not_found}
@@ -375,7 +375,7 @@ defmodule T.Calls do
         %{
           voicemail: voicemail,
           exchanged_voicemail: exchanged_voicemail,
-          match: %{mate: mate, inserted_at: inserted_at}
+          match: %{mate: mate, inserted_at: inserted_at, undying_event_at: undying_event_at}
         } = changes
 
         m =
@@ -385,10 +385,12 @@ defmodule T.Calls do
         Bot.async_post_message(m)
 
         new_expiration_date =
-          if exchanged_voicemail do
-            inserted_at
-            |> DateTime.from_naive!("Etc/UTC")
-            |> DateTime.add(Matches.match_ttl())
+          unless undying_event_at do
+            if exchanged_voicemail do
+              inserted_at
+              |> DateTime.from_naive!("Etc/UTC")
+              |> DateTime.add(Matches.match_ttl())
+            end
           end
 
         broadcast_payload = %{voicemail: voicemail, expiration_date: new_expiration_date}

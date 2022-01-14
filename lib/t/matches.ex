@@ -1209,7 +1209,7 @@ defmodule T.Matches do
     |> where([undying_event: e], is_nil(e.timestamp))
   end
 
-  defp matches_with_undying_events_q(query \\ named_match_q()) do
+  def matches_with_undying_events_q(query \\ named_match_q()) do
     undying_events_q =
       MatchEvent
       |> where(match_id: parent_as(:match).id)

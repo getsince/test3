@@ -85,16 +85,19 @@ defmodule T.MatchesTest do
       refute Repo.get(Calls.Voicemail, v1_id)
       refute Repo.get(Calls.Voicemail, v2_id)
 
-      assert [
-               %{
-                 "bucket" => "pretend-this-is-real",
-                 "s3_key" => s3_key_2
-               },
-               %{
-                 "bucket" => "pretend-this-is-real",
-                 "s3_key" => s3_key_1
-               }
-             ] == Enum.map(all_enqueued(worker: T.Media.S3DeleteJob), & &1.args)
+      expected_args = [
+        %{
+          "bucket" => "pretend-this-is-real",
+          "s3_key" => s3_key_1
+        },
+        %{
+          "bucket" => "pretend-this-is-real",
+          "s3_key" => s3_key_2
+        }
+      ]
+
+      actual_args = Enum.map(all_enqueued(worker: T.Media.S3DeleteJob), & &1.args)
+      assert_lists_equal(expected_args, actual_args)
     end
   end
 

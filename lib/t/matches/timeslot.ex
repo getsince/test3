@@ -6,7 +6,7 @@ defmodule T.Matches.Timeslot do
   @primary_key false
   @foreign_key_type Ecto.Bigflake.UUID
   schema "match_timeslot" do
-    belongs_to :match, Matches.Match
+    belongs_to :match, Matches.Match, primary_key: true
     belongs_to :picker, Accounts.User
 
     field :slots, {:array, :utc_datetime}

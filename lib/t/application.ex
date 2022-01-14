@@ -29,6 +29,7 @@ defmodule T.Application do
         TWeb.UserSocket.Monitor,
         T.Repo,
         unless_disabled(T.Feeds.SeenPruner),
+        unless_disabled(T.Matches.TimeslotPruner),
         unless_disabled(T.Matches.MatchExpirer),
         unless_disabled(T.PushNotifications.ScheduledPushes),
         TWeb.Endpoint,

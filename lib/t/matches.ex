@@ -1136,6 +1136,29 @@ defmodule T.Matches do
     end)
   end
 
+  def prune_stale_timeslots(reference \\ DateTime.utc_now()) do
+    offer_expiration_date = DateTime.add(reference, -30 * 60)
+    selected_slot_expiration_date = DateTime.add(reference, -60 * 60)
+
+    unnested_slots =
+      select(Timeslot, [t], %{match_id: t.match_id, slots: fragment("unnest(?)", t.slots)})
+
+    max_slots =
+      from(t in subquery(unnested_slots))
+      |> group_by([t], t.match_id)
+      |> select([t], %{match_id: t.match_id, max: max(t.slots)})
+
+    matches_with_old_slots =
+      from(t in subquery(max_slots))
+      |> where([t], t.max < ^offer_expiration_date)
+      |> select([t], t.match_id)
+
+    Timeslot
+    |> where([t], is_nil(t.selected_slot) and t.match_id in subquery(matches_with_old_slots))
+    |> or_where([t], t.selected_slot < ^selected_slot_expiration_date)
+    |> Repo.delete_all()
+  end
+
   def expiration_list_expired_matches(reference \\ DateTime.utc_now()) do
     post_voicemail_expiration_date = DateTime.add(reference, -match_ttl())
     pre_voicemail_expiration_date = DateTime.add(reference, -pre_voicemail_ttl())

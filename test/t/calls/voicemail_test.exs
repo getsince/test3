@@ -61,6 +61,22 @@ defmodule T.Calls.VoicemailTest do
       voicemail_ids = voicemail_ids(match.id)
       assert_lists_equal(voicemail_ids, [v3_id])
     end
+
+    test "success: returns nil match expiration date for matches with undying event" do
+      me = onboarded_user()
+      mate = onboarded_user()
+
+      match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
+      match_event(match: match, event: "meeting_report")
+
+      # me -voice> mate
+      assert {:ok, %Calls.Voicemail{}, _new_match_expiration_date = nil} =
+               Calls.voicemail_save_message(me.id, match.id, _s3_key = Ecto.UUID.generate())
+
+      # mate -voice> me
+      assert {:ok, %Calls.Voicemail{}, _new_match_expiration_date = nil} =
+               Calls.voicemail_save_message(mate.id, match.id, _s3_key = Ecto.UUID.generate())
+    end
   end
 
   describe "voicemail_listen_message/3" do
@@ -316,5 +332,15 @@ defmodule T.Calls.VoicemailTest do
 
   defp voicemail_ids(match_id) do
     Calls.Voicemail |> where(match_id: ^match_id) |> select([v], v.id) |> Repo.all()
+  end
+
+  defp match_event(opts) do
+    match = opts[:match] || raise "need :match"
+
+    insert(:match_event,
+      match_id: match.id,
+      event: opts[:event],
+      timestamp: opts[:timestamp] || DateTime.truncate(DateTime.utc_now(), :second)
+    )
   end
 end

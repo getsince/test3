@@ -301,6 +301,11 @@ if config_env() == :bench do
 
   config :t, T.Media.Static, disabled?: true
   config :t, Oban, queues: false, plugins: false
+  config :t, T.Feeds.SeenPruner, disabled?: true
+  config :t, T.Matches.MatchExpirer, disabled?: true
+  config :t, T.PushNotifications.ScheduledPushes, disabled?: true
+  config :t, T.Matches.TimeslotPruner, disabled?: true
+  config :t, Finch, disabled?: true
 
   config :t, T.Repo,
     url: System.get_env("DATABASE_URL") || "ecto://postgres:postgres@localhost:5432/t_dev",

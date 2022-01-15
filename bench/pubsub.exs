@@ -23,9 +23,10 @@ Enum.each(1..10, fn _ -> Sub.start_link(topic: "topic2") end)
 
 map = %{"some" => "key", "then" => "some oter key"}
 
-Benchee.run(%{
-  "topic_lots:message" => fn -> Phoenix.PubSub.broadcast(T.PubSub, "topic", "message") end,
-  "topic_lots:map" => fn -> Phoenix.PubSub.broadcast(T.PubSub, "topic", map) end,
-  "topic_few:message" => fn -> Phoenix.PubSub.broadcast(T.PubSub, "topic2", "message") end,
-  "topic_few:map" => fn -> Phoenix.PubSub.broadcast(T.PubSub, "topic2", map) end
-})
+Benchee.run(
+  %{
+    "message" => fn topic -> Phoenix.PubSub.broadcast(T.PubSub, topic, "message") end,
+    "map" => fn topic -> Phoenix.PubSub.broadcast(T.PubSub, topic, map) end
+  },
+  inputs: %{"lots subs" => "topic", "few subs" => "topic2"}
+)

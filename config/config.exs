@@ -3,6 +3,17 @@ import Config
 config :t, ecto_repos: [T.Repo]
 config :t, T.Repo, types: T.PostgresTypes
 
+config :t, TWeb.Endpoint,
+  http: [
+    dispatch: [
+      {:_,
+       [
+         {"/ws", TWeb.Socket, [TWeb.UserSocket2]},
+         {:_, Phoenix.Endpoint.Cowboy2Handler, {TWeb.Endpoint, []}}
+       ]}
+    ]
+  ]
+
 config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase
 
 config :phoenix, :json_library, Jason

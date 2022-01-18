@@ -221,6 +221,7 @@ defmodule TWeb.CallChannelTest do
   end
 
   describe "user is busy" do
+    @tag skip: true
     test "works" do
       thu_19_30_msk = ~U[2021-12-09 16:30:00Z]
 

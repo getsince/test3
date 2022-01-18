@@ -42,7 +42,7 @@ defmodule T.Calls do
   @spec ensure_call_allowed(uuid, uuid, DateTime.t()) :: :ok | {:error, reason :: String.t()}
   defp ensure_call_allowed(caller_id, called_id, reference) do
     cond do
-      TWeb.CallTracker.in_call?(called_id) -> {:error, "receiver is busy"}
+      # TWeb.CallTracker.in_call?(called_id) -> {:error, "receiver is busy"}
       missed?(called_id, caller_id) -> :ok
       matched?(caller_id, called_id) -> :ok
       in_live_mode?(caller_id, called_id, reference) -> :ok

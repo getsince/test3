@@ -322,14 +322,14 @@ defmodule T.Calls do
     Multi.new()
     |> Multi.run(:match, fn _repo, _changes ->
       match =
-        Matches.matches_with_undying_events_q()
+        Match
         |> where(id: ^match_id)
         |> where([m], m.user_id_1 == ^caller_id or m.user_id_2 == ^caller_id)
-        |> select([m, undying_event: e], {m.inserted_at, [m.user_id_1, m.user_id_2], e.timestamp})
+        |> select([m], {[m.user_id_1, m.user_id_2]})
         |> Repo.one()
 
       case match do
-        {_inserted_at, users, _undying_event_at} ->
+        {users} ->
           [mate] = users -- [caller_id]
           {:ok, %{mate: mate}}
 

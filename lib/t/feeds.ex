@@ -58,7 +58,6 @@ defmodule T.Feeds do
   def live_schedule do
     [
       {_mon = 1, :newbie, [newbies_live_start_at(), newbies_live_end_at()]},
-      # {_mon = 1, :real, [_start = ~T[18:00:00], _end = ~T[20:00:00]]},
       {_tue = 2, :newbie, [newbies_live_start_at(), newbies_live_end_at()]},
       {_wed = 3, :newbie, [newbies_live_start_at(), newbies_live_end_at()]},
       {_thu = 4, :real, [_start = ~T[19:00:00], _end = ~T[21:00:00]]},

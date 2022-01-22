@@ -30,12 +30,12 @@ defmodule TWeb.MobileAuthController do
   end
 
   def delete(conn, _params) do
-    # if token = UserAuth.bearer_token(conn) do
-    # :ok = UserAuth.log_out_mobile_user(token)
-    send_resp(conn, 200, [])
-    # else
-    # send_resp(conn, 404, [])
-    # end
+    if token = UserAuth.bearer_token(conn) do
+      :ok = UserAuth.log_out_mobile_user(token)
+      send_resp(conn, 200, [])
+    else
+      send_resp(conn, 404, [])
+    end
   end
 
   defp render_user(user) do

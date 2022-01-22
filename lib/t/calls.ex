@@ -329,17 +329,17 @@ defmodule T.Calls do
         |> Repo.one()
 
       case match do
-        {inserted_at, users, undying_event_at} ->
+        {_inserted_at, users, _undying_event_at} ->
           [mate] = users -- [caller_id]
-          {:ok, %{mate: mate, inserted_at: inserted_at, undying_event_at: undying_event_at}}
+          {:ok, %{mate: mate}}
 
         nil ->
           {:error, :not_found}
       end
     end)
-    |> Multi.run(:exchanged_voicemail, fn _repo, %{match: %{mate: mate}} ->
+    |> Multi.run(:delete_voicemail, fn _repo, %{match: %{mate: mate}} ->
       # TODO should still be deleted?
-      {count, s3_keys} =
+      {_, s3_keys} =
         Voicemail
         |> where(match_id: ^match_id)
         |> where(caller_id: ^mate)
@@ -347,17 +347,8 @@ defmodule T.Calls do
         |> Repo.delete_all()
 
       schedule_s3_delete(s3_keys)
-      mate_sent_voicemail? = count >= 1
 
-      if mate_sent_voicemail? do
-        Match
-        |> where(id: ^match_id)
-        |> Repo.update_all(set: [exchanged_voicemail: true])
-
-        {:ok, true}
-      else
-        {:ok, false}
-      end
+      {:ok, s3_keys}
     end)
     |> Multi.insert(:voicemail, voicemail)
     |> Oban.insert(:push, fn %{match: %{mate: mate}} ->
@@ -374,8 +365,7 @@ defmodule T.Calls do
       {:ok, changes} ->
         %{
           voicemail: voicemail,
-          exchanged_voicemail: exchanged_voicemail,
-          match: %{mate: mate, inserted_at: inserted_at, undying_event_at: undying_event_at}
+          match: %{mate: mate}
         } = changes
 
         m =
@@ -384,18 +374,9 @@ defmodule T.Calls do
         Logger.warn(m)
         Bot.async_post_message(m)
 
-        new_expiration_date =
-          unless undying_event_at do
-            if exchanged_voicemail do
-              inserted_at
-              |> DateTime.from_naive!("Etc/UTC")
-              |> DateTime.add(Matches.match_ttl())
-            end
-          end
-
-        broadcast_payload = %{voicemail: voicemail, expiration_date: new_expiration_date}
+        broadcast_payload = %{voicemail: voicemail}
         Feeds.broadcast_for_user(mate, {__MODULE__, [:voicemail, :received], broadcast_payload})
-        {:ok, voicemail, new_expiration_date}
+        {:ok, voicemail}
 
       {:error, :match, :not_found, _changes} ->
         {:error, "voicemail not allowed"}

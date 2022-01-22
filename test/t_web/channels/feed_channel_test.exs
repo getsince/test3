@@ -80,7 +80,7 @@ defmodule TWeb.FeedChannelTest do
       Calls.voicemail_save_message(p5.id, m5.id, _s3_key = "23f442c7-e610-4aa9-ad4c-7795bb568c4e")
 
       # sixth match has listened voicemail
-      {:ok, listened_voicemail, _match_expiration_date} =
+      {:ok, listened_voicemail} =
         Calls.voicemail_save_message(
           p6.id,
           m6.id,
@@ -129,8 +129,7 @@ defmodule TWeb.FeedChannelTest do
                  "profile" => %{name: "mate-6", story: [], user_id: p6.id, gender: "F"},
                  "audio_only" => false,
                  "voicemail" => voicemail_m6,
-                 "expiration_date" => ~U[2021-10-02 12:16:10Z],
-                 "exchanged_voice" => false,
+                 "expiration_date" => ~U[2021-10-07 12:16:10Z],
                  "inserted_at" => ~U[2021-09-30 12:16:10Z]
                },
                %{
@@ -139,15 +138,13 @@ defmodule TWeb.FeedChannelTest do
                  "audio_only" => false,
                  "voicemail" => voicemail_m5,
                  "expiration_date" => ~U[2021-10-07 12:16:09Z],
-                 "exchanged_voice" => true,
                  "inserted_at" => ~U[2021-09-30 12:16:09Z]
                },
                %{
                  "id" => m4.id,
                  "profile" => %{name: "mate-4", story: [], user_id: p4.id, gender: "F"},
                  "audio_only" => false,
-                 "expiration_date" => ~U[2021-10-02 12:16:08Z],
-                 "exchanged_voice" => false,
+                 "expiration_date" => ~U[2021-10-07 12:16:08Z],
                  "inserted_at" => ~U[2021-09-30 12:16:08Z]
                },
                %{
@@ -159,8 +156,7 @@ defmodule TWeb.FeedChannelTest do
                    "inserted_at" => ~U[2021-09-30 14:47:00Z]
                  },
                  "audio_only" => false,
-                 "expiration_date" => ~U[2021-10-02 12:16:07Z],
-                 "exchanged_voice" => false,
+                 "expiration_date" => ~U[2021-10-07 12:16:07Z],
                  "inserted_at" => ~U[2021-09-30 12:16:07Z]
                },
                %{
@@ -182,8 +178,7 @@ defmodule TWeb.FeedChannelTest do
                    "picker" => p2.id
                  },
                  "audio_only" => false,
-                 "expiration_date" => ~U[2021-10-02 12:16:06Z],
-                 "exchanged_voice" => false,
+                 "expiration_date" => ~U[2021-10-07 12:16:06Z],
                  "inserted_at" => ~U[2021-09-30 12:16:06Z]
                },
                %{
@@ -196,8 +191,7 @@ defmodule TWeb.FeedChannelTest do
                    "inserted_at" => ~U[2021-09-30 14:47:00Z]
                  },
                  "audio_only" => false,
-                 "expiration_date" => ~U[2021-10-02 12:16:05Z],
-                 "exchanged_voice" => false,
+                 "expiration_date" => ~U[2021-10-07 12:16:05Z],
                  "inserted_at" => ~U[2021-09-30 12:16:05Z]
                }
              ]
@@ -212,7 +206,7 @@ defmodule TWeb.FeedChannelTest do
       expiration_date =
         m1.inserted_at
         |> DateTime.from_naive!("Etc/UTC")
-        |> DateTime.add(Matches.pre_voicemail_ttl())
+        |> DateTime.add(Matches.match_ttl())
 
       assert {:ok, %{"matches" => matches}, socket} =
                join(socket, "feed:" <> me.id, %{"mode" => "normal"})
@@ -223,7 +217,6 @@ defmodule TWeb.FeedChannelTest do
                  "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
                  "audio_only" => false,
                  "expiration_date" => expiration_date,
-                 "exchanged_voice" => false,
                  "inserted_at" => ~U[2021-09-30 12:16:05Z]
                }
              ]
@@ -245,7 +238,6 @@ defmodule TWeb.FeedChannelTest do
                  "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
                  "audio_only" => false,
                  "expiration_date" => expiration_date,
-                 "exchanged_voice" => false,
                  "inserted_at" => ~U[2021-09-30 12:16:05Z]
                }
              ]
@@ -261,7 +253,6 @@ defmodule TWeb.FeedChannelTest do
       assert reply == %{
                "mode" => "normal",
                "since_live_date" => Feeds.live_next_real_at(),
-               "match_expiration_duration" => 172_800 = Matches.pre_voicemail_ttl(),
                "likes" => [
                  %{
                    "profile" => %{
@@ -313,7 +304,7 @@ defmodule TWeb.FeedChannelTest do
       expiration_date =
         match.inserted_at
         |> DateTime.from_naive!("Etc/UTC")
-        |> DateTime.add(Matches.pre_voicemail_ttl())
+        |> DateTime.add(Matches.match_ttl())
 
       # mate calls me
       {:ok, call_id1} = Calls.call(mate.id, me.id)
@@ -349,7 +340,6 @@ defmodule TWeb.FeedChannelTest do
       assert reply == %{
                "mode" => "normal",
                "since_live_date" => since_live_date,
-               "match_expiration_duration" => 172_800 = Matches.pre_voicemail_ttl(),
                "missed_calls" => [
                  %{
                    # TODO call without ended_at should be joined from ios?
@@ -373,7 +363,6 @@ defmodule TWeb.FeedChannelTest do
                    "id" => match.id,
                    "audio_only" => false,
                    "expiration_date" => expiration_date,
-                   "exchanged_voice" => false,
                    "inserted_at" => ~U[2021-09-30 12:16:05Z],
                    "profile" => %{gender: "F", name: "mate", story: [], user_id: mate.id}
                  }
@@ -390,7 +379,6 @@ defmodule TWeb.FeedChannelTest do
       assert reply == %{
                "mode" => "normal",
                "since_live_date" => since_live_date,
-               "match_expiration_duration" => 172_800 = Matches.pre_voicemail_ttl(),
                "missed_calls" => [
                  %{
                    "call" => %{
@@ -406,7 +394,6 @@ defmodule TWeb.FeedChannelTest do
                    "profile" => %{gender: "F", name: "mate", story: [], user_id: mate.id},
                    "audio_only" => false,
                    "expiration_date" => expiration_date,
-                   "exchanged_voice" => false,
                    "inserted_at" => ~U[2021-09-30 12:16:05Z]
                  }
                ]
@@ -869,7 +856,7 @@ defmodule TWeb.FeedChannelTest do
       assert_push "matched", %{"match" => match} = push
 
       now = DateTime.utc_now()
-      expected_expiration_date = DateTime.add(now, Matches.pre_voicemail_ttl())
+      expected_expiration_date = DateTime.add(now, Matches.match_ttl())
       assert expiration_date = match["expiration_date"]
       assert abs(DateTime.diff(expiration_date, expected_expiration_date)) <= 1
 
@@ -882,8 +869,7 @@ defmodule TWeb.FeedChannelTest do
                  "profile" => %{name: "mate", story: [], user_id: mate.id, gender: "M"},
                  "expiration_date" => expiration_date,
                  "inserted_at" => inserted_at,
-                 "audio_only" => false,
-                 "exchanged_voice" => false
+                 "audio_only" => false
                }
              }
     end
@@ -1521,8 +1507,7 @@ defmodule TWeb.FeedChannelTest do
                    "seen_at" => ~U[2022-01-12 13:18:42Z]
                  },
                  "audio_only" => false,
-                 "expiration_date" => ~U[2021-10-02 12:16:05Z],
-                 "exchanged_voice" => false,
+                 "expiration_date" => ~U[2021-10-07 12:16:05Z],
                  "inserted_at" => ~U[2021-09-30 12:16:05Z]
                }
              ]
@@ -1544,8 +1529,7 @@ defmodule TWeb.FeedChannelTest do
                    "seen_at" => ~U[2022-01-12 13:18:42Z]
                  },
                  "audio_only" => false,
-                 "expiration_date" => ~U[2021-10-02 12:16:05Z],
-                 "exchanged_voice" => false,
+                 "expiration_date" => ~U[2021-10-07 12:16:05Z],
                  "inserted_at" => ~U[2021-09-30 12:16:05Z]
                }
              ]
@@ -1563,7 +1547,6 @@ defmodule TWeb.FeedChannelTest do
                  "id" => m1.id,
                  "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
                  "audio_only" => false,
-                 "exchanged_voice" => false,
                  "inserted_at" => ~U[2021-09-30 12:16:05Z]
                }
              ]
@@ -1598,8 +1581,7 @@ defmodule TWeb.FeedChannelTest do
 
       %{id: mate_id} = mate = onboarded_user()
 
-      %{id: match_id, inserted_at: match_inserted_at} =
-        insert(:match, user_id_1: me_id, user_id_2: mate_id)
+      %{id: match_id} = insert(:match, user_id_1: me_id, user_id_2: mate_id)
 
       {:ok, _reply, mate_socket} =
         mate
@@ -1642,11 +1624,8 @@ defmodule TWeb.FeedChannelTest do
       s3_key = Ecto.UUID.generate()
       ref = push(socket, "send-voicemail", %{"match_id" => match_id, "s3_key" => s3_key})
 
-      expected_expiration_date =
-        match_inserted_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.add(Matches.match_ttl())
-
       assert_reply ref, :ok, %{"id" => voicemail_id} = reply
-      assert reply == %{"id" => voicemail_id, "expiration_date" => expected_expiration_date}
+      assert reply == %{"id" => voicemail_id}
 
       assert %Calls.Voicemail{
                id: ^voicemail_id,
@@ -1663,7 +1642,6 @@ defmodule TWeb.FeedChannelTest do
                "inserted_at" => DateTime.from_naive!(inserted_at, "Etc/UTC"),
                "match_id" => match_id,
                "s3_key" => s3_key,
-               "expiration_date" => expected_expiration_date,
                "url" => url
              }
     end

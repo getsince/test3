@@ -21,13 +21,9 @@ defmodule T.Matches do
   @topic "__m"
 
   @seven_days 7 * 24 * 60 * 60
-  @two_days 2 * 24 * 60 * 60
 
   @doc "Time-to-live for a match without life-prolonging events like calls, meetings, voice-messages"
   def match_ttl, do: @seven_days
-
-  @doc "Time-to-live for a match before voicemail has been exchanged both ways"
-  def pre_voicemail_ttl, do: @two_days
 
   defp pubsub_user_topic(user_id) when is_binary(user_id) do
     @topic <> ":u:" <> String.downcase(user_id)
@@ -85,7 +81,7 @@ defmodule T.Matches do
          by_user_id,
          user_id
        ) do
-    expiration_date = pre_voicemail_expiration_date(match)
+    expiration_date = expiration_date(match)
 
     common = %{
       id: match_id,
@@ -326,10 +322,10 @@ defmodule T.Matches do
     |> Repo.all()
     |> Enum.map(fn {match, undying_event_timestamp} ->
       expiration_date =
-        cond do
-          undying_event_timestamp -> nil
-          match.exchanged_voicemail -> post_voicemail_expiration_date(match)
-          true -> pre_voicemail_expiration_date(match)
+        if undying_event_timestamp do
+          nil
+        else
+          expiration_date(match)
         end
 
       %Match{match | expiration_date: expiration_date}
@@ -337,16 +333,10 @@ defmodule T.Matches do
     |> preload_match_profiles(user_id)
   end
 
-  defp post_voicemail_expiration_date(%Match{inserted_at: inserted_at}) do
+  defp expiration_date(%Match{inserted_at: inserted_at}) do
     inserted_at
     |> DateTime.from_naive!("Etc/UTC")
     |> DateTime.add(match_ttl())
-  end
-
-  defp pre_voicemail_expiration_date(%Match{inserted_at: inserted_at}) do
-    inserted_at
-    |> DateTime.from_naive!("Etc/UTC")
-    |> DateTime.add(pre_voicemail_ttl())
   end
 
   defp archived_match_ids_q(user_id) do
@@ -1160,14 +1150,12 @@ defmodule T.Matches do
   end
 
   def expiration_list_expired_matches(reference \\ DateTime.utc_now()) do
-    post_voicemail_expiration_date = DateTime.add(reference, -match_ttl())
-    pre_voicemail_expiration_date = DateTime.add(reference, -pre_voicemail_ttl())
+    expiration_date = DateTime.add(reference, -match_ttl())
 
     expiring_matches_q()
     |> where(
       [match: m],
-      (not m.exchanged_voicemail and m.inserted_at < ^pre_voicemail_expiration_date) or
-        m.inserted_at < ^post_voicemail_expiration_date
+      m.inserted_at < ^expiration_date
     )
     |> select([match: m], map(m, [:id, :user_id_1, :user_id_2]))
     |> Repo.all()
@@ -1181,17 +1169,7 @@ defmodule T.Matches do
     |> Oban.insert_all()
   end
 
-  defp expiration_pre_voicemail_notification_interval(reference) do
-    to =
-      reference
-      |> DateTime.add(-pre_voicemail_ttl())
-      |> DateTime.add(_3_hours = 3 * 3600)
-
-    from = DateTime.add(to, -60)
-    {from, to}
-  end
-
-  defp expiration_post_voicemail_notification_interval(reference) do
+  defp expiration_notification_interval(reference) do
     to =
       reference
       |> DateTime.add(-match_ttl())
@@ -1202,15 +1180,13 @@ defmodule T.Matches do
   end
 
   def expiration_list_soon_to_expire(reference \\ DateTime.utc_now()) do
-    {from1, to1} = expiration_pre_voicemail_notification_interval(reference)
-    {from2, to2} = expiration_post_voicemail_notification_interval(reference)
+    {from, to} = expiration_notification_interval(reference)
 
     expiring_matches_q()
     # TODO can result in duplicates with more than one worker
     |> where(
       [match: m],
-      (not m.exchanged_voicemail and (m.inserted_at > ^from1 and m.inserted_at <= ^to1)) or
-        (m.inserted_at > ^from2 and m.inserted_at <= ^to2)
+      m.inserted_at > ^from and m.inserted_at <= ^to
     )
     |> select([m], m.id)
     |> Repo.all()

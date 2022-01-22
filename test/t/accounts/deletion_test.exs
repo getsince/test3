@@ -39,7 +39,7 @@ defmodule T.Accounts.DeletionTest do
       expiration_date =
         inserted_at
         |> DateTime.from_naive!("Etc/UTC")
-        |> DateTime.add(Matches.pre_voicemail_ttl())
+        |> DateTime.add(Matches.match_ttl())
 
       assert_receive {Matches, :matched, match}
       user_id = user.id

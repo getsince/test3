@@ -37,13 +37,11 @@ defmodule TWeb.FeedChanneLiveTest do
                %{
                  "id" => m2.id,
                  "profile" => %{name: "mate-2", story: [], user_id: p2.id, gender: "N"},
-                 "exchanged_voice" => false,
                  "inserted_at" => ~U[2021-09-30 12:16:06Z]
                },
                %{
                  "id" => m1.id,
                  "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
-                 "exchanged_voice" => false,
                  "inserted_at" => ~U[2021-09-30 12:16:05Z]
                }
              ]
@@ -95,7 +93,6 @@ defmodule TWeb.FeedChanneLiveTest do
                %{
                  "id" => m1.id,
                  "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
-                 "exchanged_voice" => false,
                  "inserted_at" => ~U[2021-09-30 12:16:05Z]
                }
              ]
@@ -109,7 +106,6 @@ defmodule TWeb.FeedChanneLiveTest do
                %{
                  "id" => m1.id,
                  "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
-                 "exchanged_voice" => false,
                  "inserted_at" => ~U[2021-09-30 12:16:05Z]
                }
              ]

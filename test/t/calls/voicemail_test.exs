@@ -31,31 +31,26 @@ defmodule T.Calls.VoicemailTest do
                Calls.voicemail_save_message(caller.id, match.id, s3_key)
     end
 
-    test "success: saves/overwrites voicemail, updates match.exchanged_voicemail" do
+    test "success: saves/overwrites voicemail" do
       me = onboarded_user()
       mate = onboarded_user()
 
       match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
-      refute match.exchanged_voicemail
 
       # me -voice> mate
-      assert {:ok, %Calls.Voicemail{id: v1_id}, _new_match_expiration_date = nil} =
+      assert {:ok, %Calls.Voicemail{id: v1_id}} =
                Calls.voicemail_save_message(me.id, match.id, _s3_key = Ecto.UUID.generate())
 
-      assert {:ok, %Calls.Voicemail{id: v2_id}, _new_match_expiration_date = nil} =
+      assert {:ok, %Calls.Voicemail{id: v2_id}} =
                Calls.voicemail_save_message(me.id, match.id, _s3_key = Ecto.UUID.generate())
-
-      refute Repo.get(Matches.Match, match.id).exchanged_voicemail
 
       # these voicemail messages will be overwritten
       voicemail_ids = voicemail_ids(match.id)
       assert_lists_equal(voicemail_ids, [v1_id, v2_id])
 
       # mate -voice> me
-      assert {:ok, %Calls.Voicemail{id: v3_id}, _new_match_expiration_date = %DateTime{}} =
+      assert {:ok, %Calls.Voicemail{id: v3_id}} =
                Calls.voicemail_save_message(mate.id, match.id, _s3_key = Ecto.UUID.generate())
-
-      assert Repo.get(Matches.Match, match.id).exchanged_voicemail
 
       # voicemail messages from me to mate have been overwritten
       voicemail_ids = voicemail_ids(match.id)
@@ -70,11 +65,11 @@ defmodule T.Calls.VoicemailTest do
       match_event(match: match, event: "meeting_report")
 
       # me -voice> mate
-      assert {:ok, %Calls.Voicemail{}, _new_match_expiration_date = nil} =
+      assert {:ok, %Calls.Voicemail{}} =
                Calls.voicemail_save_message(me.id, match.id, _s3_key = Ecto.UUID.generate())
 
       # mate -voice> me
-      assert {:ok, %Calls.Voicemail{}, _new_match_expiration_date = nil} =
+      assert {:ok, %Calls.Voicemail{}} =
                Calls.voicemail_save_message(mate.id, match.id, _s3_key = Ecto.UUID.generate())
     end
   end
@@ -86,7 +81,7 @@ defmodule T.Calls.VoicemailTest do
 
       match = insert(:match, user_id_1: caller.id, user_id_2: called.id)
 
-      assert {:ok, %Voicemail{} = voicemail, _new_match_expiration_date = nil} =
+      assert {:ok, %Voicemail{} = voicemail} =
                Calls.voicemail_save_message(caller.id, match.id, _s3_key = Ecto.UUID.generate())
 
       refute Calls.voicemail_listen_message(caller.id, voicemail.id)
@@ -100,7 +95,7 @@ defmodule T.Calls.VoicemailTest do
 
       match = insert(:match, user_id_1: caller.id, user_id_2: called.id)
 
-      assert {:ok, %Voicemail{} = voicemail, _new_match_expiration_date = nil} =
+      assert {:ok, %Voicemail{} = voicemail} =
                Calls.voicemail_save_message(caller.id, match.id, _s3_key = Ecto.UUID.generate())
 
       refute Calls.voicemail_listen_message(spy.id, voicemail.id)
@@ -118,7 +113,7 @@ defmodule T.Calls.VoicemailTest do
 
       match = insert(:match, user_id_1: caller.id, user_id_2: called.id)
 
-      assert {:ok, %Voicemail{} = voicemail, _new_match_expiration_date = nil} =
+      assert {:ok, %Voicemail{} = voicemail} =
                Calls.voicemail_save_message(caller.id, match.id, _s3_key = Ecto.UUID.generate())
 
       refute voicemail.listened_at
@@ -139,21 +134,21 @@ defmodule T.Calls.VoicemailTest do
       {:ok, _} = Matches.like_user(me.id, mate.id)
       {:ok, %{match: %Matches.Match{id: match_id}}} = Matches.like_user(mate.id, me.id)
 
-      {:ok, %Calls.Voicemail{}, _new_match_expiration_date = nil} =
+      {:ok, %Calls.Voicemail{}} =
         Calls.voicemail_save_message(
           me.id,
           match_id,
           _s3_key = "37f22461-6678-45f2-8140-b45755471b42"
         )
 
-      {:ok, %Calls.Voicemail{}, _new_match_expiration_date = nil} =
+      {:ok, %Calls.Voicemail{}} =
         Calls.voicemail_save_message(
           me.id,
           match_id,
           _s3_key = "4b087c06-652a-46aa-8a15-9b11d4be7f18"
         )
 
-      {:ok, %Calls.Voicemail{}, _new_match_expiration_date = %DateTime{}} =
+      {:ok, %Calls.Voicemail{}} =
         Calls.voicemail_save_message(
           mate.id,
           match_id,
@@ -192,7 +187,7 @@ defmodule T.Calls.VoicemailTest do
         match: %{id: match_id}
       } = ctx
 
-      assert {:ok, %Voicemail{}, _new_match_expiration_date = nil} =
+      assert {:ok, %Voicemail{}} =
                Calls.voicemail_save_message(
                  caller_id,
                  match_id,
@@ -263,36 +258,30 @@ defmodule T.Calls.VoicemailTest do
     test "voicemail is broadcast via pubsub to mate", ctx do
       %{
         profiles: [%{user_id: me}, %{user_id: mate}],
-        match: %{id: match_id, inserted_at: match_inserted_at}
+        match: %{id: match_id}
       } = ctx
 
       Feeds.subscribe_for_user(mate)
 
-      assert {:ok, %Voicemail{} = v1, _new_match_expiration_date = nil} =
+      assert {:ok, %Voicemail{} = v1} =
                Calls.voicemail_save_message(
                  me,
                  match_id,
                  _s3_key = Ecto.UUID.generate()
                )
 
-      assert_receive {Calls, [:voicemail, :received], %{voicemail: ^v1, expiration_date: nil}}
+      assert_receive {Calls, [:voicemail, :received], %{voicemail: ^v1}}
 
       Feeds.subscribe_for_user(me)
 
-      expected_expiration_date =
-        match_inserted_at
-        |> DateTime.from_naive!("Etc/UTC")
-        |> DateTime.add(Matches.match_ttl())
-
-      assert {:ok, %Voicemail{} = v2, ^expected_expiration_date} =
+      assert {:ok, %Voicemail{} = v2} =
                Calls.voicemail_save_message(
                  mate,
                  match_id,
                  _s3_key = Ecto.UUID.generate()
                )
 
-      assert_receive {Calls, [:voicemail, :received],
-                      %{voicemail: ^v2, expiration_date: ^expected_expiration_date}}
+      assert_receive {Calls, [:voicemail, :received], %{voicemail: ^v2}}
     end
   end
 
@@ -304,7 +293,7 @@ defmodule T.Calls.VoicemailTest do
 
       assert [%{match_id: match_id}] = Matches.list_archived_matches(receiver_id)
 
-      assert {:ok, %Voicemail{}, _new_match_expiration_date} =
+      assert {:ok, %Voicemail{}} =
                Calls.voicemail_save_message(
                  caller_id,
                  match_id,

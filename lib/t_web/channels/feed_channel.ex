@@ -242,7 +242,9 @@ defmodule TWeb.FeedChannel do
              "match_id" => match_id,
              "audio_only" => mate_audio_only,
              "expiration_date" => expiration_date,
-             "inserted_at" => inserted_at
+             "inserted_at" => inserted_at,
+             #  TODO remove after adoption of iOS 5.1.0
+             "exchanged_voicemail" => false
            }}
 
         {:error, _step, _reason, _changes} ->
@@ -512,9 +514,7 @@ defmodule TWeb.FeedChannel do
     {:noreply, assign(socket, :feed_filter, feed_filter)}
   end
 
-  def handle_info({Calls, [:voicemail, :received], payload}, socket) do
-    %{voicemail: voicemail} = payload
-
+  def handle_info({Calls, [:voicemail, :received], voicemail}, socket) do
     %Calls.Voicemail{
       id: id,
       s3_key: s3_key,

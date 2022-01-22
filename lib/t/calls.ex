@@ -320,24 +320,24 @@ defmodule T.Calls do
     voicemail = %Voicemail{caller_id: caller_id, match_id: match_id, s3_key: s3_key}
 
     Multi.new()
-    |> Multi.run(:match, fn _repo, _changes ->
+    |> Multi.run(:mate, fn _repo, _changes ->
       match =
         Match
         |> where(id: ^match_id)
         |> where([m], m.user_id_1 == ^caller_id or m.user_id_2 == ^caller_id)
-        |> select([m], {[m.user_id_1, m.user_id_2]})
+        |> select([m], [m.user_id_1, m.user_id_2])
         |> Repo.one()
 
       case match do
-        {users} ->
-          [mate] = users -- [caller_id]
-          {:ok, %{mate: mate}}
-
         nil ->
           {:error, :not_found}
+
+        users ->
+          [mate] = users -- [caller_id]
+          {:ok, mate}
       end
     end)
-    |> Multi.run(:delete_voicemail, fn _repo, %{match: %{mate: mate}} ->
+    |> Multi.run(:delete_voicemail, fn _repo, %{mate: mate} ->
       # TODO should still be deleted?
       {_, s3_keys} =
         Voicemail
@@ -351,7 +351,7 @@ defmodule T.Calls do
       {:ok, s3_keys}
     end)
     |> Multi.insert(:voicemail, voicemail)
-    |> Oban.insert(:push, fn %{match: %{mate: mate}} ->
+    |> Oban.insert(:push, fn %{mate: mate} ->
       DispatchJob.new(%{
         "type" => "voicemail_sent",
         "match_id" => match_id,
@@ -363,10 +363,7 @@ defmodule T.Calls do
     |> Repo.transaction()
     |> case do
       {:ok, changes} ->
-        %{
-          voicemail: voicemail,
-          match: %{mate: mate}
-        } = changes
+        %{voicemail: voicemail, mate: mate} = changes
 
         m =
           "voicemail from #{fetch_name(caller_id)} (#{caller_id}) to #{fetch_name(mate)} (#{mate})"
@@ -374,11 +371,10 @@ defmodule T.Calls do
         Logger.warn(m)
         Bot.async_post_message(m)
 
-        broadcast_payload = %{voicemail: voicemail}
-        Feeds.broadcast_for_user(mate, {__MODULE__, [:voicemail, :received], broadcast_payload})
+        Feeds.broadcast_for_user(mate, {__MODULE__, [:voicemail, :received], voicemail})
         {:ok, voicemail}
 
-      {:error, :match, :not_found, _changes} ->
+      {:error, :mate, :not_found, _changes} ->
         {:error, "voicemail not allowed"}
     end
   end

@@ -322,9 +322,7 @@ defmodule T.Matches do
     |> Repo.all()
     |> Enum.map(fn {match, undying_event_timestamp} ->
       expiration_date =
-        if undying_event_timestamp do
-          nil
-        else
+        unless undying_event_timestamp do
           expiration_date(match)
         end
 

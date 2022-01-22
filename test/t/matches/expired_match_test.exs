@@ -25,7 +25,7 @@ defmodule T.Matches.ExpiredMatchTest do
   end
 
   describe "expiration_list_soon_to_expire/0,1" do
-    defp exp_notification_window(match) do
+    defp in_exp_notification_window(match) do
       match.inserted_at
       |> DateTime.from_naive!("Etc/UTC")
       |> DateTime.add(Matches.match_ttl())
@@ -34,21 +34,21 @@ defmodule T.Matches.ExpiredMatchTest do
 
     test "sanity check" do
       match = match(inserted_at: ~N[2021-01-01 12:00:00])
-      assert exp_notification_window(match) == ~U[2021-01-07 12:00:00Z]
+      assert in_exp_notification_window(match) == ~U[2021-01-07 12:00:00Z]
     end
 
     test "doesn't list matches with calls" do
       match = match(inserted_at: ~N[2021-01-01 12:00:00])
       match_event(match: match, event: "call_start")
 
-      assert Matches.expiration_list_soon_to_expire(exp_notification_window(match)) == []
+      assert Matches.expiration_list_soon_to_expire(in_exp_notification_window(match)) == []
     end
 
     test "doesn't list matches with meeting reports" do
       match = match(inserted_at: ~N[2021-01-01 12:00:00])
       match_event(match: match, event: "meeting_report")
 
-      assert Matches.expiration_list_soon_to_expire(exp_notification_window(match)) == []
+      assert Matches.expiration_list_soon_to_expire(in_exp_notification_window(match)) == []
     end
   end
 

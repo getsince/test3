@@ -288,7 +288,7 @@ defmodule T.MatchesTest do
       {:ok, %Voicemail{}} =
         Calls.voicemail_save_message(u2_id, match_id, _s3_key = Ecto.UUID.generate())
 
-      assert_receive {Calls, [:voicemail, :received], %{voicemail: %Voicemail{}}}
+      assert_receive {Calls, [:voicemail, :received], %Voicemail{}}
 
       assert [%Match{id: ^match_id, expiration_date: ^expected_expiration_date}] =
                Matches.list_matches(u1_id)

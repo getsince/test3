@@ -270,7 +270,7 @@ defmodule T.Calls.VoicemailTest do
                  _s3_key = Ecto.UUID.generate()
                )
 
-      assert_receive {Calls, [:voicemail, :received], %{voicemail: ^v1}}
+      assert_receive {Calls, [:voicemail, :received], ^v1}
 
       Feeds.subscribe_for_user(me)
 
@@ -281,7 +281,7 @@ defmodule T.Calls.VoicemailTest do
                  _s3_key = Ecto.UUID.generate()
                )
 
-      assert_receive {Calls, [:voicemail, :received], %{voicemail: ^v2}}
+      assert_receive {Calls, [:voicemail, :received], ^v2}
     end
   end
 

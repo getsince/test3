@@ -22,120 +22,34 @@ defmodule T.Matches.ExpiredMatchTest do
       assert Matches.expiration_list_expired_matches(_at = ~U[2021-01-03 12:00:00Z]) == []
       assert Matches.expiration_list_expired_matches(_at = ~U[2021-01-10 12:00:00Z]) == []
     end
-
-    test "lists matches with no voicemail exchange after two days" do
-      match = match(inserted_at: ~N[2021-01-01 12:00:00])
-
-      assert Matches.expiration_list_expired_matches(_at = ~U[2021-01-03 12:00:00Z]) == []
-
-      assert Matches.expiration_list_expired_matches(_at = ~U[2021-01-03 12:00:01Z]) ==
-               [%{id: match.id, user_id_1: match.user_id_1, user_id_2: match.user_id_2}]
-    end
-
-    test "lists matches with one-sided voicemail exchange after two days" do
-      match = match(inserted_at: ~N[2021-01-01 12:00:00])
-      voicemail(match: match, caller_id: match.user_id_1)
-      voicemail(match: match, caller_id: match.user_id_1)
-
-      assert Matches.expiration_list_expired_matches(_at = ~U[2021-01-03 12:00:00Z]) == []
-
-      assert Matches.expiration_list_expired_matches(_at = ~U[2021-01-03 12:00:01Z]) ==
-               [%{id: match.id, user_id_1: match.user_id_1, user_id_2: match.user_id_2}]
-    end
-
-    test "lists matches with voicemail exchange after seven days" do
-      match = match(inserted_at: ~N[2021-01-01 12:00:00])
-
-      voicemail(match: match, caller_id: match.user_id_1)
-      voicemail(match: match, caller_id: match.user_id_1)
-      voicemail(match: match, caller_id: match.user_id_2)
-
-      assert Matches.expiration_list_expired_matches(_at = ~U[2021-01-08 12:00:00Z]) == []
-
-      assert Matches.expiration_list_expired_matches(_at = ~U[2021-01-08 12:00:01Z]) ==
-               [%{id: match.id, user_id_1: match.user_id_1, user_id_2: match.user_id_2}]
-    end
   end
 
   describe "expiration_list_soon_to_expire/0,1" do
-    defp in_pre_voicemail_exp_notification_window(match) do
-      match.inserted_at
-      |> DateTime.from_naive!("Etc/UTC")
-      |> DateTime.add(Matches.pre_voicemail_ttl())
-      |> DateTime.add(_3h = -3 * 3600)
-    end
-
-    defp in_post_voicemail_exp_notification_window(match) do
+    defp a_day_before_expiration(match) do
       match.inserted_at
       |> DateTime.from_naive!("Etc/UTC")
       |> DateTime.add(Matches.match_ttl())
       |> DateTime.add(_24h = -24 * 3600)
     end
 
-    test "sanity check" do
+    test "lists matches without undying event" do
       match = match(inserted_at: ~N[2021-01-01 12:00:00])
-      assert in_pre_voicemail_exp_notification_window(match) == ~U[2021-01-03 09:00:00Z]
-      assert in_post_voicemail_exp_notification_window(match) == ~U[2021-01-07 12:00:00Z]
+      assert ~U[2021-01-07 12:00:00Z] = dt = a_day_before_expiration(match)
+      assert Matches.expiration_list_soon_to_expire(dt) == [match.id]
     end
 
     test "doesn't list matches with calls" do
       match = match(inserted_at: ~N[2021-01-01 12:00:00])
       match_event(match: match, event: "call_start")
 
-      assert Matches.expiration_list_soon_to_expire(
-               in_pre_voicemail_exp_notification_window(match)
-             ) == []
-
-      assert Matches.expiration_list_soon_to_expire(
-               in_post_voicemail_exp_notification_window(match)
-             ) == []
+      assert Matches.expiration_list_soon_to_expire(a_day_before_expiration(match)) == []
     end
 
     test "doesn't list matches with meeting reports" do
       match = match(inserted_at: ~N[2021-01-01 12:00:00])
       match_event(match: match, event: "meeting_report")
 
-      assert Matches.expiration_list_soon_to_expire(
-               in_pre_voicemail_exp_notification_window(match)
-             ) == []
-
-      assert Matches.expiration_list_soon_to_expire(
-               in_post_voicemail_exp_notification_window(match)
-             ) == []
-    end
-
-    test "lists matches with no voicemail exchange" do
-      match = match(inserted_at: ~N[2021-01-01 12:00:00])
-
-      assert Matches.expiration_list_soon_to_expire(
-               in_pre_voicemail_exp_notification_window(match)
-             ) == [match.id]
-    end
-
-    test "lists matches with one-sided voicemail exchange" do
-      match = match(inserted_at: ~N[2021-01-01 12:00:00])
-      voicemail(match: match, caller_id: match.user_id_1)
-      voicemail(match: match, caller_id: match.user_id_1)
-
-      assert Matches.expiration_list_soon_to_expire(
-               in_pre_voicemail_exp_notification_window(match)
-             ) == [match.id]
-    end
-
-    test "lists matches with voicemail exchange" do
-      match = match(inserted_at: ~N[2021-01-01 12:00:00])
-
-      voicemail(match: match, caller_id: match.user_id_1)
-      voicemail(match: match, caller_id: match.user_id_1)
-      voicemail(match: match, caller_id: match.user_id_2)
-
-      assert Matches.expiration_list_soon_to_expire(
-               in_pre_voicemail_exp_notification_window(match)
-             ) == []
-
-      assert Matches.expiration_list_soon_to_expire(
-               in_post_voicemail_exp_notification_window(match)
-             ) == [match.id]
+      assert Matches.expiration_list_soon_to_expire(a_day_before_expiration(match)) == []
     end
   end
 
@@ -145,10 +59,10 @@ defmodule T.Matches.ExpiredMatchTest do
       %{user: u2} = insert(:profile)
       %{id: match_id} = insert(:match, user_id_1: u1.id, user_id_2: u2.id)
 
-      {:ok, %Calls.Voicemail{id: v1_id}, _new_match_expiration_date = nil} =
+      {:ok, %Calls.Voicemail{id: v1_id}} =
         Calls.voicemail_save_message(u1.id, match_id, s3_key_1 = Ecto.UUID.generate())
 
-      {:ok, %Calls.Voicemail{id: v2_id}, _new_match_expiration_date = nil} =
+      {:ok, %Calls.Voicemail{id: v2_id}} =
         Calls.voicemail_save_message(u1.id, match_id, s3_key_2 = Ecto.UUID.generate())
 
       Matches.expire_match(match_id, u1.id, u2.id)
@@ -277,11 +191,5 @@ defmodule T.Matches.ExpiredMatchTest do
       event: opts[:event],
       timestamp: opts[:timestamp] || DateTime.truncate(DateTime.utc_now(), :second)
     )
-  end
-
-  defp voicemail(opts) do
-    caller_id = opts[:caller_id] || raise "need :caller_id"
-    match = opts[:match] || raise "need :match"
-    Calls.voicemail_save_message(caller_id, match.id, _s3_key = Ecto.UUID.generate())
   end
 end

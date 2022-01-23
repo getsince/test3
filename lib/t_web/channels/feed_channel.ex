@@ -107,8 +107,6 @@ defmodule TWeb.FeedChannel do
     reply =
       %{"mode" => "normal"}
       |> Map.put("since_live_date", since_live_date)
-      # TODO remove?
-      |> Map.put("match_expiration_duration", Matches.pre_voicemail_ttl())
       |> maybe_put("missed_calls", missed_calls)
       |> maybe_put("likes", likes)
       |> maybe_put("matches", matches)
@@ -237,7 +235,7 @@ defmodule TWeb.FeedChannel do
          }} ->
           # TODO return these timestamps from like_user
           inserted_at = DateTime.from_naive!(inserted_at, "Etc/UTC")
-          expiration_date = DateTime.add(inserted_at, Matches.pre_voicemail_ttl())
+          expiration_date = DateTime.add(inserted_at, Matches.match_ttl())
 
           {:ok,
            %{
@@ -245,6 +243,7 @@ defmodule TWeb.FeedChannel do
              "audio_only" => mate_audio_only,
              "expiration_date" => expiration_date,
              "inserted_at" => inserted_at,
+             #  TODO remove after adoption of iOS 5.1.0
              "exchanged_voicemail" => false
            }}
 
@@ -376,11 +375,8 @@ defmodule TWeb.FeedChannel do
   def handle_in("send-voicemail", %{"match_id" => match_id, "s3_key" => s3_key}, socket) do
     reply =
       case Calls.voicemail_save_message(me_id(socket), match_id, s3_key) do
-        {:ok, %Calls.Voicemail{id: message_id}, new_expiration_date} ->
-          {:ok, maybe_put(%{"id" => message_id}, "expiration_date", new_expiration_date)}
-
-        {:error, reason} ->
-          {:error, %{"reason" => reason}}
+        {:ok, %Calls.Voicemail{id: message_id}} -> {:ok, %{"id" => message_id}}
+        {:error, reason} -> {:error, %{"reason" => reason}}
       end
 
     {:reply, reply, socket}
@@ -424,8 +420,7 @@ defmodule TWeb.FeedChannel do
             profile: profile,
             screen_width: screen_width,
             inserted_at: inserted_at,
-            expiration_date: expiration_date,
-            exchanged_voice: false
+            expiration_date: expiration_date
           })
       })
     end
@@ -516,9 +511,7 @@ defmodule TWeb.FeedChannel do
     {:noreply, assign(socket, :feed_filter, feed_filter)}
   end
 
-  def handle_info({Calls, [:voicemail, :received], payload}, socket) do
-    %{voicemail: voicemail, expiration_date: expiration_date} = payload
-
+  def handle_info({Calls, [:voicemail, :received], voicemail}, socket) do
     %Calls.Voicemail{
       id: id,
       s3_key: s3_key,
@@ -526,16 +519,13 @@ defmodule TWeb.FeedChannel do
       inserted_at: inserted_at
     } = voicemail
 
-    push = %{
+    push(socket, "voicemail_received", %{
       "match_id" => match_id,
       "id" => id,
       "s3_key" => s3_key,
       "url" => Calls.voicemail_url(s3_key),
       "inserted_at" => DateTime.from_naive!(inserted_at, "Etc/UTC")
-    }
-
-    push = maybe_put(push, "expiration_date", expiration_date)
-    push(socket, "voicemail_received", push)
+    })
 
     {:noreply, socket}
   end
@@ -620,8 +610,7 @@ defmodule TWeb.FeedChannel do
         timeslot: timeslot,
         contact: contact,
         voicemail: voicemail,
-        expiration_date: expiration_date,
-        exchanged_voicemail: exchanged_voice
+        expiration_date: expiration_date
       } ->
         render_match(%{
           id: match_id,
@@ -632,8 +621,7 @@ defmodule TWeb.FeedChannel do
           contact: contact,
           voicemail: voicemail,
           screen_width: screen_width,
-          expiration_date: expiration_date,
-          exchanged_voice: exchanged_voice
+          expiration_date: expiration_date
         })
 
       %Matches.ExpiredMatch{

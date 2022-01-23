@@ -315,31 +315,29 @@ defmodule T.Calls do
   end
 
   @spec voicemail_save_message(uuid, uuid, uuid) ::
-          {:ok, %Voicemail{}, DateTime.t() | nil} | {:error, reason :: String.t()}
+          {:ok, %Voicemail{}} | {:error, reason :: String.t()}
   def voicemail_save_message(caller_id, match_id, s3_key) do
     voicemail = %Voicemail{caller_id: caller_id, match_id: match_id, s3_key: s3_key}
 
     Multi.new()
-    |> Multi.run(:match, fn _repo, _changes ->
-      match =
-        Matches.matches_with_undying_events_q()
+    |> Multi.run(:mate, fn _repo, _changes ->
+      users =
+        Match
         |> where(id: ^match_id)
         |> where([m], m.user_id_1 == ^caller_id or m.user_id_2 == ^caller_id)
-        |> select([m, undying_event: e], {m.inserted_at, [m.user_id_1, m.user_id_2], e.timestamp})
+        |> select([m], [m.user_id_1, m.user_id_2])
         |> Repo.one()
 
-      case match do
-        {inserted_at, users, undying_event_at} ->
-          [mate] = users -- [caller_id]
-          {:ok, %{mate: mate, inserted_at: inserted_at, undying_event_at: undying_event_at}}
-
-        nil ->
-          {:error, :not_found}
+      if users do
+        [mate] = users -- [caller_id]
+        {:ok, mate}
+      else
+        {:error, :not_found}
       end
     end)
-    |> Multi.run(:exchanged_voicemail, fn _repo, %{match: %{mate: mate}} ->
+    |> Multi.run(:delete_voicemail, fn _repo, %{mate: mate} ->
       # TODO should still be deleted?
-      {count, s3_keys} =
+      {_, s3_keys} =
         Voicemail
         |> where(match_id: ^match_id)
         |> where(caller_id: ^mate)
@@ -347,20 +345,11 @@ defmodule T.Calls do
         |> Repo.delete_all()
 
       schedule_s3_delete(s3_keys)
-      mate_sent_voicemail? = count >= 1
 
-      if mate_sent_voicemail? do
-        Match
-        |> where(id: ^match_id)
-        |> Repo.update_all(set: [exchanged_voicemail: true])
-
-        {:ok, true}
-      else
-        {:ok, false}
-      end
+      {:ok, s3_keys}
     end)
     |> Multi.insert(:voicemail, voicemail)
-    |> Oban.insert(:push, fn %{match: %{mate: mate}} ->
+    |> Oban.insert(:push, fn %{mate: mate} ->
       DispatchJob.new(%{
         "type" => "voicemail_sent",
         "match_id" => match_id,
@@ -371,33 +360,17 @@ defmodule T.Calls do
     |> Multi.delete_all(:unarchive, where(ArchivedMatch, match_id: ^match_id))
     |> Repo.transaction()
     |> case do
-      {:ok, changes} ->
-        %{
-          voicemail: voicemail,
-          exchanged_voicemail: exchanged_voicemail,
-          match: %{mate: mate, inserted_at: inserted_at, undying_event_at: undying_event_at}
-        } = changes
-
+      {:ok, %{voicemail: voicemail, mate: mate}} ->
         m =
           "voicemail from #{fetch_name(caller_id)} (#{caller_id}) to #{fetch_name(mate)} (#{mate})"
 
         Logger.warn(m)
         Bot.async_post_message(m)
 
-        new_expiration_date =
-          unless undying_event_at do
-            if exchanged_voicemail do
-              inserted_at
-              |> DateTime.from_naive!("Etc/UTC")
-              |> DateTime.add(Matches.match_ttl())
-            end
-          end
+        Feeds.broadcast_for_user(mate, {__MODULE__, [:voicemail, :received], voicemail})
+        {:ok, voicemail}
 
-        broadcast_payload = %{voicemail: voicemail, expiration_date: new_expiration_date}
-        Feeds.broadcast_for_user(mate, {__MODULE__, [:voicemail, :received], broadcast_payload})
-        {:ok, voicemail, new_expiration_date}
-
-      {:error, :match, :not_found, _changes} ->
+      {:error, :mate, :not_found, _changes} ->
         {:error, "voicemail not allowed"}
     end
   end

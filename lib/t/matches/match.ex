@@ -8,8 +8,6 @@ defmodule T.Matches.Match do
     field :user_id_1, Ecto.Bigflake.UUID
     field :user_id_2, Ecto.Bigflake.UUID
 
-    field :exchanged_voicemail, :boolean
-
     # TODO
     field :profile, :map, virtual: true
 

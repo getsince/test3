@@ -315,26 +315,24 @@ defmodule T.Calls do
   end
 
   @spec voicemail_save_message(uuid, uuid, uuid) ::
-          {:ok, %Voicemail{}, DateTime.t() | nil} | {:error, reason :: String.t()}
+          {:ok, %Voicemail{}} | {:error, reason :: String.t()}
   def voicemail_save_message(caller_id, match_id, s3_key) do
     voicemail = %Voicemail{caller_id: caller_id, match_id: match_id, s3_key: s3_key}
 
     Multi.new()
     |> Multi.run(:mate, fn _repo, _changes ->
-      match =
+      users =
         Match
         |> where(id: ^match_id)
         |> where([m], m.user_id_1 == ^caller_id or m.user_id_2 == ^caller_id)
         |> select([m], [m.user_id_1, m.user_id_2])
         |> Repo.one()
 
-      case match do
-        nil ->
-          {:error, :not_found}
-
-        users ->
-          [mate] = users -- [caller_id]
-          {:ok, mate}
+      if users do
+        [mate] = users -- [caller_id]
+        {:ok, mate}
+      else
+        {:error, :not_found}
       end
     end)
     |> Multi.run(:delete_voicemail, fn _repo, %{mate: mate} ->
@@ -362,9 +360,7 @@ defmodule T.Calls do
     |> Multi.delete_all(:unarchive, where(ArchivedMatch, match_id: ^match_id))
     |> Repo.transaction()
     |> case do
-      {:ok, changes} ->
-        %{voicemail: voicemail, mate: mate} = changes
-
+      {:ok, %{voicemail: voicemail, mate: mate}} ->
         m =
           "voicemail from #{fetch_name(caller_id)} (#{caller_id}) to #{fetch_name(mate)} (#{mate})"
 

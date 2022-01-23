@@ -375,11 +375,8 @@ defmodule TWeb.FeedChannel do
   def handle_in("send-voicemail", %{"match_id" => match_id, "s3_key" => s3_key}, socket) do
     reply =
       case Calls.voicemail_save_message(me_id(socket), match_id, s3_key) do
-        {:ok, %Calls.Voicemail{id: message_id}} ->
-          {:ok, %{"id" => message_id}}
-
-        {:error, reason} ->
-          {:error, %{"reason" => reason}}
+        {:ok, %Calls.Voicemail{id: message_id}} -> {:ok, %{"id" => message_id}}
+        {:error, reason} -> {:error, %{"reason" => reason}}
       end
 
     {:reply, reply, socket}
@@ -522,15 +519,13 @@ defmodule TWeb.FeedChannel do
       inserted_at: inserted_at
     } = voicemail
 
-    push = %{
+    push(socket, "voicemail_received", %{
       "match_id" => match_id,
       "id" => id,
       "s3_key" => s3_key,
       "url" => Calls.voicemail_url(s3_key),
       "inserted_at" => DateTime.from_naive!(inserted_at, "Etc/UTC")
-    }
-
-    push(socket, "voicemail_received", push)
+    })
 
     {:noreply, socket}
   end

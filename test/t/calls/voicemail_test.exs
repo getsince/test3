@@ -56,49 +56,31 @@ defmodule T.Calls.VoicemailTest do
       voicemail_ids = voicemail_ids(match.id)
       assert_lists_equal(voicemail_ids, [v3_id])
     end
-
-    test "success: returns nil match expiration date for matches with undying event" do
-      me = onboarded_user()
-      mate = onboarded_user()
-
-      match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
-      match_event(match: match, event: "meeting_report")
-
-      # me -voice> mate
-      assert {:ok, %Calls.Voicemail{}} =
-               Calls.voicemail_save_message(me.id, match.id, _s3_key = Ecto.UUID.generate())
-
-      # mate -voice> me
-      assert {:ok, %Calls.Voicemail{}} =
-               Calls.voicemail_save_message(mate.id, match.id, _s3_key = Ecto.UUID.generate())
-    end
   end
 
   describe "voicemail_listen_message/3" do
-    test "failure: caller can't listen to their own message" do
-      caller = onboarded_user()
-      called = onboarded_user()
-
+    defp setup_for_listen do
+      [caller, called] = [onboarded_user(), onboarded_user()]
       match = insert(:match, user_id_1: caller.id, user_id_2: called.id)
 
       assert {:ok, %Voicemail{} = voicemail} =
                Calls.voicemail_save_message(caller.id, match.id, _s3_key = Ecto.UUID.generate())
 
+      %{caller: caller, called: called, match: match, voicemail: voicemail}
+    end
+
+    test "failure: caller can't listen to their own message" do
+      %{caller: caller, voicemail: voicemail} = setup_for_listen()
       refute Calls.voicemail_listen_message(caller.id, voicemail.id)
       assert %Voicemail{listened_at: nil} = Repo.get!(Voicemail, voicemail.id)
     end
 
     test "failure: user outside of the match can't to listen to their messages" do
-      caller = onboarded_user()
-      called = onboarded_user()
+      %{voicemail: voicemail} = setup_for_listen()
       spy = onboarded_user()
 
-      match = insert(:match, user_id_1: caller.id, user_id_2: called.id)
-
-      assert {:ok, %Voicemail{} = voicemail} =
-               Calls.voicemail_save_message(caller.id, match.id, _s3_key = Ecto.UUID.generate())
-
       refute Calls.voicemail_listen_message(spy.id, voicemail.id)
+
       assert %Voicemail{listened_at: nil} = Repo.get!(Voicemail, voicemail.id)
     end
 
@@ -108,14 +90,7 @@ defmodule T.Calls.VoicemailTest do
     end
 
     test "success: sets listened_at" do
-      caller = onboarded_user()
-      called = onboarded_user()
-
-      match = insert(:match, user_id_1: caller.id, user_id_2: called.id)
-
-      assert {:ok, %Voicemail{} = voicemail} =
-               Calls.voicemail_save_message(caller.id, match.id, _s3_key = Ecto.UUID.generate())
-
+      %{called: called, voicemail: voicemail} = setup_for_listen()
       refute voicemail.listened_at
 
       now = DateTime.utc_now()
@@ -271,17 +246,6 @@ defmodule T.Calls.VoicemailTest do
                )
 
       assert_receive {Calls, [:voicemail, :received], ^v1}
-
-      Feeds.subscribe_for_user(me)
-
-      assert {:ok, %Voicemail{} = v2} =
-               Calls.voicemail_save_message(
-                 mate,
-                 match_id,
-                 _s3_key = Ecto.UUID.generate()
-               )
-
-      assert_receive {Calls, [:voicemail, :received], ^v2}
     end
   end
 
@@ -321,15 +285,5 @@ defmodule T.Calls.VoicemailTest do
 
   defp voicemail_ids(match_id) do
     Calls.Voicemail |> where(match_id: ^match_id) |> select([v], v.id) |> Repo.all()
-  end
-
-  defp match_event(opts) do
-    match = opts[:match] || raise "need :match"
-
-    insert(:match_event,
-      match_id: match.id,
-      event: opts[:event],
-      timestamp: opts[:timestamp] || DateTime.truncate(DateTime.utc_now(), :second)
-    )
   end
 end

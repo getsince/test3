@@ -277,18 +277,8 @@ defmodule T.MatchesTest do
         match: %{id: match_id, inserted_at: inserted_at}
       } = ctx
 
-      Feeds.subscribe_for_user(u1_id)
-
       expected_expiration_date =
         inserted_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.add(_7_days = 7 * 24 * 3600)
-
-      {:ok, %Voicemail{}} =
-        Calls.voicemail_save_message(u1_id, match_id, _s3_key = Ecto.UUID.generate())
-
-      {:ok, %Voicemail{}} =
-        Calls.voicemail_save_message(u2_id, match_id, _s3_key = Ecto.UUID.generate())
-
-      assert_receive {Calls, [:voicemail, :received], %Voicemail{}}
 
       assert [%Match{id: ^match_id, expiration_date: ^expected_expiration_date}] =
                Matches.list_matches(u1_id)

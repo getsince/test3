@@ -1577,24 +1577,23 @@ defmodule TWeb.FeedChannelTest do
     end
 
     test "success: when users are matched, voicemail is saved and pushed to receiver", ctx do
-      %{me: %{id: me_id}, socket: socket} = ctx
-
+      %{me: %{id: me_id}} = ctx
       %{id: mate_id} = mate = onboarded_user()
-
       %{id: match_id} = insert(:match, user_id_1: me_id, user_id_2: mate_id)
 
       {:ok, _reply, mate_socket} =
         mate
         |> connected_socket()
-        |> subscribe_and_join("feed:" <> mate_id, %{"mode" => "normal"})
+        |> join("feed:" <> mate_id, %{"mode" => "normal"})
 
       # mate -voice-> me
 
       s3_key = Ecto.UUID.generate()
       ref = push(mate_socket, "send-voicemail", %{"match_id" => match_id, "s3_key" => s3_key})
 
-      assert_reply ref, :ok, %{"id" => voicemail_id} = reply
-      assert reply == %{"id" => voicemail_id}
+      assert_reply ref, :ok, reply
+      assert Map.keys(reply) == ["id"]
+      assert %{"id" => voicemail_id} = reply
 
       assert %Calls.Voicemail{
                id: ^voicemail_id,
@@ -1618,32 +1617,6 @@ defmodule TWeb.FeedChannelTest do
                push["url"],
                "https://s3.eu-north-1.amazonaws.com/pretend-this-is-real/" <> s3_key
              )
-
-      # me -voice-> mate
-
-      s3_key = Ecto.UUID.generate()
-      ref = push(socket, "send-voicemail", %{"match_id" => match_id, "s3_key" => s3_key})
-
-      assert_reply ref, :ok, %{"id" => voicemail_id} = reply
-      assert reply == %{"id" => voicemail_id}
-
-      assert %Calls.Voicemail{
-               id: ^voicemail_id,
-               caller_id: ^me_id,
-               match_id: ^match_id,
-               s3_key: ^s3_key,
-               inserted_at: inserted_at
-             } = Repo.get(Calls.Voicemail, voicemail_id)
-
-      assert_push "voicemail_received", %{"url" => url} = push
-
-      assert push == %{
-               "id" => voicemail_id,
-               "inserted_at" => DateTime.from_naive!(inserted_at, "Etc/UTC"),
-               "match_id" => match_id,
-               "s3_key" => s3_key,
-               "url" => url
-             }
     end
   end
 

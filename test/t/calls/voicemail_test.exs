@@ -56,6 +56,57 @@ defmodule T.Calls.VoicemailTest do
       voicemail_ids = voicemail_ids(match.id)
       assert_lists_equal(voicemail_ids, [v3_id])
     end
+
+    test "success: saves (and doesn't overwrite) and broadcasts interactions" do
+      me = onboarded_user()
+      mate = onboarded_user()
+
+      Matches.subscribe_for_user(me.id)
+      Matches.subscribe_for_user(mate.id)
+
+      match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
+
+      # me -voice> mate
+      assert {:ok, %Calls.Voicemail{} = v1} =
+               Calls.voicemail_save_message(me.id, match.id, _s3_key = Ecto.UUID.generate())
+
+      assert {:ok, %Calls.Voicemail{} = v2} =
+               Calls.voicemail_save_message(me.id, match.id, _s3_key = Ecto.UUID.generate())
+
+      assert [i1, i2] = Matches.history_list_interactions(match.id)
+
+      assert i1.id == v1.id
+      assert i1.from_user_id == me.id
+      assert i1.to_user_id == mate.id
+      assert i1.match_id == match.id
+      assert i1.data == %{"type" => "voicemail", "s3" => v1.s3_key}
+
+      assert i2.id == v2.id
+      assert i2.from_user_id == me.id
+      assert i2.to_user_id == mate.id
+      assert i2.match_id == match.id
+      assert i2.data == %{"type" => "voicemail", "s3" => v2.s3_key}
+
+      assert_received {Matches, :interaction, ^i1}
+      assert_received {Matches, :interaction, ^i1}
+      assert_received {Matches, :interaction, ^i2}
+      assert_received {Matches, :interaction, ^i2}
+
+      # mate -voice> me
+      assert {:ok, %Calls.Voicemail{} = v3} =
+               Calls.voicemail_save_message(mate.id, match.id, _s3_key = Ecto.UUID.generate())
+
+      assert [^i1, ^i2, i3] = Matches.history_list_interactions(match.id)
+
+      assert i3.id == v3.id
+      assert i3.from_user_id == mate.id
+      assert i3.to_user_id == me.id
+      assert i3.match_id == match.id
+      assert i3.data == %{"type" => "voicemail", "s3" => v3.s3_key}
+
+      assert_received {Matches, :interaction, ^i3}
+      assert_received {Matches, :interaction, ^i3}
+    end
   end
 
   describe "voicemail_listen_message/3" do

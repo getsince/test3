@@ -8,7 +8,7 @@ defmodule T.Calls do
   alias T.{Repo, Twilio, Accounts, Feeds, Matches}
   alias T.Calls.{Call, Voicemail}
   alias T.Feeds.{FeedProfile}
-  alias T.Matches.{Match, MatchEvent, ArchivedMatch}
+  alias T.Matches.{Match, MatchEvent, ArchivedMatch, Interaction}
   alias T.PushNotifications.{APNS, DispatchJob}
   alias T.Bot
 
@@ -22,12 +22,31 @@ defmodule T.Calls do
   @spec call(uuid, uuid, DateTime.t()) :: {:ok, call_id :: uuid} | {:error, reason :: String.t()}
   def call(caller_id, called_id, reference \\ DateTime.utc_now()) do
     call_id = Ecto.Bigflake.UUID.generate()
+    call = %Call{id: call_id, caller_id: caller_id, called_id: called_id}
+
+    interaction =
+      if match_id = match_id(caller_id, called_id) do
+        %Interaction{
+          id: call_id,
+          match_id: match_id,
+          from_user_id: caller_id,
+          to_user_id: called_id,
+          data: %{"type" => "call_attempt"}
+        }
+      end
 
     with :ok <- ensure_call_allowed(caller_id, called_id, reference),
          {:ok, devices} <- ensure_has_devices(called_id),
          :ok <- push_call(caller_id, call_id, devices) do
-      %Call{id: ^call_id} =
-        Repo.insert!(%Call{id: call_id, caller_id: caller_id, called_id: called_id})
+      {:ok, maybe_interaction} =
+        Repo.transaction(fn ->
+          Repo.insert!(call)
+          if interaction, do: Repo.insert!(interaction)
+        end)
+
+      if maybe_interaction do
+        Matches.broadcast_interaction(maybe_interaction)
+      end
 
       m =
         "call attempt #{fetch_name(caller_id)} (#{caller_id}) calling #{fetch_name(called_id)} (#{called_id})"
@@ -67,6 +86,17 @@ defmodule T.Calls do
     |> where(user_id_1: ^user_id_1)
     |> where(user_id_2: ^user_id_2)
     |> Repo.exists?()
+  end
+
+  @spec match_id(uuid, uuid) :: uuid | nil
+  defp match_id(caller_id, called_id) do
+    [user_id_1, user_id_2] = Enum.sort([caller_id, called_id])
+
+    Match
+    |> where(user_id_1: ^user_id_1)
+    |> where(user_id_2: ^user_id_2)
+    |> select([m], m.id)
+    |> Repo.one()
   end
 
   defp reported?(caller_id, called_id) do
@@ -143,7 +173,7 @@ defmodule T.Calls do
     end)
   end
 
-  defp maybe_get_match_id(multi) do
+  defp get_match_id(multi) do
     Multi.run(multi, :match_id, fn _repo, %{call: {caller, called}} ->
       match_id =
         Match
@@ -158,14 +188,29 @@ defmodule T.Calls do
     end)
   end
 
-  defp maybe_insert_call_start_event(multi) do
+  defp maybe_insert_call_start_event(multi, now) do
     Multi.run(multi, :event, fn _repo, %{match_id: match_id} ->
       if match_id do
-        Repo.insert(%MatchEvent{
-          timestamp: DateTime.truncate(DateTime.utc_now(), :second),
+        event = %MatchEvent{timestamp: now, match_id: match_id, event: "call_start"}
+        Repo.insert(event)
+      else
+        {:ok, nil}
+      end
+    end)
+  end
+
+  defp maybe_insert_call_accepted_interaction(multi, call_id) do
+    Multi.run(multi, :interaction, fn _repo, %{match_id: match_id, call: {caller, called}} ->
+      if match_id do
+        interaction = %Interaction{
+          # id: call_id,
+          from_user_id: called,
+          to_user_id: caller,
           match_id: match_id,
-          event: "call_start"
-        })
+          data: %{"type" => "call_accepted", "call_id" => call_id}
+        }
+
+        Repo.insert(interaction)
       else
         {:ok, nil}
       end
@@ -177,20 +222,22 @@ defmodule T.Calls do
   def accept_call(call_id, now \\ utc_now()) do
     Multi.new()
     |> set_call_accepted_at(call_id, now)
-    |> maybe_get_match_id()
-    |> maybe_insert_call_start_event()
+    |> get_match_id()
+    |> maybe_insert_call_start_event(now)
+    # TODO overwrite prev interaction (call attempt)?
+    |> maybe_insert_call_accepted_interaction(call_id)
     |> Repo.transaction()
     |> case do
-      {:ok, %{call: {caller, called}, match_id: match_id}} = success ->
+      {:ok, %{call: {caller, called}, match_id: match_id, interaction: interaction}} = success ->
         if match_id do
           selected_slot =
-            T.Matches.Timeslot
+            Matches.Timeslot
             |> where(match_id: ^match_id)
             |> select([t], t.selected_slot)
             |> Repo.one()
 
           if selected_slot do
-            seconds = DateTime.utc_now() |> DateTime.diff(selected_slot)
+            seconds = DateTime.diff(now, selected_slot)
             minutes = div(seconds, 60)
 
             m =
@@ -200,7 +247,7 @@ defmodule T.Calls do
             Bot.async_post_message(m)
           end
 
-          T.Matches.notify_match_expiration_reset(match_id, [caller, called])
+          Matches.notify_match_expiration_reset(match_id, [caller, called])
         else
           m =
             "LIVE call starts #{fetch_name(caller)} (#{caller}) with #{fetch_name(called)} (#{called})"
@@ -209,6 +256,7 @@ defmodule T.Calls do
           Bot.async_post_message(m)
         end
 
+        Matches.broadcast_interaction(interaction)
         success
 
       {:error, _step, _reason, _changes} = failure ->
@@ -349,6 +397,15 @@ defmodule T.Calls do
       {:ok, s3_keys}
     end)
     |> Multi.insert(:voicemail, voicemail)
+    |> Multi.insert(:interaction, fn %{mate: mate, voicemail: voicemail} ->
+      %Interaction{
+        id: voicemail.id,
+        from_user_id: caller_id,
+        to_user_id: mate,
+        match_id: match_id,
+        data: %{"type" => "voicemail", "s3" => s3_key}
+      }
+    end)
     |> Oban.insert(:push, fn %{mate: mate} ->
       DispatchJob.new(%{
         "type" => "voicemail_sent",
@@ -360,7 +417,7 @@ defmodule T.Calls do
     |> Multi.delete_all(:unarchive, where(ArchivedMatch, match_id: ^match_id))
     |> Repo.transaction()
     |> case do
-      {:ok, %{voicemail: voicemail, mate: mate}} ->
+      {:ok, %{voicemail: voicemail, interaction: interaction, mate: mate}} ->
         m =
           "voicemail from #{fetch_name(caller_id)} (#{caller_id}) to #{fetch_name(mate)} (#{mate})"
 
@@ -368,6 +425,7 @@ defmodule T.Calls do
         Bot.async_post_message(m)
 
         Feeds.broadcast_for_user(mate, {__MODULE__, [:voicemail, :received], voicemail})
+        Matches.broadcast_interaction(interaction)
         {:ok, voicemail}
 
       {:error, :mate, :not_found, _changes} ->

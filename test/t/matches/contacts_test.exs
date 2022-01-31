@@ -43,6 +43,10 @@ defmodule T.Matches.ContactsTest do
     end
 
     test "multiple contact", %{profiles: [p1, p2], match: match} do
+      Matches.subscribe_for_user(p1.user_id)
+      Matches.subscribe_for_user(p2.user_id)
+
+      # offer 1
       assert {:ok, %MatchContact{} = contact} =
                Matches.save_contacts_offer_for_match(p1.user_id, match.id, %{
                  "telegram" => "@pashka"
@@ -51,6 +55,16 @@ defmodule T.Matches.ContactsTest do
       picker_id = p2.user_id
       assert %{contacts: %{"telegram" => "@pashka"}, picker_id: ^picker_id} = contact
 
+      assert [i1] = Matches.history_list_interactions(match.id)
+      assert i1.from_user_id == p1.user_id
+      assert i1.to_user_id == p2.user_id
+      assert i1.match_id == match.id
+      assert i1.data == %{"contacts" => %{"telegram" => "@pashka"}, "type" => "contact_offer"}
+
+      assert_received {Matches, :interaction, ^i1}
+      assert_received {Matches, :interaction, ^i1}
+
+      # offer 2
       assert {:ok, %MatchContact{} = contact} =
                Matches.save_contacts_offer_for_match(p1.user_id, match.id, %{
                  "whatsapp" => "@reptile",
@@ -62,6 +76,20 @@ defmodule T.Matches.ContactsTest do
                picker_id: ^picker_id
              } = contact
 
+      assert [^i1, i2] = Matches.history_list_interactions(match.id)
+      assert i2.from_user_id == p1.user_id
+      assert i2.to_user_id == p2.user_id
+      assert i2.match_id == match.id
+
+      assert i2.data == %{
+               "contacts" => %{"telegram" => "@pashka", "whatsapp" => "@reptile"},
+               "type" => "contact_offer"
+             }
+
+      assert_received {Matches, :interaction, ^i2}
+      assert_received {Matches, :interaction, ^i2}
+
+      # offer 3
       assert {:ok, %MatchContact{} = contact} =
                Matches.save_contacts_offer_for_match(p2.user_id, match.id, %{
                  "phone" => "+6666"
@@ -69,6 +97,15 @@ defmodule T.Matches.ContactsTest do
 
       picker_id = p1.user_id
       assert %{contacts: %{"phone" => "+6666"}, picker_id: ^picker_id} = contact
+
+      assert [^i1, ^i2, i3] = Matches.history_list_interactions(match.id)
+      assert i3.to_user_id == p1.user_id
+      assert i3.from_user_id == p2.user_id
+      assert i3.match_id == match.id
+      assert i3.data == %{"contacts" => %{"phone" => "+6666"}, "type" => "contact_offer"}
+
+      assert_received {Matches, :interaction, ^i3}
+      assert_received {Matches, :interaction, ^i3}
     end
   end
 

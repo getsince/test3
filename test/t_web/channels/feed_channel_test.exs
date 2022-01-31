@@ -1657,6 +1657,158 @@ defmodule TWeb.FeedChannelTest do
     end
   end
 
+  describe "list-interactions" do
+    setup :joined
+
+    test "success: lists all interactions for a match", %{me: me, socket: socket} do
+      mate = onboarded_user()
+      match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
+
+      # no interactions in the beginning
+      ref = push(socket, "list-interactions", %{"match_id" => match.id})
+      assert_reply ref, :ok, reply
+      assert reply == %{"interactions" => []}
+
+      # add some interactions (just enough to test all MatchView clauses)
+
+      # - offer and cancel contacts
+      Matches.save_contacts_offer_for_match(me.id, match.id, %{"telegram" => "@asdfasdfasf"})
+      assert_push "interaction", %{"interaction" => %{"type" => "contact_offer"}}
+
+      Matches.cancel_contacts_for_match(me.id, match.id)
+      assert_push "interaction", %{"interaction" => %{"type" => "contact_cancel"}}
+
+      slots = [
+        "2021-03-23 13:15:00Z",
+        "2021-03-23 13:30:00Z",
+        "2021-03-23 14:00:00Z",
+        "2021-03-23 14:15:00Z",
+        "2021-03-23 14:30:00Z"
+      ]
+
+      now = ~U[2021-03-23 14:12:00Z]
+
+      # - offer and cancel timelots
+      Matches.save_slots_offer_for_match(me.id, match.id, slots, now)
+      assert_push "interaction", %{"interaction" => %{"type" => "slots_offer"}}
+
+      Matches.cancel_slot_for_match(me.id, match.id)
+      assert_push "interaction", %{"interaction" => %{"type" => "slot_cancel"}}
+
+      # - offer and accept timelots
+      Matches.save_slots_offer_for_match(me.id, match.id, slots, now)
+      assert_push "interaction", %{"interaction" => %{"type" => "slots_offer"}}
+
+      Matches.accept_slot_for_match(mate.id, match.id, _slot = "2021-03-23 14:00:00Z", now)
+      assert_push "interaction", %{"interaction" => %{"type" => "slot_accept"}}
+
+      # - send voicemail
+      {:ok, %Calls.Voicemail{} = voice} =
+        Calls.voicemail_save_message(me.id, match.id, Ecto.UUID.generate())
+
+      assert_push "interaction", %{"interaction" => %{"type" => "voicemail"}}
+
+      # - attempt and accept call
+      insert(:push_kit_device,
+        device_id: "ABAB",
+        user: mate,
+        token: build(:user_token, user: mate)
+      )
+
+      expect(MockAPNS, :push, fn _notification -> :ok end)
+
+      {:ok, call_id} = Calls.call(me.id, mate.id)
+      assert_push "interaction", %{"interaction" => %{"type" => "call_attempt"}}
+
+      :ok = Calls.accept_call(call_id)
+      assert_push "interaction", %{"interaction" => %{"type" => "call"}}
+
+      # now we have all possible interactions
+      ref = push(socket, "list-interactions", %{"match_id" => match.id})
+      assert_reply ref, :ok, %{"interactions" => interactions}
+
+      mate_id = mate.id
+      me_id = me.id
+      voicemail_id = voice.id
+      voicemail_s3_key = voice.s3_key
+
+      assert [
+               # - offer and cancel contacts
+               %{
+                 "contacts" => %{"telegram" => "@asdfasdfasf"},
+                 "id" => _,
+                 "inserted_at" => %DateTime{},
+                 "picker" => ^mate_id,
+                 "type" => "contact_offer"
+               },
+               %{
+                 "at" => %DateTime{},
+                 "by" => ^me_id,
+                 "id" => _,
+                 "type" => "contact_cancel"
+               },
+               # - offer and cancel timelots
+               %{
+                 "id" => _,
+                 "inserted_at" => %DateTime{},
+                 "picker" => ^mate_id,
+                 "slots" => [
+                   "2021-03-23T14:00:00Z",
+                   "2021-03-23T14:15:00Z",
+                   "2021-03-23T14:30:00Z"
+                 ],
+                 "type" => "slots_offer"
+               },
+               %{
+                 "by_user_id" => ^me_id,
+                 "cancelled_at" => %DateTime{},
+                 "id" => _,
+                 "type" => "slot_cancel"
+               },
+               # - offer and accept timelots
+               %{
+                 "id" => _,
+                 "inserted_at" => %DateTime{},
+                 "picker" => ^mate_id,
+                 "slots" => [
+                   "2021-03-23T14:00:00Z",
+                   "2021-03-23T14:15:00Z",
+                   "2021-03-23T14:30:00Z"
+                 ],
+                 "type" => "slots_offer"
+               },
+               %{
+                 "accepted_at" => %DateTime{},
+                 "id" => _,
+                 "selected_slot" => "2021-03-23T14:00:00Z",
+                 "type" => "slot_accept"
+               },
+               # - send voicemail
+               %{
+                 "caller" => ^me_id,
+                 "id" => ^voicemail_id,
+                 "inserted_at" => %DateTime{},
+                 "s3_key" => ^voicemail_s3_key,
+                 "type" => "voicemail",
+                 "url" => _
+               },
+               # - attempt and accept call
+               %{
+                 "attempted_at" => %DateTime{},
+                 "caller" => ^me_id,
+                 "id" => ^call_id,
+                 "type" => "call_attempt"
+               },
+               %{
+                 "accepted_at" => %DateTime{},
+                 "call_id" => ^call_id,
+                 "id" => _,
+                 "type" => "call"
+               }
+             ] = interactions
+    end
+  end
+
   defp joined(%{socket: socket, me: me}) do
     assert {:ok, _reply, socket} =
              subscribe_and_join(socket, "feed:" <> me.id, %{"mode" => "normal"})

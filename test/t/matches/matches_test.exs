@@ -99,6 +99,27 @@ defmodule T.MatchesTest do
       actual_args = Enum.map(all_enqueued(worker: T.Media.S3DeleteJob), & &1.args)
       assert_lists_equal(expected_args, actual_args)
     end
+
+    test "deletes interactions" do
+      %{user: u1} = insert(:profile)
+      %{user: u2} = insert(:profile)
+      %{id: match_id} = insert(:match, user_id_1: u1.id, user_id_2: u2.id)
+
+      assert [] = Matches.history_list_interactions(match_id)
+
+      {:ok, %Calls.Voicemail{}} =
+        Calls.voicemail_save_message(u1.id, match_id, Ecto.UUID.generate())
+
+      assert {:ok, %Matches.MatchContact{}} =
+               Matches.save_contacts_offer_for_match(u1.id, match_id, %{
+                 "telegram" => "@ruqkadsadjha"
+               })
+
+      assert [_, _] = Matches.history_list_interactions(match_id)
+
+      Matches.unmatch_match(u1.id, match_id)
+      assert [] = Matches.history_list_interactions(match_id)
+    end
   end
 
   describe "unmatch_with_user/2" do
@@ -128,6 +149,25 @@ defmodule T.MatchesTest do
                  "s3_key" => s3_key_1
                }
              ] == Enum.map(all_enqueued(worker: T.Media.S3DeleteJob), & &1.args)
+    end
+
+    test "deletes interactions" do
+      %{user: u1} = insert(:profile)
+      %{user: u2} = insert(:profile)
+      %{id: match_id} = insert(:match, user_id_1: u1.id, user_id_2: u2.id)
+
+      {:ok, %Calls.Voicemail{}} =
+        Calls.voicemail_save_message(u1.id, match_id, Ecto.UUID.generate())
+
+      assert {:ok, %Matches.MatchContact{}} =
+               Matches.save_contacts_offer_for_match(u1.id, match_id, %{
+                 "telegram" => "@ruqkadsadjha"
+               })
+
+      assert [_, _] = Matches.history_list_interactions(match_id)
+
+      Matches.unmatch_with_user(u1.id, u2.id)
+      assert [] = Matches.history_list_interactions(match_id)
     end
   end
 

@@ -97,6 +97,56 @@ defmodule T.Matches.TimeslotsTest do
       assert timeslot.picker_id == p2.user_id
       refute timeslot.selected_slot
     end
+
+    test "saves and broadcasts slots_offer interaction", %{profiles: [p1, p2], match: match} do
+      Matches.subscribe_for_user(p1.user_id)
+      Matches.subscribe_for_user(p2.user_id)
+
+      slots = [
+        "2021-03-23 13:15:00Z",
+        "2021-03-23 13:30:00Z",
+        # current slot
+        "2021-03-23 14:00:00Z",
+        "2021-03-23 14:15:00Z",
+        "2021-03-23 14:30:00Z"
+      ]
+
+      assert {:ok, _timeslot} =
+               Matches.save_slots_offer_for_match(
+                 p1.user_id,
+                 match.id,
+                 slots,
+                 _reference = ~U[2021-03-23 14:04:00Z]
+               )
+
+      # interaction includes only future slots too
+      assert [i1] = Matches.history_list_interactions(match.id)
+      assert i1.from_user_id == p1.user_id
+      assert i1.to_user_id == p2.user_id
+      assert i1.match_id == match.id
+
+      assert i1.data == %{
+               "type" => "slots_offer",
+               "slots" => [
+                 "2021-03-23T14:00:00Z",
+                 "2021-03-23T14:15:00Z",
+                 "2021-03-23T14:30:00Z"
+               ]
+             }
+
+      assert_received {Matches, :interaction, %Matches.Interaction{} = interaction}
+
+      assert interaction.data == %{
+               "type" => "slots_offer",
+               "slots" => [
+                 ~U[2021-03-23 14:00:00Z],
+                 ~U[2021-03-23 14:15:00Z],
+                 ~U[2021-03-23 14:30:00Z]
+               ]
+             }
+
+      assert_received {Matches, :interaction, ^interaction}
+    end
   end
 
   describe "save_slots_offer/2 side-effects" do
@@ -212,6 +262,38 @@ defmodule T.Matches.TimeslotsTest do
       match_event = Matches.MatchEvent |> T.Repo.all()
 
       assert length(match_event) == 2
+    end
+
+    test "saves and broadcasts `slot_accept` interaction", %{profiles: [p1, p2], match: match} do
+      Matches.subscribe_for_user(p1.user_id)
+      Matches.subscribe_for_user(p2.user_id)
+
+      assert %Timeslot{} =
+               Matches.accept_slot_for_match(
+                 p2.user_id,
+                 match.id,
+                 _slot = "2021-03-23 14:00:00Z",
+                 _reference = ~U[2021-03-23 14:05:12Z]
+               )
+
+      assert [i1, i2] = Matches.history_list_interactions(match.id)
+
+      assert %{"type" => "slots_offer"} = i1.data
+
+      assert i2.from_user_id == p2.user_id
+      assert i2.to_user_id == p1.user_id
+      assert i2.match_id == match.id
+
+      assert i2.data == %{
+               "type" => "slot_accept",
+               "slot" => "2021-03-23T14:00:00Z"
+             }
+
+      assert_received {Matches, :interaction, %Matches.Interaction{} = interaction}
+
+      assert interaction.data == %{"type" => "slot_accept", "slot" => ~U[2021-03-23 14:00:00Z]}
+
+      assert_received {Matches, :interaction, ^interaction}
     end
   end
 
@@ -411,6 +493,29 @@ defmodule T.Matches.TimeslotsTest do
                  ["2021-03-23 14:30:00Z", "2021-03-23 14:45:00Z"],
                  ~U[2021-03-23 14:04:00Z]
                )
+    end
+  end
+
+  describe "cancel-slot" do
+    setup [:with_profiles, :with_match, :with_offer]
+
+    test "saves and broadcasts `slot_cancel` interaction", %{profiles: [p1, p2], match: match} do
+      Matches.subscribe_for_user(p1.user_id)
+      Matches.subscribe_for_user(p2.user_id)
+
+      assert :ok = Matches.cancel_slot_for_match(p1.user_id, match.id)
+
+      assert [i1, i2] = Matches.history_list_interactions(match.id)
+
+      assert %{"type" => "slots_offer"} = i1.data
+
+      assert i2.from_user_id == p1.user_id
+      assert i2.to_user_id == p2.user_id
+      assert i2.match_id == match.id
+      assert i2.data == %{"type" => "slot_cancel"}
+
+      assert_received {Matches, :interaction, ^i2}
+      assert_received {Matches, :interaction, ^i2}
     end
   end
 

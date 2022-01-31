@@ -207,6 +207,19 @@ CREATE TABLE public.match_events (
 
 
 --
+-- Name: match_interactions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.match_interactions (
+    id uuid NOT NULL,
+    from_user_id uuid NOT NULL,
+    to_user_id uuid NOT NULL,
+    match_id uuid NOT NULL,
+    data jsonb NOT NULL
+);
+
+
+--
 -- Name: match_timeslot; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -488,6 +501,14 @@ ALTER TABLE ONLY public.match_contact
 
 
 --
+-- Name: match_interactions match_interactions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.match_interactions
+    ADD CONSTRAINT match_interactions_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: match_timeslot match_timeslot_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -637,6 +658,13 @@ CREATE INDEX match_events_event_index ON public.match_events USING btree (event)
 --
 
 CREATE INDEX match_events_match_id_timestamp_desc_index ON public.match_events USING btree (match_id, "timestamp" DESC);
+
+
+--
+-- Name: match_interactions_match_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX match_interactions_match_id_index ON public.match_interactions USING btree (match_id);
 
 
 --
@@ -918,19 +946,27 @@ ALTER TABLE ONLY public.match_contact
 
 
 --
--- Name: match_timeslot match_timeslot_match_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: match_interactions match_interactions_from_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.match_timeslot
-    ADD CONSTRAINT match_timeslot_match_id_fkey FOREIGN KEY (match_id) REFERENCES public.matches(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.match_interactions
+    ADD CONSTRAINT match_interactions_from_user_id_fkey FOREIGN KEY (from_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
--- Name: match_timeslot match_timeslot_picker_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: match_interactions match_interactions_match_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.match_timeslot
-    ADD CONSTRAINT match_timeslot_picker_id_fkey FOREIGN KEY (picker_id) REFERENCES public.users(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.match_interactions
+    ADD CONSTRAINT match_interactions_match_id_fkey FOREIGN KEY (match_id) REFERENCES public.matches(id) ON DELETE CASCADE;
+
+
+--
+-- Name: match_interactions match_interactions_to_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.match_interactions
+    ADD CONSTRAINT match_interactions_to_user_id_fkey FOREIGN KEY (to_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
@@ -1079,3 +1115,4 @@ INSERT INTO public."schema_migrations" (version) VALUES (20220101121429);
 INSERT INTO public."schema_migrations" (version) VALUES (20220111113337);
 INSERT INTO public."schema_migrations" (version) VALUES (20220112131454);
 INSERT INTO public."schema_migrations" (version) VALUES (20220112133053);
+INSERT INTO public."schema_migrations" (version) VALUES (20220131152510);

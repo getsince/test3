@@ -1,7 +1,7 @@
 defmodule TWeb.MatchView do
   use TWeb, :view
   alias TWeb.FeedView
-  alias T.Matches.{Timeslot, MatchContact}
+  alias T.Matches.{Timeslot, MatchContact, Interaction}
   alias T.Calls
   alias T.Calls.Voicemail
 
@@ -36,6 +36,74 @@ defmodule TWeb.MatchView do
     |> maybe_put("timeslot", timeslot)
     |> maybe_put("contact", contact)
     |> maybe_put("voicemail", voicemail)
+  end
+
+  def render("interaction.json", %{interaction: interaction}) do
+    %Interaction{data: %{"type" => type}} = interaction
+    render_interaction(type, interaction)
+  end
+
+  defp render_interaction("slots_offer" = type, interaction) do
+    %Interaction{id: id, to_user_id: picker, data: %{"slots" => slots}} = interaction
+
+    %{
+      "id" => id,
+      "type" => type,
+      "slots" => slots,
+      "inserted_at" => datetime(id),
+      "picker" => picker
+    }
+  end
+
+  defp render_interaction("slot_accept" = type, interaction) do
+    %Interaction{id: id, data: %{"slot" => slot}} = interaction
+    %{"id" => id, "type" => type, "selected_slot" => slot, "accepted_at" => datetime(id)}
+  end
+
+  defp render_interaction("slot_cancel" = type, interaction) do
+    %Interaction{id: id, from_user_id: by_user_id} = interaction
+    %{"id" => id, "type" => type, "by_user_id" => by_user_id, "cancelled_at" => datetime(id)}
+  end
+
+  defp render_interaction("contact_offer" = type, interaction) do
+    %Interaction{id: id, data: %{"contacts" => contacts}, to_user_id: picker} = interaction
+
+    %{
+      "id" => id,
+      "type" => type,
+      "contacts" => contacts,
+      "picker" => picker,
+      "inserted_at" => datetime(id)
+    }
+  end
+
+  defp render_interaction("contact_cancel" = type, interaction) do
+    %Interaction{id: id, data: _data, from_user_id: by_user_id} = interaction
+    %{"id" => id, "type" => type, "by" => by_user_id, "at" => datetime(id)}
+    # |> maybe_put("cancels", data["id"])
+  end
+
+  defp render_interaction("voicemail" = type, interaction) do
+    %Interaction{id: id, from_user_id: caller, data: %{"s3" => s3_key}} = interaction
+
+    %{
+      "id" => id,
+      "type" => type,
+      "caller" => caller,
+      "s3_key" => s3_key,
+      "url" => Calls.voicemail_url(s3_key),
+      "inserted_at" => datetime(id)
+    }
+  end
+
+  defp render_interaction("call_attempt" = type, interaction) do
+    %Interaction{id: id, from_user_id: caller} = interaction
+    %{"id" => id, "type" => type, "caller" => caller, "attempted_at" => datetime(id)}
+  end
+
+  defp render_interaction("call_accepted", interaction) do
+    %Interaction{id: id, data: %{"call_id" => call_id}} = interaction
+    %{"id" => id, "type" => "call", "call_id" => call_id, "accepted_at" => datetime(id)}
   end
 
   defp render_timeslot(%Timeslot{
@@ -107,4 +175,12 @@ defmodule TWeb.MatchView do
 
   defp maybe_put(map, _k, nil), do: map
   defp maybe_put(map, k, v), do: Map.put(map, k, v)
+
+  defp datetime(<<_::288>> = uuid) do
+    datetime(Ecto.Bigflake.UUID.dump!(uuid))
+  end
+
+  defp datetime(<<unix::64, _rest::64>>) do
+    unix |> DateTime.from_unix!(:millisecond) |> DateTime.truncate(:second)
+  end
 end

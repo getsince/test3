@@ -7,7 +7,18 @@ defmodule T.Matches do
   require Logger
 
   alias T.Repo
-  alias T.Matches.{Match, Like, Timeslot, MatchEvent, ExpiredMatch, MatchContact, ArchivedMatch}
+
+  alias T.Matches.{
+    Match,
+    Like,
+    Timeslot,
+    MatchEvent,
+    ExpiredMatch,
+    MatchContact,
+    ArchivedMatch,
+    Interaction
+  }
+
   alias T.Feeds.{FeedProfile, LiveSession}
   alias T.Accounts.{Profile, UserSettings}
   alias T.PushNotifications.DispatchJob
@@ -686,6 +697,12 @@ defmodule T.Matches do
         "offerer_id" => offerer_id
       })
 
+    match_events = %MatchEvent{
+      timestamp: now,
+      match_id: match_id,
+      event: "slot_save"
+    }
+
     # conflict_opts = [
     #   on_conflict: [set: [selected_slot: nil, slots: [], picker_id: mate]],
     #   conflict_target: [:match_id]
@@ -695,17 +712,22 @@ defmodule T.Matches do
 
     Multi.new()
     |> Multi.insert(:timeslot, changeset, conflict_opts)
-    |> Multi.insert(:match_event, %MatchEvent{
-      timestamp: DateTime.truncate(DateTime.utc_now(), :second),
-      match_id: match_id,
-      event: "slot_save"
-    })
+    |> Multi.insert(:match_event, match_events)
+    |> Multi.insert(:interaction, fn %{timeslot: timeslot} ->
+      %Interaction{
+        from_user_id: offerer_id,
+        to_user_id: mate_id,
+        match_id: match_id,
+        data: %{"type" => "slots_offer", "slots" => timeslot.slots}
+      }
+    end)
     |> Oban.insert(:push, push_job)
     |> Repo.transaction()
     |> case do
-      {:ok, %{timeslot: %Timeslot{} = timeslot}} ->
+      {:ok, %{timeslot: %Timeslot{} = timeslot, interaction: interaction}} ->
         maybe_unarchive_match(match_id)
         broadcast_for_user(mate_id, {__MODULE__, [:timeslot, :offered], timeslot})
+        broadcast_interaction(interaction)
 
         {:ok, timeslot}
 
@@ -749,20 +771,20 @@ defmodule T.Matches do
 
     Bot.async_post_message(m)
 
-    insert_match_event(match_id, "slot_accept")
+    match_event = %MatchEvent{
+      timestamp: accepted_at,
+      match_id: match_id,
+      event: "slot_accept"
+    }
+
+    interaction = %Interaction{
+      from_user_id: picker,
+      to_user_id: mate,
+      match_id: match_id,
+      data: %{"type" => "slot_accept", "slot" => slot}
+    }
 
     true = DateTime.compare(slot, prev_slot(reference)) in [:eq, :gt]
-
-    {1, [timeslot]} =
-      Timeslot
-      |> where(match_id: ^match_id)
-      |> where(picker_id: ^picker)
-      |> where([t], ^slot in t.slots)
-      |> select([t], t)
-      |> Repo.update_all(set: [selected_slot: slot, accepted_at: accepted_at])
-
-    broadcast_for_user(mate, {__MODULE__, [:timeslot, :accepted], timeslot})
-
     timeslot_started? = DateTime.compare(slot, reference) in [:lt, :eq]
 
     if timeslot_started? do
@@ -804,8 +826,27 @@ defmodule T.Matches do
         [accepted_push, reminder_push, started_push]
       end
 
-    pushes |> List.wrap() |> Oban.insert_all()
+    {:ok, %{accept: timeslot, interaction: interaction}} =
+      Multi.new()
+      |> Multi.run(:accept, fn _repo, _changes ->
+        Timeslot
+        |> where(match_id: ^match_id)
+        |> where(picker_id: ^picker)
+        |> where([t], ^slot in t.slots)
+        |> select([t], t)
+        |> Repo.update_all(set: [selected_slot: slot, accepted_at: accepted_at])
+        |> case do
+          {1, [timeslot]} -> {:ok, timeslot}
+          {0, _} -> {:error, :not_found}
+        end
+      end)
+      |> Multi.insert(:interaction, interaction)
+      |> Multi.insert(:event, match_event)
+      |> Oban.insert_all(:pushes, List.wrap(pushes))
+      |> Repo.transaction()
 
+    broadcast_for_user(mate, {__MODULE__, [:timeslot, :accepted], timeslot})
+    broadcast_interaction(interaction)
     timeslot
   end
 
@@ -831,16 +872,38 @@ defmodule T.Matches do
       "cancelling timeslot for match #{match_id} (with mate #{mate_id}) by #{by_user_id}"
     )
 
-    insert_match_event(match_id, "slot_cancel")
+    match_event = %MatchEvent{
+      timestamp: DateTime.truncate(DateTime.utc_now(), :second),
+      match_id: match_id,
+      event: "slot_cancel"
+    }
 
-    {1, [%Timeslot{selected_slot: selected_slot} = timeslot]} =
-      Timeslot
-      |> where(match_id: ^match_id)
-      # |> where([t], t.picker_id in ^[])
-      |> select([t], t)
-      |> Repo.delete_all()
+    interaction = %Interaction{
+      from_user_id: by_user_id,
+      to_user_id: mate_id,
+      match_id: match_id,
+      data: %{"type" => "slot_cancel"}
+    }
+
+    {:ok, %{cancel: %Timeslot{selected_slot: selected_slot} = timeslot, interaction: interaction}} =
+      Multi.new()
+      |> Multi.run(:cancel, fn _repo, _changes ->
+        Timeslot
+        |> where(match_id: ^match_id)
+        # |> where([t], t.picker_id in ^[])
+        |> select([t], t)
+        |> Repo.delete_all()
+        |> case do
+          {1, [timeslot]} -> {:ok, timeslot}
+          {0, _} -> {:error, :not_found}
+        end
+      end)
+      |> Multi.insert(:interaction, interaction)
+      |> Multi.insert(:event, match_event)
+      |> Repo.transaction()
 
     broadcast_for_user(mate_id, {__MODULE__, [:timeslot, :cancelled], timeslot})
+    broadcast_interaction(interaction)
 
     if selected_slot do
       {canceller_name, _number_of_matches1} = user_info(by_user_id)
@@ -895,6 +958,19 @@ defmodule T.Matches do
         %{contacts: contacts}
       )
 
+    match_event = %MatchEvent{
+      timestamp: now,
+      match_id: match_id,
+      event: "contact_offer"
+    }
+
+    interaction = %Interaction{
+      data: %{"type" => "contact_offer", "contacts" => contacts},
+      match_id: match_id,
+      from_user_id: offerer,
+      to_user_id: mate
+    }
+
     push_job =
       DispatchJob.new(%{
         "type" => "contact_offer",
@@ -907,17 +983,15 @@ defmodule T.Matches do
 
     Multi.new()
     |> Multi.insert(:match_contact, changeset, conflict_opts)
-    |> Multi.insert(:match_event, %MatchEvent{
-      timestamp: now,
-      match_id: match_id,
-      event: "contact_offer"
-    })
+    |> Multi.insert(:match_event, match_event)
+    |> Multi.insert(:interaction, interaction)
     |> Oban.insert(:push, push_job)
     |> Repo.transaction()
     |> case do
-      {:ok, %{match_contact: %MatchContact{} = match_contact}} ->
+      {:ok, %{match_contact: %MatchContact{} = match_contact, interaction: interaction}} ->
         maybe_unarchive_match(match_id)
         broadcast_for_user(mate, {__MODULE__, [:contact, :offered], match_contact})
+        broadcast_interaction(interaction)
         {:ok, match_contact}
 
       {:error, :match_contact, %Ecto.Changeset{} = changeset, _changes} ->
@@ -934,6 +1008,7 @@ defmodule T.Matches do
     cancel_contacts(by_user_id, mate, match_id)
   end
 
+  # TODO remove
   @spec cancel_contacts(uuid, uuid, uuid) :: :ok
   defp cancel_contacts(by_user_id, mate_id, match_id) do
     m = "cancelling contact for match #{match_id} (with mate #{mate_id}) by #{by_user_id}"
@@ -941,15 +1016,33 @@ defmodule T.Matches do
     Logger.warn(m)
     Bot.async_post_message(m)
 
-    insert_match_event(match_id, "contact_cancel")
+    match_event = %MatchEvent{
+      timestamp: DateTime.truncate(DateTime.utc_now(), :second),
+      match_id: match_id,
+      event: "contact_cancel"
+    }
 
-    {1, [%MatchContact{} = contact]} =
+    interaction = %Interaction{
+      data: %{"type" => "contact_cancel"},
+      match_id: match_id,
+      from_user_id: by_user_id,
+      to_user_id: mate_id
+    }
+
+    contacts_delete_q =
       MatchContact
       |> where(match_id: ^match_id)
       |> select([t], t)
-      |> Repo.delete_all()
+
+    {:ok, %{contacts: {1, [%MatchContact{} = contact]}, interaction: interaction}} =
+      Multi.new()
+      |> Multi.delete_all(:contacts, contacts_delete_q)
+      |> Multi.insert(:event, match_event)
+      |> Multi.insert(:interaction, interaction)
+      |> Repo.transaction()
 
     broadcast_for_user(mate_id, {__MODULE__, [:contact, :cancelled], contact})
+    broadcast_interaction(interaction)
 
     :ok
   end
@@ -1108,14 +1201,6 @@ defmodule T.Matches do
 
   # Expired Matches
 
-  defp insert_match_event(match_id, event) do
-    Repo.insert(%MatchEvent{
-      timestamp: DateTime.truncate(DateTime.utc_now(), :second),
-      match_id: match_id,
-      event: event
-    })
-  end
-
   def expiration_prune(reference \\ DateTime.utc_now()) do
     reference
     |> expiration_list_expired_matches()
@@ -1233,5 +1318,23 @@ defmodule T.Matches do
         _ -> [contacts: "unrecognized contact type"]
       end
     end)
+  end
+
+  # History
+
+  @spec history_list_interactions(uuid) :: [%Interaction{}]
+  def history_list_interactions(match_id) do
+    Interaction
+    |> where(match_id: ^match_id)
+    |> order_by(asc: :id)
+    |> Repo.all()
+  end
+
+  @spec broadcast_interaction(%Interaction{}) :: :ok
+  def broadcast_interaction(%Interaction{from_user_id: from, to_user_id: to} = interaction) do
+    message = {__MODULE__, :interaction, interaction}
+    broadcast_for_user(from, message)
+    broadcast_for_user(to, message)
+    :ok
   end
 end

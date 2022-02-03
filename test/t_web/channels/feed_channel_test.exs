@@ -1754,7 +1754,7 @@ defmodule TWeb.FeedChannelTest do
                  "type" => "contact_offer"
                },
                %{
-                 "at" => %DateTime{},
+                 "inserted_at" => %DateTime{},
                  "by" => ^me_id,
                  "id" => _,
                  "type" => "contact_cancel"
@@ -1773,7 +1773,7 @@ defmodule TWeb.FeedChannelTest do
                },
                %{
                  "by_user_id" => ^me_id,
-                 "cancelled_at" => %DateTime{},
+                 "inserted_at" => %DateTime{},
                  "id" => _,
                  "type" => "slot_cancel"
                },
@@ -1790,7 +1790,7 @@ defmodule TWeb.FeedChannelTest do
                  "type" => "slots_offer"
                },
                %{
-                 "accepted_at" => %DateTime{},
+                 "inserted_at" => %DateTime{},
                  "id" => _,
                  "selected_slot" => "2021-03-23T14:00:00Z",
                  "type" => "slot_accept"
@@ -1806,7 +1806,7 @@ defmodule TWeb.FeedChannelTest do
                },
                # - complete call
                %{
-                 "attempted_at" => %DateTime{},
+                 "inserted_at" => %DateTime{},
                  "accepted_at" => "2021-03-23T14:01:02Z",
                  "ended_at" => "2021-03-23T14:05:13Z",
                  "call_id" => ^call_id,

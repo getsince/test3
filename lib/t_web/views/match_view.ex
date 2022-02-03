@@ -63,13 +63,13 @@ defmodule TWeb.MatchView do
       "type" => type,
       "by_user_id" => by_user_id,
       "selected_slot" => slot,
-      "accepted_at" => datetime(id)
+      "inserted_at" => datetime(id)
     }
   end
 
   defp render_interaction("slot_cancel" = type, interaction) do
     %Interaction{id: id, from_user_id: by_user_id} = interaction
-    %{"id" => id, "type" => type, "by_user_id" => by_user_id, "cancelled_at" => datetime(id)}
+    %{"id" => id, "type" => type, "by_user_id" => by_user_id, "inserted_at" => datetime(id)}
   end
 
   defp render_interaction("contact_offer" = type, interaction) do
@@ -86,7 +86,7 @@ defmodule TWeb.MatchView do
 
   defp render_interaction("contact_cancel" = type, interaction) do
     %Interaction{id: id, data: _data, from_user_id: by_user_id} = interaction
-    %{"id" => id, "type" => type, "by" => by_user_id, "at" => datetime(id)}
+    %{"id" => id, "type" => type, "by" => by_user_id, "inserted_at" => datetime(id)}
     # |> maybe_put("cancels", data["id"])
   end
 
@@ -111,7 +111,7 @@ defmodule TWeb.MatchView do
       "type" => type,
       "call_id" => id,
       "caller" => caller,
-      "attempted_at" => datetime(id)
+      "inserted_at" => datetime(id)
     }
     |> maybe_put("accepted_at", data["accepted_at"])
     |> maybe_put("ended_at", data["ended_at"])

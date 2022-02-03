@@ -96,14 +96,18 @@ defmodule TWeb.MatchView do
     }
   end
 
-  defp render_interaction("call_attempt" = type, interaction) do
-    %Interaction{id: id, from_user_id: caller} = interaction
-    %{"id" => id, "type" => type, "caller" => caller, "attempted_at" => datetime(id)}
-  end
+  defp render_interaction("call" = type, interaction) do
+    %Interaction{id: id, from_user_id: caller, data: data} = interaction
 
-  defp render_interaction("call_accepted", interaction) do
-    %Interaction{id: id, data: %{"call_id" => call_id}} = interaction
-    %{"id" => id, "type" => "call", "call_id" => call_id, "accepted_at" => datetime(id)}
+    %{
+      "id" => id,
+      "type" => type,
+      "call_id" => id,
+      "caller" => caller,
+      "attempted_at" => datetime(id)
+    }
+    |> maybe_put("accepted_at", data["accepted_at"])
+    |> maybe_put("ended_at", data["ended_at"])
   end
 
   defp render_timeslot(%Timeslot{

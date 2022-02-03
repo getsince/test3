@@ -1708,7 +1708,7 @@ defmodule TWeb.FeedChannelTest do
 
       assert_push "interaction", %{"interaction" => %{"type" => "voicemail"}}
 
-      # - attempt and accept call
+      # - attempt, accept, and end call
       insert(:push_kit_device,
         device_id: "ABAB",
         user: mate,
@@ -1718,10 +1718,22 @@ defmodule TWeb.FeedChannelTest do
       expect(MockAPNS, :push, fn _notification -> :ok end)
 
       {:ok, call_id} = Calls.call(me.id, mate.id)
-      assert_push "interaction", %{"interaction" => %{"type" => "call_attempt"}}
 
-      :ok = Calls.accept_call(call_id)
-      assert_push "interaction", %{"interaction" => %{"type" => "call"}}
+      assert_push "interaction", %{
+        "interaction" => %{"type" => "call"}
+      }
+
+      :ok = Calls.accept_call(call_id, _now = ~U[2021-03-23 14:01:02Z])
+
+      assert_push "interaction", %{
+        "interaction" => %{"type" => "call", "accepted_at" => _}
+      }
+
+      :ok = Calls.end_call(mate.id, call_id, _now = ~U[2021-03-23 14:05:13Z])
+
+      assert_push "interaction", %{
+        "interaction" => %{"type" => "call", "accepted_at" => _, "ended_at" => _}
+      }
 
       # now we have all possible interactions
       ref = push(socket, "list-interactions", %{"match_id" => match.id})
@@ -1792,17 +1804,13 @@ defmodule TWeb.FeedChannelTest do
                  "type" => "voicemail",
                  "url" => _
                },
-               # - attempt and accept call
+               # - complete call
                %{
                  "attempted_at" => %DateTime{},
-                 "caller" => ^me_id,
-                 "id" => ^call_id,
-                 "type" => "call_attempt"
-               },
-               %{
-                 "accepted_at" => %DateTime{},
+                 "accepted_at" => "2021-03-23T14:01:02Z",
+                 "ended_at" => "2021-03-23T14:05:13Z",
                  "call_id" => ^call_id,
-                 "id" => _,
+                 "id" => ^call_id,
                  "type" => "call"
                }
              ] = interactions

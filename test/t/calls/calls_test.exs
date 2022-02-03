@@ -23,7 +23,7 @@ defmodule T.CallsTest do
     @tag skip: true
     test "when push fails"
 
-    test "success: creates and broadcasts `call_attempt` interaction if users are matched" do
+    test "success: creates and broadcasts `call` interaction if users are matched" do
       me = onboarded_user()
       mate = onboarded_user()
 
@@ -45,7 +45,7 @@ defmodule T.CallsTest do
       assert [interaction] = Matches.history_list_interactions(match.id)
 
       assert interaction.id == call_id
-      assert interaction.data == %{"type" => "call_attempt"}
+      assert interaction.data == %{"type" => "call"}
       assert interaction.from_user_id == me.id
       assert interaction.to_user_id == mate.id
       assert interaction.match_id == match.id
@@ -75,8 +75,7 @@ defmodule T.CallsTest do
   end
 
   describe "accept_call/2" do
-    test "success: creates and broadcasts `call_accepted` interaction" do
-      # me -call> mate
+    test "success: updates and broadcasts `call` interaction" do
       me = onboarded_user()
       mate = onboarded_user()
 
@@ -93,23 +92,25 @@ defmodule T.CallsTest do
       Matches.subscribe_for_user(mate.id)
       Matches.subscribe_for_user(me.id)
 
+      # me -call> mate
       assert {:ok, call_id} = Calls.call(me.id, mate.id)
-      assert [i1] = Matches.history_list_interactions(match.id)
+      assert [interaction] = Matches.history_list_interactions(match.id)
 
-      assert_received {Matches, :interaction, ^i1}
-      assert_received {Matches, :interaction, ^i1}
+      assert_received {Matches, :interaction, ^interaction}
+      assert_received {Matches, :interaction, ^interaction}
 
       # mate -accept> me
-      assert :ok == Calls.accept_call(call_id)
-      assert [^i1, i2] = Matches.history_list_interactions(match.id)
+      assert :ok == Calls.accept_call(call_id, _now = ~U[2022-02-03T11:37:50Z])
+      assert [interaction] = Matches.history_list_interactions(match.id)
 
-      assert i2.data == %{"type" => "call_accepted", "call_id" => call_id}
-      assert i2.from_user_id == mate.id
-      assert i2.to_user_id == me.id
-      assert i2.match_id == match.id
+      assert interaction.id == call_id
+      assert interaction.data == %{"type" => "call", "accepted_at" => "2022-02-03T11:37:50Z"}
+      assert interaction.from_user_id == me.id
+      assert interaction.to_user_id == mate.id
+      assert interaction.match_id == match.id
 
-      assert_received {Matches, :interaction, ^i2}
-      assert_received {Matches, :interaction, ^i2}
+      assert_received {Matches, :interaction, ^interaction}
+      assert_received {Matches, :interaction, ^interaction}
     end
   end
 
@@ -125,6 +126,55 @@ defmodule T.CallsTest do
   describe "end_call/1" do
     @tag skip: true
     test "sets ended_at on call"
+
+    test "success: updates and broadcasts `call` interaction" do
+      me = onboarded_user()
+      mate = onboarded_user()
+
+      insert(:push_kit_device,
+        device_id: "ABAB",
+        user: mate,
+        token: build(:user_token, user: mate)
+      )
+
+      match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
+
+      expect(MockAPNS, :push, fn _notification -> :ok end)
+
+      Matches.subscribe_for_user(mate.id)
+      Matches.subscribe_for_user(me.id)
+
+      # me -call> mate
+      assert {:ok, call_id} = Calls.call(me.id, mate.id)
+      assert [interaction] = Matches.history_list_interactions(match.id)
+      assert_received {Matches, :interaction, ^interaction}
+      assert_received {Matches, :interaction, ^interaction}
+
+      # mate -accept> me
+      assert :ok == Calls.accept_call(call_id, _now = ~U[2022-02-03T11:37:50Z])
+      assert [interaction] = Matches.history_list_interactions(match.id)
+      assert_received {Matches, :interaction, ^interaction}
+      assert_received {Matches, :interaction, ^interaction}
+
+      # me -hang> mate
+      assert :ok == Calls.end_call(me.id, call_id, _now = ~U[2022-02-03T11:43:23Z])
+      assert [interaction] = Matches.history_list_interactions(match.id)
+
+      assert interaction.id == call_id
+
+      assert interaction.data == %{
+               "type" => "call",
+               "accepted_at" => "2022-02-03T11:37:50Z",
+               "ended_at" => "2022-02-03T11:43:23Z"
+             }
+
+      assert interaction.from_user_id == me.id
+      assert interaction.to_user_id == mate.id
+      assert interaction.match_id == match.id
+
+      assert_received {Matches, :interaction, ^interaction}
+      assert_received {Matches, :interaction, ^interaction}
+    end
   end
 
   describe "list_missed_calls_with_profile/1" do

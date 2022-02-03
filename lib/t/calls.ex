@@ -31,21 +31,21 @@ defmodule T.Calls do
           match_id: match_id,
           from_user_id: caller_id,
           to_user_id: called_id,
-          data: %{"type" => "call_attempt"}
+          data: %{"type" => "call"}
         }
       end
 
     with :ok <- ensure_call_allowed(caller_id, called_id, reference),
          {:ok, devices} <- ensure_has_devices(called_id),
          :ok <- push_call(caller_id, call_id, devices) do
-      {:ok, maybe_interaction} =
+      {:ok, interaction} =
         Repo.transaction(fn ->
           Repo.insert!(call)
           if interaction, do: Repo.insert!(interaction)
         end)
 
-      if maybe_interaction do
-        Matches.broadcast_interaction(maybe_interaction)
+      if interaction do
+        Matches.broadcast_interaction(interaction)
       end
 
       m =
@@ -161,26 +161,19 @@ defmodule T.Calls do
     DateTime.truncate(DateTime.utc_now(), :second)
   end
 
-  defp set_call_accepted_at(multi, call_id, now) do
-    Multi.run(multi, :call, fn _repo, _changes ->
-      {1, [call]} =
-        Call
-        |> where(id: ^call_id)
-        |> select([p], {p.caller_id, p.called_id})
-        |> Repo.update_all(set: [accepted_at: now])
-
-      {:ok, call}
-    end)
+  defp update_call_m(multi, call_id, updates) do
+    call_q = Call |> where(id: ^call_id) |> select([c], c)
+    Multi.update_all(multi, :call, call_q, updates)
   end
 
-  defp get_match_id(multi) do
-    Multi.run(multi, :match_id, fn _repo, %{call: {caller, called}} ->
+  defp get_match_id_m(multi) do
+    Multi.run(multi, :match_id, fn _repo, %{call: {1, [call]}} ->
+      %Call{caller_id: caller, called_id: called} = call
+
       match_id =
         Match
         |> where([m], m.user_id_1 == ^caller and m.user_id_2 == ^called)
         |> or_where([m], m.user_id_1 == ^called and m.user_id_2 == ^caller)
-        |> order_by(desc: :inserted_at)
-        |> limit(1)
         |> select([m], m.id)
         |> Repo.one()
 
@@ -188,7 +181,7 @@ defmodule T.Calls do
     end)
   end
 
-  defp maybe_insert_call_start_event(multi, now) do
+  defp maybe_insert_call_start_event_m(multi, now) do
     Multi.run(multi, :event, fn _repo, %{match_id: match_id} ->
       if match_id do
         event = %MatchEvent{timestamp: now, match_id: match_id, event: "call_start"}
@@ -199,36 +192,61 @@ defmodule T.Calls do
     end)
   end
 
-  defp maybe_insert_call_accepted_interaction(multi, call_id) do
-    Multi.run(multi, :interaction, fn _repo, %{match_id: match_id, call: {caller, called}} ->
-      if match_id do
-        interaction = %Interaction{
-          # id: call_id,
-          from_user_id: called,
-          to_user_id: caller,
-          match_id: match_id,
-          data: %{"type" => "call_accepted", "call_id" => call_id}
-        }
+  defmacrop jsonb_maybe_put(target, key, value) do
+    quote do
+      fragment(
+        "jsonb_set_lax(?, ?, ?, true, 'return_target')",
+        unquote(target),
+        unquote([key]),
+        unquote(value)
+      )
+    end
+  end
 
-        Repo.insert(interaction)
-      else
-        {:ok, nil}
-      end
-    end)
+  defp update_call_interaction_m(multi) do
+    interaction = fn %{call: call_update} ->
+      {1, [%Call{id: call_id, accepted_at: accepted_at, ended_at: ended_at}]} = call_update
+
+      Interaction
+      |> where(id: ^call_id)
+      |> select([i], i)
+      |> update([i],
+        set: [
+          data:
+            i.data
+            |> jsonb_maybe_put("accepted_at", ^accepted_at)
+            |> jsonb_maybe_put("ended_at", ^ended_at)
+        ]
+      )
+    end
+
+    Multi.update_all(multi, :interaction, interaction, _updates = [])
   end
 
   # TODO not ignore errors (currently always :ok)
   @spec accept_call(uuid, DateTime.t()) :: :ok
   def accept_call(call_id, now \\ utc_now()) do
     Multi.new()
-    |> set_call_accepted_at(call_id, now)
-    |> get_match_id()
-    |> maybe_insert_call_start_event(now)
-    # TODO overwrite prev interaction (call attempt)?
-    |> maybe_insert_call_accepted_interaction(call_id)
+    |> update_call_m(call_id, set: [accepted_at: now])
+    |> get_match_id_m()
+    |> maybe_insert_call_start_event_m(now)
+    |> update_call_interaction_m()
     |> Repo.transaction()
-    |> case do
-      {:ok, %{call: {caller, called}, match_id: match_id, interaction: interaction}} = success ->
+    |> tap(fn
+      {:ok, changes} = success ->
+        %{call: {1, [call]}, match_id: match_id, interaction: interaction_update} = changes
+        %Call{caller_id: caller, called_id: called} = call
+
+        interaction =
+          case interaction_update do
+            {1, [interaction]} -> interaction
+            {0, _} -> nil
+          end
+
+        if interaction do
+          Matches.broadcast_interaction(interaction)
+        end
+
         if match_id do
           selected_slot =
             Matches.Timeslot
@@ -256,45 +274,58 @@ defmodule T.Calls do
           Bot.async_post_message(m)
         end
 
-        Matches.broadcast_interaction(interaction)
         success
 
       {:error, _step, _reason, _changes} = failure ->
         failure
-    end
+    end)
 
     :ok
   end
 
   @spec end_call(uuid, uuid, DateTime.t()) :: :ok
   def end_call(user_id, call_id, now \\ utc_now()) do
-    {1, [call]} =
-      Call
-      |> where(id: ^call_id)
-      |> select([c], c)
-      |> Repo.update_all(set: [ended_at: now, ended_by: user_id])
+    Multi.new()
+    |> update_call_m(call_id, set: [ended_at: now, ended_by: user_id])
+    |> get_match_id_m()
+    |> update_call_interaction_m()
+    |> Repo.transaction()
+    |> tap(fn
+      {:ok, changes} ->
+        %{call: {1, [call]}, interaction: interaction_update} = changes
 
-    Matches.maybe_match_after_end_call(call)
+        interaction =
+          case interaction_update do
+            {1, [interaction]} -> interaction
+            {0, _} -> nil
+          end
 
-    {user_status, second_user} =
-      if user_id == call.caller_id do
-        {"caller", call.called_id}
-      else
-        {"receiver", call.caller_id}
-      end
+        if interaction do
+          Matches.broadcast_interaction(interaction)
+        end
 
-    m =
-      if call.accepted_at do
-        seconds = call.ended_at |> DateTime.diff(call.accepted_at)
-        minutes = div(seconds, 60)
+        Matches.maybe_match_after_end_call(call)
 
-        "call ends #{fetch_name(user_id)} (#{user_id}, #{user_status}) ended a call with #{fetch_name(second_user)} (#{second_user}), call lasted for #{minutes}m"
-      else
-        "user #{fetch_name(user_id)} (#{user_id}, #{user_status}) ended a call with #{fetch_name(second_user)} (#{second_user}), call didn't happen"
-      end
+        {user_status, second_user} =
+          if user_id == call.caller_id do
+            {"caller", call.called_id}
+          else
+            {"receiver", call.caller_id}
+          end
 
-    Logger.warn(m)
-    Bot.async_post_message(m)
+        m =
+          if call.accepted_at do
+            seconds = call.ended_at |> DateTime.diff(call.accepted_at)
+            minutes = div(seconds, 60)
+
+            "call ends #{fetch_name(user_id)} (#{user_id}, #{user_status}) ended a call with #{fetch_name(second_user)} (#{second_user}), call lasted for #{minutes}m"
+          else
+            "user #{fetch_name(user_id)} (#{user_id}, #{user_status}) ended a call with #{fetch_name(second_user)} (#{second_user}), call didn't happen"
+          end
+
+        Logger.warn(m)
+        Bot.async_post_message(m)
+    end)
 
     :ok
   end

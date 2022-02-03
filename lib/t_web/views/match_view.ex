@@ -44,50 +44,49 @@ defmodule TWeb.MatchView do
   end
 
   defp render_interaction("slots_offer" = type, interaction) do
-    %Interaction{id: id, to_user_id: picker, data: %{"slots" => slots}} = interaction
+    %Interaction{id: id, from_user_id: offerer, data: %{"slots" => slots}} = interaction
 
     %{
       "id" => id,
       "type" => type,
       "slots" => slots,
       "inserted_at" => datetime(id),
-      "picker" => picker
+      "by_user_id" => offerer
     }
   end
 
   defp render_interaction("slot_accept" = type, interaction) do
-    %Interaction{id: id, from_user_id: by_user_id, data: %{"slot" => slot}} = interaction
+    %Interaction{id: id, from_user_id: picker, data: %{"slot" => slot}} = interaction
 
     %{
       "id" => id,
       "type" => type,
-      "by_user_id" => by_user_id,
+      "by_user_id" => picker,
       "selected_slot" => slot,
       "inserted_at" => datetime(id)
     }
   end
 
   defp render_interaction("slot_cancel" = type, interaction) do
-    %Interaction{id: id, from_user_id: by_user_id} = interaction
-    %{"id" => id, "type" => type, "by_user_id" => by_user_id, "inserted_at" => datetime(id)}
+    %Interaction{id: id, from_user_id: offerer} = interaction
+    %{"id" => id, "type" => type, "by_user_id" => offerer, "inserted_at" => datetime(id)}
   end
 
   defp render_interaction("contact_offer" = type, interaction) do
-    %Interaction{id: id, data: %{"contacts" => contacts}, to_user_id: picker} = interaction
+    %Interaction{id: id, from_user_id: offerer, data: %{"contacts" => contacts}} = interaction
 
     %{
       "id" => id,
       "type" => type,
       "contacts" => contacts,
-      "picker" => picker,
+      "by_user_id" => offerer,
       "inserted_at" => datetime(id)
     }
   end
 
   defp render_interaction("contact_cancel" = type, interaction) do
-    %Interaction{id: id, data: _data, from_user_id: by_user_id} = interaction
-    %{"id" => id, "type" => type, "by" => by_user_id, "inserted_at" => datetime(id)}
-    # |> maybe_put("cancels", data["id"])
+    %Interaction{id: id, from_user_id: offerer} = interaction
+    %{"id" => id, "type" => type, "by_user_id" => offerer, "inserted_at" => datetime(id)}
   end
 
   defp render_interaction("voicemail" = type, interaction) do
@@ -96,7 +95,7 @@ defmodule TWeb.MatchView do
     %{
       "id" => id,
       "type" => type,
-      "caller" => caller,
+      "by_user_id" => caller,
       "s3_key" => s3_key,
       "url" => Calls.voicemail_url(s3_key),
       "inserted_at" => datetime(id)
@@ -110,7 +109,7 @@ defmodule TWeb.MatchView do
       "id" => id,
       "type" => type,
       "call_id" => id,
-      "caller" => caller,
+      "by_user_id" => caller,
       "inserted_at" => datetime(id)
     }
     |> maybe_put("accepted_at", data["accepted_at"])

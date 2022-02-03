@@ -1747,71 +1747,73 @@ defmodule TWeb.FeedChannelTest do
       assert [
                # - offer and cancel contacts
                %{
-                 "contacts" => %{"telegram" => "@asdfasdfasf"},
                  "id" => _,
-                 "inserted_at" => %DateTime{},
-                 "picker" => ^mate_id,
-                 "type" => "contact_offer"
+                 "type" => "contact_offer",
+                 "contacts" => %{"telegram" => "@asdfasdfasf"},
+                 "by_user_id" => ^me_id,
+                 "inserted_at" => %DateTime{}
                },
                %{
-                 "inserted_at" => %DateTime{},
-                 "by" => ^me_id,
                  "id" => _,
-                 "type" => "contact_cancel"
+                 "type" => "contact_cancel",
+                 "by_user_id" => ^me_id,
+                 "inserted_at" => %DateTime{}
                },
                # - offer and cancel timelots
                %{
                  "id" => _,
-                 "inserted_at" => %DateTime{},
-                 "picker" => ^mate_id,
+                 "type" => "slots_offer",
                  "slots" => [
                    "2021-03-23T14:00:00Z",
                    "2021-03-23T14:15:00Z",
                    "2021-03-23T14:30:00Z"
                  ],
-                 "type" => "slots_offer"
+                 "by_user_id" => ^me_id,
+                 "inserted_at" => %DateTime{}
                },
                %{
-                 "by_user_id" => ^me_id,
-                 "inserted_at" => %DateTime{},
                  "id" => _,
-                 "type" => "slot_cancel"
+                 "type" => "slot_cancel",
+                 "by_user_id" => ^me_id,
+                 "inserted_at" => %DateTime{}
                },
                # - offer and accept timelots
                %{
                  "id" => _,
-                 "inserted_at" => %DateTime{},
-                 "picker" => ^mate_id,
+                 "type" => "slots_offer",
                  "slots" => [
                    "2021-03-23T14:00:00Z",
                    "2021-03-23T14:15:00Z",
                    "2021-03-23T14:30:00Z"
                  ],
-                 "type" => "slots_offer"
+                 "by_user_id" => ^me_id,
+                 "inserted_at" => %DateTime{}
                },
                %{
-                 "inserted_at" => %DateTime{},
                  "id" => _,
+                 "type" => "slot_accept",
                  "selected_slot" => "2021-03-23T14:00:00Z",
-                 "type" => "slot_accept"
+                 "by_user_id" => ^mate_id,
+                 "inserted_at" => %DateTime{}
                },
                # - send voicemail
                %{
-                 "caller" => ^me_id,
                  "id" => ^voicemail_id,
-                 "inserted_at" => %DateTime{},
-                 "s3_key" => ^voicemail_s3_key,
                  "type" => "voicemail",
-                 "url" => _
+                 "url" => _,
+                 "s3_key" => ^voicemail_s3_key,
+                 "by_user_id" => ^me_id,
+                 "inserted_at" => %DateTime{}
                },
                # - complete call
                %{
-                 "inserted_at" => %DateTime{},
+                 "id" => ^call_id,
+                 "type" => "call",
+                 "call_id" => ^call_id,
                  "accepted_at" => "2021-03-23T14:01:02Z",
                  "ended_at" => "2021-03-23T14:05:13Z",
-                 "call_id" => ^call_id,
-                 "id" => ^call_id,
-                 "type" => "call"
+                 "by_user_id" => ^me_id,
+                 "inserted_at" => %DateTime{}
                }
              ] = interactions
     end

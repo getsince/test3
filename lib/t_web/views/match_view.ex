@@ -56,8 +56,15 @@ defmodule TWeb.MatchView do
   end
 
   defp render_interaction("slot_accept" = type, interaction) do
-    %Interaction{id: id, data: %{"slot" => slot}} = interaction
-    %{"id" => id, "type" => type, "selected_slot" => slot, "accepted_at" => datetime(id)}
+    %Interaction{id: id, from_user_id: by_user_id, data: %{"slot" => slot}} = interaction
+
+    %{
+      "id" => id,
+      "type" => type,
+      "by_user_id" => by_user_id,
+      "selected_slot" => slot,
+      "accepted_at" => datetime(id)
+    }
   end
 
   defp render_interaction("slot_cancel" = type, interaction) do

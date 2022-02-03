@@ -320,6 +320,12 @@ defmodule T.Matches do
 
   @spec list_matches(uuid) :: [%Match{}]
   def list_matches(user_id) do
+    last_interaction_q =
+      Interaction
+      |> where(match_id: parent_as(:match).id)
+      |> order_by(desc: :id)
+      |> limit(1)
+
     matches_with_undying_events_q()
     |> where([match: m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
     |> where([match: m], m.id not in subquery(archived_match_ids_q(user_id)))
@@ -327,17 +333,18 @@ defmodule T.Matches do
     |> join(:left, [m], t in assoc(m, :timeslot), as: :t)
     |> join(:left, [m], c in assoc(m, :contact), as: :c)
     |> join(:left, [m], v in assoc(m, :voicemail), as: :v)
+    |> join(:left_lateral, [m], i in subquery(last_interaction_q), as: :last_interaction)
     # TODO aggregate voicemail
     |> preload([t: t, c: c, v: v], timeslot: t, contact: c, voicemail: v)
-    |> select([match: m, undying_event: e], {m, e.timestamp})
+    |> select([match: m, undying_event: e, last_interaction: i], {m, e.timestamp, i.id})
     |> Repo.all()
-    |> Enum.map(fn {match, undying_event_timestamp} ->
+    |> Enum.map(fn {match, undying_event_timestamp, last_interaction_id} ->
       expiration_date =
         unless undying_event_timestamp do
           expiration_date(match)
         end
 
-      %Match{match | expiration_date: expiration_date}
+      %Match{match | last_interaction_id: last_interaction_id, expiration_date: expiration_date}
     end)
     |> preload_match_profiles(user_id)
   end

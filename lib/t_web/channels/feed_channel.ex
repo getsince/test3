@@ -628,7 +628,8 @@ defmodule TWeb.FeedChannel do
         timeslot: timeslot,
         contact: contact,
         voicemail: voicemail,
-        expiration_date: expiration_date
+        expiration_date: expiration_date,
+        last_interaction_id: last_interaction_id
       } ->
         render_match(%{
           id: match_id,
@@ -639,7 +640,8 @@ defmodule TWeb.FeedChannel do
           contact: contact,
           voicemail: voicemail,
           screen_width: screen_width,
-          expiration_date: expiration_date
+          expiration_date: expiration_date,
+          last_interaction_id: last_interaction_id
         })
 
       %Matches.ExpiredMatch{

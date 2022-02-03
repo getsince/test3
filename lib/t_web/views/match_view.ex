@@ -33,6 +33,7 @@ defmodule TWeb.MatchView do
     |> maybe_put("inserted_at", inserted_at)
     |> maybe_put("audio_only", assigns[:audio_only])
     |> maybe_put("expiration_date", assigns[:expiration_date])
+    |> maybe_put("last_interaction_id", assigns[:last_interaction_id])
     |> maybe_put("timeslot", timeslot)
     |> maybe_put("contact", contact)
     |> maybe_put("voicemail", voicemail)

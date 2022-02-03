@@ -123,6 +123,11 @@ defmodule TWeb.FeedChannelTest do
                ]
              } = voicemail_m5
 
+      last_interaction_id = fn position ->
+        match = Enum.at(matches, position)
+        match["last_interaction_id"]
+      end
+
       assert matches == [
                %{
                  "id" => m6.id,
@@ -130,7 +135,8 @@ defmodule TWeb.FeedChannelTest do
                  "audio_only" => false,
                  "voicemail" => voicemail_m6,
                  "expiration_date" => ~U[2021-10-07 12:16:10Z],
-                 "inserted_at" => ~U[2021-09-30 12:16:10Z]
+                 "inserted_at" => ~U[2021-09-30 12:16:10Z],
+                 "last_interaction_id" => last_interaction_id.(0)
                },
                %{
                  "id" => m5.id,
@@ -138,7 +144,8 @@ defmodule TWeb.FeedChannelTest do
                  "audio_only" => false,
                  "voicemail" => voicemail_m5,
                  "expiration_date" => ~U[2021-10-07 12:16:09Z],
-                 "inserted_at" => ~U[2021-09-30 12:16:09Z]
+                 "inserted_at" => ~U[2021-09-30 12:16:09Z],
+                 "last_interaction_id" => last_interaction_id.(1)
                },
                %{
                  "id" => m4.id,
@@ -157,7 +164,8 @@ defmodule TWeb.FeedChannelTest do
                  },
                  "audio_only" => false,
                  "expiration_date" => ~U[2021-10-07 12:16:07Z],
-                 "inserted_at" => ~U[2021-09-30 12:16:07Z]
+                 "inserted_at" => ~U[2021-09-30 12:16:07Z],
+                 "last_interaction_id" => last_interaction_id.(3)
                },
                %{
                  "id" => m2.id,
@@ -179,7 +187,8 @@ defmodule TWeb.FeedChannelTest do
                  },
                  "audio_only" => false,
                  "expiration_date" => ~U[2021-10-07 12:16:06Z],
-                 "inserted_at" => ~U[2021-09-30 12:16:06Z]
+                 "inserted_at" => ~U[2021-09-30 12:16:06Z],
+                 "last_interaction_id" => last_interaction_id.(4)
                },
                %{
                  "id" => m1.id,
@@ -192,7 +201,8 @@ defmodule TWeb.FeedChannelTest do
                  },
                  "audio_only" => false,
                  "expiration_date" => ~U[2021-10-07 12:16:05Z],
-                 "inserted_at" => ~U[2021-09-30 12:16:05Z]
+                 "inserted_at" => ~U[2021-09-30 12:16:05Z],
+                 "last_interaction_id" => last_interaction_id.(5)
                }
              ]
     end
@@ -364,7 +374,8 @@ defmodule TWeb.FeedChannelTest do
                    "audio_only" => false,
                    "expiration_date" => expiration_date,
                    "inserted_at" => ~U[2021-09-30 12:16:05Z],
-                   "profile" => %{gender: "F", name: "mate", story: [], user_id: mate.id}
+                   "profile" => %{gender: "F", name: "mate", story: [], user_id: mate.id},
+                   "last_interaction_id" => call_id3
                  }
                ]
              }
@@ -394,7 +405,8 @@ defmodule TWeb.FeedChannelTest do
                    "profile" => %{gender: "F", name: "mate", story: [], user_id: mate.id},
                    "audio_only" => false,
                    "expiration_date" => expiration_date,
-                   "inserted_at" => ~U[2021-09-30 12:16:05Z]
+                   "inserted_at" => ~U[2021-09-30 12:16:05Z],
+                   "last_interaction_id" => call_id3
                  }
                ]
              }

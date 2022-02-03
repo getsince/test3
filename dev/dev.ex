@@ -50,19 +50,21 @@ defmodule Dev do
   def populate_match_interactions(dry_run \\ true) do
     import Ecto.Query
     alias T.{Repo, Calls, Matches}
+    alias Calls.{Call, Voicemail}
+    alias Matches.{Match, Interaction, MatchContact, Timeslot}
 
     # calls
 
     calls_1_q =
-      Calls.Call
-      |> join(:inner, [c], m in Matches.Match,
+      Call
+      |> join(:inner, [c], m in Match,
         on: m.user_id_1 == c.caller_id and m.user_id_2 == c.called_id
       )
       |> select([c, m], %{call: c, match_id: m.id})
 
     calls_2_q =
-      Calls.Call
-      |> join(:inner, [c], m in Matches.Match,
+      Call
+      |> join(:inner, [c], m in Match,
         on: m.user_id_2 == c.caller_id and m.user_id_1 == c.called_id
       )
       |> select([c, m], %{call: c, match_id: m.id})
@@ -71,42 +73,38 @@ defmodule Dev do
       calls_1_q
       |> union(^calls_2_q)
       |> Repo.all()
-
-    call_attempts =
-      Enum.map(calls, fn %{call: call, match_id: match_id} ->
-        %Matches.Interaction{
-          id: call.id,
-          match_id: match_id,
-          from_user_id: call.caller_id,
-          to_user_id: call.called_id,
-          data: %{"type" => "call_attempt"}
-        }
-      end)
-
-    accepted_calls =
-      calls
-      |> Enum.filter(fn %{call: call} -> call.accepted_at end)
       |> Enum.map(fn %{call: call, match_id: match_id} ->
-        %Matches.Interaction{
-          id: fake_id(call.accepted_at, call.id),
-          from_user_id: call.called_id,
-          to_user_id: call.caller_id,
+        %Call{
+          id: id,
+          caller_id: caller,
+          called_id: called,
+          accepted_at: accepted_at,
+          ended_at: ended_at
+        } = call
+
+        %Interaction{
+          id: id,
           match_id: match_id,
-          data: %{"type" => "call_accepted", "call_id" => call.id}
+          from_user_id: caller,
+          to_user_id: called,
+          data:
+            %{"type" => "call"}
+            |> maybe_put("accepted_at", accepted_at)
+            |> maybe_put("ended_at", ended_at)
         }
       end)
 
     # voicemail
 
     voicemail =
-      Calls.Voicemail
-      |> join(:inner, [v], m in Matches.Match, on: v.match_id == m.id)
+      Voicemail
+      |> join(:inner, [v], m in Match, on: v.match_id == m.id)
       |> select([v, m], %{voicemail: v, mates: [m.user_id_1, m.user_id_2]})
       |> Repo.all()
       |> Enum.map(fn %{voicemail: voicemail, mates: mates} ->
         [mate] = mates -- [voicemail.caller_id]
 
-        %Matches.Interaction{
+        %Interaction{
           id: voicemail.id,
           from_user_id: voicemail.caller_id,
           to_user_id: mate,
@@ -118,14 +116,14 @@ defmodule Dev do
     # contact offers
 
     contacts =
-      Matches.MatchContact
-      |> join(:inner, [c], m in Matches.Match, on: c.match_id == m.id)
+      MatchContact
+      |> join(:inner, [c], m in Match, on: c.match_id == m.id)
       |> select([c, m], %{contact: c, mates: [m.user_id_1, m.user_id_2]})
       |> Repo.all()
       |> Enum.map(fn %{contact: contact, mates: mates} ->
         [sender] = mates -- [contact.picker_id]
 
-        %Matches.Interaction{
+        %Interaction{
           id: fake_id(contact.inserted_at),
           data: %{"type" => "contact_offer", "contacts" => contact.contacts},
           match_id: contact.match_id,
@@ -137,14 +135,14 @@ defmodule Dev do
     # slots offers / accepts
 
     slots =
-      Matches.Timeslot
-      |> join(:inner, [t], m in Matches.Match, on: t.match_id == m.id)
+      Timeslot
+      |> join(:inner, [t], m in Match, on: t.match_id == m.id)
       |> select([t, m], %{timeslot: t, mates: [m.user_id_1, m.user_id_2]})
       |> Repo.all()
       |> Enum.flat_map(fn %{timeslot: timeslot, mates: mates} ->
         [offerer] = mates -- [timeslot.picker_id]
 
-        offer = %Matches.Interaction{
+        offer = %Interaction{
           id: fake_id(timeslot.inserted_at),
           from_user_id: offerer,
           to_user_id: timeslot.picker_id,
@@ -153,7 +151,7 @@ defmodule Dev do
         }
 
         if timeslot.selected_slot && timeslot.accepted_at do
-          accept = %Matches.Interaction{
+          accept = %Interaction{
             id: fake_id(timeslot.accepted_at),
             from_user_id: timeslot.picker_id,
             to_user_id: offerer,
@@ -168,14 +166,15 @@ defmodule Dev do
       end)
 
     interactions =
-      (call_attempts ++ accepted_calls ++ voicemail ++ contacts ++ slots)
-      |> Enum.map(&Map.take(&1, Matches.Interaction.__schema__(:fields)))
+      (calls ++ voicemail ++ contacts ++ slots)
+      |> Enum.map(&Map.take(&1, Interaction.__schema__(:fields)))
       |> Enum.sort_by(& &1.id, :asc)
 
     if dry_run do
       interactions
     else
-      {Repo.insert_all(Matches.Interaction, interactions, on_conflict: :nothing), interactions}
+      insert_opts = [on_conflict: :replace_all, conflict_target: :id, returning: true]
+      Repo.insert_all(Interaction, interactions, insert_opts)
     end
   end
 
@@ -196,4 +195,7 @@ defmodule Dev do
 
     Ecto.Bigflake.UUID.cast!(<<ts::64, rest::64>>)
   end
+
+  defp maybe_put(map, _k, nil), do: map
+  defp maybe_put(map, k, v), do: Map.put(map, k, v)
 end

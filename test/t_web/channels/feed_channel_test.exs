@@ -1683,12 +1683,9 @@ defmodule TWeb.FeedChannelTest do
 
       # add some interactions (just enough to test all MatchView clauses)
 
-      # - offer and cancel contacts
+      # - offer contacts
       Matches.save_contacts_offer_for_match(me.id, match.id, %{"telegram" => "@asdfasdfasf"})
       assert_push "interaction", %{"interaction" => %{"type" => "contact_offer"}}
-
-      Matches.cancel_contacts_for_match(me.id, match.id)
-      assert_push "interaction", %{"interaction" => %{"type" => "contact_cancel"}}
 
       slots = [
         "2021-03-23 13:15:00Z",
@@ -1757,17 +1754,11 @@ defmodule TWeb.FeedChannelTest do
       voicemail_s3_key = voice.s3_key
 
       assert [
-               # - offer and cancel contacts
+               # - offer contacts
                %{
                  "id" => _,
                  "type" => "contact_offer",
                  "contacts" => %{"telegram" => "@asdfasdfasf"},
-                 "by_user_id" => ^me_id,
-                 "inserted_at" => %DateTime{}
-               },
-               %{
-                 "id" => _,
-                 "type" => "contact_cancel",
                  "by_user_id" => ^me_id,
                  "inserted_at" => %DateTime{}
                },

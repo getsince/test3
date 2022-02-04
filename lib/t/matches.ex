@@ -1006,54 +1006,6 @@ defmodule T.Matches do
     end
   end
 
-  @spec cancel_contacts_for_match(uuid, uuid) :: :ok
-  def cancel_contacts_for_match(by_user_id, match_id) do
-    %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} =
-      get_match_for_user!(match_id, by_user_id)
-
-    [mate] = [uid1, uid2] -- [by_user_id]
-    cancel_contacts(by_user_id, mate, match_id)
-  end
-
-  # TODO remove
-  @spec cancel_contacts(uuid, uuid, uuid) :: :ok
-  defp cancel_contacts(by_user_id, mate_id, match_id) do
-    m = "cancelling contact for match #{match_id} (with mate #{mate_id}) by #{by_user_id}"
-
-    Logger.warn(m)
-    Bot.async_post_message(m)
-
-    match_event = %MatchEvent{
-      timestamp: DateTime.truncate(DateTime.utc_now(), :second),
-      match_id: match_id,
-      event: "contact_cancel"
-    }
-
-    interaction = %Interaction{
-      data: %{"type" => "contact_cancel"},
-      match_id: match_id,
-      from_user_id: by_user_id,
-      to_user_id: mate_id
-    }
-
-    contacts_delete_q =
-      MatchContact
-      |> where(match_id: ^match_id)
-      |> select([t], t)
-
-    {:ok, %{contacts: {1, [%MatchContact{} = contact]}, interaction: interaction}} =
-      Multi.new()
-      |> Multi.delete_all(:contacts, contacts_delete_q)
-      |> Multi.insert(:event, match_event)
-      |> Multi.insert(:interaction, interaction)
-      |> Repo.transaction()
-
-    broadcast_for_user(mate_id, {__MODULE__, [:contact, :cancelled], contact})
-    broadcast_interaction(interaction)
-
-    :ok
-  end
-
   def open_contact_for_match(me, match_id, contact_type, now \\ DateTime.utc_now()) do
     m = "contact opened for match #{match_id} by #{me}"
     seen_at = DateTime.truncate(now, :second)

@@ -85,11 +85,6 @@ defmodule TWeb.MatchView do
     }
   end
 
-  defp render_interaction("contact_cancel" = type, interaction) do
-    %Interaction{id: id, from_user_id: offerer} = interaction
-    %{"id" => id, "type" => type, "by_user_id" => offerer, "inserted_at" => datetime(id)}
-  end
-
   defp render_interaction("voicemail" = type, interaction) do
     %Interaction{id: id, from_user_id: caller, data: %{"s3" => s3_key}} = interaction
 

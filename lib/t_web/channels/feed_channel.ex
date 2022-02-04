@@ -314,14 +314,6 @@ defmodule TWeb.FeedChannel do
     {:reply, {:ok, %{"contacts" => contacts}}, socket}
   end
 
-  def handle_in("cancel-contact", %{"match_id" => match_id}, socket) do
-    me = me_id(socket)
-
-    :ok = Matches.cancel_contacts_for_match(me, match_id)
-
-    {:reply, :ok, socket}
-  end
-
   def handle_in("open-contact", %{"match_id" => match_id, "contact_type" => contact_type}, socket) do
     me = me_id(socket)
 
@@ -499,16 +491,6 @@ defmodule TWeb.FeedChannel do
     push(socket, "contact_offer", %{
       "match_id" => match_id,
       "contacts" => contacts
-    })
-
-    {:noreply, socket}
-  end
-
-  def handle_info({Matches, [:contact, :cancelled], match_contact}, socket) do
-    %Matches.MatchContact{match_id: match_id} = match_contact
-
-    push(socket, "contact_cancelled", %{
-      "match_id" => match_id
     })
 
     {:noreply, socket}

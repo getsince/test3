@@ -182,25 +182,6 @@ defmodule T.Matches.ContactsTest do
     end
   end
 
-  describe "contact_cancel" do
-    setup [:with_profiles, :with_match]
-
-    test "contact is deleted", %{profiles: [_p1, p2], match: match} do
-      assert %MatchContact{} =
-               insert(:match_contact,
-                 contacts: %{"phone" => "+77777777777"},
-                 match: match,
-                 picker: p2.user
-               )
-
-      assert :ok = Matches.cancel_contacts_for_match(p2.user_id, match.id)
-
-      match_id = match.id
-
-      assert MatchContact |> where(match_id: ^match_id) |> T.Repo.all() == []
-    end
-  end
-
   defp with_profiles(_context) do
     {:ok, profiles: insert_list(2, :profile, hidden?: false)}
   end

@@ -1482,6 +1482,7 @@ defmodule TWeb.FeedChannelTest do
     end
   end
 
+  # test doesn't make sense since "report-we-met" doesn't affect match expiration now, should be removed
   describe "open-contact, report-we-met, report-we-not-met" do
     setup :joined
 

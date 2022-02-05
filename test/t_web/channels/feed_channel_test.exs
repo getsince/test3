@@ -899,7 +899,7 @@ defmodule TWeb.FeedChannelTest do
       ref = push(socket, "call", %{"user_id" => mate.id})
       assert_reply(ref, :error, reply)
 
-      if Feeds.live_now?(mate.id) do
+      if Feeds.live_now?() do
         assert reply == %{"reason" => "no pushkit devices available"}
       else
         assert reply == %{"reason" => "call not allowed"}

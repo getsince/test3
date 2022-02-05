@@ -50,6 +50,12 @@ defmodule T.Feeds do
 
   ### Live Feed
 
+  @spec live_enabled? :: boolean
+  def live_enabled?, do: Application.fetch_env!(:t, :since_live_enabled?)
+
+  @spec live_newbies_enabled? :: boolean
+  def live_newbies_enabled?, do: Application.fetch_env!(:t, :newbies_live_enabled?)
+
   @doc """
   This schedule defines start, end, and type of every Since Live event throughout a week.
 
@@ -124,30 +130,25 @@ defmodule T.Feeds do
   end
 
   @doc """
-  Checks if there is an ongoing "Since Live" event and
-  if it's "Since Live for newbies", checks if user_id is a newbie participant.
+  Checks if there is an ongoing real (not newbies) "Since Live" event.
 
-      # ongoing real Since Live
-      iex> user_id = Ecto.Bigflake.UUID.generate()
       iex> thu_19_30 = DateTime.new!(~D[2021-12-23], ~T[19:30:00], "Europe/Moscow")
-      iex> live_now?(user_id, thu_19_30)
+      iex> live_now?(thu_19_30)
       true
 
       # no ongoing Since Live
-      iex> user_id = Ecto.Bigflake.UUID.generate()
       iex> thu_13_30 = DateTime.new!(~D[2021-12-23], ~T[13:30:00], "Europe/Moscow")
-      iex> live_now?(user_id, thu_13_30)
+      iex> live_now?(thu_13_30)
       false
 
-      # ongoing newbies Since Live, but user is not a participant
-      iex> user_id = Ecto.Bigflake.UUID.generate()
+      # ongoing newbies Since Live
       iex> mon_19_30 = DateTime.new!(~D[2021-12-20], ~T[19:30:00], "Europe/Moscow")
-      iex> live_now?(user_id, mon_19_30, _newbies_live_enabled? = true)
+      iex> live_now?(mon_19_30)
       false
 
   """
-  @spec live_now?(Ecto.UUID.t(), DateTime.t(), boolean()) :: boolean
-  def live_now?(user_id, reference \\ DateTime.utc_now(), newbies_live_enabled? \\ false) do
+  @spec live_now?(DateTime.t()) :: boolean
+  def live_now?(reference \\ DateTime.utc_now()) do
     msk_now = DateTime.shift_zone!(reference, "Europe/Moscow")
     weekday_today = Date.day_of_week(msk_now)
 
@@ -158,17 +159,7 @@ defmodule T.Feeds do
       Time.compare(start_at, msk_now) in [:eq, :lt] and
         Time.compare(end_at, msk_now) in [:eq, :gt]
 
-    if ongoing? do
-      case type do
-        :newbie ->
-          if newbies_live_enabled? do
-            is_a_newbies_participant?(user_id, reference)
-          end
-
-        :real ->
-          true
-      end
-    end || false
+    ongoing? and type == :real
   end
 
   @doc """
@@ -889,6 +880,44 @@ defmodule T.Feeds do
   end
 
   # newbies and stuff
+
+  @doc """
+  Checks if there is an ongoing "Since Live for newbies" event.
+  If there is, it also checks if user_id is a participant.
+
+      # ongoing real Since Live
+      iex> user_id = Ecto.Bigflake.UUID.generate()
+      iex> thu_19_30 = DateTime.new!(~D[2021-12-23], ~T[19:30:00], "Europe/Moscow")
+      iex> newbies_live_now?(user_id, thu_19_30)
+      false
+
+      # no ongoing Since Live
+      iex> user_id = Ecto.Bigflake.UUID.generate()
+      iex> thu_13_30 = DateTime.new!(~D[2021-12-23], ~T[13:30:00], "Europe/Moscow")
+      iex> newbies_live_now?(user_id, thu_13_30)
+      false
+
+      # ongoing newbies Since Live, but user is not a participant
+      iex> user_id = Ecto.Bigflake.UUID.generate()
+      iex> mon_19_30 = DateTime.new!(~D[2021-12-20], ~T[19:30:00], "Europe/Moscow")
+      iex> newbies_live_now?(user_id, mon_19_30)
+      false
+
+  """
+  @spec newbies_live_now?(Ecto.UUID.t(), DateTime.t()) :: boolean
+  def newbies_live_now?(user_id, reference \\ DateTime.utc_now()) do
+    msk_now = DateTime.shift_zone!(reference, "Europe/Moscow")
+    weekday_today = Date.day_of_week(msk_now)
+
+    {_weekday, type, [start_at, end_at]} =
+      Enum.find(live_schedule(), fn {weekday, _type, _times} -> weekday == weekday_today end)
+
+    ongoing? =
+      Time.compare(start_at, msk_now) in [:eq, :lt] and
+        Time.compare(end_at, msk_now) in [:eq, :gt]
+
+    ongoing? and type == :newbie and is_a_newbies_participant?(user_id, reference)
+  end
 
   @doc """
   Generates "Since Live for newbies" `:crontab` for Oban's `Oban.Plugins.Cron`:

@@ -28,11 +28,11 @@ defmodule T.Application do
         TWeb.Presence,
         TWeb.UserSocket.Monitor,
         T.Repo,
+        maybe_migrator(),
+        {Oban, oban_config()},
         unless_disabled(T.Periodics),
         TWeb.Endpoint,
         TWeb.Telemetry,
-        maybe_migrator(),
-        {Oban, oban_config()},
         Supervisor.child_spec({Task, &T.Release.mark_ready/0}, id: :readiness_notifier)
       ]
       |> Enum.reject(&is_nil/1)

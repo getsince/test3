@@ -25,7 +25,6 @@ defmodule T.FeedsLiveTest do
       refute Feeds.live_now?(user_id, msk(~D[2021-12-09], ~T[21:00:01]))
     end
 
-    @tag skip: true
     test "Saturday", %{user_id: user_id} do
       refute Feeds.live_now?(user_id, msk(~D[2021-12-11], ~T[19:59:59]))
 

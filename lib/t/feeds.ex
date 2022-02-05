@@ -60,7 +60,8 @@ defmodule T.Feeds do
       {_mon = 1, :newbie, [newbies_live_start_at(), newbies_live_end_at()]},
       {_tue = 2, :newbie, [newbies_live_start_at(), newbies_live_end_at()]},
       {_wed = 3, :newbie, [newbies_live_start_at(), newbies_live_end_at()]},
-      {_thu = 4, :real, [_start = ~T[19:00:00], _end = ~T[21:00:00]]},
+      # {_thu = 4, :real, [_start = ~T[19:00:00], _end = ~T[21:00:00]]},
+      {_thu = 4, :newbie, [_start = ~T[19:00:00], _end = ~T[21:00:00]]},
       {_fri = 5, :newbie, [newbies_live_start_at(), newbies_live_end_at()]},
       {_sat = 6, :real, [_start = ~T[20:00:00], _end = ~T[22:00:00]]},
       {_sun = 7, :newbie, [newbies_live_start_at(), newbies_live_end_at()]}

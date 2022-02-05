@@ -298,13 +298,13 @@ defmodule T.MatchesTest do
       assert [%Match{id: ^match_id, expiration_date: nil}] = Matches.list_matches(u2_id)
     end
 
-    test "matches with meeting report don't have expiration date", ctx do
+    test "matches with contact offer don't have expiration date", ctx do
       %{profiles: [%{user_id: u1_id}, %{user_id: u2_id}], match: %{id: match_id}} = ctx
 
       insert(:match_event,
         match_id: match_id,
         timestamp: DateTime.utc_now(),
-        event: "meeting_report"
+        event: "contact_offer"
       )
 
       assert [%Match{id: ^match_id, expiration_date: nil}] = Matches.list_matches(u1_id)

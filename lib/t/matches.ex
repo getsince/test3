@@ -1254,7 +1254,7 @@ defmodule T.Matches do
     undying_events_q =
       MatchEvent
       |> where(match_id: parent_as(:match).id)
-      |> where([e], e.event == "call_start" or e.event == "meeting_report")
+      |> where([e], e.event == "call_start" or e.event == "contact_offer")
       |> select([e], e.timestamp)
       |> limit(1)
 

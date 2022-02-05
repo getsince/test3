@@ -186,7 +186,6 @@ defmodule TWeb.FeedChannelTest do
                    "picker" => p2.id
                  },
                  "audio_only" => false,
-                 "expiration_date" => ~U[2021-10-07 12:16:06Z],
                  "inserted_at" => ~U[2021-09-30 12:16:06Z],
                  "last_interaction_id" => last_interaction_id.(4)
                },
@@ -200,7 +199,6 @@ defmodule TWeb.FeedChannelTest do
                    "inserted_at" => ~U[2021-09-30 14:47:00Z]
                  },
                  "audio_only" => false,
-                 "expiration_date" => ~U[2021-10-07 12:16:05Z],
                  "inserted_at" => ~U[2021-09-30 12:16:05Z],
                  "last_interaction_id" => last_interaction_id.(5)
                }
@@ -1559,6 +1557,7 @@ defmodule TWeb.FeedChannelTest do
                  "id" => m1.id,
                  "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
                  "audio_only" => false,
+                 "expiration_date" => ~U[2021-10-07 12:16:05Z],
                  "inserted_at" => ~U[2021-09-30 12:16:05Z]
                }
              ]

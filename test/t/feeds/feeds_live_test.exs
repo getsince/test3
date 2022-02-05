@@ -9,39 +9,35 @@ defmodule T.FeedsLiveTest do
   import Mox
   setup :verify_on_exit!
 
-  describe "live_now?/1,2" do
-    setup do
-      {:ok, user_id: Ecto.UUID.generate()}
+  describe "live_now?/1" do
+    test "Thursday" do
+      refute Feeds.live_now?(msk(~D[2021-12-09], ~T[18:59:59]))
+
+      assert Feeds.live_now?(msk(~D[2021-12-09], ~T[19:00:00]))
+      assert Feeds.live_now?(msk(~D[2021-12-09], ~T[19:00:01]))
+      assert Feeds.live_now?(msk(~D[2021-12-09], ~T[20:59:59]))
+      assert Feeds.live_now?(msk(~D[2021-12-09], ~T[21:00:00]))
+
+      refute Feeds.live_now?(msk(~D[2021-12-09], ~T[21:00:01]))
     end
 
-    test "Thursday", %{user_id: user_id} do
-      refute Feeds.live_now?(user_id, msk(~D[2021-12-09], ~T[18:59:59]))
+    test "Saturday" do
+      refute Feeds.live_now?(msk(~D[2021-12-11], ~T[19:59:59]))
 
-      assert Feeds.live_now?(user_id, msk(~D[2021-12-09], ~T[19:00:00]))
-      assert Feeds.live_now?(user_id, msk(~D[2021-12-09], ~T[19:00:01]))
-      assert Feeds.live_now?(user_id, msk(~D[2021-12-09], ~T[20:59:59]))
-      assert Feeds.live_now?(user_id, msk(~D[2021-12-09], ~T[21:00:00]))
+      assert Feeds.live_now?(msk(~D[2021-12-11], ~T[20:00:00]))
+      assert Feeds.live_now?(msk(~D[2021-12-11], ~T[20:00:01]))
+      assert Feeds.live_now?(msk(~D[2021-12-11], ~T[21:59:59]))
+      assert Feeds.live_now?(msk(~D[2021-12-11], ~T[22:00:00]))
 
-      refute Feeds.live_now?(user_id, msk(~D[2021-12-09], ~T[21:00:01]))
+      refute Feeds.live_now?(msk(~D[2021-12-11], ~T[22:00:01]))
     end
 
-    test "Saturday", %{user_id: user_id} do
-      refute Feeds.live_now?(user_id, msk(~D[2021-12-11], ~T[19:59:59]))
-
-      assert Feeds.live_now?(user_id, msk(~D[2021-12-11], ~T[20:00:00]))
-      assert Feeds.live_now?(user_id, msk(~D[2021-12-11], ~T[20:00:01]))
-      assert Feeds.live_now?(user_id, msk(~D[2021-12-11], ~T[21:59:59]))
-      assert Feeds.live_now?(user_id, msk(~D[2021-12-11], ~T[22:00:00]))
-
-      refute Feeds.live_now?(user_id, msk(~D[2021-12-11], ~T[22:00:01]))
-    end
-
-    test "Monday", %{user_id: user_id} do
-      refute Feeds.live_now?(user_id, msk(~D[2021-12-06], ~T[18:00:00]))
-      refute Feeds.live_now?(user_id, msk(~D[2021-12-06], ~T[19:00:00]))
-      refute Feeds.live_now?(user_id, msk(~D[2021-12-06], ~T[20:00:00]))
-      refute Feeds.live_now?(user_id, msk(~D[2021-12-06], ~T[21:00:00]))
-      refute Feeds.live_now?(user_id, msk(~D[2021-12-06], ~T[22:00:00]))
+    test "Monday" do
+      refute Feeds.live_now?(msk(~D[2021-12-06], ~T[18:00:00]))
+      refute Feeds.live_now?(msk(~D[2021-12-06], ~T[19:00:00]))
+      refute Feeds.live_now?(msk(~D[2021-12-06], ~T[20:00:00]))
+      refute Feeds.live_now?(msk(~D[2021-12-06], ~T[21:00:00]))
+      refute Feeds.live_now?(msk(~D[2021-12-06], ~T[22:00:00]))
     end
   end
 

@@ -62,10 +62,17 @@ defmodule T.Calls do
   defp ensure_call_allowed(caller_id, called_id, reference) do
     cond do
       # TWeb.CallTracker.in_call?(called_id) -> {:error, "receiver is busy"}
-      missed?(called_id, caller_id) -> :ok
-      matched?(caller_id, called_id) -> :ok
-      in_live_mode?(caller_id, called_id, reference) -> :ok
-      true -> {:error, "call not allowed"}
+      missed?(called_id, caller_id) ->
+        :ok
+
+      matched?(caller_id, called_id) ->
+        :ok
+
+      in_live_mode?(caller_id, called_id, reference) and not reported?(caller_id, called_id) ->
+        :ok
+
+      true ->
+        {:error, "call not allowed"}
     end
   end
 
@@ -108,8 +115,10 @@ defmodule T.Calls do
 
   @spec in_live_mode?(uuid, uuid, DateTime.t()) :: boolean
   defp in_live_mode?(caller_id, called_id, reference) do
-    both_live? = Feeds.live_now?(caller_id, reference) and Feeds.live_now?(called_id, reference)
-    both_live? and not reported?(caller_id, called_id)
+    (_real_live? = Feeds.live_enabled?() and Feeds.live_now?(reference)) or
+      (_both_newbies_live? =
+         Feeds.live_newbies_enabled?() and Feeds.newbies_live_now?(caller_id, reference) and
+           Feeds.newbies_live_now?(called_id, reference))
   end
 
   @spec ensure_has_devices(uuid) ::

@@ -50,6 +50,12 @@ defmodule T.Feeds do
 
   ### Live Feed
 
+  @spec live_enabled? :: boolean
+  def live_enabled?, do: Application.fetch_env!(:t, :since_live_enabled?)
+
+  @spec live_newbies_enabled? :: boolean
+  def live_newbies_enabled?, do: Application.fetch_env!(:t, :newbies_live_enabled?)
+
   @doc """
   This schedule defines start, end, and type of every Since Live event throughout a week.
 
@@ -62,7 +68,7 @@ defmodule T.Feeds do
       {_wed = 3, :newbie, [newbies_live_start_at(), newbies_live_end_at()]},
       {_thu = 4, :real, [_start = ~T[19:00:00], _end = ~T[21:00:00]]},
       {_fri = 5, :newbie, [newbies_live_start_at(), newbies_live_end_at()]},
-      {_sat = 6, :newbie, [newbies_live_start_at(), newbies_live_end_at()]},
+      {_sat = 6, :real, [_start = ~T[20:00:00], _end = ~T[22:00:00]]},
       {_sun = 7, :newbie, [newbies_live_start_at(), newbies_live_end_at()]}
     ]
   end
@@ -87,10 +93,10 @@ defmodule T.Feeds do
       iex> live_next_real_at(thu_21_00)
       _thu_19_00_as_utc = ~U[2021-12-23 16:00:00Z]
 
-      # # if today's event has ended, next event is returned
-      # iex> thu_21_00_01 = DateTime.new!(~D[2021-12-23], ~T[21:00:01], "Europe/Moscow")
-      # iex> live_next_real_at(thu_21_00_01)
-      # _sat_20_00_as_utc = ~U[2021-12-25 17:00:00Z]
+      # if today's event has ended, next event is returned
+      iex> thu_21_00_01 = DateTime.new!(~D[2021-12-23], ~T[21:00:01], "Europe/Moscow")
+      iex> live_next_real_at(thu_21_00_01)
+      _sat_20_00_as_utc = ~U[2021-12-25 17:00:00Z]
 
       # schedule wraps over to the next week
       iex> sun_12_00 = DateTime.new!(~D[2021-12-26], ~T[12:00:00], "Europe/Moscow")
@@ -124,30 +130,25 @@ defmodule T.Feeds do
   end
 
   @doc """
-  Checks if there is an ongoing "Since Live" event and
-  if it's "Since Live for newbies", checks if user_id is a newbie participant.
+  Checks if there is an ongoing real (not newbies) "Since Live" event.
 
-      # ongoing real Since Live
-      iex> user_id = Ecto.Bigflake.UUID.generate()
       iex> thu_19_30 = DateTime.new!(~D[2021-12-23], ~T[19:30:00], "Europe/Moscow")
-      iex> live_now?(user_id, thu_19_30)
+      iex> live_now?(thu_19_30)
       true
 
       # no ongoing Since Live
-      iex> user_id = Ecto.Bigflake.UUID.generate()
       iex> thu_13_30 = DateTime.new!(~D[2021-12-23], ~T[13:30:00], "Europe/Moscow")
-      iex> live_now?(user_id, thu_13_30)
+      iex> live_now?(thu_13_30)
       false
 
-      # ongoing newbies Since Live, but user is not a participant
-      iex> user_id = Ecto.Bigflake.UUID.generate()
+      # ongoing newbies Since Live
       iex> mon_19_30 = DateTime.new!(~D[2021-12-20], ~T[19:30:00], "Europe/Moscow")
-      iex> live_now?(user_id, mon_19_30, _newbies_live_enabled? = true)
+      iex> live_now?(mon_19_30)
       false
 
   """
-  @spec live_now?(Ecto.UUID.t(), DateTime.t(), boolean()) :: boolean
-  def live_now?(user_id, reference \\ DateTime.utc_now(), newbies_live_enabled? \\ false) do
+  @spec live_now?(DateTime.t()) :: boolean
+  def live_now?(reference \\ DateTime.utc_now()) do
     msk_now = DateTime.shift_zone!(reference, "Europe/Moscow")
     weekday_today = Date.day_of_week(msk_now)
 
@@ -158,17 +159,7 @@ defmodule T.Feeds do
       Time.compare(start_at, msk_now) in [:eq, :lt] and
         Time.compare(end_at, msk_now) in [:eq, :gt]
 
-    if ongoing? do
-      case type do
-        :newbie ->
-          if newbies_live_enabled? do
-            is_a_newbies_participant?(user_id, reference)
-          end
-
-        :real ->
-          true
-      end
-    end || false
+    ongoing? and type == :real
   end
 
   @doc """
@@ -182,14 +173,14 @@ defmodule T.Feeds do
       iex> live_today(_now = thu_12_00)
       {:real, [~U[2021-12-23 16:00:00Z], ~U[2021-12-23 18:00:00Z]]}
 
-      # iex> sat_12_00 = DateTime.new!(~D[2021-12-25], ~T[12:00:00], "Europe/Moscow")
-      # iex> live_today(_now = sat_12_00)
-      # {:real, [~U[2021-12-25 17:00:00Z], ~U[2021-12-25 19:00:00Z]]}
+      iex> sat_12_00 = DateTime.new!(~D[2021-12-25], ~T[12:00:00], "Europe/Moscow")
+      iex> live_today(_now = sat_12_00)
+      {:real, [~U[2021-12-25 17:00:00Z], ~U[2021-12-25 19:00:00Z]]}
 
-      # # note that past events for today might be returned
-      # iex> sat_23_00 = DateTime.new!(~D[2021-12-25], ~T[23:00:00], "Europe/Moscow")
-      # iex> live_today(_now = sat_23_00)
-      # {:real, [~U[2021-12-25 17:00:00Z], ~U[2021-12-25 19:00:00Z]]}
+      # note that past events for today might be returned
+      iex> sat_23_00 = DateTime.new!(~D[2021-12-25], ~T[23:00:00], "Europe/Moscow")
+      iex> live_today(_now = sat_23_00)
+      {:real, [~U[2021-12-25 17:00:00Z], ~U[2021-12-25 19:00:00Z]]}
 
   """
   @spec live_today(DateTime.t() | Date.t()) :: {:real | :newbie, [DateTime.t()]}
@@ -220,18 +211,18 @@ defmodule T.Feeds do
   @doc """
   Generates "Since Live" `:crontab` for Oban's `Oban.Plugins.Cron`:
 
-      # iex> live_crontab()
-      # [
-      #   # https://crontab.guru/#0_13_*_*_4
-      #   {"00 13 * * 4", T.PushNotifications.DispatchJob, args: %{"type" => "live_mode_today", "time" => "19:00"}},
-      #   {"45 18 * * 4", T.PushNotifications.DispatchJob, args: %{"type" => "live_mode_soon"}},
-      #   {"00 19 * * 4", T.Feeds.Live.StartJob},
-      #   {"00 21 * * 4", T.Feeds.Live.EndJob},
-      #   {"00 14 * * 6", T.PushNotifications.DispatchJob, args: %{"type" => "live_mode_today", "time" => "20:00"}},
-      #   {"45 19 * * 6", T.PushNotifications.DispatchJob, args: %{"type" => "live_mode_soon"}},
-      #   {"00 20 * * 6", T.Feeds.Live.StartJob},
-      #   {"00 22 * * 6", T.Feeds.Live.EndJob}
-      # ]
+      iex> live_crontab()
+      [
+        # https://crontab.guru/#0_13_*_*_4
+        {"00 13 * * 4", T.PushNotifications.DispatchJob, args: %{"type" => "live_mode_today", "time" => "19:00"}},
+        {"45 18 * * 4", T.PushNotifications.DispatchJob, args: %{"type" => "live_mode_soon"}},
+        {"00 19 * * 4", T.Feeds.Live.StartJob},
+        {"00 21 * * 4", T.Feeds.Live.EndJob},
+        {"00 14 * * 6", T.PushNotifications.DispatchJob, args: %{"type" => "live_mode_today", "time" => "20:00"}},
+        {"45 19 * * 6", T.PushNotifications.DispatchJob, args: %{"type" => "live_mode_soon"}},
+        {"00 20 * * 6", T.Feeds.Live.StartJob},
+        {"00 22 * * 6", T.Feeds.Live.EndJob}
+      ]
 
   """
   def live_crontab do
@@ -891,16 +882,54 @@ defmodule T.Feeds do
   # newbies and stuff
 
   @doc """
+  Checks if there is an ongoing "Since Live for newbies" event.
+  If there is, it also checks if user_id is a participant.
+
+      # ongoing real Since Live
+      iex> user_id = Ecto.Bigflake.UUID.generate()
+      iex> thu_19_30 = DateTime.new!(~D[2021-12-23], ~T[19:30:00], "Europe/Moscow")
+      iex> newbies_live_now?(user_id, thu_19_30)
+      false
+
+      # no ongoing Since Live
+      iex> user_id = Ecto.Bigflake.UUID.generate()
+      iex> thu_13_30 = DateTime.new!(~D[2021-12-23], ~T[13:30:00], "Europe/Moscow")
+      iex> newbies_live_now?(user_id, thu_13_30)
+      false
+
+      # ongoing newbies Since Live, but user is not a participant
+      iex> user_id = Ecto.Bigflake.UUID.generate()
+      iex> mon_19_30 = DateTime.new!(~D[2021-12-20], ~T[19:30:00], "Europe/Moscow")
+      iex> newbies_live_now?(user_id, mon_19_30)
+      false
+
+  """
+  @spec newbies_live_now?(Ecto.UUID.t(), DateTime.t()) :: boolean
+  def newbies_live_now?(user_id, reference \\ DateTime.utc_now()) do
+    msk_now = DateTime.shift_zone!(reference, "Europe/Moscow")
+    weekday_today = Date.day_of_week(msk_now)
+
+    {_weekday, type, [start_at, end_at]} =
+      Enum.find(live_schedule(), fn {weekday, _type, _times} -> weekday == weekday_today end)
+
+    ongoing? =
+      Time.compare(start_at, msk_now) in [:eq, :lt] and
+        Time.compare(end_at, msk_now) in [:eq, :gt]
+
+    ongoing? and type == :newbie and is_a_newbies_participant?(user_id, reference)
+  end
+
+  @doc """
   Generates "Since Live for newbies" `:crontab` for Oban's `Oban.Plugins.Cron`:
 
-      # iex> newbies_crontab()
-      # [
-      #   # https://crontab.guru/#0_13_*_*_1,2,3,5,0
-      #   {"00 13 * * 1,2,3,5,0", T.PushNotifications.DispatchJob, args: %{"type" => "newbie_live_mode_today", "time" => "19:00"}},
-      #   {"45 18 * * 1,2,3,5,0", T.PushNotifications.DispatchJob, args: %{"type" => "newbie_live_mode_soon"}},
-      #   {"00 19 * * 1,2,3,5,0", T.Feeds.NewbiesLive.StartJob},
-      #   {"00 20 * * 1,2,3,5,0", T.Feeds.NewbiesLive.EndJob}
-      # ]
+      iex> newbies_crontab()
+      [
+        # https://crontab.guru/#0_13_*_*_1,2,3,5,0
+        {"00 13 * * 1,2,3,5,0", T.PushNotifications.DispatchJob, args: %{"type" => "newbie_live_mode_today", "time" => "19:00"}},
+        {"45 18 * * 1,2,3,5,0", T.PushNotifications.DispatchJob, args: %{"type" => "newbie_live_mode_soon"}},
+        {"00 19 * * 1,2,3,5,0", T.Feeds.NewbiesLive.StartJob},
+        {"00 20 * * 1,2,3,5,0", T.Feeds.NewbiesLive.EndJob}
+      ]
 
   """
   def newbies_crontab do

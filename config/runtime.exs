@@ -27,8 +27,9 @@ config :sentry,
 config :t, T.PromEx, disabled: config_env() != :prod
 
 newbies_live_enabled? = !!System.get_env("ENABLE_NEWBIE_LIVE")
+since_live_enabled? = !!System.get_env("ENABLE_SINCE_LIVE")
 
-config :t, newbies_live_enabled?: newbies_live_enabled?
+config :t, newbies_live_enabled?: newbies_live_enabled?, since_live_enabled?: since_live_enabled?
 
 crontab =
   case config_env() do

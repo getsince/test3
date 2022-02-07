@@ -44,6 +44,7 @@ defmodule T.MixProject do
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:ecto_sql, "~> 3.6"},
       {:postgrex, ">= 0.0.0"},
+      {:ecto_sqlite3, "~> 0.7.3"},
       {:phoenix_live_view, "~> 0.17.5"},
       {:phoenix_live_dashboard, "~> 0.6.2"},
       {:ecto_psql_extras, "~> 0.2"},
@@ -83,9 +84,14 @@ defmodule T.MixProject do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases do
     [
-      setup: ["deps.get", "ecto.setup", "cmd npm ci --prefix assets"],
+      setup: ["deps.get", "ecto.setup", "events.setup", "cmd npm ci --prefix assets"],
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
+      "events.setup": [
+        "ecto.migrate -r T.Events.Repo --migrations-path priv/events_repo/migrations"
+      ],
+      "events.clean": ["ecto.drop -r T.Events.Repo"],
+      "events.dump": ["ecto.dump -r T.Events.Repo -d priv/events_repo/structure.sql"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
       sentry_recompile: ["compile", "deps.compile sentry --force"],
       "assets.deploy": [

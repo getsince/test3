@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS "schema_migrations" ("version" INTEGER PRIMARY KEY, "inserted_at" TEXT_DATETIME);
+CREATE TABLE IF NOT EXISTS "events" (
+  "id" BLOB NOT NULL PRIMARY KEY,
+  "name" TEXT NOT NULL,
+  "actor" BLOB,
+  "data" JSON
+) WITHOUT ROWID
+;
+INSERT INTO schema_migrations VALUES(20220207132900,'2022-02-07T13:37:57');

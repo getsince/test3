@@ -27,6 +27,7 @@ defmodule T.Application do
         TWeb.CallTracker,
         TWeb.Presence,
         TWeb.UserSocket.Monitor,
+        T.Events.Repo,
         T.Repo,
         maybe_migrator(),
         {Oban, oban_config()},

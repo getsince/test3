@@ -1,6 +1,6 @@
 import Config
 
-config :t, ecto_repos: [T.Repo]
+config :t, ecto_repos: [T.Repo, T.Events.Repo]
 config :t, T.Repo, types: T.PostgresTypes
 
 config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase

@@ -37,3 +37,6 @@ npm-debug.log
 
 # direnv
 .envrc
+
+# events sqlite
+events*.sqlite*

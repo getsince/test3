@@ -236,6 +236,8 @@ if config_env() == :dev do
 
   config :t, T.Media.Static, disabled?: !!System.get_env("DISABLE_MEDIA")
   config :t, T.Periodics, disabled?: !!System.get_env("DISABLE_PERIODICS")
+
+  config :t, T.Events.Repo, database: "events-dev.sqlite"
 end
 
 if config_env() == :test do
@@ -294,6 +296,8 @@ if config_env() == :test do
 
   # there is no user with this id, it's been generated just for the tests
   config :t, oldies: ["0000017d-d720-1f6a-06e9-e8bbc6570000"]
+
+  config :t, T.Events.Repo, database: ":memory:"
 end
 
 if config_env() == :bench do
@@ -306,6 +310,8 @@ if config_env() == :bench do
   config :t, T.PushNotifications.ScheduledPushes, disabled?: true
   config :t, T.Matches.TimeslotPruner, disabled?: true
   config :t, Finch, disabled?: true
+
+  config :t, T.Events.Repo, database: "events-bench.sqlite"
 
   config :t, T.Repo,
     url: System.get_env("DATABASE_URL") || "ecto://postgres:postgres@localhost:5432/t_dev",

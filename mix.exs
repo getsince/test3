@@ -92,7 +92,7 @@ defmodule T.MixProject do
       ],
       "events.clean": ["ecto.drop -r T.Events.Repo"],
       "events.dump": ["ecto.dump -r T.Events.Repo -d priv/events_repo/structure.sql"],
-      test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
+      test: ["ecto.create --quiet", "ecto.migrate --quiet -r T.Repo", "test"],
       sentry_recompile: ["compile", "deps.compile sentry --force"],
       "assets.deploy": [
         "cmd npm ci --prefix assets",

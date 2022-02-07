@@ -7,6 +7,7 @@ defmodule T.Matches do
   require Logger
 
   alias T.Repo
+  alias T.Events
 
   alias T.Matches.{
     Match,

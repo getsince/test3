@@ -15,17 +15,26 @@ defmodule T.Events do
       save_event(event, actor, data)
 
   """
-  @spec save_event(String.t(), binary(), map) :: :ok
+  @spec save_event(String.t(), Ecto.Bigflake.UUID.t(), map) :: :ok
   def save_event(name, actor, data) do
     GenServer.cast(Buffer, {:add, build_event(name, actor, data)})
   end
 
-  @spec save_event(module | pid, String.t(), binary(), map) :: :ok
+  @spec save_event(String.t(), Ecto.Bigflake.UUID.t()) :: :ok
+  def save_event(name, actor) do
+    GenServer.cast(Buffer, {:add, build_event(name, actor)})
+  end
+
+  @spec save_event(module | pid, String.t(), Ecto.Bigflake.UUID.t(), map) :: :ok
   def save_event(buffer, name, actor, data) do
     GenServer.cast(buffer, {:add, build_event(name, actor, data)})
   end
 
   defp build_event(name, actor, data) do
     %{name: name, actor: actor, data: data}
+  end
+
+  defp build_event(name, actor) do
+    %{name: name, actor: actor}
   end
 end

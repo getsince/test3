@@ -1,7 +1,7 @@
 defmodule TWeb.UserSocket do
   use Phoenix.Socket
   require Logger
-  alias T.Accounts
+  alias T.{Accounts, Events}
   alias __MODULE__.Monitor
 
   # feed:<user-id>
@@ -70,13 +70,26 @@ defmodule TWeb.UserSocket do
 
   defp _extract_ip_address(_key, _connect_info), do: nil
 
-  defoverridable init: 1
+  defoverridable init: 1, handle_in: 2
 
   @impl true
   def init(state) do
     res = {:ok, {_, socket}} = super(state)
     on_connect(self(), socket.assigns.current_user)
     res
+  end
+
+  @impl true
+  def handle_in({payload, _opts} = message, {_state, socket} = state) do
+    if byte_size(payload) < 512 do
+      Events.save_event(
+        "push",
+        socket.assigns.current_user.id,
+        Jason.Fragment.new(payload)
+      )
+    end
+
+    super(message, state)
   end
 
   @impl true

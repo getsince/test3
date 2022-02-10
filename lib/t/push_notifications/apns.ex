@@ -1,7 +1,7 @@
 defmodule T.PushNotifications.APNS do
   @moduledoc false
 
-  alias T.Accounts.{PushKitDevice, APNSDevice}
+  alias T.Accounts.APNSDevice
   import T.Gettext
   require Logger
 
@@ -22,32 +22,11 @@ defmodule T.PushNotifications.APNS do
     |> Keyword.fetch!(:default_topic)
   end
 
-  @spec apns_env(%PushKitDevice{} | %APNSDevice{} | String.t() | nil) :: APNS.env()
-  def apns_env(%PushKitDevice{env: env}), do: apns_env(env)
+  @spec apns_env(%APNSDevice{} | String.t() | nil) :: APNS.env()
   def apns_env(%APNSDevice{env: env}), do: apns_env(env)
   def apns_env("prod"), do: :prod
   def apns_env("sandbox"), do: :dev
   def apns_env(nil), do: :dev
-
-  # pushkit
-
-  @spec pushkit_call([%PushKitDevice{}], map) :: [APNS.response()]
-  def pushkit_call(devices, payload) when is_list(devices) do
-    Enum.map(devices, fn device ->
-      device
-      |> build_call_notification(payload)
-      |> push()
-    end)
-  end
-
-  @spec build_call_notification(%PushKitDevice{}, map) :: APNS.notification()
-  defp build_call_notification(device, payload) do
-    %PushKitDevice{device_id: device_id, topic: topic} = device
-    topic = topic || default_topic()
-    APNS.build_notification(device_id, topic, payload, apns_env(device), _type = "voip")
-  end
-
-  # alerts
 
   @spec base_alert_payload(String.t(), map, map) :: map
   defp base_alert_payload(type, alert, extra) do
@@ -94,78 +73,6 @@ defmodule T.PushNotifications.APNS do
     base_alert_payload(type, alert, %{"user_id" => user_id})
   end
 
-  def build_alert_payload("timeslot_offer" = type, data) do
-    %{"name" => name, "gender" => gender} = data
-
-    gender_a = if gender == "F", do: "a", else: ""
-
-    alert = %{
-      "title" =>
-        dgettext("apns", "%{name} пригласил%{gender_a} тебя на дэйт!",
-          name: name,
-          gender_a: gender_a
-        ),
-      "body" => dgettext("apns", "Заходи, чтобы ответить на приглашение 👀")
-    }
-
-    base_alert_payload(type, alert, data)
-  end
-
-  def build_alert_payload("timeslot_accepted" = type, data) do
-    %{"name" => name} = data
-
-    alert = %{
-      "title" => dgettext("apns", "Приглашение на дэйт c %{name} принято", name: name),
-      "body" => dgettext("apns", "Аудио-дэйт уже в твоём календаре, не пропусти 👀")
-    }
-
-    base_alert_payload(type, alert, data)
-  end
-
-  def build_alert_payload("timeslot_accepted_now" = type, data) do
-    %{"name" => name} = data
-
-    alert = %{
-      "title" => dgettext("apns", "Приглашение на дэйт c %{name} принято", name: name),
-      "body" => dgettext("apns", "Заходи и звони сейчас 👉")
-    }
-
-    base_alert_payload(type, alert, data)
-  end
-
-  def build_alert_payload("timeslot_cancelled" = type, data) do
-    %{"name" => name} = data
-
-    alert = %{
-      "title" => dgettext("apns", "Твой дэйт с %{name} отменён", name: name),
-      "body" => dgettext("apns", "Попробуй предложить другое время 👉")
-    }
-
-    base_alert_payload(type, alert, data)
-  end
-
-  def build_alert_payload("timeslot_reminder" = type, data) do
-    %{"name" => name} = data
-
-    alert = %{
-      "title" => dgettext("apns", "Аудио-дэйт с %{name} совсем скоро", name: name),
-      "body" => dgettext("apns", "Приготовься, у тебя 15 минут 👋")
-    }
-
-    base_alert_payload(type, alert, data)
-  end
-
-  def build_alert_payload("timeslot_started" = type, data) do
-    %{"name" => name} = data
-
-    alert = %{
-      "title" => dgettext("apns", "Аудио-дэйт с %{name} начинается", name: name),
-      "body" => dgettext("apns", "Скорее заходи и звони 🖤")
-    }
-
-    base_alert_payload(type, alert, data)
-  end
-
   def build_alert_payload("complete_onboarding" = type, _data) do
     alert = %{
       "title" => dgettext("apns", "Hey, create your own cool profile ✨"),
@@ -175,23 +82,6 @@ defmodule T.PushNotifications.APNS do
     base_alert_payload(type, alert)
   end
 
-  def build_alert_payload("contact_offer" = type, data) do
-    %{"name" => name, "gender" => gender} = data
-
-    gender_a = if gender == "F", do: "a", else: ""
-
-    alert = %{
-      "title" =>
-        dgettext("apns", "%{name} прислал%{gender_a} тебe контакт!",
-          name: name,
-          gender_a: gender_a
-        ),
-      "body" => dgettext("apns", "Заходи, чтобы просмотреть и написать ✨")
-    }
-
-    base_alert_payload(type, alert, data)
-  end
-
   def build_alert_payload("upgrade_app" = type, _data) do
     alert = %{
       "title" => dgettext("apns", "Update the app in the App Store ✨"),
@@ -199,31 +89,5 @@ defmodule T.PushNotifications.APNS do
     }
 
     base_alert_payload(type, alert)
-  end
-
-  def build_alert_payload("voicemail_sent" = type, data) do
-    %{"name" => name, "gender" => gender} = data
-
-    title =
-      case gender do
-        # TODO
-        "F" -> dgettext("apns", "%{name} прислала тебe аудио-сообщение!", name: name)
-        "N" -> dgettext("apns", "%{name} прислали тебe аудио-сообщение!", name: name)
-        "M" -> dgettext("apns", "%{name} прислал тебe аудио-сообщение!", name: name)
-      end
-
-    alert = %{
-      "title" => title,
-      # TODO
-      "body" => dgettext("apns", "Заходи, чтобы просмотреть и ответить ✨")
-    }
-
-    base_alert_payload(type, alert, data)
-  end
-
-  # backround notifications
-
-  def background_notification_payload(type, data) do
-    Map.merge(data, %{"type" => type, "aps" => %{"content-available" => "1"}})
   end
 end

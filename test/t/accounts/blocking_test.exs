@@ -1,7 +1,7 @@
 defmodule T.Accounts.BlockingTest do
   use T.DataCase, async: true
   use Oban.Testing, repo: Repo
-  alias T.{Accounts, Matches, Calls}
+  alias T.{Accounts, Matches}
   alias T.Accounts.UserReport
   alias T.Matches.Match
 
@@ -41,7 +41,6 @@ defmodule T.Accounts.BlockingTest do
       assert match == %{
                id: match_id,
                mate: reported.id,
-               audio_only: false,
                expiration_date: expiration_date,
                inserted_at: inserted_at
              }
@@ -51,32 +50,6 @@ defmodule T.Accounts.BlockingTest do
 
       assert [] == Matches.list_matches(reported.id)
       assert [] == Matches.list_matches(reporter.id)
-    end
-
-    test "deletes voicemail", %{reporter: reporter, reported: reported} do
-      %{id: match_id} = insert(:match, user_id_1: reporter.id, user_id_2: reported.id)
-
-      {:ok, %Calls.Voicemail{id: v1_id}} =
-        Calls.voicemail_save_message(reported.id, match_id, s3_key_1 = Ecto.UUID.generate())
-
-      {:ok, %Calls.Voicemail{id: v2_id}} =
-        Calls.voicemail_save_message(reported.id, match_id, s3_key_2 = Ecto.UUID.generate())
-
-      assert :ok == Accounts.report_user(reporter.id, reported.id, "he show dicky")
-
-      refute Repo.get(Calls.Voicemail, v1_id)
-      refute Repo.get(Calls.Voicemail, v2_id)
-
-      assert [
-               %{
-                 "bucket" => "pretend-this-is-real",
-                 "s3_key" => s3_key_2
-               },
-               %{
-                 "bucket" => "pretend-this-is-real",
-                 "s3_key" => s3_key_1
-               }
-             ] == Enum.map(all_enqueued(worker: T.Media.S3DeleteJob), & &1.args)
     end
 
     test "3 reports block the user", %{reporter: reporter1, reported: reported} do

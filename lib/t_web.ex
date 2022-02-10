@@ -46,7 +46,6 @@ defmodule TWeb do
   def live_view do
     quote do
       use Phoenix.LiveView, layout: {TWeb.LayoutView, "live.html"}
-      import TWeb.LiveHelpers
       unquote(view_helpers())
     end
   end
@@ -54,7 +53,6 @@ defmodule TWeb do
   def live_component do
     quote do
       use Phoenix.LiveComponent
-      import TWeb.LiveHelpers
       unquote(view_helpers())
     end
   end

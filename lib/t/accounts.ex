@@ -17,9 +17,7 @@ defmodule T.Accounts do
     UserToken,
     UserReport,
     APNSDevice,
-    PushKitDevice,
     GenderPreference,
-    UserSettings,
     AppleSignIn
   }
 
@@ -66,12 +64,11 @@ defmodule T.Accounts do
     Multi.new()
     |> Multi.insert(:user, User.apple_id_registration_changeset(%User{}, attrs))
     |> add_profile(now)
-    |> add_settings()
     |> Repo.transaction()
     |> case do
-      {:ok, %{user: user, profile: profile, user_settings: user_settings}} ->
+      {:ok, %{user: user, profile: profile}} ->
         Logger.warn("new user #{user.apple_id}")
-        {:ok, %User{user | profile: %Profile{profile | audio_only: user_settings.audio_only}}}
+        {:ok, %User{user | profile: profile}}
 
       {:error, :user, %Ecto.Changeset{} = changeset, _changes} ->
         {:error, changeset}
@@ -86,16 +83,6 @@ defmodule T.Accounts do
         %Profile{user_id: user.id, last_active: DateTime.truncate(now, :second)}
       end,
       returning: [:hidden?]
-    )
-  end
-
-  defp add_settings(multi) do
-    multi
-    |> Multi.insert(
-      :user_settings,
-      fn %{user: user} ->
-        %UserSettings{user_id: user.id, audio_only: false}
-      end
     )
   end
 
@@ -318,10 +305,6 @@ defmodule T.Accounts do
     Enum.map(devices, &with_base16_encoded_apns_device_id/1)
   end
 
-  defp with_base16_encoded_apns_device_id(%PushKitDevice{device_id: device_id} = device) do
-    %PushKitDevice{device | device_id: Base.encode16(device_id)}
-  end
-
   defp with_base16_encoded_apns_device_id(%APNSDevice{device_id: device_id} = device) do
     %APNSDevice{device | device_id: Base.encode16(device_id)}
   end
@@ -376,44 +359,6 @@ defmodule T.Accounts do
     APNSDevice
     |> where(device_id: ^Base.decode16!(device_id))
     |> Repo.delete_all()
-  end
-
-  def save_pushkit_device_id(user_id, token, device_id, extra) do
-    %UserToken{id: token_id} = token |> UserToken.token_and_context_query("mobile") |> Repo.one!()
-
-    prev_device_q =
-      PushKitDevice
-      |> where([d], d.user_id == ^user_id and d.token_id == ^token_id)
-      |> or_where(device_id: ^device_id)
-
-    Repo.transaction(fn ->
-      Repo.delete_all(prev_device_q)
-
-      Repo.insert!(%PushKitDevice{
-        user_id: user_id,
-        token_id: token_id,
-        device_id: device_id,
-        env: extra[:env],
-        topic: extra[:topic] || default_apns_topic()
-      })
-    end)
-
-    :ok
-  end
-
-  @doc "remove_pushkit_device(device_id_base_16)"
-  def remove_pushkit_device(device_id) do
-    PushKitDevice
-    |> where(device_id: ^Base.decode16!(device_id))
-    |> Repo.delete_all()
-  end
-
-  @spec list_pushkit_devices(Ecto.UUID.t()) :: [%PushKitDevice{}]
-  def list_pushkit_devices(user_id) when is_binary(user_id) do
-    PushKitDevice
-    |> where(user_id: ^user_id)
-    |> Repo.all()
-    |> with_base16_encoded_apns_device_id()
   end
 
   ## Session
@@ -505,11 +450,9 @@ defmodule T.Accounts do
   end
 
   def get_profile!(user_id) when is_binary(user_id) do
-    {profile, audio_only} =
+    profile =
       Profile
       |> where([p], p.user_id == ^user_id)
-      |> join(:inner, [p], s in UserSettings, on: s.user_id == p.user_id)
-      |> select([p, s], {p, s.audio_only})
       |> Repo.one!()
 
     gender_preference =
@@ -518,10 +461,10 @@ defmodule T.Accounts do
       |> select([g], g.gender)
       |> Repo.all()
 
-    %Profile{profile | gender_preference: gender_preference, audio_only: audio_only}
+    %Profile{profile | gender_preference: gender_preference}
   end
 
-  def onboard_profile(%Profile{user_id: user_id, audio_only: audio_only} = profile, attrs) do
+  def onboard_profile(%Profile{user_id: user_id} = profile, attrs) do
     Multi.new()
     |> Multi.run(:user, fn repo, _changes ->
       user = repo.get!(User, user_id)
@@ -567,8 +510,7 @@ defmodule T.Accounts do
         Logger.warn(m)
         Bot.async_post_message(m)
 
-        {:ok,
-         %Profile{profile | gender_preference: genders, hidden?: false, audio_only: audio_only}}
+        {:ok, %Profile{profile | gender_preference: genders, hidden?: false}}
 
       {:error, :user, :already_onboarded, _changes} ->
         {:error, :already_onboarded}
@@ -580,7 +522,7 @@ defmodule T.Accounts do
     # |> notify_subscribers([:user, :new])
   end
 
-  def update_profile(%Profile{audio_only: audio_only} = profile, attrs, opts \\ []) do
+  def update_profile(%Profile{} = profile, attrs, opts \\ []) do
     Logger.warn("user #{profile.user_id} updates profile with #{inspect(attrs)}")
 
     Multi.new()
@@ -634,7 +576,7 @@ defmodule T.Accounts do
            }}
         )
 
-        {:ok, %Profile{profile | gender_preference: genders, audio_only: audio_only}}
+        {:ok, %Profile{profile | gender_preference: genders}}
 
       {:error, :profile, %Ecto.Changeset{} = changeset, _changes} ->
         {:error, changeset}
@@ -816,12 +758,5 @@ defmodule T.Accounts do
   def schedule_upgrade_app_push(user_id) do
     job = DispatchJob.new(%{"type" => "upgrade_app", "user_id" => user_id})
     Oban.insert(job)
-  end
-
-  def set_audio_only(user_id, bool) do
-    {1, _} =
-      UserSettings
-      |> where(user_id: ^user_id)
-      |> Repo.update_all(set: [audio_only: bool])
   end
 end

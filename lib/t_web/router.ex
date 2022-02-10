@@ -40,7 +40,6 @@ defmodule TWeb.Router do
     get "/ip-location", LocationController, :get
     post "/upload-preflight", MediaController, :create_upload_form
     post "/ios/device-token", DeviceController, :create_ios_token
-    post "/ios/push-token", DeviceController, :create_push_token
     delete "/mobile/account", MobileAccountController, :delete
     delete "/mobile/auth", MobileAuthController, :delete
   end
@@ -50,15 +49,7 @@ defmodule TWeb.Router do
 
     live_session :admin do
       live "/", AdminLive.Index, :index
-
-      # live "/trace/calls", TraceLive.Index, :index
-      # live "/trace/calls/:user_id", TraceLive.Show, :show
-
       live "/profiles", ProfileLive.Index, :index
-      live "/profiles/:user_id", ProfileLive.Index, :show
-
-      live "/reports", ReportLive.Index, :index
-
       live "/stickers", StickerLive.Index, :index
       live "/tokens", TokenLive.Index, :index
     end

@@ -41,11 +41,6 @@ config :ex_aws,
 if config_env() == :prod do
   config :t, current_admin_id: System.fetch_env!("ADMIN_ID")
 
-  config :t, T.Twilio,
-    account_sid: System.fetch_env!("TWILIO_ACCOUNT_SID"),
-    key_sid: System.fetch_env!("TWILIO_KEY_SID"),
-    auth_token: System.fetch_env!("TWILIO_AUTH_TOKEN")
-
   config :logger, backends: [:console, CloudWatch, Sentry.LoggerBackend]
   config :logger, :console, level: :info
 
@@ -141,11 +136,6 @@ if config_env() == :dev do
     ]
 
   config :t, T.PushNotifications.APNS, default_topic: System.fetch_env!("APNS_TOPIC")
-
-  config :t, T.Twilio,
-    account_sid: System.fetch_env!("TWILIO_ACCOUNT_SID"),
-    key_sid: System.fetch_env!("TWILIO_KEY_SID"),
-    auth_token: System.fetch_env!("TWILIO_AUTH_TOKEN")
 
   # For development, we disable any cache and enable
   # debugging.
@@ -258,12 +248,10 @@ end
 if config_env() == :bench do
   config :logger, level: :info
 
-  config :t, T.Media.Static, disabled?: true
   config :t, Oban, queues: false, plugins: false
-  config :t, T.Feeds.SeenPruner, disabled?: true
-  config :t, T.Matches.MatchExpirer, disabled?: true
+  config :t, T.Media.Static, disabled?: true
   config :t, T.PushNotifications.ScheduledPushes, disabled?: true
-  config :t, T.Matches.TimeslotPruner, disabled?: true
+  config :t, T.Periodics, disabled?: true
   config :t, Finch, disabled?: true
 
   config :t, T.Repo,

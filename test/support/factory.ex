@@ -5,22 +5,15 @@ defmodule T.Factory do
     User,
     Profile,
     GenderPreference,
-    UserSettings,
     APNSDevice,
-    PushKitDevice,
     UserToken
   }
 
   alias T.Feeds.SeenProfile
-  alias T.Matches.{Match, Timeslot, ExpiredMatch, MatchEvent, MatchContact}
-  alias T.Calls.Call
+  alias T.Matches.{Match, ExpiredMatch}
 
   def user_factory do
-    %User{apple_id: apple_id(), settings: build(:user_settings)}
-  end
-
-  def user_settings_factory do
-    %UserSettings{audio_only: false}
+    %User{apple_id: apple_id()}
   end
 
   def seen_profile_factory do
@@ -40,31 +33,12 @@ defmodule T.Factory do
     %Match{}
   end
 
-  def timeslot_factory do
-    %Timeslot{}
-  end
-
-  def call_factory do
-    %Call{
-      caller: build(:user),
-      called: build(:user)
-    }
-  end
-
   def expired_match_factory do
     %ExpiredMatch{}
   end
 
-  def match_event_factory do
-    %MatchEvent{}
-  end
-
   def gender_preference_factory do
     %GenderPreference{}
-  end
-
-  def match_contact_factory do
-    %MatchContact{}
   end
 
   def user_token_factory do
@@ -82,19 +56,6 @@ defmodule T.Factory do
       topic: APNS.default_topic(),
       env: "sandbox",
       locale: "en",
-      token: build(:user_token, user: user)
-    }
-  end
-
-  def push_kit_device_factory do
-    alias T.PushNotifications.APNS
-
-    user = build(:user)
-
-    %PushKitDevice{
-      user: user,
-      topic: APNS.default_topic(),
-      env: "sandbox",
       token: build(:user_token, user: user)
     }
   end

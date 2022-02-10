@@ -73,17 +73,6 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: active_sessions; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.active_sessions (
-    flake uuid NOT NULL,
-    user_id uuid NOT NULL,
-    expires_at timestamp with time zone NOT NULL
-);
-
-
---
 -- Name: apns_devices; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -107,32 +96,6 @@ CREATE TABLE public.archived_matches (
     match_id uuid NOT NULL,
     by_user_id uuid NOT NULL,
     with_user_id uuid NOT NULL,
-    inserted_at timestamp(0) without time zone NOT NULL
-);
-
-
---
--- Name: call_invites; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.call_invites (
-    by_user_id uuid NOT NULL,
-    user_id uuid NOT NULL,
-    inserted_at timestamp(0) without time zone NOT NULL
-);
-
-
---
--- Name: calls; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.calls (
-    id uuid NOT NULL,
-    caller_id uuid NOT NULL,
-    called_id uuid NOT NULL,
-    ended_by uuid,
-    ended_at timestamp with time zone,
-    accepted_at timestamp with time zone,
     inserted_at timestamp(0) without time zone NOT NULL
 );
 
@@ -182,72 +145,6 @@ CREATE TABLE public.liked_profiles (
 
 
 --
--- Name: match_contact; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.match_contact (
-    match_id uuid NOT NULL,
-    picker_id uuid NOT NULL,
-    inserted_at timestamp(0) without time zone NOT NULL,
-    contacts jsonb,
-    opened_contact_type character varying(255),
-    seen_at timestamp(0) without time zone
-);
-
-
---
--- Name: match_events; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.match_events (
-    "timestamp" timestamp(0) without time zone NOT NULL,
-    match_id uuid NOT NULL,
-    event character varying(255) NOT NULL
-);
-
-
---
--- Name: match_interactions; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.match_interactions (
-    id uuid NOT NULL,
-    from_user_id uuid NOT NULL,
-    to_user_id uuid NOT NULL,
-    match_id uuid NOT NULL,
-    data jsonb NOT NULL
-);
-
-
---
--- Name: match_timeslot; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.match_timeslot (
-    match_id uuid NOT NULL,
-    picker_id uuid NOT NULL,
-    slots timestamp(0) without time zone[] DEFAULT ARRAY[]::timestamp without time zone[],
-    selected_slot timestamp(0) without time zone,
-    inserted_at timestamp(0) without time zone NOT NULL,
-    accepted_at timestamp(0) without time zone
-);
-
-
---
--- Name: match_voicemail; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.match_voicemail (
-    id uuid NOT NULL,
-    caller_id uuid NOT NULL,
-    match_id uuid NOT NULL,
-    s3_key character varying(255),
-    inserted_at timestamp(0) without time zone NOT NULL,
-    listened_at timestamp(0) without time zone
-);
-
-
---
 -- Name: matches; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -255,8 +152,7 @@ CREATE TABLE public.matches (
     id uuid NOT NULL,
     user_id_1 uuid NOT NULL,
     user_id_2 uuid NOT NULL,
-    inserted_at timestamp(0) without time zone NOT NULL,
-    exchanged_voicemail boolean DEFAULT false NOT NULL
+    inserted_at timestamp(0) without time zone NOT NULL
 );
 
 
@@ -340,21 +236,6 @@ CREATE TABLE public.profiles (
 
 
 --
--- Name: pushkit_devices; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.pushkit_devices (
-    user_id uuid NOT NULL,
-    token_id uuid NOT NULL,
-    device_id bytea NOT NULL,
-    topic character varying(255),
-    env character varying(255),
-    inserted_at timestamp(0) without time zone NOT NULL,
-    updated_at timestamp(0) without time zone NOT NULL
-);
-
-
---
 -- Name: schema_migrations; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -385,16 +266,6 @@ CREATE TABLE public.user_reports (
     reason text NOT NULL,
     inserted_at timestamp(0) without time zone NOT NULL,
     updated_at timestamp(0) without time zone NOT NULL
-);
-
-
---
--- Name: user_settings; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.user_settings (
-    user_id uuid NOT NULL,
-    audio_only boolean NOT NULL
 );
 
 
@@ -437,35 +308,11 @@ ALTER TABLE ONLY public.oban_jobs ALTER COLUMN id SET DEFAULT nextval('public.ob
 
 
 --
--- Name: active_sessions active_sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.active_sessions
-    ADD CONSTRAINT active_sessions_pkey PRIMARY KEY (user_id);
-
-
---
 -- Name: apns_devices apns_devices_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.apns_devices
     ADD CONSTRAINT apns_devices_pkey PRIMARY KEY (user_id, token_id);
-
-
---
--- Name: call_invites call_invites_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.call_invites
-    ADD CONSTRAINT call_invites_pkey PRIMARY KEY (by_user_id, user_id);
-
-
---
--- Name: calls calls_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.calls
-    ADD CONSTRAINT calls_pkey PRIMARY KEY (id);
 
 
 --
@@ -493,38 +340,6 @@ ALTER TABLE ONLY public.liked_profiles
 
 
 --
--- Name: match_contact match_contact_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.match_contact
-    ADD CONSTRAINT match_contact_pkey PRIMARY KEY (match_id);
-
-
---
--- Name: match_interactions match_interactions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.match_interactions
-    ADD CONSTRAINT match_interactions_pkey PRIMARY KEY (id);
-
-
---
--- Name: match_timeslot match_timeslot_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.match_timeslot
-    ADD CONSTRAINT match_timeslot_pkey PRIMARY KEY (match_id);
-
-
---
--- Name: match_voicemail match_voicemail_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.match_voicemail
-    ADD CONSTRAINT match_voicemail_pkey PRIMARY KEY (id);
-
-
---
 -- Name: matches matches_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -546,14 +361,6 @@ ALTER TABLE ONLY public.oban_jobs
 
 ALTER TABLE ONLY public.profiles
     ADD CONSTRAINT profiles_pkey PRIMARY KEY (user_id);
-
-
---
--- Name: pushkit_devices pushkit_devices_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.pushkit_devices
-    ADD CONSTRAINT pushkit_devices_pkey PRIMARY KEY (user_id, token_id);
 
 
 --
@@ -581,14 +388,6 @@ ALTER TABLE ONLY public.user_reports
 
 
 --
--- Name: user_settings user_settings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.user_settings
-    ADD CONSTRAINT user_settings_pkey PRIMARY KEY (user_id);
-
-
---
 -- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -602,13 +401,6 @@ ALTER TABLE ONLY public.users
 
 ALTER TABLE ONLY public.users_tokens
     ADD CONSTRAINT users_tokens_pkey PRIMARY KEY (id);
-
-
---
--- Name: active_sessions_flake_asc_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX active_sessions_flake_asc_index ON public.active_sessions USING btree (flake);
 
 
 --
@@ -637,41 +429,6 @@ CREATE UNIQUE INDEX expired_matches_user_id_match_id_index ON public.expired_mat
 --
 
 CREATE INDEX liked_profiles_user_id_by_user_id_index ON public.liked_profiles USING btree (user_id, by_user_id);
-
-
---
--- Name: match_contact_match_id_picker_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX match_contact_match_id_picker_id_index ON public.match_contact USING btree (match_id, picker_id);
-
-
---
--- Name: match_events_event_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX match_events_event_index ON public.match_events USING btree (event) WHERE ((event)::text = 'call_start'::text);
-
-
---
--- Name: match_events_match_id_timestamp_desc_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX match_events_match_id_timestamp_desc_index ON public.match_events USING btree (match_id, "timestamp" DESC);
-
-
---
--- Name: match_interactions_match_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX match_interactions_match_id_index ON public.match_interactions USING btree (match_id);
-
-
---
--- Name: match_voicemail_match_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX match_voicemail_match_id_index ON public.match_voicemail USING btree (match_id);
 
 
 --
@@ -752,13 +509,6 @@ CREATE INDEX profiles_min_age_index ON public.profiles USING btree (min_age) WHE
 
 
 --
--- Name: pushkit_devices_device_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX pushkit_devices_device_id_index ON public.pushkit_devices USING btree (device_id);
-
-
---
 -- Name: seen_profiles_user_id_by_user_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -794,14 +544,6 @@ CREATE TRIGGER oban_notify AFTER INSERT ON public.oban_jobs FOR EACH ROW EXECUTE
 
 
 --
--- Name: active_sessions active_sessions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.active_sessions
-    ADD CONSTRAINT active_sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
 -- Name: apns_devices apns_devices_token_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -831,46 +573,6 @@ ALTER TABLE ONLY public.archived_matches
 
 ALTER TABLE ONLY public.archived_matches
     ADD CONSTRAINT archived_matches_with_user_id_fkey FOREIGN KEY (with_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: call_invites call_invites_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.call_invites
-    ADD CONSTRAINT call_invites_by_user_id_fkey FOREIGN KEY (by_user_id) REFERENCES public.active_sessions(user_id) ON DELETE CASCADE;
-
-
---
--- Name: call_invites call_invites_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.call_invites
-    ADD CONSTRAINT call_invites_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.active_sessions(user_id) ON DELETE CASCADE;
-
-
---
--- Name: calls calls_called_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.calls
-    ADD CONSTRAINT calls_called_id_fkey FOREIGN KEY (called_id) REFERENCES public.profiles(user_id) ON DELETE CASCADE;
-
-
---
--- Name: calls calls_caller_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.calls
-    ADD CONSTRAINT calls_caller_id_fkey FOREIGN KEY (caller_id) REFERENCES public.profiles(user_id) ON DELETE CASCADE;
-
-
---
--- Name: calls calls_ended_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.calls
-    ADD CONSTRAINT calls_ended_by_fkey FOREIGN KEY (ended_by) REFERENCES public.profiles(user_id) ON DELETE CASCADE;
 
 
 --
@@ -930,78 +632,6 @@ ALTER TABLE ONLY public.liked_profiles
 
 
 --
--- Name: match_contact match_contact_match_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.match_contact
-    ADD CONSTRAINT match_contact_match_id_fkey FOREIGN KEY (match_id) REFERENCES public.matches(id) ON DELETE CASCADE;
-
-
---
--- Name: match_contact match_contact_picker_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.match_contact
-    ADD CONSTRAINT match_contact_picker_id_fkey FOREIGN KEY (picker_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: match_interactions match_interactions_from_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.match_interactions
-    ADD CONSTRAINT match_interactions_from_user_id_fkey FOREIGN KEY (from_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: match_interactions match_interactions_match_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.match_interactions
-    ADD CONSTRAINT match_interactions_match_id_fkey FOREIGN KEY (match_id) REFERENCES public.matches(id) ON DELETE CASCADE;
-
-
---
--- Name: match_interactions match_interactions_to_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.match_interactions
-    ADD CONSTRAINT match_interactions_to_user_id_fkey FOREIGN KEY (to_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: match_timeslot match_timeslot_match_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.match_timeslot
-    ADD CONSTRAINT match_timeslot_match_id_fkey FOREIGN KEY (match_id) REFERENCES public.matches(id) ON DELETE CASCADE;
-
-
---
--- Name: match_timeslot match_timeslot_picker_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.match_timeslot
-    ADD CONSTRAINT match_timeslot_picker_id_fkey FOREIGN KEY (picker_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: match_voicemail match_voicemail_caller_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.match_voicemail
-    ADD CONSTRAINT match_voicemail_caller_id_fkey FOREIGN KEY (caller_id) REFERENCES public.profiles(user_id) ON DELETE CASCADE;
-
-
---
--- Name: match_voicemail match_voicemail_match_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.match_voicemail
-    ADD CONSTRAINT match_voicemail_match_id_fkey FOREIGN KEY (match_id) REFERENCES public.matches(id) ON DELETE CASCADE;
-
-
---
 -- Name: matches matches_user_id_1_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1023,22 +653,6 @@ ALTER TABLE ONLY public.matches
 
 ALTER TABLE ONLY public.profiles
     ADD CONSTRAINT profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: pushkit_devices pushkit_devices_token_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.pushkit_devices
-    ADD CONSTRAINT pushkit_devices_token_id_fkey FOREIGN KEY (token_id) REFERENCES public.users_tokens(id) ON DELETE CASCADE;
-
-
---
--- Name: pushkit_devices pushkit_devices_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.pushkit_devices
-    ADD CONSTRAINT pushkit_devices_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
@@ -1074,14 +688,6 @@ ALTER TABLE ONLY public.user_reports
 
 
 --
--- Name: user_settings user_settings_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.user_settings
-    ADD CONSTRAINT user_settings_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
 -- Name: users_tokens users_tokens_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1100,32 +706,17 @@ INSERT INTO public."schema_migrations" (version) VALUES (20201231002022);
 INSERT INTO public."schema_migrations" (version) VALUES (20201231002323);
 INSERT INTO public."schema_migrations" (version) VALUES (20210117175420);
 INSERT INTO public."schema_migrations" (version) VALUES (20210117182435);
-INSERT INTO public."schema_migrations" (version) VALUES (20210323124108);
 INSERT INTO public."schema_migrations" (version) VALUES (20210624195942);
-INSERT INTO public."schema_migrations" (version) VALUES (20210721105547);
-INSERT INTO public."schema_migrations" (version) VALUES (20210721111936);
-INSERT INTO public."schema_migrations" (version) VALUES (20210723120936);
 INSERT INTO public."schema_migrations" (version) VALUES (20210927151552);
 INSERT INTO public."schema_migrations" (version) VALUES (20210929122839);
 INSERT INTO public."schema_migrations" (version) VALUES (20210930090353);
 INSERT INTO public."schema_migrations" (version) VALUES (20211011135539);
 INSERT INTO public."schema_migrations" (version) VALUES (20211020063911);
 INSERT INTO public."schema_migrations" (version) VALUES (20211023090119);
-INSERT INTO public."schema_migrations" (version) VALUES (20211026203244);
 INSERT INTO public."schema_migrations" (version) VALUES (20211028121057);
 INSERT INTO public."schema_migrations" (version) VALUES (20211102131430);
 INSERT INTO public."schema_migrations" (version) VALUES (20211103061515);
 INSERT INTO public."schema_migrations" (version) VALUES (20211109083906);
 INSERT INTO public."schema_migrations" (version) VALUES (20211116102238);
-INSERT INTO public."schema_migrations" (version) VALUES (20211127120728);
 INSERT INTO public."schema_migrations" (version) VALUES (20211220142445);
-INSERT INTO public."schema_migrations" (version) VALUES (20211221114359);
-INSERT INTO public."schema_migrations" (version) VALUES (20211221152318);
 INSERT INTO public."schema_migrations" (version) VALUES (20211221161830);
-INSERT INTO public."schema_migrations" (version) VALUES (20211222133341);
-INSERT INTO public."schema_migrations" (version) VALUES (20211229125434);
-INSERT INTO public."schema_migrations" (version) VALUES (20220101121429);
-INSERT INTO public."schema_migrations" (version) VALUES (20220111113337);
-INSERT INTO public."schema_migrations" (version) VALUES (20220112131454);
-INSERT INTO public."schema_migrations" (version) VALUES (20220112133053);
-INSERT INTO public."schema_migrations" (version) VALUES (20220131152510);

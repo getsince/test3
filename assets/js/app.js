@@ -5,39 +5,6 @@ import { Socket } from "phoenix";
 import topbar from "topbar";
 
 import { LiveSocket } from "phoenix_live_view";
-import { WebRTCHook } from "./hooks/webrtc";
-
-const MessagesHook = {
-  mounted() {
-    window.addEventListener("phx:page-loading-start", ({ detail }) => {
-      if (detail.kind == "patch") {
-        this.el.innerHTML = "";
-      }
-    });
-    this.el.scrollTop = this.el.scrollHeight;
-  },
-  updated() {
-    this.el.scrollTop = this.el.scrollHeight;
-  },
-};
-
-const ScrollDownHook = {
-  mounted() {
-    this.el.scrollTop = this.el.scrollHeight;
-  },
-  updated() {
-    this.el.scrollTop = this.el.scrollHeight;
-  },
-};
-
-const ScrollWindowDownHook = {
-  mounted() {
-    window.scrollTo(0, document.body.scrollHeight);
-  },
-  updated() {
-    window.scrollTo(0, document.body.scrollHeight);
-  },
-};
 
 const BlockedUser = {
   mounted() {
@@ -118,12 +85,8 @@ let liveSocket = new LiveSocket("/live", Socket, {
   params: { _csrf_token: csrfToken },
   uploaders: { S3 },
   hooks: {
-    MessagesHook,
-    ScrollDownHook,
-    ScrollWindowDownHook,
     ProfilesInfiniteScroll,
     BlockedUser,
-    WebRTCHook,
   },
 });
 

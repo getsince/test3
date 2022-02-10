@@ -15,10 +15,6 @@ defmodule T.Periodics do
           _period = :timer.hours(1),
           _task = {Feeds, :prune_seen_profiles, [_ttl_days = 30]}
         },
-        timeslots_pruner: {
-          :timer.minutes(1),
-          {Matches, :prune_stale_timeslots, []}
-        },
         match_expirer: {
           :timer.minutes(1),
           fn ->

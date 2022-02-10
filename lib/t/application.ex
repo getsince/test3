@@ -12,7 +12,7 @@ defmodule T.Application do
         {Task.Supervisor, name: T.TaskSupervisor},
         APNS.Token,
         # T.PromEx,
-        # TODO add apple keys endpoint and twilio (possibly aws as well)
+        # TODO add apple keys endpoint (possibly aws as well)
         unless_disabled(
           {Finch,
            name: T.Finch,
@@ -21,11 +21,8 @@ defmodule T.Application do
              "https://api.push.apple.com" => [protocol: :http2, count: 1]
            }}
         ),
-        T.Twilio,
         {Phoenix.PubSub, name: T.PubSub},
         unless_disabled(T.Media.Static),
-        TWeb.CallTracker,
-        TWeb.Presence,
         TWeb.UserSocket.Monitor,
         T.Repo,
         maybe_migrator(),

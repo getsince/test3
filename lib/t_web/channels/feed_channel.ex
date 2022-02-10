@@ -107,6 +107,11 @@ defmodule TWeb.FeedChannel do
       |> Matches.list_expired_matches()
       |> render_matches(screen_width)
 
+    archived_matches =
+      user_id
+      |> Matches.list_archived_matches()
+      |> render_matches(screen_width)
+
     since_live_date = Feeds.live_next_real_at(utc_now(socket))
 
     reply =
@@ -116,6 +121,7 @@ defmodule TWeb.FeedChannel do
       |> maybe_put("likes", likes)
       |> maybe_put("matches", matches)
       |> maybe_put("expired_matches", expired_matches)
+      |> maybe_put("archived_matches", archived_matches)
 
     {:ok, reply,
      assign(socket,

@@ -70,8 +70,7 @@ defmodule T.MixProject do
       {:cloud_watch, github: "getsince/cloud_watch", branch: "drop-httpoison"},
       {:benchee, "~> 1.0", only: :bench},
       {:dialyxir, "~> 1.1", only: :dev, runtime: false},
-      {:jose, "~> 1.11"},
-      {:tzdata, "~> 1.1.1"}
+      {:jose, "~> 1.11"}
     ]
   end
 

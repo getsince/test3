@@ -19,8 +19,8 @@ defmodule T.Calls do
     Twilio.ice_servers()
   end
 
-  @spec call(uuid, uuid, DateTime.t()) :: {:ok, call_id :: uuid} | {:error, reason :: String.t()}
-  def call(caller_id, called_id, reference \\ DateTime.utc_now()) do
+  @spec call(uuid, uuid) :: {:ok, call_id :: uuid} | {:error, reason :: String.t()}
+  def call(caller_id, called_id) do
     call_id = Ecto.Bigflake.UUID.generate()
     call = %Call{id: call_id, caller_id: caller_id, called_id: called_id}
 
@@ -35,7 +35,7 @@ defmodule T.Calls do
         }
       end
 
-    with :ok <- ensure_call_allowed(caller_id, called_id, reference),
+    with :ok <- ensure_call_allowed(caller_id, called_id),
          {:ok, devices} <- ensure_has_devices(called_id),
          :ok <- push_call(caller_id, call_id, devices) do
       {:ok, interaction} =
@@ -58,17 +58,14 @@ defmodule T.Calls do
     end
   end
 
-  @spec ensure_call_allowed(uuid, uuid, DateTime.t()) :: :ok | {:error, reason :: String.t()}
-  defp ensure_call_allowed(caller_id, called_id, reference) do
+  @spec ensure_call_allowed(uuid, uuid) :: :ok | {:error, reason :: String.t()}
+  defp ensure_call_allowed(caller_id, called_id) do
     cond do
       # TWeb.CallTracker.in_call?(called_id) -> {:error, "receiver is busy"}
       missed?(called_id, caller_id) ->
         :ok
 
       matched?(caller_id, called_id) ->
-        :ok
-
-      in_live_mode?(caller_id, called_id, reference) and not reported?(caller_id, called_id) ->
         :ok
 
       true ->
@@ -104,21 +101,6 @@ defmodule T.Calls do
     |> where(user_id_2: ^user_id_2)
     |> select([m], m.id)
     |> Repo.one()
-  end
-
-  defp reported?(caller_id, called_id) do
-    Accounts.UserReport
-    |> where(on_user_id: ^caller_id)
-    |> where(from_user_id: ^called_id)
-    |> Repo.exists?()
-  end
-
-  @spec in_live_mode?(uuid, uuid, DateTime.t()) :: boolean
-  defp in_live_mode?(caller_id, called_id, reference) do
-    (_real_live? = Feeds.live_enabled?() and Feeds.live_now?(reference)) or
-      (_both_newbies_live? =
-         Feeds.live_newbies_enabled?() and Feeds.newbies_live_now?(caller_id, reference) and
-           Feeds.newbies_live_now?(called_id, reference))
   end
 
   @spec ensure_has_devices(uuid) ::
@@ -256,32 +238,24 @@ defmodule T.Calls do
           Matches.broadcast_interaction(interaction)
         end
 
-        if match_id do
-          selected_slot =
-            Matches.Timeslot
-            |> where(match_id: ^match_id)
-            |> select([t], t.selected_slot)
-            |> Repo.one()
+        selected_slot =
+          Matches.Timeslot
+          |> where(match_id: ^match_id)
+          |> select([t], t.selected_slot)
+          |> Repo.one()
 
-          if selected_slot do
-            seconds = DateTime.diff(now, selected_slot)
-            minutes = div(seconds, 60)
+        if selected_slot do
+          seconds = DateTime.diff(now, selected_slot)
+          minutes = div(seconds, 60)
 
-            m =
-              "call starts #{fetch_name(caller)} (#{caller}) with #{fetch_name(called)} (#{called}), #{minutes}m later than agreed slot"
-
-            Logger.warn(m)
-            Bot.async_post_message(m)
-          end
-
-          Matches.notify_match_expiration_reset(match_id, [caller, called])
-        else
           m =
-            "LIVE call starts #{fetch_name(caller)} (#{caller}) with #{fetch_name(called)} (#{called})"
+            "call starts #{fetch_name(caller)} (#{caller}) with #{fetch_name(called)} (#{called}), #{minutes}m later than agreed slot"
 
           Logger.warn(m)
           Bot.async_post_message(m)
         end
+
+        Matches.notify_match_expiration_reset(match_id, [caller, called])
 
         success
 
@@ -312,8 +286,6 @@ defmodule T.Calls do
         if interaction do
           Matches.broadcast_interaction(interaction)
         end
-
-        Matches.maybe_match_after_end_call(call)
 
         {user_status, second_user} =
           if user_id == call.caller_id do
@@ -368,18 +340,6 @@ defmodule T.Calls do
 
   defp maybe_after_missed_calls(query, nil), do: query
   defp maybe_after_missed_calls(query, after_id), do: where(query, [c], c.id > ^after_id)
-
-  def list_live_missed_calls_with_profile(user_id, reference) do
-    Call
-    |> where(called_id: ^user_id)
-    # call hasn't been picked up
-    |> where([c], is_nil(c.accepted_at))
-    |> where([c], c.inserted_at > ^reference)
-    |> order_by(asc: :id)
-    |> join(:inner, [c], p in FeedProfile, on: c.caller_id == p.user_id)
-    |> select([c, p], {c, p})
-    |> Repo.all()
-  end
 
   alias T.Media
 

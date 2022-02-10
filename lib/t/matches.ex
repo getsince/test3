@@ -19,7 +19,7 @@ defmodule T.Matches do
     Interaction
   }
 
-  alias T.Feeds.{FeedProfile, LiveSession}
+  alias T.Feeds.FeedProfile
   alias T.Accounts.{Profile, UserSettings}
   alias T.PushNotifications.DispatchJob
   alias T.Bot
@@ -253,66 +253,6 @@ defmodule T.Matches do
 
       {:error, _step, _reason, _changes} = failure ->
         failure
-    end
-  end
-
-  # - Live Matches
-
-  defp active_live_sessions() do
-    LiveSession |> select([s], s.user_id)
-  end
-
-  @spec list_live_matches(uuid) :: [%Match{}]
-  def list_live_matches(user_id) do
-    Match
-    |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
-    |> where([m], m.user_id_1 in subquery(active_live_sessions()))
-    |> where([m], m.user_id_2 in subquery(active_live_sessions()))
-    |> order_by(desc: :inserted_at)
-    |> Repo.all()
-    |> preload_live_match_profiles(user_id)
-  end
-
-  def is_match?(uid1, uid2) do
-    [user_id_1, user_id_2] = Enum.sort([uid1, uid2])
-
-    Match
-    |> where(user_id_1: ^user_id_1)
-    |> where(user_id_2: ^user_id_2)
-    |> select([m], m.id)
-    |> Repo.one()
-  end
-
-  alias T.Calls.Call
-
-  @doc """
-  Matches users after a (>=1 minute) call if they haven't already been matched.
-
-  Used to match users after Since Live calls.
-  """
-  @spec maybe_match_after_end_call(%Call{}) :: %Match{} | nil
-  def maybe_match_after_end_call(%Call{accepted_at: nil} = _unanswered), do: nil
-
-  def maybe_match_after_end_call(%Call{} = call) do
-    %Call{
-      caller_id: caller_id,
-      called_id: called_id,
-      ended_at: ended_at,
-      accepted_at: accepted_at
-    } = call
-
-    duration = DateTime.diff(ended_at, accepted_at)
-
-    if duration >= 60 do
-      [user_id_1, user_id_2] = Enum.sort([caller_id, called_id])
-
-      change(%Match{user_id_1: user_id_1, user_id_2: user_id_2})
-      |> unique_constraint(:id, name: "matches_user_id_1_user_id_2_index")
-      |> Repo.insert()
-      |> case do
-        {:ok, match} -> match
-        {:error, _changeset} -> nil
-      end
     end
   end
 
@@ -556,29 +496,6 @@ defmodule T.Matches do
     for user_id <- users do
       broadcast_for_user(user_id, {__MODULE__, :expired, match_id})
     end
-  end
-
-  # TODO cleanup
-  defp preload_live_match_profiles(matches, user_id) do
-    mate_matches =
-      Map.new(matches, fn match ->
-        [mate_id] = [match.user_id_1, match.user_id_2] -- [user_id]
-        {mate_id, match}
-      end)
-
-    mates = Map.keys(mate_matches)
-
-    profiles =
-      FeedProfile
-      |> where([p], p.user_id in ^mates)
-      |> Repo.all()
-      |> Map.new(fn profile -> {profile.user_id, profile} end)
-
-    Enum.map(matches, fn match ->
-      [mate_id] = [match.user_id_1, match.user_id_2] -- [user_id]
-      profile = Map.fetch!(profiles, mate_id)
-      %Match{match | profile: profile}
-    end)
   end
 
   # TODO cleanup

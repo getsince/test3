@@ -1,7 +1,7 @@
 defmodule TWeb.FeedChannelTest do
   use TWeb.ChannelCase, async: true
 
-  alias T.{Accounts, Calls, Matches, Feeds}
+  alias T.{Accounts, Calls, Matches}
   alias Matches.{Timeslot, Match, MatchEvent}
   alias Calls.Call
 
@@ -259,8 +259,6 @@ defmodule TWeb.FeedChannelTest do
       assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id, %{"mode" => "normal"})
 
       assert reply == %{
-               "mode" => "normal",
-               "since_live_date" => Feeds.live_next_real_at(),
                "likes" => [
                  %{
                    "profile" => %{
@@ -343,11 +341,7 @@ defmodule TWeb.FeedChannelTest do
 
       assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id, %{"mode" => "normal"})
 
-      since_live_date = DateTime.shift_zone!(Feeds.live_next_real_at(), "Etc/UTC")
-
       assert reply == %{
-               "mode" => "normal",
-               "since_live_date" => since_live_date,
                "missed_calls" => [
                  %{
                    # TODO call without ended_at should be joined from ios?
@@ -381,13 +375,10 @@ defmodule TWeb.FeedChannelTest do
       # now with missed_calls_cursor
       assert {:ok, reply, _socket} =
                join(socket, "feed:" <> me.id, %{
-                 "missed_calls_cursor" => call_id2,
-                 "mode" => "normal"
+                 "missed_calls_cursor" => call_id2
                })
 
       assert reply == %{
-               "mode" => "normal",
-               "since_live_date" => since_live_date,
                "missed_calls" => [
                  %{
                    "call" => %{
@@ -898,12 +889,7 @@ defmodule TWeb.FeedChannelTest do
     test "missing invite", %{socket: socket, mate: mate} do
       ref = push(socket, "call", %{"user_id" => mate.id})
       assert_reply(ref, :error, reply)
-
-      if Feeds.live_now?() do
-        assert reply == %{"reason" => "no pushkit devices available"}
-      else
-        assert reply == %{"reason" => "call not allowed"}
-      end
+      assert reply == %{"reason" => "call not allowed"}
     end
 
     test "missing pushkit devices", %{me: me, socket: socket, mate: mate} do

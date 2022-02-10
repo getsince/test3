@@ -4,7 +4,6 @@ defmodule TWeb.FeedChannel do
 
   alias TWeb.{FeedView, MatchView, ErrorView}
   alias T.{Feeds, Calls, Matches, Accounts}
-  alias T.Feeds.FeedFilter
 
   @impl true
   def join("feed:" <> user_id, params, socket) do
@@ -15,72 +14,11 @@ defmodule TWeb.FeedChannel do
       :ok = Matches.subscribe_for_user(user_id)
       :ok = Accounts.subscribe_for_user(user_id)
       :ok = Feeds.subscribe_for_user(user_id)
-      :ok = Feeds.subscribe_for_mode_change()
 
-      newbies_live_enabled? = Feeds.live_newbies_enabled?()
-      live_enabled? = Feeds.live_enabled?()
-      utc_now = utc_now(socket)
-
-      cond do
-        params["mode"] == "normal" ->
-          join_normal_mode(user_id, screen_width, params, socket)
-
-        live_enabled? and params["mode"] == "live" ->
-          join_live_mode(user_id, screen_width, socket)
-
-        live_enabled? and Feeds.live_now?(utc_now) ->
-          join_live_mode(user_id, screen_width, socket)
-
-        newbies_live_enabled? and Feeds.newbies_live_now?(user_id, utc_now) ->
-          join_live_mode(user_id, screen_width, socket)
-
-        true ->
-          join_normal_mode(user_id, screen_width, params, socket)
-      end
+      join_normal_mode(user_id, screen_width, params, socket)
     else
       {:error, %{"error" => "forbidden"}}
     end
-  end
-
-  defp join_live_mode(user_id, screen_width, socket) do
-    %FeedFilter{genders: want_genders} = feed_filter = Feeds.get_feed_filter(user_id)
-    {_location, gender} = Accounts.get_location_and_gender!(user_id)
-
-    :ok = Feeds.subscribe_for_live_sessions(user_id, gender, want_genders)
-
-    Feeds.maybe_activate_session(user_id, gender, feed_filter)
-
-    {_type, [session_start, session_end]} = Feeds.live_today(utc_now(socket))
-    live_session_duration = DateTime.diff(session_end, session_start)
-
-    missed_calls =
-      user_id
-      |> Calls.list_live_missed_calls_with_profile(session_start)
-      |> render_missed_calls_with_profile(screen_width)
-
-    invites =
-      user_id
-      |> Feeds.list_received_invites()
-      |> render_feed(screen_width)
-
-    matches =
-      user_id
-      |> Matches.list_live_matches()
-      |> render_matches(screen_width)
-
-    reply =
-      %{"mode" => "live"}
-      # TODO remove
-      |> Map.put("session_expiration_date", session_end)
-      # TODO remove
-      |> Map.put("live_session_duration", live_session_duration)
-      |> Map.put("session_start_date", session_start)
-      |> Map.put("session_end_date", session_end)
-      |> maybe_put("missed_calls", missed_calls)
-      |> maybe_put("invites", invites)
-      |> maybe_put("matches", matches)
-
-    {:ok, reply, assign(socket, mode: "live", feed_filter: feed_filter, gender: gender)}
   end
 
   defp join_normal_mode(user_id, screen_width, params, socket) do
@@ -112,11 +50,8 @@ defmodule TWeb.FeedChannel do
       |> Matches.list_archived_matches()
       |> render_matches(screen_width)
 
-    since_live_date = Feeds.live_next_real_at(utc_now(socket))
-
     reply =
-      %{"mode" => "normal"}
-      |> Map.put("since_live_date", since_live_date)
+      %{}
       |> maybe_put("missed_calls", missed_calls)
       |> maybe_put("likes", likes)
       |> maybe_put("matches", matches)
@@ -125,7 +60,6 @@ defmodule TWeb.FeedChannel do
 
     {:ok, reply,
      assign(socket,
-       mode: "normal",
        feed_filter: feed_filter,
        location: location,
        gender: gender
@@ -137,51 +71,22 @@ defmodule TWeb.FeedChannel do
     %{
       current_user: user,
       screen_width: screen_width,
-      mode: mode
+      feed_filter: feed_filter,
+      gender: gender,
+      location: location
     } = socket.assigns
 
-    case mode do
-      "live" ->
-        if params["cursor"] == "non-nil" do
-          {:reply, {:ok, %{"feed" => [], "cursor" => nil}}, socket}
-        else
-          %{
-            feed_filter: feed_filter,
-            gender: gender
-          } = socket.assigns
+    {feed, cursor} =
+      Feeds.fetch_feed(
+        user.id,
+        location,
+        gender,
+        feed_filter,
+        params["count"] || 10,
+        params["cursor"]
+      )
 
-          {feed, cursor} =
-            Feeds.fetch_live_feed(
-              user.id,
-              gender,
-              feed_filter,
-              params["count"] || 10,
-              params["cursor"]
-            )
-
-          {:reply, {:ok, %{"feed" => render_feed(feed, screen_width), "cursor" => cursor}},
-           socket}
-        end
-
-      "normal" ->
-        %{
-          feed_filter: feed_filter,
-          gender: gender,
-          location: location
-        } = socket.assigns
-
-        {feed, cursor} =
-          Feeds.fetch_feed(
-            user.id,
-            location,
-            gender,
-            feed_filter,
-            params["count"] || 10,
-            params["cursor"]
-          )
-
-        {:reply, {:ok, %{"feed" => render_feed(feed, screen_width), "cursor" => cursor}}, socket}
-    end
+    {:reply, {:ok, %{"feed" => render_feed(feed, screen_width), "cursor" => cursor}}, socket}
   end
 
   def handle_in("archived-matches", _params, socket) do
@@ -221,7 +126,7 @@ defmodule TWeb.FeedChannel do
     caller = me_id(socket)
 
     reply =
-      case Calls.call(caller, called, utc_now(socket)) do
+      case Calls.call(caller, called) do
         {:ok, call_id} -> {:ok, %{"call_id" => call_id}}
         {:error, reason} -> {:error, %{"reason" => reason}}
       end
@@ -361,16 +266,6 @@ defmodule TWeb.FeedChannel do
 
   def handle_in("report", params, socket) do
     report(socket, params)
-  end
-
-  # Live Feed
-
-  def handle_in("live-invite", %{"user_id" => invited}, socket) do
-    %{current_user: %{id: inviter}} = socket.assigns
-
-    Feeds.live_invite_user(inviter, invited)
-
-    {:reply, :ok, socket}
   end
 
   # voicemail
@@ -526,53 +421,6 @@ defmodule TWeb.FeedChannel do
       "url" => Calls.voicemail_url(s3_key),
       "inserted_at" => DateTime.from_naive!(inserted_at, "Etc/UTC")
     })
-
-    {:noreply, socket}
-  end
-
-  def handle_info({Feeds, [:mode_change, event]}, socket) do
-    socket =
-      case {event, socket.assigns[:mode]} do
-        {:start, "normal"} ->
-          push(socket, "live_mode_started", %{})
-          assign(socket, mode: "live")
-
-        {:end, "live"} ->
-          push(socket, "live_mode_ended", %{})
-          assign(socket, mode: "normal")
-
-        _other ->
-          socket
-      end
-
-    {:noreply, socket}
-  end
-
-  # TODO test
-  def handle_info({Feeds, :live, %{profile: feed_profile}}, socket) do
-    %{screen_width: screen_width} = socket.assigns
-    push(socket, "activated_profile", render_feed_item(feed_profile, screen_width))
-    {:noreply, socket}
-  end
-
-  def handle_info(
-        {Feeds, :live_match_online, %{profile: feed_profile, match_id: match_id}},
-        socket
-      ) do
-    %{screen_width: screen_width} = socket.assigns
-    match = render_match(%{id: match_id, profile: feed_profile, screen_width: screen_width})
-    push(socket, "activated_match", %{"match" => match})
-    {:noreply, socket}
-  end
-
-  def handle_info({Feeds, :live_invited, invite}, socket) do
-    %{screen_width: screen_width} = socket.assigns
-    %{by_user_id: by_user_id} = invite
-
-    if profile = Feeds.get_mate_feed_profile(by_user_id) do
-      rendered = render_feed_item(profile, screen_width)
-      push(socket, "live_invite", rendered)
-    end
 
     {:noreply, socket}
   end

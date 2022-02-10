@@ -53,25 +53,6 @@ defmodule T.CallsTest do
       assert_received {Matches, :interaction, ^interaction}
       assert_received {Matches, :interaction, ^interaction}
     end
-
-    test "success: doesn't create interaction if users are not matched" do
-      me = onboarded_user()
-      mate = onboarded_user()
-
-      insert(:push_kit_device,
-        device_id: "ABAB",
-        user: mate,
-        token: build(:user_token, user: mate)
-      )
-
-      expect(MockAPNS, :push, fn _notification -> :ok end)
-
-      # in live mode all calls go through
-      now = ~U[2022-02-03 16:30:00Z]
-      assert {:ok, call_id} = Calls.call(me.id, mate.id, now)
-
-      refute Repo.get(Matches.Interaction, call_id)
-    end
   end
 
   describe "accept_call/2" do

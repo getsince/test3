@@ -4,7 +4,7 @@ defmodule T.PushNotifications.DispatchJob do
 
   use Oban.Worker, queue: :apns
   import Ecto.Query
-  alias T.{Repo, Matches, Accounts, Feeds, PushNotifications}
+  alias T.{Repo, Matches, Accounts, PushNotifications}
 
   @impl true
   def perform(%Oban.Job{args: %{"type" => type} = args}) do
@@ -257,48 +257,6 @@ defmodule T.PushNotifications.DispatchJob do
     %{"user_id" => user_id} = args
 
     user_id |> Accounts.list_apns_devices() |> schedule_apns(type, args)
-
-    :ok
-  end
-
-  defp handle_type("live_invite" = type, args) do
-    %{"by_user_id" => by_user_id, "user_id" => user_id} = args
-
-    if profile = profile_info(by_user_id) do
-      {name, _gender} = profile
-
-      data = %{"user_id" => by_user_id, "name" => name}
-
-      user_id |> Accounts.list_apns_devices() |> schedule_apns(type, data)
-    end
-
-    :ok
-  end
-
-  defp handle_type("match_went_live" = type, args) do
-    %{"for_user_id" => for_user_id, "user_id" => user_id} = args
-
-    if profile = profile_info(user_id) do
-      {name, gender} = profile
-
-      data = %{"user_id" => user_id, "name" => name, "gender" => gender}
-
-      for_user_id |> Accounts.list_apns_devices() |> schedule_apns(type, data)
-    end
-
-    :ok
-  end
-
-  defp handle_type(type, args) when type in ["live_mode_today", "live_mode_soon"] do
-    Accounts.list_apns_devices() |> schedule_apns(type, args)
-    :ok
-  end
-
-  defp handle_type(type, args)
-       when type in ["newbie_live_mode_today", "newbie_live_mode_soon"] do
-    Feeds.newbies_list_today_participants()
-    |> Accounts.list_apns_devices()
-    |> schedule_apns(type, args)
 
     :ok
   end

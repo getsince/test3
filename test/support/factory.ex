@@ -11,7 +11,7 @@ defmodule T.Factory do
     UserToken
   }
 
-  alias T.Feeds.{SeenProfile, LiveSession, LiveInvite}
+  alias T.Feeds.SeenProfile
   alias T.Matches.{Match, Timeslot, ExpiredMatch, MatchEvent, MatchContact}
   alias T.Calls.Call
 
@@ -65,14 +65,6 @@ defmodule T.Factory do
 
   def match_contact_factory do
     %MatchContact{}
-  end
-
-  def live_session_factory do
-    %LiveSession{}
-  end
-
-  def live_invites_factory do
-    %LiveInvite{}
   end
 
   def user_token_factory do

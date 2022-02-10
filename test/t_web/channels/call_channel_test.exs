@@ -223,13 +223,8 @@ defmodule TWeb.CallChannelTest do
   describe "user is busy" do
     @tag skip: true
     test "works" do
-      thu_19_30_msk = ~U[2021-12-09 16:30:00Z]
-
       %{socket: socket, user: called} = make_user_socket()
       caller = onboarded_user()
-
-      # live mode
-      freeze_time(socket, thu_19_30_msk)
 
       # called user joined call, should not be available anymore
       %Call{id: call_id} = insert(:call, called: called, caller: caller)
@@ -241,8 +236,8 @@ defmodule TWeb.CallChannelTest do
       # another user tries to call `called` user
       another_caller = onboarded_user()
 
-      assert {:error, "receiver is busy"} =
-               T.Calls.call(another_caller.id, called.id, thu_19_30_msk)
+      # TODO match users
+      assert {:error, "receiver is busy"} = T.Calls.call(another_caller.id, called.id)
     end
   end
 

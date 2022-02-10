@@ -26,37 +26,11 @@ config :sentry,
 
 config :t, T.PromEx, disabled: config_env() != :prod
 
-newbies_live_enabled? = !!System.get_env("ENABLE_NEWBIE_LIVE")
-since_live_enabled? = !!System.get_env("ENABLE_SINCE_LIVE")
-
-config :t,
-  newbies_live_enabled?: newbies_live_enabled?,
-  since_live_enabled?: since_live_enabled?
-
-crontab =
-  case config_env() do
-    :prod ->
-      [
-        if newbies_live_enabled? do
-          T.Feeds.newbies_crontab()
-        end,
-        if since_live_enabled? do
-          T.Feeds.live_crontab()
-        end
-      ]
-      |> Enum.reject(&is_nil/1)
-      |> List.flatten()
-
-    _other ->
-      []
-  end
-
 config :t, Oban,
   repo: T.Repo,
   plugins: [
     Oban.Plugins.Pruner,
-    Oban.Plugins.Stager,
-    {Oban.Plugins.Cron, crontab: crontab, timezone: "Europe/Moscow"}
+    Oban.Plugins.Stager
   ],
   queues: [default: 10, apns: 100]
 
@@ -149,15 +123,6 @@ if config_env() == :prod do
     user_bucket: System.fetch_env!("AWS_S3_BUCKET"),
     static_bucket: System.fetch_env!("AWS_S3_BUCKET_STATIC"),
     static_cdn: System.fetch_env!("STATIC_CDN")
-
-  # oldies are hardcoded users (or rather their ids) which
-  # become participants in all "newbies live" events
-  config :t,
-    oldies: [
-      _Vlad = "0000017b-b0cf-d3e8-0242-ac1100020000",
-      _Lily = "0000017b-e3d2-2b30-0242-ac1100020000",
-      _Rail = "0000017c-14c7-9745-0242-ac1100020000"
-    ]
 end
 
 if config_env() == :dev do
@@ -241,9 +206,6 @@ end
 if config_env() == :test do
   config :t, current_admin_id: "36a0a181-db31-400a-8397-db7f560c152e"
 
-  # to keep tests working
-  config :t, since_live_enabled?: true
-
   # Configure your database
   #
   # The MIX_TEST_PARTITION environment variable can be used
@@ -291,9 +253,6 @@ if config_env() == :test do
 
   config :t, T.Periodics, disabled?: true
   config :t, Finch, disabled?: true
-
-  # there is no user with this id, it's been generated just for the tests
-  config :t, oldies: ["0000017d-d720-1f6a-06e9-e8bbc6570000"]
 end
 
 if config_env() == :bench do

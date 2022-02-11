@@ -3,7 +3,7 @@ defmodule TWeb.FeedChannel do
   import TWeb.ChannelHelpers
 
   alias TWeb.{FeedView, MatchView, ErrorView}
-  alias T.{Feeds, Calls, Matches, Accounts}
+  alias T.{Feeds, Calls, Matches, Accounts, Events}
 
   @impl true
   def join("feed:" <> user_id, params, socket) do
@@ -111,8 +111,14 @@ defmodule TWeb.FeedChannel do
   end
 
   # TODO possibly batch
-  def handle_in("seen", %{"user_id" => user_id}, socket) do
-    Feeds.mark_profile_seen(user_id, by: me_id(socket))
+  def handle_in("seen", %{"user_id" => user_id} = params, socket) do
+    me = me_id(socket)
+
+    if timings = params["timings"] do
+      Events.save_seen_timings(me, user_id, timings)
+    end
+
+    Feeds.mark_profile_seen(user_id, by: me)
     {:reply, :ok, socket}
   end
 
@@ -136,6 +142,8 @@ defmodule TWeb.FeedChannel do
 
   def handle_in("like", %{"user_id" => liked}, socket) do
     %{current_user: %{id: liker}} = socket.assigns
+
+    Events.save_like(liker, liked)
 
     # TODO check that we had a call?
 

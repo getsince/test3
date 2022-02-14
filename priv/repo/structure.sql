@@ -295,7 +295,7 @@ CREATE TABLE public.oban_jobs (
 -- Name: TABLE oban_jobs; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON TABLE public.oban_jobs IS '10';
+COMMENT ON TABLE public.oban_jobs IS '11';
 
 
 --
@@ -315,6 +315,18 @@ CREATE SEQUENCE public.oban_jobs_id_seq
 --
 
 ALTER SEQUENCE public.oban_jobs_id_seq OWNED BY public.oban_jobs.id;
+
+
+--
+-- Name: oban_peers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE UNLOGGED TABLE public.oban_peers (
+    name text NOT NULL,
+    node text NOT NULL,
+    started_at timestamp without time zone NOT NULL,
+    expires_at timestamp without time zone NOT NULL
+);
 
 
 --
@@ -541,6 +553,14 @@ ALTER TABLE ONLY public.oban_jobs
 
 
 --
+-- Name: oban_peers oban_peers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.oban_peers
+    ADD CONSTRAINT oban_peers_pkey PRIMARY KEY (name);
+
+
+--
 -- Name: profiles profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -696,10 +716,10 @@ CREATE INDEX oban_jobs_meta_index ON public.oban_jobs USING gin (meta);
 
 
 --
--- Name: oban_jobs_queue_state_priority_scheduled_at_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: oban_jobs_state_queue_priority_scheduled_at_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX oban_jobs_queue_state_priority_scheduled_at_id_index ON public.oban_jobs USING btree (queue, state, priority, scheduled_at, id);
+CREATE INDEX oban_jobs_state_queue_priority_scheduled_at_id_index ON public.oban_jobs USING btree (state, queue, priority, scheduled_at, id);
 
 
 --
@@ -1129,3 +1149,5 @@ INSERT INTO public."schema_migrations" (version) VALUES (20220111113337);
 INSERT INTO public."schema_migrations" (version) VALUES (20220112131454);
 INSERT INTO public."schema_migrations" (version) VALUES (20220112133053);
 INSERT INTO public."schema_migrations" (version) VALUES (20220131152510);
+INSERT INTO public."schema_migrations" (version) VALUES (20220214112331);
+INSERT INTO public."schema_migrations" (version) VALUES (20220214112544);

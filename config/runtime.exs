@@ -30,7 +30,9 @@ config :t, Oban,
   repo: T.Repo,
   plugins: [
     Oban.Plugins.Pruner,
-    Oban.Plugins.Stager
+    Oban.Plugins.Stager,
+    Oban.Plugins.Lifeline,
+    Oban.Plugins.Reindexer
   ],
   queues: [default: 10, apns: 100]
 

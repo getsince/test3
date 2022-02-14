@@ -141,7 +141,7 @@ defmodule TWeb.FeedChannel do
   end
 
   def handle_in("like", %{"user_id" => liked}, socket) do
-    %{current_user: %{id: liker}} = socket.assigns
+    %{current_user: %{id: liker}, screen_width: screen_width} = socket.assigns
 
     Events.save_like(liker, liked)
 
@@ -155,21 +155,26 @@ defmodule TWeb.FeedChannel do
         {:ok,
          %{
            match: %{id: match_id, inserted_at: inserted_at},
+           mutual: profile,
            audio_only: [_our, mate_audio_only]
          }} ->
           # TODO return these timestamps from like_user
-          inserted_at = DateTime.from_naive!(inserted_at, "Etc/UTC")
-          expiration_date = DateTime.add(inserted_at, Matches.match_ttl())
+          expiration_date = NaiveDateTime.add(inserted_at, Matches.match_ttl())
 
-          {:ok,
-           %{
-             "match_id" => match_id,
-             "audio_only" => mate_audio_only,
-             "expiration_date" => expiration_date,
-             "inserted_at" => inserted_at,
-             #  TODO remove after adoption of iOS 5.1.0
-             "exchanged_voicemail" => false
-           }}
+          rendered =
+            render_match(%{
+              id: match_id,
+              profile: profile,
+              screen_width: screen_width,
+              audio_only: mate_audio_only,
+              expiration_date: expiration_date,
+              inserted_at: inserted_at
+            })
+            |> Map.put("match_id", match_id)
+            #  TODO remove after adoption of iOS 5.1.0
+            |> Map.put("exchanged_voicemail", false)
+
+          {:ok, rendered}
 
         {:error, _step, _reason, _changes} ->
           :ok

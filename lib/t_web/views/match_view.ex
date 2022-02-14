@@ -6,10 +6,8 @@ defmodule TWeb.MatchView do
   alias T.Calls.Voicemail
 
   def render("match.json", %{id: id} = assigns) do
-    inserted_at =
-      if naive = assigns[:inserted_at] do
-        DateTime.from_naive!(naive, "Etc/UTC")
-      end
+    inserted_at = ensure_utc(assigns[:inserted_at])
+    expiration_date = ensure_utc(assigns[:expiration_date])
 
     timeslot =
       case assigns[:timeslot] do
@@ -31,8 +29,8 @@ defmodule TWeb.MatchView do
 
     %{"id" => id, "profile" => render(FeedView, "feed_profile.json", assigns)}
     |> maybe_put("inserted_at", inserted_at)
+    |> maybe_put("expiration_date", expiration_date)
     |> maybe_put("audio_only", assigns[:audio_only])
-    |> maybe_put("expiration_date", assigns[:expiration_date])
     |> maybe_put("last_interaction_id", assigns[:last_interaction_id])
     |> maybe_put("timeslot", timeslot)
     |> maybe_put("contact", contact)
@@ -189,4 +187,8 @@ defmodule TWeb.MatchView do
   defp datetime(<<unix::64, _rest::64>>) do
     unix |> DateTime.from_unix!(:millisecond) |> DateTime.truncate(:second)
   end
+
+  defp ensure_utc(%DateTime{} = datetime), do: datetime
+  defp ensure_utc(%NaiveDateTime{} = naive), do: DateTime.from_naive!(naive, "Etc/UTC")
+  defp ensure_utc(nil), do: nil
 end

@@ -55,7 +55,13 @@ defmodule T.Matches do
   # - Likes
 
   @spec like_user(Ecto.UUID.t(), Ecto.UUID.t()) ::
-          {:ok, %{match: %Match{} | nil, audio_only: [boolean] | nil, event: %MatchEvent{} | nil}}
+          {:ok,
+           %{
+             match: %Match{} | nil,
+             mutual: %FeedProfile{} | nil,
+             audio_only: [boolean] | nil,
+             event: %MatchEvent{} | nil
+           }}
           | {:error, atom, term, map}
   def like_user(by_user_id, user_id) do
     Multi.new()
@@ -132,28 +138,19 @@ defmodule T.Matches do
 
   defp with_mutual_liker(multi, by_user_id, user_id) do
     Multi.run(multi, :mutual, fn _repo, _changes ->
-      Like
-      # if I am liked
-      |> where(user_id: ^by_user_id)
-      # by who I liked
-      |> where(by_user_id: ^user_id)
-      |> join(:inner, [pl], p in Profile, on: p.user_id == pl.by_user_id)
-      # and who I liked is not hidden
-      |> select([..., p], not p.hidden?)
-      |> Repo.one()
-      |> case do
-        # nobody likes me, sad
-        _no_liker = nil ->
-          {:ok, nil}
+      maybe_liker =
+        Like
+        # if I am liked
+        |> where(user_id: ^by_user_id)
+        # by who I liked
+        |> where(by_user_id: ^user_id)
+        # and who I liked is not hidden
+        |> join(:inner, [pl], p in FeedProfile, on: p.user_id == pl.by_user_id and not p.hidden?)
+        # then I have a mate
+        |> select([..., p], p)
+        |> Repo.one()
 
-        # someone likes me, and they are not hidden
-        _not_hidden = true ->
-          {:ok, _mutual? = true}
-
-        # somebody likes me, but they are hidden -> like is discarded
-        _not_hidden = false ->
-          {:ok, _mutual? = false}
-      end
+      {:ok, maybe_liker}
     end)
   end
 

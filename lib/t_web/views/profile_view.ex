@@ -4,10 +4,6 @@ defmodule TWeb.ProfileView do
 
   alias T.Accounts.Profile
 
-  def render("show.json", %{profile: %Profile{} = profile, screen_width: screen_width}) do
-    render_profile(profile, [:user_id, :name, :gender], screen_width)
-  end
-
   def render("show_with_location.json", %{
         profile: %Profile{location: location} = profile,
         screen_width: screen_width
@@ -25,14 +21,15 @@ defmodule TWeb.ProfileView do
         :distance,
         :audio_only
       ],
-      screen_width
+      screen_width,
+      _env = :profile
     )
     |> Map.put(:latitude, lat(location))
     |> Map.put(:longitude, lon(location))
   end
 
   def render("editor_tutorial_story.json", %{story: story, screen_width: screen_width}) do
-    ViewHelpers.postprocess_story(story, screen_width)
+    ViewHelpers.postprocess_story(story, screen_width, _env = :feed)
   end
 
   defp lat(%Geo.Point{coordinates: {_lon, lat}}), do: lat
@@ -41,9 +38,9 @@ defmodule TWeb.ProfileView do
   defp lon(%Geo.Point{coordinates: {lon, _lat}}), do: lon
   defp lon(nil), do: nil
 
-  defp render_profile(%Profile{story: story} = profile, fields, screen_width) do
+  defp render_profile(%Profile{story: story} = profile, fields, screen_width, env) do
     profile
     |> Map.take(fields)
-    |> Map.merge(%{story: ViewHelpers.postprocess_story(story || [], screen_width)})
+    |> Map.merge(%{story: ViewHelpers.postprocess_story(story || [], screen_width, env)})
   end
 end

@@ -33,13 +33,79 @@ defmodule TWeb.ProfileChannelTest do
 
   describe "join with onboarded profile" do
     setup do
-      user = onboarded_user()
+      story = [
+        %{
+          "background" => %{
+            "s3_key" => "photo.jpg"
+          },
+          "labels" => [
+            %{
+              "type" => "text",
+              "value" => "just some text",
+              "dimensions" => [400, 800],
+              "position" => [100, 100],
+              "rotation" => 21,
+              "zoom" => 1.2
+            },
+            %{
+              "type" => "answer",
+              "answer" => "msu",
+              "question" => "university",
+              "value" => "🥊\nменя воспитала улица",
+              "dimensions" => [400, 800],
+              "position" => [150, 150]
+            }
+          ],
+          "size" => [400, 100]
+        },
+        %{
+          "background" => %{"s3_key" => "private.jpg"},
+          "blurred" => %{"s3_key" => "blurred.jpg"},
+          "labels" => [
+            %{
+              "type" => "text",
+              "value" => "I vote for Putin, unmatch if you don't",
+              "position" => [100, 100]
+            }
+          ],
+          "size" => [100, 400]
+        }
+      ]
+
+      user = onboarded_user(story: story)
       {:ok, user: user, socket: connected_socket(user)}
     end
 
     test "with invalid user id", %{socket: socket} do
       assert {:error, %{"error" => "forbidden"}} =
                join(socket, "profile:" <> Ecto.UUID.generate())
+    end
+
+    test "private pages contain all fields", %{socket: socket, user: user} do
+      assert {:ok, %{profile: profile}, _socket} = join(socket, "profile:" <> user.id)
+      assert [public, private] = profile.story
+
+      assert Map.keys(public) == ["background", "labels", "size"]
+      assert Map.keys(private) == ["background", "blurred", "labels", "private", "size"]
+
+      assert %{
+               "private" => true,
+               "blurred" => %{
+                 "proxy" => "https://d1234.cloudfront.net/" <> _,
+                 "s3_key" => "blurred.jpg"
+               },
+               "background" => %{
+                 "proxy" => "https://d1234.cloudfront.net/" <> _,
+                 "s3_key" => "private.jpg"
+               },
+               "labels" => [
+                 %{
+                   "position" => [100, 100],
+                   "type" => "text",
+                   "value" => "I vote for Putin, unmatch if you don't"
+                 }
+               ]
+             } = private
     end
 
     test "with partially filled profile", %{socket: socket, user: user} do

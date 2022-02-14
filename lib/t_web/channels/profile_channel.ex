@@ -92,14 +92,24 @@ defmodule TWeb.ProfileChannel do
 
   defp replace_story_photo_urls_with_s3keys(%{"story" => story} = params) do
     story =
-      Enum.map(story, fn %{"background" => background} = page ->
-        %{page | "background" => replace_photo_url_with_s3key(background)}
+      Enum.map(story, fn page ->
+        page
+        |> maybe_replace_url_with_s3key_for_key("background")
+        |> maybe_replace_url_with_s3key_for_key("blurred")
       end)
 
     Map.put(params, "story", story)
   end
 
   defp replace_story_photo_urls_with_s3keys(params), do: params
+
+  defp maybe_replace_url_with_s3key_for_key(page, key) do
+    if value = Map.get(page, key) do
+      Map.put(page, key, replace_photo_url_with_s3key(value))
+    else
+      page
+    end
+  end
 
   defp replace_photo_url_with_s3key(%{"s3_key" => _} = background), do: background
   defp replace_photo_url_with_s3key(%{"color" => _} = bg), do: bg
@@ -108,6 +118,7 @@ defmodule TWeb.ProfileChannel do
     %{"s3_key" => s3_key_from_proxy_url(proxy_url)}
   end
 
+  # TODO fix, client shouldn't be sending urls
   defp s3_key_from_proxy_url("https://d3r9yicn85nax9.cloudfront.net/" <> path) do
     "https://since-when-are-you-happy.s3.amazonaws.com/" <> s3_key =
       path |> String.split("/") |> List.last() |> Base.decode64!(padding: false)

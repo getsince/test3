@@ -18,6 +18,39 @@ defmodule TWeb.FeedChannelTest do
       assert {:error, %{"error" => "forbidden"}} = join(socket, "feed:" <> Ecto.UUID.generate())
     end
 
+    test "shows private pages of matches", %{socket: socket, me: me} do
+      stacy =
+        onboarded_user(
+          name: "Private Stacy",
+          location: apple_location(),
+          story: [
+            %{"background" => %{"s3_key" => "public1"}, "labels" => [], "size" => [400, 100]},
+            %{
+              "background" => %{"s3_key" => "private"},
+              "blurred" => %{"s3_key" => "blurred"},
+              "labels" => [
+                %{
+                  "value" => "some private info",
+                  "position" => [100, 100]
+                }
+              ],
+              "size" => [100, 400]
+            }
+          ],
+          gender: "F",
+          accept_genders: ["M"]
+        )
+
+      insert(:match, user_id_1: me.id, user_id_2: stacy.id)
+
+      assert {:ok, %{"matches" => [%{"profile" => %{story: [public, private]}}]}, _socket} =
+               join(socket, "feed:" <> me.id)
+
+      assert Map.keys(public) == ["background", "labels", "size"]
+      assert Map.keys(private) == ["background", "labels", "private", "size"]
+      assert %{"private" => true} = private
+    end
+
     test "with matches", %{socket: socket, me: me} do
       [p1, p2, p3, p4, p5, p6] = [
         onboarded_user(story: [], name: "mate-1", location: apple_location(), gender: "F"),
@@ -792,17 +825,41 @@ defmodule TWeb.FeedChannelTest do
     setup :joined
 
     setup do
-      {:ok, mate: onboarded_user(story: [], location: apple_location(), name: "mate")}
+      stacy =
+        onboarded_user(
+          name: "Private Stacy",
+          location: apple_location(),
+          story: [
+            %{"background" => %{"s3_key" => "public1"}, "labels" => [], "size" => [400, 100]},
+            %{
+              "background" => %{"s3_key" => "private"},
+              "blurred" => %{"s3_key" => "blurred"},
+              "labels" => [
+                %{
+                  "value" => "some private info",
+                  "position" => [100, 100]
+                }
+              ],
+              "size" => [100, 400]
+            }
+          ],
+          gender: "F",
+          accept_genders: ["M"]
+        )
+
+      {:ok, mate: stacy}
     end
 
     setup :joined_mate
 
-    test "when already liked by mate", %{
-      me: me,
-      socket: socket,
-      mate: mate,
-      mate_socket: mate_socket
-    } do
+    test "when already liked by mate", ctx do
+      %{
+        me: me,
+        socket: socket,
+        mate: mate,
+        mate_socket: mate_socket
+      } = ctx
+
       # mate likes us
       ref = push(mate_socket, "like", %{"user_id" => me.id})
       assert_reply(ref, :ok, reply)
@@ -813,22 +870,37 @@ defmodule TWeb.FeedChannelTest do
       assert me_from_db.like_ratio == 1.0
 
       # we got notified of like
-      assert_push("invite", invite)
+      assert_push("invite", %{"profile" => %{story: [public, private] = story}} = invite)
 
       assert invite == %{
                "profile" => %{
-                 gender: "M",
-                 name: "mate",
-                 story: [],
+                 gender: "F",
+                 name: "Private Stacy",
+                 story: story,
                  user_id: mate.id
                }
              }
+
+      # when we get notified of like, we are not showing private pages of the liker
+      assert Map.keys(public) == ["background", "labels", "size"]
+      assert Map.keys(private) == ["blurred", "private"]
+
+      assert %{
+               "blurred" => %{"s3_key" => "blurred", "proxy" => "https://" <> _},
+               "private" => true
+             } = private
 
       now = DateTime.utc_now() |> DateTime.truncate(:second)
 
       # now it's our turn
       ref = push(socket, "like", %{"user_id" => mate.id})
-      assert_reply(ref, :ok, %{"match_id" => match_id, "expiration_date" => ed})
+
+      assert_reply(ref, :ok, %{
+        "match_id" => match_id,
+        "expiration_date" => ed,
+        "profile" => %{story: [public, private]}
+      })
+
       refute is_nil(ed)
       assert is_binary(match_id)
 
@@ -836,14 +908,21 @@ defmodule TWeb.FeedChannelTest do
 
       assert %MatchEvent{match_id: ^match_id, event: "created", timestamp: ^now} =
                Repo.get_by!(MatchEvent, match_id: match_id)
+
+      # when we are matched, we can see private pages of the liker (now mate)
+      assert Map.keys(public) == ["background", "labels", "size"]
+      assert Map.keys(private) == ["background", "labels", "private", "size"]
+      assert %{"private" => true} = private
     end
 
-    test "when not yet liked by mate", %{
-      me: me,
-      socket: socket,
-      mate: mate,
-      mate_socket: mate_socket
-    } do
+    test "when not yet liked by mate", ctx do
+      %{
+        me: me,
+        socket: socket,
+        mate: mate,
+        mate_socket: mate_socket
+      } = ctx
+
       # we like mate
       ref = push(socket, "like", %{"user_id" => mate.id})
       assert_reply(ref, :ok, reply)
@@ -864,15 +943,27 @@ defmodule TWeb.FeedChannelTest do
       assert %DateTime{} = inserted_at = match["inserted_at"]
       assert abs(DateTime.diff(now, inserted_at)) <= 1
 
+      assert %{"match" => %{"profile" => %{story: [public, private] = story}}} = push
+
       assert push == %{
                "match" => %{
                  "id" => match_id,
-                 "profile" => %{name: "mate", story: [], user_id: mate.id, gender: "M"},
+                 "profile" => %{
+                   name: "Private Stacy",
+                   story: story,
+                   user_id: mate.id,
+                   gender: "F"
+                 },
                  "expiration_date" => expiration_date,
                  "inserted_at" => inserted_at,
                  "audio_only" => false
                }
              }
+
+      # when we are matched, we can see private pages
+      assert Map.keys(public) == ["background", "labels", "size"]
+      assert Map.keys(private) == ["background", "labels", "private", "size"]
+      assert %{"private" => true} = private
     end
   end
 
@@ -1805,6 +1896,67 @@ defmodule TWeb.FeedChannelTest do
                  "inserted_at" => %DateTime{}
                }
              ] = interactions
+    end
+  end
+
+  describe "private stories" do
+    setup :joined
+
+    setup do
+      now = DateTime.utc_now()
+
+      stacy =
+        onboarded_user(
+          name: "Private Stacy",
+          location: apple_location(),
+          story: [
+            %{"background" => %{"s3_key" => "public1"}, "labels" => [], "size" => [400, 100]},
+            %{
+              "background" => %{"s3_key" => "private"},
+              "blurred" => %{"s3_key" => "blurred"},
+              "labels" => [
+                %{
+                  "value" => "some private info",
+                  "position" => [100, 100]
+                }
+              ],
+              "size" => [100, 400]
+            }
+          ],
+          gender: "F",
+          accept_genders: ["M"],
+          last_active: DateTime.add(now, -1)
+        )
+
+      {:ok, stacy: stacy}
+    end
+
+    test "more: private stories are blurred", %{socket: socket} do
+      ref = push(socket, "more")
+      assert_reply(ref, :ok, %{"feed" => feed})
+
+      assert [%{"profile" => %{story: [public, private]}}] = feed
+
+      assert Map.keys(public) == ["background", "labels", "size"]
+      assert Map.keys(private) == ["blurred", "private"]
+
+      assert %{
+               "blurred" => %{
+                 "s3_key" => "blurred",
+                 "proxy" => "https://d1234.cloudfront.net/" <> _
+               },
+               "private" => true
+             } = private
+    end
+
+    test "matched: private story becomes visible", %{me: me, stacy: stacy} do
+      Matches.like_user(me.id, stacy.id)
+      Matches.like_user(stacy.id, me.id)
+
+      assert_push "matched", %{"match" => %{"profile" => %{story: [public, private]}}}
+      assert Map.keys(public) == ["background", "labels", "size"]
+      assert Map.keys(private) == ["background", "labels", "private", "size"]
+      assert %{"private" => true} = private
     end
   end
 

@@ -125,7 +125,7 @@ if config_env() == :prod do
     static_cdn: System.fetch_env!("STATIC_CDN")
 
   config :t, T.Events,
-    buffers: [:seen_buffer, :like_buffer],
+    buffers: [:seen_buffer, :like_buffer, :contact_buffer],
     bucket: System.fetch_env!("AWS_S3_BUCKET_EVENTS")
 end
 

@@ -24,8 +24,6 @@ config :sentry,
   environment_name: config_env(),
   included_environments: [:prod]
 
-config :t, T.PromEx, disabled: config_env() != :prod
-
 config :t, Oban,
   repo: T.Repo,
   plugins: [
@@ -57,12 +55,6 @@ if config_env() == :prod do
 
   config :sentry,
     dsn: System.fetch_env!("SENTRY_DSN")
-
-  config :t, T.PromEx,
-    manual_metrics_start_delay: :no_delay,
-    drop_metrics_groups: [],
-    grafana: :disabled,
-    metrics_server: :disabled
 
   config :t, T.Bot,
     token: System.fetch_env!("TG_BOT_KEY"),

@@ -46,8 +46,6 @@ defmodule TWeb.Endpoint do
     cookie_key: "request_logger"
 
   plug Plug.RequestId
-  # use standalone server on private port
-  # plug PromEx.Plug, prom_ex_module: T.PromEx
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
   plug Plug.Parsers,

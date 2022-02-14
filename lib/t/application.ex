@@ -12,7 +12,7 @@ defmodule T.Application do
         {Task.Supervisor, name: T.TaskSupervisor},
         {T.Events, events_config()},
         APNS.Token,
-        # T.PromEx,
+
         # TODO add apple keys endpoint and twilio (possibly aws as well)
         unless_disabled(
           {Finch,

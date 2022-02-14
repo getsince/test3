@@ -21,6 +21,9 @@ defmodule T.Events do
       end,
       if buffers[:like_buffer] do
         Supervisor.child_spec({Buffer, dir: "like", name: :like_buffer}, id: :like_buffer)
+      end,
+      if buffers[:contact_buffer] do
+        Supervisor.child_spec({Buffer, dir: "contact", name: :contact_buffer}, id: :contact_buffer)
       end
     ]
 
@@ -39,4 +42,13 @@ defmodule T.Events do
     row = CSV.dump_to_iodata([[id, by_user_id, user_id]])
     GenServer.cast(:like_buffer, {:add, row})
   end
+
+  def save_contact_click(by_user_id, user_id, contact) do
+    id = Ecto.Bigflake.UUID.generate()
+    row = CSV.dump_to_iodata([[id, by_user_id, user_id, dump_contact(contact)]])
+    GenServer.cast(:contact_buffer, {:add, row})
+  end
+
+  defp dump_contact(contact) when is_binary(contact), do: contact
+  defp dump_contact(contact) when is_map(contact), do: Jason.encode_to_iodata!(contact)
 end

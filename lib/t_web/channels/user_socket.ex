@@ -32,7 +32,8 @@ defmodule TWeb.UserSocket do
          assign(socket,
            current_user: user,
            token: token,
-           screen_width: params["screen_width"] || 1000
+           screen_width: params["screen_width"] || 1000,
+           locale: params["locale"]
          )}
       else
         Accounts.schedule_upgrade_app_push(user.id)

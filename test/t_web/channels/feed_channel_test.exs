@@ -1,7 +1,7 @@
 defmodule TWeb.FeedChannelTest do
   use TWeb.ChannelCase, async: true
 
-  alias T.{Accounts, Calls, Matches}
+  alias T.{Accounts, Calls, Matches, News}
   alias Matches.{Timeslot, Match, MatchEvent}
   alias Calls.Call
 
@@ -432,6 +432,48 @@ defmodule TWeb.FeedChannelTest do
                  }
                ]
              }
+    end
+
+    test "with news", %{socket: socket, me: me} do
+      import Ecto.Query
+
+      {1, _} =
+        News.SeenNews
+        |> where(user_id: ^me.id)
+        |> Repo.delete_all()
+
+      assert {:ok, %{"news" => news}, socket} = join(socket, "feed:" <> me.id)
+
+      assert news == [
+               _first_news_item = %{
+                 id: 1,
+                 story: [
+                   %{
+                     "background" => %{"color" => "#F97EB9"},
+                     "labels" => [
+                       %{
+                         "size" => [247.3, 44],
+                         "value" => "Мы стали совсем другими",
+                         "center" => [142.33, 317.83]
+                       }
+                     ],
+                     "size" => [428, 926]
+                   }
+                 ]
+               }
+             ]
+
+      ref = push(socket, "seen", %{"news_story_id" => 1})
+      assert_reply ref, :ok, _
+
+      # should be no-op since the user has already seen story with id=1
+      ref = push(socket, "seen", %{"news_story_id" => 0})
+      assert_reply ref, :ok, _
+
+      assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id)
+      refute reply["news"]
+
+      assert 1 == Repo.get!(News.SeenNews, me.id).last_id
     end
   end
 

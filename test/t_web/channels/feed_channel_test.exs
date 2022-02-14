@@ -18,6 +18,39 @@ defmodule TWeb.FeedChannelTest do
       assert {:error, %{"error" => "forbidden"}} = join(socket, "feed:" <> Ecto.UUID.generate())
     end
 
+    test "shows private pages of matches", %{socket: socket, me: me} do
+      stacy =
+        onboarded_user(
+          name: "Private Stacy",
+          location: apple_location(),
+          story: [
+            %{"background" => %{"s3_key" => "public1"}, "labels" => [], "size" => [400, 100]},
+            %{
+              "background" => %{"s3_key" => "private"},
+              "blurred" => %{"s3_key" => "blurred"},
+              "labels" => [
+                %{
+                  "value" => "some private info",
+                  "position" => [100, 100]
+                }
+              ],
+              "size" => [100, 400]
+            }
+          ],
+          gender: "F",
+          accept_genders: ["M"]
+        )
+
+      insert(:match, user_id_1: me.id, user_id_2: stacy.id)
+
+      assert {:ok, %{"matches" => [%{"profile" => %{story: [public, private]}}]}, _socket} =
+               join(socket, "feed:" <> me.id)
+
+      assert Map.keys(public) == ["background", "labels", "size"]
+      assert Map.keys(private) == ["background", "labels", "private", "size"]
+      assert %{"private" => true} = private
+    end
+
     test "with matches", %{socket: socket, me: me} do
       [p1, p2, p3, p4, p5, p6] = [
         onboarded_user(story: [], name: "mate-1", location: apple_location(), gender: "F"),
@@ -1805,6 +1838,67 @@ defmodule TWeb.FeedChannelTest do
                  "inserted_at" => %DateTime{}
                }
              ] = interactions
+    end
+  end
+
+  describe "private stories" do
+    setup :joined
+
+    setup do
+      now = DateTime.utc_now()
+
+      stacy =
+        onboarded_user(
+          name: "Private Stacy",
+          location: apple_location(),
+          story: [
+            %{"background" => %{"s3_key" => "public1"}, "labels" => [], "size" => [400, 100]},
+            %{
+              "background" => %{"s3_key" => "private"},
+              "blurred" => %{"s3_key" => "blurred"},
+              "labels" => [
+                %{
+                  "value" => "some private info",
+                  "position" => [100, 100]
+                }
+              ],
+              "size" => [100, 400]
+            }
+          ],
+          gender: "F",
+          accept_genders: ["M"],
+          last_active: DateTime.add(now, -1)
+        )
+
+      {:ok, stacy: stacy}
+    end
+
+    test "more: private stories are blurred", %{socket: socket} do
+      ref = push(socket, "more")
+      assert_reply(ref, :ok, %{"feed" => feed})
+
+      assert [%{"profile" => %{story: [public, private]}}] = feed
+
+      assert Map.keys(public) == ["background", "labels", "size"]
+      assert Map.keys(private) == ["blurred", "private"]
+
+      assert %{
+               "blurred" => %{
+                 "s3_key" => "blurred",
+                 "proxy" => "https://d1234.cloudfront.net/" <> _
+               },
+               "private" => true
+             } = private
+    end
+
+    test "matched: private story becomes visible", %{me: me, stacy: stacy} do
+      Matches.like_user(me.id, stacy.id)
+      Matches.like_user(stacy.id, me.id)
+
+      assert_push "matched", %{"match" => %{"profile" => %{story: [public, private]}}}
+      assert Map.keys(public) == ["background", "labels", "size"]
+      assert Map.keys(private) == ["background", "labels", "private", "size"]
+      assert %{"private" => true} = private
     end
   end
 

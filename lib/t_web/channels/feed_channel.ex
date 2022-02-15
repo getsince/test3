@@ -3,11 +3,15 @@ defmodule TWeb.FeedChannel do
   import TWeb.ChannelHelpers
 
   alias TWeb.{FeedView, MatchView, ErrorView}
-  alias T.{Feeds, Calls, Matches, Accounts, Events}
+  alias T.{Feeds, Calls, Matches, Accounts, Events, News}
 
   @impl true
   def join("feed:" <> user_id, params, socket) do
     if ChannelHelpers.valid_user_topic?(socket, user_id) do
+      if locale = socket.assigns[:locale] do
+        Gettext.put_locale(locale)
+      end
+
       user_id = String.downcase(user_id)
       %{screen_width: screen_width} = socket.assigns
 
@@ -50,8 +54,11 @@ defmodule TWeb.FeedChannel do
       |> Matches.list_archived_matches()
       |> render_matches(screen_width)
 
+    news = News.list_news(user_id)
+
     reply =
       %{}
+      |> maybe_put("news", news)
       |> maybe_put("missed_calls", missed_calls)
       |> maybe_put("likes", likes)
       |> maybe_put("matches", matches)
@@ -125,6 +132,11 @@ defmodule TWeb.FeedChannel do
   def handle_in("seen", %{"expired_match_id" => match_id}, socket) do
     by_user_id = me_id(socket)
     Matches.delete_expired_match(match_id, by_user_id)
+    {:reply, :ok, socket}
+  end
+
+  def handle_in("seen", %{"news_story_id" => news_story_id}, socket) do
+    News.mark_seen(me_id(socket), news_story_id)
     {:reply, :ok, socket}
   end
 

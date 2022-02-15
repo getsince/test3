@@ -14,6 +14,7 @@ defmodule T.Factory do
   alias T.Feeds.SeenProfile
   alias T.Matches.{Match, Timeslot, ExpiredMatch, MatchEvent, MatchContact}
   alias T.Calls.Call
+  alias T.News
 
   def user_factory do
     %User{apple_id: apple_id(), settings: build(:user_settings)}
@@ -181,6 +182,7 @@ defmodule T.Factory do
     user =
       registered_user(opts[:apple_id] || apple_id(), opts[:last_active] || DateTime.utc_now())
 
+    News.mark_seen(user.id)
     {:ok, profile} = Accounts.onboard_profile(user.profile, onboarding_attrs(opts))
     %Accounts.User{user | profile: profile}
   end

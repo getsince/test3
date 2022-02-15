@@ -365,6 +365,16 @@ CREATE TABLE public.schema_migrations (
 
 
 --
+-- Name: seen_news; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.seen_news (
+    user_id uuid NOT NULL,
+    last_id integer
+);
+
+
+--
 -- Name: seen_profiles; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -562,6 +572,14 @@ ALTER TABLE ONLY public.pushkit_devices
 
 ALTER TABLE ONLY public.schema_migrations
     ADD CONSTRAINT schema_migrations_pkey PRIMARY KEY (version);
+
+
+--
+-- Name: seen_news seen_news_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.seen_news
+    ADD CONSTRAINT seen_news_pkey PRIMARY KEY (user_id);
 
 
 --
@@ -1042,6 +1060,14 @@ ALTER TABLE ONLY public.pushkit_devices
 
 
 --
+-- Name: seen_news seen_news_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.seen_news
+    ADD CONSTRAINT seen_news_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: seen_profiles seen_profiles_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1129,3 +1155,4 @@ INSERT INTO public."schema_migrations" (version) VALUES (20220111113337);
 INSERT INTO public."schema_migrations" (version) VALUES (20220112131454);
 INSERT INTO public."schema_migrations" (version) VALUES (20220112133053);
 INSERT INTO public."schema_migrations" (version) VALUES (20220131152510);
+INSERT INTO public."schema_migrations" (version) VALUES (20220214160407);

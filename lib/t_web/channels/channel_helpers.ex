@@ -50,4 +50,8 @@ defmodule TWeb.ChannelHelpers do
   @spec utc_now(Socket.t()) :: DateTime.t()
   def utc_now(%Socket{private: %{freeze_time: f}}) when is_function(f, 0), do: f.()
   def utc_now(%Socket{}), do: DateTime.utc_now()
+
+  def alert(title, body) do
+    %{title: title, body: body}
+  end
 end

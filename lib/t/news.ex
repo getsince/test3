@@ -27,7 +27,7 @@ defmodule T.News do
 
   @last_id List.last(@news).id
 
-  @spec list_news(Ecto.Bigflake.UUID.t()) :: [map]
+  @spec list_news(Ecto.Bigflake.UUID.t()) :: [%{id: pos_integer(), story: [map]}]
   def list_news(user_id) do
     last_seen_id = last_seen_id(user_id) || 0
     Enum.filter(@news, fn news_story -> news_story.id > last_seen_id end)

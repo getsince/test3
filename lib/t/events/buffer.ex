@@ -23,8 +23,8 @@ defmodule T.Events.Buffer do
   end
 
   @impl true
-  def handle_info(:upload, %{fd: fd} = state) do
-    close_buffer(fd)
+  def handle_info(:upload, state) do
+    close_buffer(state)
     upload(state)
     {:noreply, open_buffer(state)}
   end
@@ -34,19 +34,24 @@ defmodule T.Events.Buffer do
   defp open_buffer(%{dir: dir} = state) do
     opts = [:raw, :append, {:delayed_write, 512_000, 10_000}]
     File.mkdir_p!(dir)
-    fd = File.open!(Path.join(dir, @buffer), opts)
+    fd = File.open!(dir_path(dir, @buffer), opts)
     Map.put(state, :fd, fd)
   end
 
   defp upload(%{dir: dir}) do
-    to_upload = Path.join(dir, "#{:rand.uniform(1000)}.csv")
-    :ok = File.rename(@buffer, to_upload)
-    async_upload(dir, to_upload)
+    filename = "#{:rand.uniform(1000)}.csv"
+    :ok = File.rename(dir_path(dir, @buffer), dir_path(dir, filename))
+    async_upload(dir, filename)
+  end
+
+  defp dir_path(dir, file) when is_binary(dir) do
+    Path.join(dir, file)
   end
 
   defp close_buffer(%{fd: fd}) do
     case File.close(fd) do
       :ok -> :ok
+      {:error, :enoent} -> :ok
       _error -> :ok = File.close(fd)
     end
   end
@@ -59,12 +64,12 @@ defmodule T.Events.Buffer do
       {h, m, s} = :erlang.time()
       s3_key = Path.join([dir, "#{y}/#{mo}/#{d}/#{h}/#{m}/#{s}", filename])
 
-      filename
+      dir_path(dir, filename)
       |> ExAws.S3.Upload.stream_file()
       |> ExAws.S3.upload(bucket, s3_key)
       |> ExAws.request!(region: "eu-north-1")
 
-      File.rm(filename)
+      File.rm(dir_path(dir, filename))
     end)
   end
 

@@ -1,6 +1,7 @@
 defmodule T.Accounts.Profile do
   use Ecto.Schema
   import Ecto.Changeset
+  alias T.Stickers
 
   @primary_key false
   @foreign_key_type Ecto.Bigflake.UUID
@@ -90,8 +91,7 @@ defmodule T.Accounts.Profile do
   def story_changeset(profile, attrs) do
     profile
     |> cast(attrs, [:story])
-
-    # TODO
+    |> update_change(:story, fn story -> Stickers.fix_story(story) end)
   end
 
   def changeset(profile, attrs, opts \\ []) do

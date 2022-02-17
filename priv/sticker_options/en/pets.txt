@@ -1,0 +1,12 @@
+dog
+cat
+fish
+turtle
+guinea pig
+rabbit
+hamster
+ferret
+rat
+chinchilla
+parrot
+mini pig

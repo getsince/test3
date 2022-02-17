@@ -1,0 +1,21 @@
+Princeton
+Harvard
+Columbia
+MIT
+Yale
+Stanford
+University of Chicago
+University of Pennsylvania
+Caltech
+Johns Hopkins
+Northwestern
+Duke
+Dartmouth
+Brow
+Vanderbilt
+Rice
+Washington University
+Cornell
+University of Notre Dame
+UCLA
+New York University

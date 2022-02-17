@@ -72,7 +72,7 @@ defmodule TWeb.ContactLive.Index do
     (story || [])
     |> Enum.flat_map(fn page -> page["labels"] || [] end)
     |> Enum.with_index()
-    |> Enum.reject(fn {label, _idx} -> label["answer"] || label["url"] end)
+    |> Enum.filter(fn {label, _idx} -> label["value"] end)
     |> Enum.map(fn {label, idx} -> {label["value"], idx, could_be_contact?(label["value"])} end)
   end
 

@@ -33,6 +33,7 @@ defmodule T.Events.Buffer do
 
   defp open_buffer(%{dir: dir} = state) do
     opts = [:raw, :append, {:delayed_write, 512_000, 10_000}]
+    File.mkdir_p!(dir)
     fd = File.open!(Path.join(dir, @buffer), opts)
     Map.put(state, :fd, fd)
   end

@@ -57,6 +57,9 @@ defmodule TWeb.Router do
       live "/profiles", ProfileLive.Index, :index
       live "/profiles/:user_id", ProfileLive.Index, :show
 
+      live "/contacts", ContactLive.Index, :index
+      live "/contacts/:user_id", ContactLive.Index, :show
+
       live "/reports", ReportLive.Index, :index
 
       live "/stickers", StickerLive.Index, :index

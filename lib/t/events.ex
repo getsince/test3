@@ -16,13 +16,13 @@ defmodule T.Events do
     buffers = config[:buffers] || []
 
     children = [
-      if buffers[:seen_buffer] do
+      if :seen_buffer in buffers do
         Supervisor.child_spec({Buffer, dir: "seen", name: :seen_buffer}, id: :seen_buffer)
       end,
-      if buffers[:like_buffer] do
+      if :like_buffer in buffers do
         Supervisor.child_spec({Buffer, dir: "like", name: :like_buffer}, id: :like_buffer)
       end,
-      if buffers[:contact_buffer] do
+      if :contact_buffer in buffers do
         Supervisor.child_spec({Buffer, dir: "contact", name: :contact_buffer}, id: :contact_buffer)
       end
     ]

@@ -1,0 +1,10 @@
+guitar
+ukulele
+piano
+drums
+violin
+saxophone
+electric guitar
+flute
+trumpet
+DJ console

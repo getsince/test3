@@ -1,0 +1,25 @@
+pop music
+rap
+folk
+country
+latin american
+blues
+R&B
+soul
+funky
+jazz
+romance
+electronic
+ambient
+techno
+disco
+house
+rock'n'roll
+rock
+metal
+hip-hop
+reggae
+k-pop
+trap
+pop rock
+punk

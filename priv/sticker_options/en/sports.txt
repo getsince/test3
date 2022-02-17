@@ -1,0 +1,28 @@
+running
+fitness
+pilates
+stretching
+boxing
+crossfit
+wakeboard
+surfing
+yachting
+cycling
+football
+squash
+swimming
+basketball
+volleyball
+skiing
+snowboard
+skating
+hockey
+figure skating
+tennis
+table tennis
+volleyball
+motorsport
+horseback riding
+rock climbing
+carting
+golf

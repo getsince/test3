@@ -1,0 +1,33 @@
+comedies
+family movies
+fantasy movies
+dramas
+adventure movies
+thrillers
+science fiction
+anime
+documentary
+short films
+horrors
+action movies
+melodramas
+biographies
+detectives
+amateur cinema
+romantic comedies
+crime movies
+cartoons
+westerns
+Guy Ritchie
+Tim Burton
+Woody Allen
+Wes Anderson
+Zach Snyder
+Christopher Nolan
+Stanley Kubrick
+Martin Scorsese
+Quentin Tarantino
+David Lynch
+Lars von Trier
+Steven Spielberg
+Hayao Miyazaki

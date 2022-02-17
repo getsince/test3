@@ -71,22 +71,7 @@ defmodule TWeb.ProfileLive.Index do
   defp background_color(_other), do: nil
 
   defp labels(%{"labels" => labels}) do
-    labels
-    |> Enum.map(fn
-      %{"value" => value} ->
-        value
-
-      %{"url" => url} ->
-        String.split(url, "/")
-        |> Enum.at(-1)
-        |> String.split("?")
-        |> Enum.at(0)
-        |> URI.decode()
-
-      _other ->
-        nil
-    end)
-    |> Enum.reject(&is_nil/1)
+    Enum.map(labels, fn %{"value" => value} -> value end)
   end
 
   defp labels(_other), do: []

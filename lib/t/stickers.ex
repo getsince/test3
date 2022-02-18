@@ -213,6 +213,8 @@ defmodule T.Stickers do
           "food" -> "cuisines"
           "company" -> "occupation"
           "astrological_signs" -> "zodiac"
+          "studying" -> "currently_studying"
+          "job" -> "occupation"
           other -> other
         end
 

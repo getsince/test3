@@ -211,7 +211,7 @@ defmodule T.Stickers do
         |> String.replace(" ", "_")
         |> case do
           "food" -> "cuisines"
-          "company" -> "occupation"
+          "company" -> "job"
           "astrological_signs" -> "zodiac"
           "studying" -> "currently_studying"
           "job" -> "occupation"
@@ -231,11 +231,9 @@ defmodule T.Stickers do
   qas
   |> Enum.group_by(fn {a, _q} -> a end)
   |> Enum.filter(fn {_a, qas} -> length(qas) > 1 end)
-  |> Enum.each(fn {_a, qas} -> IO.warn("Duplicate qas: #{inspect(qas)}") end)
+  |> Enum.each(fn {_a, qas} -> IO.warn("Duplicate Q/As: #{inspect(qas)}") end)
 
-  uniq_qas = Enum.uniq_by(qas, fn {answer, _question} -> answer end)
-
-  Enum.each(uniq_qas, fn {answer, question} ->
+  Enum.each(qas, fn {answer, question} ->
     def q(unquote(answer)), do: unquote(question)
   end)
 
@@ -271,7 +269,7 @@ defmodule T.Stickers do
 
       true ->
         extra = %{"url" => url, "answer" => answer}
-        Sentry.capture_message("failied to find answer", extra: extra)
+        Sentry.capture_message("failied to find question", extra: extra)
         :keep
     end
   end

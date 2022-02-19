@@ -5,11 +5,11 @@ defmodule TWeb.UserAuth do
 
   alias T.Accounts
 
-  def log_out_mobile_user(token) do
+  def log_out_mobile_user(token, context \\ "mobile") do
     decoded_token = Accounts.UserToken.raw_token(token)
     encoded_token = Accounts.UserToken.encoded_token(token)
 
-    Accounts.delete_session_token(decoded_token, "mobile")
+    Accounts.delete_session_token(decoded_token, context)
     TWeb.Endpoint.broadcast("user_socket:#{encoded_token}", "disconnect", %{})
 
     :ok

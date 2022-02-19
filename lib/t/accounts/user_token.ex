@@ -41,7 +41,7 @@ defmodule T.Accounts.UserToken do
   def build_token(%Accounts.Profile{user_id: user_id}, context), do: build_token(user_id, context)
 
   def build_token(user_id, context)
-      when context in ["session", "mobile"] and is_binary(user_id) do
+      when context in ["session", "mobile", "admin"] and is_binary(user_id) do
     token = :crypto.strong_rand_bytes(@rand_size)
     {token, %Accounts.UserToken{token: token, context: context, user_id: user_id}}
   end

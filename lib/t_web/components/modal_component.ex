@@ -3,12 +3,12 @@ defmodule TWeb.ModalComponent do
 
   @impl true
   def render(assigns) do
-    ~L"""
-    <div id="<%= @id %>" class="fixed top-0 left-0 w-full h-full overflow-auto opacity-100 phx-modal" style="z-index: 1002;"
+    ~H"""
+    <div id={@id} class="fixed top-0 left-0 w-full h-full overflow-auto opacity-100 phx-modal"
       phx-capture-click="close"
       phx-window-keydown="close"
       phx-key="escape"
-      phx-target="#<%= @id %>"
+      phx-target={"##{@id}"}
       phx-page-loading>
 
       <div class="mt-10 max-w-2xl mx-auto rounded border dark:border-gray-600 bg-white dark:bg-gray-800 overflow-hidden">

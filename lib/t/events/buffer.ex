@@ -41,9 +41,13 @@ defmodule T.Events.Buffer do
   end
 
   defp upload(%{dir: dir}) do
-    filename = "#{:rand.uniform(1000)}.csv"
-    :ok = File.rename(dir_path(dir, @buffer), dir_path(dir, filename))
-    async_upload(dir, filename)
+    buffer = dir_path(dir, @buffer)
+
+    with {:ok, %File.Stat{size: size}} when size > 0 <- File.stat(buffer) do
+      filename = "#{:rand.uniform(1000)}.csv"
+      :ok = File.rename(buffer, dir_path(dir, filename))
+      async_upload(dir, filename)
+    end
   end
 
   defp dir_path(dir, file) when is_binary(dir) do

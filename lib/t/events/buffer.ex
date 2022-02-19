@@ -10,8 +10,6 @@ defmodule T.Events.Buffer do
 
   @impl true
   def init(opts) do
-    # TODO upload when file size reaches some threshold like 100MB
-    Process.send_after(self(), :upload, :timer.hours(1))
     # File.ls("*.csv") |> TODO
     {:ok, open_buffer(Map.new(opts))}
   end
@@ -24,7 +22,7 @@ defmodule T.Events.Buffer do
 
   @impl true
   def handle_info(:upload, state) do
-    close_buffer(state)
+    state = close_buffer(state)
     upload(state)
     {:noreply, open_buffer(state)}
   end
@@ -35,7 +33,11 @@ defmodule T.Events.Buffer do
     opts = [:raw, :append, {:delayed_write, 512_000, 10_000}]
     File.mkdir_p!(dir)
     fd = File.open!(dir_path(dir, @buffer), opts)
-    Map.put(state, :fd, fd)
+
+    # TODO upload when file size reaches some threshold like 100MB
+    timer = Process.send_after(self(), :upload, :timer.hours(1))
+
+    Map.merge(state, %{fd: fd, timer: timer})
   end
 
   defp upload(%{dir: dir}) do
@@ -48,12 +50,16 @@ defmodule T.Events.Buffer do
     Path.join(dir, file)
   end
 
-  defp close_buffer(%{fd: fd}) do
+  defp close_buffer(%{fd: fd, timer: timer} = state) do
+    Process.cancel_timer(timer)
+
     case File.close(fd) do
       :ok -> :ok
       {:error, :enoent} -> :ok
       _error -> :ok = File.close(fd)
     end
+
+    Map.drop(state, [:fd, :timer])
   end
 
   defp async_upload(dir, filename) do

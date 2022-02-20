@@ -70,12 +70,6 @@ defmodule TWeb.ProfileLive.Index do
 
   defp background_color(_other), do: nil
 
-  defp labels(%{"labels" => labels}) do
-    Enum.map(labels, fn %{"value" => value} -> value end)
-  end
-
-  defp labels(_other), do: []
-
   defp render_relative(date) do
     now = DateTime.utc_now()
     diff = DateTime.diff(now, date)
@@ -137,18 +131,37 @@ defmodule TWeb.ProfileLive.Index do
       <div class="relative cursor-pointer" phx-click={JS.toggle(to: "[data-for-image='#{image.s3_key}']")}>
         <img src={image.url} class="rounded-lg border border-gray-300 dark:border-gray-700 w-56" />
         <div class="absolute space-y-1 top-0 left-0 p-4" data-for-image={image.s3_key}>
-        <%= for label <- labels(@page) do %>
-          <p class="bg-gray-100 dark:bg-black rounded px-1.5 font-medium leading-6 inline-block"><%= label %></p>
+        <%= for label <- (@page["labels"] || []) do %>
+          <.story_label label={label} />
         <% end %>
         </div>
       </div>
     <% else %>
       <div class="rounded-lg border dark:border-gray-700 w-64 h-full space-y-1 p-4 overflow-auto" style={"background-color:#{background_color(@page)}"}>
-      <%= for label <- labels(@page) do %>
-        <p class="bg-gray-100 dark:bg-black rounded px-1.5 font-medium leading-6 inline-block"><%= label %></p>
+      <%= for label <- (@page["labels"] || []) do %>
+        <.story_label label={label} />
       <% end %>
       </div>
     <% end %>
+    """
+  end
+
+  defp story_label(%{label: label} = assigns) do
+    text_color =
+      if text_color = label["text_color"] do
+        "color:" <> text_color
+      end
+
+    bg_color =
+      if bg_color = label["background_fill"] do
+        "background-color:" <> bg_color
+      end
+
+    style = Enum.join([text_color, bg_color], ";")
+    assigns = assign(assigns, style: style)
+
+    ~H"""
+    <p class="bg-gray-100 dark:bg-black rounded px-1.5 font-medium leading-6 inline-block" style={@style}><%= @label["value"] %></p>
     """
   end
 end

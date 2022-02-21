@@ -103,7 +103,7 @@ defmodule TWeb.ProfileLive.Index do
       <div class="flex space-x-2 items-center">
         <p class="text-gray-500 dark:text-gray-400 font-normal"><%= @profile.user.email %></p>
       </div>
-      <div class="mt-2 flex space-x-2 items-start overflow-y-auto">
+      <div class="mt-2 flex space-x-2">
         <div class="mt-1 text-sm text-gray-500">
           <p class="text-gray-500 dark:text-gray-400 font-semibold tracking-wider">Stats</p>
           <table class="border mt-1">
@@ -115,9 +115,11 @@ defmodule TWeb.ProfileLive.Index do
             </tbody>
           </table>
         </div>
+        <div class="flex space-x-2 overflow-auto w-full">
         <%= for page <- @profile.story || [] do %>
           <.story_page page={page} />
         <% end %>
+        </div>
       </div>
       <div>
       </div>
@@ -125,19 +127,21 @@ defmodule TWeb.ProfileLive.Index do
     """
   end
 
-  defp story_page(assigns) do
+  defp story_page(%{page: %{"size" => [size_x, size_y]}} = assigns) do
+    assigns = assign(assigns, style: "width:#{size_x / 2}px;height:#{size_y / 2}px;")
+
     ~H"""
     <%= if image = background_image(@page) do %>
-      <div class="relative cursor-pointer" phx-click={JS.toggle(to: "[data-for-image='#{image.s3_key}']")}>
-        <img src={image.url} class="rounded-lg border border-gray-300 dark:border-gray-700 w-56" />
-        <div class="absolute space-y-1 top-0 left-0 p-4" data-for-image={image.s3_key}>
+      <div class="shrink-0 relative cursor-pointer overflow-hidden rounded-lg border border-gray-300 dark:border-gray-700" style={@style} phx-click={JS.toggle(to: "[data-for-image='#{image.s3_key}']")}>
+        <img src={image.url} class="w-full h-full" />
+        <div class="absolute space-y-1 top-0 left-0 p-4 w-full h-full overflow-auto" data-for-image={image.s3_key}>
         <%= for label <- (@page["labels"] || []) do %>
           <.story_label label={label} />
         <% end %>
         </div>
       </div>
     <% else %>
-      <div class="rounded-lg border dark:border-gray-700 w-64 h-full space-y-1 p-4 overflow-auto" style={"background-color:#{background_color(@page)}"}>
+      <div class="shrink-0 rounded-lg border dark:border-gray-700 space-y-1 p-4 overflow-auto" style={"background-color:#{background_color(@page)};" <> @style}>
       <%= for label <- (@page["labels"] || []) do %>
         <.story_label label={label} />
       <% end %>

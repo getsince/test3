@@ -3,7 +3,7 @@
 --
 
 -- Dumped from database version 13.1 (Debian 13.1-1.pgdg100+1)
--- Dumped by pg_dump version 14.1
+-- Dumped by pg_dump version 14.2
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -138,6 +138,18 @@ CREATE TABLE public.calls (
 
 
 --
+-- Name: checked_profiles; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.checked_profiles (
+    user_id uuid NOT NULL,
+    "has_text_contact?" boolean NOT NULL,
+    inserted_at timestamp(0) without time zone NOT NULL,
+    updated_at timestamp(0) without time zone NOT NULL
+);
+
+
+--
 -- Name: expired_matches; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -177,7 +189,8 @@ CREATE TABLE public.liked_profiles (
     by_user_id uuid NOT NULL,
     user_id uuid NOT NULL,
     inserted_at timestamp(0) without time zone NOT NULL,
-    declined boolean
+    declined boolean,
+    seen boolean DEFAULT false NOT NULL
 );
 
 
@@ -476,6 +489,14 @@ ALTER TABLE ONLY public.call_invites
 
 ALTER TABLE ONLY public.calls
     ADD CONSTRAINT calls_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: checked_profiles checked_profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.checked_profiles
+    ADD CONSTRAINT checked_profiles_pkey PRIMARY KEY (user_id);
 
 
 --
@@ -892,6 +913,14 @@ ALTER TABLE ONLY public.calls
 
 
 --
+-- Name: checked_profiles checked_profiles_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.checked_profiles
+    ADD CONSTRAINT checked_profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(user_id) ON DELETE CASCADE;
+
+
+--
 -- Name: expired_matches expired_matches_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1156,3 +1185,5 @@ INSERT INTO public."schema_migrations" (version) VALUES (20220112131454);
 INSERT INTO public."schema_migrations" (version) VALUES (20220112133053);
 INSERT INTO public."schema_migrations" (version) VALUES (20220131152510);
 INSERT INTO public."schema_migrations" (version) VALUES (20220214160407);
+INSERT INTO public."schema_migrations" (version) VALUES (20220216202050);
+INSERT INTO public."schema_migrations" (version) VALUES (20220222103203);

@@ -236,6 +236,16 @@ defmodule T.Matches do
     Multi.insert(multi, :like, changeset)
   end
 
+  @spec mark_like_seen(uuid, uuid) :: :ok
+  def mark_like_seen(user_id, by_user_id) do
+    Like
+    |> where(by_user_id: ^by_user_id)
+    |> where(user_id: ^user_id)
+    |> Repo.update_all(set: [seen: true])
+
+    :ok
+  end
+
   @spec decline_like(Ecto.UUID.t(), Ecto.UUID.t()) ::
           {:ok, %{}} | {:error, atom, term, map}
   def decline_like(user_id, liker_id) do

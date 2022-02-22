@@ -37,7 +37,7 @@ defmodule TWeb.FeedChannel do
     likes =
       user_id
       |> Feeds.list_received_likes()
-      |> render_feed(screen_width)
+      |> render_likes(screen_width)
 
     matches =
       user_id
@@ -122,7 +122,7 @@ defmodule TWeb.FeedChannel do
     me = me_id(socket)
 
     if timings = params["timings"] do
-      Events.save_seen_timings(me, user_id, timings)
+      Events.save_seen_timings(:feed, me, user_id, timings)
     end
 
     Feeds.mark_profile_seen(user_id, by: me)
@@ -193,6 +193,17 @@ defmodule TWeb.FeedChannel do
       end
 
     {:reply, reply, socket}
+  end
+
+  def handle_in("seen-like", %{"user_id" => by_user_id} = params, socket) do
+    me = me_id(socket)
+
+    if timings = params["timings"] do
+      Events.save_seen_timings(:like, me, by_user_id, timings)
+    end
+
+    Matches.mark_like_seen(me, by_user_id)
+    {:reply, :ok, socket}
   end
 
   def handle_in("decline", %{"user_id" => liker}, socket) do
@@ -473,6 +484,14 @@ defmodule TWeb.FeedChannel do
 
   defp render_feed(feed, screen_width) do
     Enum.map(feed, fn feed_item -> render_feed_item(feed_item, screen_width) end)
+  end
+
+  defp render_likes(likes, screen_width) do
+    Enum.map(likes, fn %{profile: profile, seen: seen} ->
+      profile
+      |> render_feed_item(screen_width)
+      |> maybe_put("seen", seen)
+    end)
   end
 
   defp render_changeset(changeset) do

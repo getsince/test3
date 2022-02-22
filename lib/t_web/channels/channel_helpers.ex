@@ -43,6 +43,7 @@ defmodule TWeb.ChannelHelpers do
   defp report_params(%{"report" => params}), do: report_params(params)
 
   def maybe_put(map, _key, nil), do: map
+  def maybe_put(map, _key, false), do: map
   def maybe_put(map, _key, []), do: map
   def maybe_put(map, key, value), do: Map.put(map, key, value)
 

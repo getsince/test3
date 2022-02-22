@@ -264,7 +264,13 @@ defmodule TWeb.FeedChannel do
   end
 
   def handle_in("click-contact", %{"user_id" => user_id, "contact" => contact}, socket) do
-    Events.save_contact_click(me_id(socket), user_id, contact)
+    me = me_id(socket)
+    Events.save_contact_click(me, user_id, contact)
+
+    if match_id = Matches.get_match_id([me, user_id]) do
+      Matches.save_contact_click(match_id)
+    end
+
     {:reply, :ok, socket}
   end
 

@@ -22,6 +22,15 @@ defmodule T.Matches.ExpiredMatchTest do
       assert Matches.expiration_list_expired_matches(_at = ~U[2021-01-03 12:00:00Z]) == []
       assert Matches.expiration_list_expired_matches(_at = ~U[2021-01-10 12:00:00Z]) == []
     end
+
+    test "doesn't list matches with contact clicks" do
+      match = match(inserted_at: ~N[2021-01-01 12:00:00])
+      match_event(match: match, event: "contact_click")
+
+      assert Matches.expiration_list_expired_matches(_at = ~U[2021-01-01 12:00:01Z]) == []
+      assert Matches.expiration_list_expired_matches(_at = ~U[2021-01-03 12:00:00Z]) == []
+      assert Matches.expiration_list_expired_matches(_at = ~U[2021-01-10 12:00:00Z]) == []
+    end
   end
 
   describe "expiration_list_soon_to_expire/0,1" do
@@ -48,6 +57,13 @@ defmodule T.Matches.ExpiredMatchTest do
     test "doesn't list matches with contact offers" do
       match = match(inserted_at: ~N[2021-01-01 12:00:00])
       match_event(match: match, event: "contact_offer")
+
+      assert Matches.expiration_list_soon_to_expire(a_day_before_expiration(match)) == []
+    end
+
+    test "doesn't list matches with contact clicks" do
+      match = match(inserted_at: ~N[2021-01-01 12:00:00])
+      match_event(match: match, event: "contact_click")
 
       assert Matches.expiration_list_soon_to_expire(a_day_before_expiration(match)) == []
     end

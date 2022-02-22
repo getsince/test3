@@ -920,6 +920,16 @@ defmodule T.Matches do
     end
   end
 
+  def save_contact_click(match_id, now \\ DateTime.utc_now()) do
+    match_event = %MatchEvent{
+      timestamp: DateTime.truncate(now, :second),
+      match_id: match_id,
+      event: "contact_click"
+    }
+
+    Repo.insert(match_event)
+  end
+
   def open_contact_for_match(me, match_id, contact_type, now \\ DateTime.utc_now()) do
     m = "contact opened for match #{match_id} by #{me}"
     seen_at = DateTime.truncate(now, :second)
@@ -971,6 +981,17 @@ defmodule T.Matches do
 
   defp maybe_unarchive_match(match_id) do
     ArchivedMatch |> where(match_id: ^match_id) |> Repo.delete_all()
+  end
+
+  @spec get_match_id([uuid]) :: uuid | nil
+  def get_match_id(users) do
+    [user_id_1, user_id_2] = Enum.sort(users)
+
+    Match
+    |> where(user_id_1: ^user_id_1)
+    |> where(user_id_2: ^user_id_2)
+    |> select([m], m.id)
+    |> Repo.one()
   end
 
   defp get_match_id_for_users!(user_id_1, user_id_2) do
@@ -1168,7 +1189,10 @@ defmodule T.Matches do
     undying_events_q =
       MatchEvent
       |> where(match_id: parent_as(:match).id)
-      |> where([e], e.event == "call_start" or e.event == "contact_offer")
+      |> where(
+        [e],
+        e.event == "call_start" or e.event == "contact_offer" or e.event == "contact_click"
+      )
       |> select([e], e.timestamp)
       |> limit(1)
 

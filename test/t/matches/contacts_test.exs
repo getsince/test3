@@ -32,6 +32,16 @@ defmodule T.Matches.ContactsTest do
     end
   end
 
+  describe "save_contact_click/2" do
+    setup [:with_profiles, :with_match]
+
+    test "saves contact_click events", %{match: match} do
+      assert {:ok, _event} = Matches.save_contact_click(match.id)
+      assert [%{expiration_date: nil}] = Matches.list_matches(match.user_id_1)
+      assert [%{expiration_date: nil}] = Matches.list_matches(match.user_id_2)
+    end
+  end
+
   describe "save_contact_offer/3" do
     setup [:with_profiles, :with_match]
 

@@ -54,7 +54,7 @@ defmodule TWeb.FeedChannel do
       |> Matches.list_archived_matches()
       |> render_matches(screen_width)
 
-    news = News.list_news(user_id)
+    news = News.list_news(user_id) |> render_news(screen_width)
 
     reply =
       %{}
@@ -540,5 +540,9 @@ defmodule TWeb.FeedChannel do
 
   defp render_interaction(interaction) do
     render(MatchView, "interaction.json", interaction: interaction)
+  end
+
+  defp render_news(news, screen_width) do
+    Enum.map(news, fn n -> render(FeedView, "news.json", news: n, screen_width: screen_width) end)
   end
 end

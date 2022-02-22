@@ -12,71 +12,71 @@ msgstr ""
 "Plural-Forms: nplurals=2\n"
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:158
+#: lib/t/news.ex:114
 msgid "Выглядит вот так 👉"
 msgstr "Looks like this 👉"
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:34
-msgid "К новостям 👉"
-msgstr "News 👉"
-
-#, elixir-autogen, elixir-format
-#: lib/t/news.ex:147
+#: lib/t/news.ex:106
 msgid "На нее можно поместить\nсвой контакт и что-то\nболее личное про тебя."
 msgstr "You can place\nyour contact and something\nmore personal about you."
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:64
+#: lib/t/news.ex:43
 msgid "Нажми 👇"
 msgstr "Press 👇"
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:104
+#: lib/t/news.ex:75
 msgid "Общайся с мэтчами,\nгде тебе удобно."
 msgstr "Talk to your matches\nwherever convenient."
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:181
+#: lib/t/news.ex:132
 msgid "Попробуй новый Since ✨"
 msgstr "Try new Since ✨"
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:128
+#: lib/t/news.ex:93
 msgid "Приватная страница 👀"
 msgstr "Private page 👀"
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:18
+#: lib/t/news.ex:17
 msgid "Привет! 👋"
 msgstr "Hi! 👋"
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:136
+#: lib/t/news.ex:98
 msgid "Создай приватную страницу,\nона будет видна только\nтвоим мэтчам."
-msgstr "Create a private page,\nit will be visible\nonly to your matches."
+msgstr "Create a private page,\nonly your matches\nwould see it."
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:50
+#: lib/t/news.ex:35
 msgid "Стикеры-контакты 🔥"
 msgstr "Contact stickers 🔥"
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:94
+#: lib/t/news.ex:68
 msgid "Теперь стикеры-контакты -\nединственный способ\nкоммуникации."
 msgstr "Now contact stickers\nare the only way\nto communicate."
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:112
+#: lib/t/news.ex:80
 msgid "Это ещё не всё 👉"
 msgstr "That's not all 👉"
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:26
-msgid "Это новый Since -\nпространство для\nинтересных людей."
-msgstr "This is the new Since app -\na space for\ninteresing people."
-
-#, elixir-autogen, elixir-format, fuzzy
-#: lib/t/news.ex:57
+#: lib/t/news.ex:39
 msgid "Добавляй контакты\nв свою Историю."
 msgstr "Add contacts\nto you Story."
+
+#, elixir-autogen, elixir-format
+#: lib/t/news.ex:25
+msgid "Обновления 👉"
+msgstr "Updates 👉"
+
+#, elixir-autogen, elixir-format, fuzzy
+#: lib/t/news.ex:21
+msgid "Это Since -\nпространство для\nинтересных людей."
+msgstr "This is Since -\na space for\ninteresing people."

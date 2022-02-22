@@ -446,6 +446,13 @@ defmodule TWeb.FeedChannelTest do
 
       assert [_first_news_item = %{id: 1, story: story}] = news
       assert length(story) == 6
+      page = List.first(story)
+
+      assert %{
+               "background" => %{"color" => _color},
+               "labels" => _labels,
+               "size" => _size
+             } = page
 
       ref = push(socket, "seen", %{"news_story_id" => 1})
       assert_reply ref, :ok, _

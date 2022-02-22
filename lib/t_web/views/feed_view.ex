@@ -21,6 +21,13 @@ defmodule TWeb.FeedView do
     %{"profile" => profile, "call" => CallView.render("call.json", call: call)}
   end
 
+  def render("news.json", %{news: news, screen_width: screen_width}) do
+    news
+    |> Map.update!(:story, fn story ->
+      ViewHelpers.postprocess_story(story, screen_width, _env = :feed)
+    end)
+  end
+
   defp render_profile(%FeedProfile{} = profile, fields, screen_width, env) do
     profile
     |> Map.take(fields)

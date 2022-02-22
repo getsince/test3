@@ -31,9 +31,9 @@ defmodule T.Events do
     Supervisor.init(children, strategy: :one_for_one)
   end
 
-  def save_seen_timings(by_user_id, user_id, timings) do
+  def save_seen_timings(type, by_user_id, user_id, timings) do
     id = Ecto.Bigflake.UUID.generate()
-    row = CSV.dump_to_iodata([[id, by_user_id, user_id, Jason.encode_to_iodata!(timings)]])
+    row = CSV.dump_to_iodata([[id, by_user_id, type, user_id, Jason.encode_to_iodata!(timings)]])
     GenServer.cast(:seen_buffer, {:add, row})
   end
 

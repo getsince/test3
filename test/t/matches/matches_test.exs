@@ -208,6 +208,23 @@ defmodule T.MatchesTest do
     end
   end
 
+  describe "mark_like_seen/2" do
+    test "sets like.seen = true" do
+      me = onboarded_user()
+      liker = onboarded_user()
+
+      {:ok, _} = Matches.like_user(liker.id, me.id)
+
+      assert %Like{seen: false} =
+               Like |> where(by_user_id: ^liker.id) |> where(user_id: ^me.id) |> Repo.one!()
+
+      :ok = Matches.mark_like_seen(me.id, liker.id)
+
+      assert %Like{seen: true} =
+               Like |> where(by_user_id: ^liker.id) |> where(user_id: ^me.id) |> Repo.one!()
+    end
+  end
+
   describe "list_matches/1" do
     setup do
       p1 = insert(:profile)

@@ -285,9 +285,12 @@ defmodule TWeb.FeedChannelTest do
     end
 
     test "with likes", %{socket: socket, me: me} do
-      mate = onboarded_user(story: [], name: "mate", location: apple_location(), gender: "F")
+      mate1 = onboarded_user(story: [], name: "mate-1", location: apple_location(), gender: "F")
+      mate2 = onboarded_user(story: [], name: "mate-2", location: apple_location(), gender: "F")
 
-      assert {:ok, %{like: %Matches.Like{}}} = Matches.like_user(mate.id, me.id)
+      assert {:ok, %{like: %Matches.Like{}}} = Matches.like_user(mate1.id, me.id)
+      assert {:ok, %{like: %Matches.Like{}}} = Matches.like_user(mate2.id, me.id)
+      assert :ok = Matches.mark_like_seen(me.id, mate2.id)
 
       assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id, %{"mode" => "normal"})
 
@@ -295,11 +298,15 @@ defmodule TWeb.FeedChannelTest do
                "likes" => [
                  %{
                    "profile" => %{
-                     name: "mate",
+                     name: "mate-1",
                      story: [],
-                     user_id: mate.id,
+                     user_id: mate1.id,
                      gender: "F"
                    }
+                 },
+                 %{
+                   "profile" => %{name: "mate-2", story: [], user_id: mate2.id, gender: "F"},
+                   "seen" => true
                  }
                ]
              }
@@ -1006,6 +1013,25 @@ defmodule TWeb.FeedChannelTest do
       assert Map.keys(public) == ["background", "labels", "size"]
       assert Map.keys(private) == ["background", "labels", "private", "size"]
       assert %{"private" => true} = private
+    end
+
+    test "seen-like", ctx do
+      import Ecto.Query
+
+      %{me: me, socket: socket, mate: mate} = ctx
+
+      # mate likes us
+      {:ok, _} = Matches.like_user(mate.id, me.id)
+
+      # we see mate's like
+      ref = push(socket, "seen-like", %{"user_id" => mate.id})
+      assert_reply ref, :ok, _reply
+
+      assert %Matches.Like{seen: true} =
+               Matches.Like
+               |> where(by_user_id: ^mate.id)
+               |> where(user_id: ^me.id)
+               |> Repo.one!()
     end
   end
 

@@ -24,7 +24,7 @@ defmodule TWeb.FeedView do
   def render("news.json", %{news: news, screen_width: screen_width}) do
     news
     |> Map.update!(:story, fn story ->
-      ViewHelpers.postprocess_story(story, screen_width, _env = :feed)
+      ViewHelpers.postprocess_news(story, screen_width)
     end)
   end
 

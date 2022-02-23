@@ -445,7 +445,7 @@ defmodule TWeb.FeedChannelTest do
       assert {:ok, %{"news" => news}, socket} = join(socket, "feed:" <> me.id)
 
       assert [_first_news_item = %{id: 1, story: story}] = news
-      assert length(story) == 6
+      assert length(story) == 5
       page = List.first(story)
 
       assert %{

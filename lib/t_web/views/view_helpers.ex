@@ -11,6 +11,12 @@ defmodule TWeb.ViewHelpers do
     end)
   end
 
+  def postprocess_news(story, screen_width) when is_list(story) do
+    Enum.map(story, fn page ->
+      page |> blur(screen_width, :feed) |> add_bg_url(screen_width)
+    end)
+  end
+
   defp blur(%{"blurred" => %{"s3_key" => s3_key} = bg}, screen_width, :feed) do
     bg = Map.merge(bg, s3_key_urls(s3_key, screen_width))
     %{"blurred" => bg, "private" => true}

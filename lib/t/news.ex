@@ -11,19 +11,22 @@ defmodule T.News do
       id: 1,
       story: [
         %{
-          "background" => %{"color" => "#F97EB9"},
+          "background" => %{"color" => "#111010"},
           "labels" => [
             %{
               "value" => dgettext("news", "Привет! 👋"),
-              "position" => [24.0, 180.0]
+              "position" => [24.0, 180.0],
+              "background_fill" => "#F97EB9"
             },
             %{
               "value" => dgettext("news", "Это Since -\nпространство для\nинтересных людей."),
-              "position" => [24.0, 248.0]
+              "position" => [24.0, 248.0],
+              "background_fill" => "#F97EB9"
             },
             %{
               "value" => dgettext("news", "Обновления 👉"),
-              "position" => [150.0, 500.0]
+              "position" => [150.0, 500.0],
+              "background_fill" => "#F97EB9"
             }
           ],
           "size" => [375, 667]
@@ -61,7 +64,7 @@ defmodule T.News do
           "size" => [375, 667]
         },
         %{
-          "background" => %{"color" => "#F97EB9"},
+          "background" => %{"color" => "#111010"},
           "labels" => [
             %{
               "value" =>
@@ -69,11 +72,13 @@ defmodule T.News do
                   "news",
                   "Теперь стикеры-контакты -\nединственный способ\nкоммуникации."
                 ),
-              "position" => [24.0, 200.0]
+              "position" => [24.0, 200.0],
+              "background_fill" => "#F97EB9"
             },
             %{
               "value" => dgettext("news", "Общайся с мэтчами,\nгде тебе удобно."),
-              "position" => [24.0, 319.0]
+              "position" => [24.0, 319.0],
+              "background_fill" => "#F97EB9"
             },
             %{
               "value" =>
@@ -81,7 +86,8 @@ defmodule T.News do
                   "news",
                   "Это ещё не всё 👉"
                 ),
-              "position" => [150.0, 500.0]
+              "position" => [150.0, 500.0],
+              "background_fill" => "#F97EB9"
             }
           ],
           "size" => [375, 667]
@@ -126,11 +132,12 @@ defmodule T.News do
           }
         },
         %{
-          "background" => %{"color" => "#F97EB9"},
+          "background" => %{"color" => "#111010"},
           "labels" => [
             %{
               "value" => dgettext("news", "Попробуй новый Since ✨"),
-              "position" => [24.0, 310.0]
+              "position" => [24.0, 310.0],
+              "background_fill" => "#F97EB9"
             }
           ],
           "size" => [375, 667]

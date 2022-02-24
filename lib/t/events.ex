@@ -3,6 +3,8 @@ defmodule T.Events do
   alias __MODULE__.Buffer
   alias NimbleCSV.RFC4180, as: CSV
 
+  @type uuid :: Ecto.Bigflake.UUID.t()
+
   def start_link(config) do
     Supervisor.start_link(__MODULE__, config, name: __MODULE__)
   end
@@ -31,6 +33,7 @@ defmodule T.Events do
     Supervisor.init(children, strategy: :one_for_one)
   end
 
+  @spec save_seen_timings(:feed | :like | :match, uuid, uuid, list) :: :ok
   def save_seen_timings(type, by_user_id, resource_id, timings) do
     id = Ecto.Bigflake.UUID.generate()
     json_timings = Jason.encode_to_iodata!(timings)
@@ -38,12 +41,14 @@ defmodule T.Events do
     GenServer.cast(:seen_buffer, {:add, row})
   end
 
+  @spec save_like(uuid, uuid) :: :ok
   def save_like(by_user_id, user_id) do
     id = Ecto.Bigflake.UUID.generate()
     row = CSV.dump_to_iodata([[id, by_user_id, user_id]])
     GenServer.cast(:like_buffer, {:add, row})
   end
 
+  @spec save_contact_click(uuid, uuid, String.t() | map) :: :ok
   def save_contact_click(by_user_id, user_id, contact) do
     id = Ecto.Bigflake.UUID.generate()
     row = CSV.dump_to_iodata([[id, by_user_id, user_id, dump_contact(contact)]])

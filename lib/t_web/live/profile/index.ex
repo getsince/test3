@@ -6,8 +6,8 @@ defmodule TWeb.ProfileLive.Index do
     ~H"""
     <div id="blocked-user-listener" class="hidden" phx-hook="BlockedUser"></div>
     <div id="profiles" class="p-4 space-y-4" phx-update="append" phx-hook="ProfilesInfiniteScroll" data-selector="[data-cursor-user-id]">
-      <%= for {profile, stats} <- @profiles do %>
-        <.profile profile={profile} stats={stats} />
+      <%= for profile <- @profiles do %>
+        <.profile profile={profile} />
       <% end %>
     </div>
     """
@@ -36,17 +36,14 @@ defmodule TWeb.ProfileLive.Index do
     import Ecto.Query
 
     alias T.Repo
-    alias T.Calls.Call
     alias T.Accounts.{Profile, User}
 
     profiles_q =
       Profile
       |> join(:inner, [p], u in User, on: p.user_id == u.id)
-      |> join(:left, [p, u], c in Call, on: c.caller_id == p.user_id or c.called_id == p.user_id)
       |> order_by([p], desc: p.last_active, desc: p.user_id)
-      |> group_by([p, u], [p.user_id, u.id])
       |> limit(5)
-      |> Ecto.Query.select([p, u, c], {%{p | user: u}, %{calls_count: count(c)}})
+      |> Ecto.Query.select([p, u], %{p | user: u})
 
     profiles_q =
       if last_active && user_id do
@@ -88,7 +85,7 @@ defmodule TWeb.ProfileLive.Index do
 
   defp profile(assigns) do
     ~H"""
-    <div id={"profile-" <> @profile.user_id} data-cursor-user-id={@profile.user_id} data-cursor-last-active={@profile.last_active} class="p-2 rounded border dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+    <div id={"profile-" <> @profile.user_id} data-cursor-user-id={@profile.user_id} data-cursor-last-active={@profile.last_active} class="p-2 rounded-lg border dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
       <div class="flex space-x-2 items-center">
         <p class="font-bold"><%= @profile.name %> <time class="text-gray-500 dark:text-gray-400 font-normal" datetime={@profile.last_active}>was last seen <%= render_relative(@profile.last_active) %></time></p>
         <%= if @profile.user.blocked_at do %>
@@ -103,23 +100,11 @@ defmodule TWeb.ProfileLive.Index do
       <div class="flex space-x-2 items-center">
         <p class="text-gray-500 dark:text-gray-400 font-normal"><%= @profile.user.email %></p>
       </div>
-      <div class="mt-2 flex space-x-2">
-        <div class="mt-1 text-sm text-gray-500">
-          <p class="text-gray-500 dark:text-gray-400 font-semibold tracking-wider">Stats</p>
-          <table class="border mt-1">
-            <tbody>
-              <tr>
-                <td class="border border-gray-300 dark:border-gray-600 px-2">#calls</td>
-                <td class="border border-gray-300 dark:border-gray-600 px-2"><%= @stats.calls_count %></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="flex space-x-2 overflow-auto w-full">
+
+      <div class="mt-2 flex space-x-2  overflow-auto w-full">
         <%= for page <- @profile.story || [] do %>
           <.story_page page={page} />
         <% end %>
-        </div>
       </div>
       <div>
       </div>
@@ -128,44 +113,109 @@ defmodule TWeb.ProfileLive.Index do
   end
 
   defp story_page(%{page: %{"size" => [size_x, size_y]}} = assigns) do
-    assigns = assign(assigns, style: "width:#{size_x / 2}px;height:#{size_y / 2}px;")
+    styles = %{
+      "width" => "#{size_x}px",
+      "height" => "#{size_y}px"
+    }
+
+    assigns = assign(assigns, style: render_style(styles))
 
     ~H"""
+    <div class="p-1 shrink-0">
     <%= if image = background_image(@page) do %>
-      <div class="shrink-0 relative cursor-pointer overflow-hidden rounded-lg border border-gray-300 dark:border-gray-700" style={@style} phx-click={JS.toggle(to: "[data-for-image='#{image.s3_key}']")}>
-        <img src={image.url} class="w-full h-full object-cover" />
-        <div class="absolute space-y-1 top-0 left-0 p-4 w-full h-full overflow-auto" data-for-image={image.s3_key}>
-        <%= for label <- (@page["labels"] || []) do %>
-          <.story_label label={label} />
-        <% end %>
+      <div class="shrink-0 relative cursor-pointer rounded-lg border border-gray-300 dark:border-gray-700" style={@style} phx-click={JS.toggle(to: "[data-for-image='#{image.s3_key}']")}>
+        <img src={image.url} class="w-full h-full rounded-lg object-cover" />
+        <div class="absolute top-0 left-0 w-full h-full" data-for-image={image.s3_key}>
+          <%= for label <- (@page["labels"] || []) do %>
+            <.story_label label={label} size={@page["size"]}/>
+          <% end %>
         </div>
       </div>
     <% else %>
-      <div class="shrink-0 rounded-lg border dark:border-gray-700 space-y-1 p-4 overflow-auto" style={"background-color:#{background_color(@page)};" <> @style}>
-      <%= for label <- (@page["labels"] || []) do %>
-        <.story_label label={label} />
-      <% end %>
+      <div class="shrink-0 relative rounded-lg border dark:border-gray-700" style={"background-color:#{background_color(@page)};" <> @style}>
+        <%= for label <- (@page["labels"] || []) do %>
+          <.story_label label={label} size={@page["size"]} />
+        <% end %>
       </div>
     <% end %>
+    </div>
     """
   end
 
-  defp story_label(%{label: label} = assigns) do
-    text_color =
-      if text_color = label["text_color"] do
-        "color:" <> text_color
+  defp story_label(%{label: label, size: [size_width, _size_height]} = assigns) do
+    [x, y] = label["position"]
+
+    rotate =
+      if rotation = label["rotation"] do
+        unless rotation == 0, do: "rotate(#{rotation}deg)"
       end
 
-    bg_color =
-      if bg_color = label["background_fill"] do
-        "background-color:" <> bg_color
+    scale =
+      if zoom = label["zoom"] do
+        unless zoom == 1, do: "scale(#{zoom})"
       end
 
-    style = Enum.join([text_color, bg_color], ";")
-    assigns = assign(assigns, style: style)
+    transform =
+      case Enum.reject([rotate, scale], &is_nil/1) do
+        [] -> nil
+        transforms -> Enum.join(transforms, " ")
+      end
 
-    ~H"""
-    <p class="bg-gray-100 dark:bg-black rounded px-1.5 font-medium leading-6 inline-block" style={@style}><%= @label["value"] %></p>
-    """
+    url =
+      if answer = label["answer"] do
+        T.Media.known_sticker_url(answer)
+      end || label["url"]
+
+    if url do
+      styles = %{
+        "top" => "#{y}px",
+        "left" => "#{x}px",
+        "transform-origin" => "top left",
+        "transform" => transform,
+        "width" => "#{round(size_width / 3)}px"
+      }
+
+      assigns = assign(assigns, url: url, style: render_style(styles))
+
+      ~H"""
+      <img src={@url} class="absolute" style={@style} />
+      """
+    else
+      text_align =
+        case label["alignment"] do
+          0 -> "left"
+          1 -> "center"
+          2 -> "right"
+          nil -> nil
+        end
+
+      styles = %{
+        "top" => "#{y}px",
+        "left" => "#{x}px",
+        "transform-origin" => "top left",
+        "transform" => transform,
+        "color" => label["text_color"],
+        "text-align" => text_align
+      }
+
+      assigns = assign(assigns, style: render_style(styles))
+
+      ~H"""
+      <div class="absolute text-lg font-medium" style={@style}>
+        <%= for line <- String.split(@label["value"], "\n") do %>
+          <p><span class="bg-black leading-8 px-3 inline-block whitespace-nowrap" style={render_style(%{"background-color" => label["background_fill"]})}><%= line %></span></p>
+        <% end %>
+      </div>
+      """
+    end
+  end
+
+  defp render_style(styles) do
+    styles
+    |> Enum.reduce([], fn
+      {_k, nil}, acc -> acc
+      {k, v}, acc -> [k, ?:, v, ?; | acc]
+    end)
+    |> IO.iodata_to_binary()
   end
 end

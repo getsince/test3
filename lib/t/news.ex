@@ -6,7 +6,7 @@ defmodule T.News do
   alias T.Repo
   alias T.News.SeenNews
 
-  defp news() do
+  defp news do
     [
       %{
         id: 1,
@@ -78,11 +78,7 @@ defmodule T.News do
                 "rotation" => -17
               },
               %{
-                "value" =>
-                  dgettext(
-                    "news",
-                    "Это ещё не всё 👉"
-                  ),
+                "value" => dgettext("news", "Это ещё не всё 👉"),
                 "position" => [150.0, 513.0]
               }
             ],
@@ -115,11 +111,7 @@ defmodule T.News do
                 "background_fill" => "#F97EB9"
               },
               %{
-                "value" =>
-                  dgettext(
-                    "news",
-                    "Выглядит вот так 👉"
-                  ),
+                "value" => dgettext("news", "Выглядит вот так 👉"),
                 "position" => [130.0, 500.0],
                 "background_fill" => "#F97EB9"
               }
@@ -146,7 +138,7 @@ defmodule T.News do
     ]
   end
 
-  defp last_id() do
+  defp last_id do
     List.last(news()).id
   end
 

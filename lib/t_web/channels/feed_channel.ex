@@ -54,7 +54,10 @@ defmodule TWeb.FeedChannel do
       |> Matches.list_archived_matches()
       |> render_matches(screen_width)
 
-    news = News.list_news(user_id) |> render_news(screen_width)
+    news =
+      user_id
+      |> News.list_news()
+      |> render_news(screen_width)
 
     reply =
       %{}

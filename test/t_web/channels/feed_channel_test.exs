@@ -459,24 +459,15 @@ defmodule TWeb.FeedChannelTest do
 
       assert {:ok, %{"news" => news}, socket} = join(socket, "feed:" <> me.id)
 
-      assert news == [
-               _first_news_item = %{
-                 id: 1,
-                 story: [
-                   %{
-                     "background" => %{"color" => "#F97EB9"},
-                     "labels" => [
-                       %{
-                         "size" => [247.3, 44],
-                         "value" => "Мы стали совсем другими",
-                         "center" => [142.33, 317.83]
-                       }
-                     ],
-                     "size" => [428, 926]
-                   }
-                 ]
-               }
-             ]
+      assert [_first_news_item = %{id: 1, story: story}] = news
+      assert length(story) == 5
+      page = List.first(story)
+
+      assert %{
+               "background" => %{"color" => _color},
+               "labels" => _labels,
+               "size" => _size
+             } = page
 
       ref = push(socket, "seen", %{"news_story_id" => 1})
       assert_reply ref, :ok, _

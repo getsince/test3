@@ -12,6 +12,76 @@ msgstr ""
 "Plural-Forms: nplurals=2\n"
 
 #, elixir-autogen, elixir-format
+#: lib/t/news.ex:63
+msgid "Вот наши, нажми 👇"
+msgstr "Here are ours, click 👇"
+
+#, elixir-autogen, elixir-format
+#: lib/t/news.ex:114
+msgid "Выглядит вот так 👉"
+msgstr "It looks like this 👉"
+
+#, elixir-autogen, elixir-format
+#: lib/t/news.ex:59
+msgid "Добавляй контакты\nв свою историю."
+msgstr "Add contacts\nto your story."
+
+#, elixir-autogen, elixir-format
+#: lib/t/news.ex:28
+msgid "Мы убрали аудио-дэйты\nи голосовые сообщения."
+msgstr "We removed audio dates\nand voice messages."
+
+#, elixir-autogen, elixir-format
+#: lib/t/news.ex:106
+msgid "На нее можно поместить\nсвой контакт и что-то\nболее личное про тебя."
+msgstr "You can place\nyour contact and something\nmore personal about you."
+
+#, elixir-autogen, elixir-format
+#: lib/t/news.ex:91
+msgid "Новые\nприватные страницы 👀"
+msgstr "New\nprivate pages 👀"
+
+#, elixir-autogen, elixir-format
+#: lib/t/news.ex:39
+msgid "Общайся с мэтчами,\nгде тебе удобно."
+msgstr "Talk to your matches\nwherever convenient."
+
+#, elixir-autogen, elixir-format
+#: lib/t/news.ex:44
+msgid "Подробности 👉"
+msgstr "Details 👉"
+
+#, elixir-autogen, elixir-format
+#: lib/t/news.ex:130
+msgid "Попробуй новый Since ✨"
+msgstr "Try new Since ✨"
+
+#, elixir-autogen, elixir-format
+#: lib/t/news.ex:55
+msgid "Представляем\nстикеры-контакты 🔥"
+msgstr "Introducing\ncontact stickers 🔥"
+
+#, elixir-autogen, elixir-format
 #: lib/t/news.ex:18
-msgid "Мы стали совсем другими"
-msgstr ""
+msgid "Привет! 👋"
+msgstr "Hi! 👋"
+
+#, elixir-autogen, elixir-format
+#: lib/t/news.ex:97
+msgid "Создай приватную страницу,\nона будет видна только\nтвоим мэтчам."
+msgstr "Create a private page,\nonly your matches\nwould see it."
+
+#, elixir-autogen, elixir-format
+#: lib/t/news.ex:34
+msgid "Теперь контакты -\nединственный способ\nкоммуникации."
+msgstr "Now contacts\nare the only way\nto communicate."
+
+#, elixir-autogen, elixir-format
+#: lib/t/news.ex:23
+msgid "У нас важные новости."
+msgstr "We have important news."
+
+#, elixir-autogen, elixir-format
+#: lib/t/news.ex:81
+msgid "Это ещё не всё 👉"
+msgstr "That's not all 👉"

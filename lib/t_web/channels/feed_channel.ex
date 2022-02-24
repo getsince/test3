@@ -140,6 +140,28 @@ defmodule TWeb.FeedChannel do
     {:reply, :ok, socket}
   end
 
+  def handle_in("seen-match", %{"match_id" => match_id} = params, socket) do
+    me = me_id(socket)
+
+    if timings = params["timings"] do
+      Events.save_seen_timings(:match, me, match_id, timings)
+    end
+
+    Matches.mark_match_seen(me, match_id)
+    {:reply, :ok, socket}
+  end
+
+  def handle_in("seen-like", %{"user_id" => by_user_id} = params, socket) do
+    me = me_id(socket)
+
+    if timings = params["timings"] do
+      Events.save_seen_timings(:like, me, by_user_id, timings)
+    end
+
+    Matches.mark_like_seen(me, by_user_id)
+    {:reply, :ok, socket}
+  end
+
   def handle_in("call", %{"user_id" => called}, socket) do
     caller = me_id(socket)
 
@@ -193,17 +215,6 @@ defmodule TWeb.FeedChannel do
       end
 
     {:reply, reply, socket}
-  end
-
-  def handle_in("seen-like", %{"user_id" => by_user_id} = params, socket) do
-    me = me_id(socket)
-
-    if timings = params["timings"] do
-      Events.save_seen_timings(:like, me, by_user_id, timings)
-    end
-
-    Matches.mark_like_seen(me, by_user_id)
-    {:reply, :ok, socket}
   end
 
   def handle_in("decline", %{"user_id" => liker}, socket) do
@@ -525,7 +536,8 @@ defmodule TWeb.FeedChannel do
         contact: contact,
         voicemail: voicemail,
         expiration_date: expiration_date,
-        last_interaction_id: last_interaction_id
+        last_interaction_id: last_interaction_id,
+        seen: seen
       } ->
         render_match(%{
           id: match_id,
@@ -537,7 +549,8 @@ defmodule TWeb.FeedChannel do
           voicemail: voicemail,
           screen_width: screen_width,
           expiration_date: expiration_date,
-          last_interaction_id: last_interaction_id
+          last_interaction_id: last_interaction_id,
+          seen: seen
         })
 
       %Matches.ExpiredMatch{

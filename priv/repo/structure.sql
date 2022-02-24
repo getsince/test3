@@ -274,6 +274,16 @@ CREATE TABLE public.matches (
 
 
 --
+-- Name: matches_seen; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.matches_seen (
+    user_id uuid NOT NULL,
+    match_id uuid NOT NULL
+);
+
+
+--
 -- Name: oban_jobs; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -561,6 +571,14 @@ ALTER TABLE ONLY public.match_voicemail
 
 ALTER TABLE ONLY public.matches
     ADD CONSTRAINT matches_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: matches_seen matches_seen_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.matches_seen
+    ADD CONSTRAINT matches_seen_pkey PRIMARY KEY (user_id, match_id);
 
 
 --
@@ -1049,6 +1067,22 @@ ALTER TABLE ONLY public.match_voicemail
 
 
 --
+-- Name: matches_seen matches_seen_match_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.matches_seen
+    ADD CONSTRAINT matches_seen_match_id_fkey FOREIGN KEY (match_id) REFERENCES public.matches(id) ON DELETE CASCADE;
+
+
+--
+-- Name: matches_seen matches_seen_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.matches_seen
+    ADD CONSTRAINT matches_seen_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: matches matches_user_id_1_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1187,3 +1221,4 @@ INSERT INTO public."schema_migrations" (version) VALUES (20220131152510);
 INSERT INTO public."schema_migrations" (version) VALUES (20220214160407);
 INSERT INTO public."schema_migrations" (version) VALUES (20220216202050);
 INSERT INTO public."schema_migrations" (version) VALUES (20220222103203);
+INSERT INTO public."schema_migrations" (version) VALUES (20220222114013);

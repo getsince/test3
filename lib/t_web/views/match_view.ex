@@ -32,6 +32,7 @@ defmodule TWeb.MatchView do
     |> maybe_put("expiration_date", expiration_date)
     |> maybe_put("audio_only", assigns[:audio_only])
     |> maybe_put("last_interaction_id", assigns[:last_interaction_id])
+    |> maybe_put_2("seen", assigns[:seen])
     |> maybe_put("timeslot", timeslot)
     |> maybe_put("contact", contact)
     |> maybe_put("voicemail", voicemail)
@@ -179,6 +180,10 @@ defmodule TWeb.MatchView do
 
   defp maybe_put(map, _k, nil), do: map
   defp maybe_put(map, k, v), do: Map.put(map, k, v)
+
+  defp maybe_put_2(map, _k, nil), do: map
+  defp maybe_put_2(map, _k, false), do: map
+  defp maybe_put_2(map, k, v), do: Map.put(map, k, v)
 
   defp datetime(<<_::288>> = uuid) do
     datetime(Ecto.Bigflake.UUID.dump!(uuid))

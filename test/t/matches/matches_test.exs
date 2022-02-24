@@ -305,6 +305,26 @@ defmodule T.MatchesTest do
       assert [%Match{id: ^match_id, expiration_date: ^expected_expiration_date}] =
                Matches.list_matches(u2_id)
     end
+
+    test "with seen matches", ctx do
+      %{
+        profiles: [%{user_id: u1_id}, %{user_id: u2_id}],
+        match: %{id: match_id}
+      } = ctx
+
+      assert [%Match{id: ^match_id, seen: false}] = Matches.list_matches(u1_id)
+      assert [%Match{id: ^match_id, seen: false}] = Matches.list_matches(u2_id)
+
+      :ok = Matches.mark_match_seen(u1_id, match_id)
+
+      assert [%Match{id: ^match_id, seen: true}] = Matches.list_matches(u1_id)
+      assert [%Match{id: ^match_id, seen: false}] = Matches.list_matches(u2_id)
+
+      :ok = Matches.mark_match_seen(u2_id, match_id)
+
+      assert [%Match{id: ^match_id, seen: true}] = Matches.list_matches(u1_id)
+      assert [%Match{id: ^match_id, seen: true}] = Matches.list_matches(u2_id)
+    end
   end
 
   describe "prune_stale_timeslots/1" do

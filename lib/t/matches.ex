@@ -16,7 +16,8 @@ defmodule T.Matches do
     ExpiredMatch,
     MatchContact,
     ArchivedMatch,
-    Interaction
+    Interaction,
+    Seen
   }
 
   alias T.Feeds.FeedProfile
@@ -277,21 +278,30 @@ defmodule T.Matches do
     |> where([match: m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
     |> where([match: m], m.id not in subquery(archived_match_ids_q(user_id)))
     |> order_by(desc: :inserted_at)
+    |> join(:left, [m], s in Seen, as: :seen, on: s.match_id == m.id and s.user_id == ^user_id)
     |> join(:left, [m], t in assoc(m, :timeslot), as: :t)
     |> join(:left, [m], c in assoc(m, :contact), as: :c)
     |> join(:left, [m], v in assoc(m, :voicemail), as: :v)
     |> join(:left_lateral, [m], i in subquery(last_interaction_q), as: :last_interaction)
     # TODO aggregate voicemail
     |> preload([t: t, c: c, v: v], timeslot: t, contact: c, voicemail: v)
-    |> select([match: m, undying_event: e, last_interaction: i], {m, e.timestamp, i.id})
+    |> select(
+      [match: m, undying_event: e, last_interaction: i, seen: s],
+      {m, e.timestamp, i.id, s.match_id}
+    )
     |> Repo.all()
-    |> Enum.map(fn {match, undying_event_timestamp, last_interaction_id} ->
+    |> Enum.map(fn {match, undying_event_timestamp, last_interaction_id, seen_match_id} ->
       expiration_date =
         unless undying_event_timestamp do
           expiration_date(match)
         end
 
-      %Match{match | last_interaction_id: last_interaction_id, expiration_date: expiration_date}
+      %Match{
+        match
+        | last_interaction_id: last_interaction_id,
+          expiration_date: expiration_date,
+          seen: !!seen_match_id
+      }
     end)
     |> preload_match_profiles(user_id)
   end
@@ -304,6 +314,12 @@ defmodule T.Matches do
 
   defp archived_match_ids_q(user_id) do
     ArchivedMatch |> where(by_user_id: ^user_id) |> select([m], m.match_id)
+  end
+
+  @spec mark_match_seen(uuid, uuid) :: :ok
+  def mark_match_seen(by_user_id, match_id) do
+    Repo.insert_all(Seen, [%{user_id: by_user_id, match_id: match_id}], on_conflict: :nothing)
+    :ok
   end
 
   @spec list_expired_matches(uuid) :: [%Match{}]

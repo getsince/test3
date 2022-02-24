@@ -88,6 +88,9 @@ defmodule TWeb.FeedChannelTest do
         now
       )
 
+      # first match is also seen
+      :ok = Matches.mark_match_seen(me.id, m1.id)
+
       # second match starts off as timeslots exchange
       Matches.save_slots_offer_for_match(p2.id, m2.id, raw_slots, now)
       # and then sends contacts as well
@@ -97,6 +100,9 @@ defmodule TWeb.FeedChannelTest do
         _contacts = %{"whatsapp" => "+79666666666"},
         now
       )
+
+      # and second match is also seen
+      :ok = Matches.mark_match_seen(me.id, m2.id)
 
       # third match is in timeslots exchange interaction mode
       Matches.save_slots_offer_for_match(me.id, m3.id, raw_slots, now)
@@ -220,7 +226,8 @@ defmodule TWeb.FeedChannelTest do
                  },
                  "audio_only" => false,
                  "inserted_at" => ~U[2021-09-30 12:16:06Z],
-                 "last_interaction_id" => last_interaction_id.(4)
+                 "last_interaction_id" => last_interaction_id.(4),
+                 "seen" => true
                },
                %{
                  "id" => m1.id,
@@ -233,7 +240,8 @@ defmodule TWeb.FeedChannelTest do
                  },
                  "audio_only" => false,
                  "inserted_at" => ~U[2021-09-30 12:16:05Z],
-                 "last_interaction_id" => last_interaction_id.(5)
+                 "last_interaction_id" => last_interaction_id.(5),
+                 "seen" => true
                }
              ]
     end
@@ -1032,6 +1040,20 @@ defmodule TWeb.FeedChannelTest do
                |> where(by_user_id: ^mate.id)
                |> where(user_id: ^me.id)
                |> Repo.one!()
+    end
+  end
+
+  describe "seen-match" do
+    setup :joined
+
+    test "marks match as seen", %{me: me, socket: socket} do
+      mate = onboarded_user()
+      match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
+
+      ref = push(socket, "seen-match", %{"match_id" => match.id})
+      assert_reply ref, :ok, _reply
+
+      assert [%Match{seen: true}] = Matches.list_matches(me.id)
     end
   end
 

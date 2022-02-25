@@ -4,11 +4,32 @@ defmodule TWeb.ViewHelpers do
 
   @type env :: :feed | :match | :profile
 
-  @spec postprocess_story([map], pos_integer(), env) :: [map]
-  def postprocess_story(story, screen_width, env) when is_list(story) do
+  @spec postprocess_story([map], String.t(), pos_integer(), env) :: [map]
+  def postprocess_story(story, "6." <> _rest, screen_width, env) when is_list(story) do
     Enum.map(story, fn page ->
-      page |> blur(screen_width, env) |> add_bg_url(screen_width) |> add_label_urls()
+      page
+      |> blur(screen_width, env)
+      |> add_bg_url(screen_width)
+      |> process_labels_v6()
     end)
+  end
+
+  def postprocess_story(story, _version, screen_width, _env) when is_list(story) do
+    story
+    |> Enum.reduce([], fn
+      # users on version < 6.0.0 don't support private pages
+      %{"blurred" => _} = _private_page, acc ->
+        acc
+
+      page, acc ->
+        rendered =
+          page
+          |> add_bg_url(screen_width)
+          |> process_labels_pre_v6()
+
+        [rendered | acc]
+    end)
+    |> :lists.reverse()
   end
 
   def postprocess_news(story, screen_width) when is_list(story) do
@@ -44,23 +65,72 @@ defmodule TWeb.ViewHelpers do
     end
   end
 
-  defp add_label_urls(%{"labels" => labels} = page) do
-    %{page | "labels" => add_urls_to_labels(labels)}
-  end
-
-  defp add_label_urls(page) do
-    page
-  end
-
-  defp add_urls_to_labels(labels) do
-    Enum.map(labels, fn label ->
-      if answer = label["answer"] do
-        if url = Media.known_sticker_url(answer) do
-          Map.put(label, "url", url)
+  defp process_labels_v6(%{"labels" => labels} = page) do
+    labels =
+      labels
+      |> Enum.reduce([], fn label, acc ->
+        # if the label is a text contact, it's removed from page
+        # since it has been replaced with contact stickers
+        if Map.has_key?(label, "text-contact") do
+          acc
+        else
+          [process_label(label) | acc]
         end
-      end || label
-    end)
+      end)
+      |> :lists.reverse()
+
+    %{page | "labels" => labels}
   end
+
+  defp process_labels_v6(page), do: page
+
+  @contacts ["telegram", "instagram", "whatsapp", "phone", "email"]
+
+  defp process_labels_pre_v6(%{"labels" => labels} = page) do
+    labels =
+      labels
+      |> Enum.reduce([], fn label, acc ->
+        # users on version < 6.0.0 don't support contact stickers, so they are removed
+        if Map.get(label, "question") in @contacts do
+          acc
+        else
+          label = label |> process_label() |> Map.delete("text-contact")
+          [label | acc]
+        end
+      end)
+      |> :lists.reverse()
+
+    %{page | "labels" => labels}
+  end
+
+  defp process_labels_pre_v6(page), do: page
+
+  # TODO since handle is passed as is into the urls, it needs to be validated on insert
+  defp process_label(%{"question" => "telegram", "answer" => handle} = label) do
+    Map.put(label, "value", "https://t.me/" <> handle)
+  end
+
+  defp process_label(%{"question" => "instagram", "answer" => handle} = label) do
+    Map.put(label, "value", "https://instagram.com/" <> handle)
+  end
+
+  defp process_label(%{"question" => "whatsapp", "answer" => handle} = label) do
+    Map.put(label, "value", "https://wa.me/" <> handle)
+  end
+
+  defp process_label(%{"question" => q} = label) when q in ["phone", "email"] do
+    label
+  end
+
+  defp process_label(%{"answer" => a} = label) do
+    if url = Media.known_sticker_url(a) do
+      Map.put(label, "url", url)
+    else
+      label
+    end
+  end
+
+  defp process_label(label), do: label
 
   defp s3_key_urls(key, width) when is_binary(key) do
     %{"proxy" => Media.user_imgproxy_cdn_url(key, width)}

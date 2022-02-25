@@ -105,17 +105,16 @@ defmodule TWeb.ViewHelpers do
 
   defp process_labels_pre_v6(page), do: page
 
-  # TODO since handle is passed as is into the urls, it needs to be validated on insert
   defp process_label(%{"question" => "telegram", "answer" => handle} = label) do
-    Map.put(label, "value", "https://t.me/" <> handle)
+    Map.put(label, "url", "https://t.me/" <> handle)
   end
 
   defp process_label(%{"question" => "instagram", "answer" => handle} = label) do
-    Map.put(label, "value", "https://instagram.com/" <> handle)
+    Map.put(label, "url", "https://instagram.com/" <> handle)
   end
 
   defp process_label(%{"question" => "whatsapp", "answer" => handle} = label) do
-    Map.put(label, "value", "https://wa.me/" <> handle)
+    Map.put(label, "url", "https://wa.me/" <> handle)
   end
 
   defp process_label(%{"question" => q} = label) when q in ["phone", "email"] do

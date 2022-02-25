@@ -93,7 +93,7 @@ defmodule TWeb.ProfileLive.Index do
       </div>
       <% end %>
 
-      <div class="mt-2 flex space-x-2  overflow-auto w-full">
+      <div class="mt-2 flex space-x-2 overflow-auto w-full">
         <%= for page <- @profile.story || [] do %>
           <.story_page page={page} />
         <% end %>

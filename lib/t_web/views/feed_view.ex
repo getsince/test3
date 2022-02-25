@@ -3,20 +3,47 @@ defmodule TWeb.FeedView do
   alias TWeb.{ViewHelpers, CallView}
   alias T.Feeds.{FeedProfile}
 
-  def render("feed_item.json", %{profile: profile, screen_width: screen_width}) do
+  def render("feed_item.json", %{profile: profile, version: version, screen_width: screen_width}) do
     profile =
-      render_profile(profile, [:user_id, :name, :gender, :story], screen_width, _env = :feed)
+      render_profile(
+        profile,
+        [:user_id, :name, :gender, :story],
+        version,
+        screen_width,
+        _env = :feed
+      )
 
     %{"profile" => profile}
   end
 
-  def render("feed_profile.json", %{profile: profile, screen_width: screen_width}) do
-    render_profile(profile, [:user_id, :name, :gender, :story], screen_width, _env = :match)
+  def render("feed_profile.json", %{
+        profile: profile,
+        version: version,
+        screen_width: screen_width
+      }) do
+    render_profile(
+      profile,
+      [:user_id, :name, :gender, :story],
+      version,
+      screen_width,
+      _env = :match
+    )
   end
 
-  def render("missed_call.json", %{profile: profile, call: call, screen_width: screen_width}) do
+  def render("missed_call.json", %{
+        profile: profile,
+        call: call,
+        version: version,
+        screen_width: screen_width
+      }) do
     profile =
-      render_profile(profile, [:user_id, :name, :gender, :story], screen_width, _env = :match)
+      render_profile(
+        profile,
+        [:user_id, :name, :gender, :story],
+        version,
+        screen_width,
+        _env = :match
+      )
 
     %{"profile" => profile, "call" => CallView.render("call.json", call: call)}
   end
@@ -27,11 +54,11 @@ defmodule TWeb.FeedView do
     end)
   end
 
-  defp render_profile(%FeedProfile{} = profile, fields, screen_width, env) do
+  defp render_profile(%FeedProfile{} = profile, fields, version, screen_width, env) do
     profile
     |> Map.take(fields)
     |> Map.update!(:story, fn story ->
-      ViewHelpers.postprocess_story(story, screen_width, env)
+      ViewHelpers.postprocess_story(story, version, screen_width, env)
     end)
   end
 end

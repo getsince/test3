@@ -39,7 +39,9 @@ defmodule TWeb.MatchViewTest do
       id: match.id,
       voicemail: match.voicemail,
       profile: profile,
-      screen_width: 1000
+      screen_width: 1000,
+      # since voicemail no longer exists in v6.0.0, I'm using the last support v5 version here
+      version: "5.2.3"
     }
 
     %{"voicemail" => voicemail} = rendered = render(TWeb.MatchView, "match.json", assigns)

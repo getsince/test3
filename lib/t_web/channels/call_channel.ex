@@ -7,7 +7,7 @@ defmodule TWeb.CallChannel do
 
   @impl true
   def join("call:" <> call_id, params, socket) do
-    %{current_user: current_user, screen_width: screen_width} = socket.assigns
+    %{current_user: current_user, screen_width: screen_width, version: version} = socket.assigns
     socket = assign(socket, call_id: call_id)
     topics = Calls.Topics.topics_json_fragment(params["locale"])
 
@@ -21,7 +21,7 @@ defmodule TWeb.CallChannel do
         send(self(), :after_join)
 
         reply = %{
-          caller: render_peer(peer, screen_width),
+          caller: render_peer(peer, version, screen_width),
           ice_servers: Calls.ice_servers(),
           call_topics: topics
         }
@@ -72,7 +72,11 @@ defmodule TWeb.CallChannel do
     {:noreply, socket}
   end
 
-  defp render_peer(profile, screen_width) do
-    render(TWeb.FeedView, "feed_profile.json", profile: profile, screen_width: screen_width)
+  defp render_peer(profile, version, screen_width) do
+    render(TWeb.FeedView, "feed_profile.json",
+      profile: profile,
+      version: version,
+      screen_width: screen_width
+    )
   end
 end

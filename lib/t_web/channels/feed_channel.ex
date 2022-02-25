@@ -13,46 +13,47 @@ defmodule TWeb.FeedChannel do
       end
 
       user_id = String.downcase(user_id)
-      %{screen_width: screen_width} = socket.assigns
 
       :ok = Matches.subscribe_for_user(user_id)
       :ok = Accounts.subscribe_for_user(user_id)
       :ok = Feeds.subscribe_for_user(user_id)
 
-      join_normal_mode(user_id, screen_width, params, socket)
+      join_normal_mode(user_id, params, socket)
     else
       {:error, %{"error" => "forbidden"}}
     end
   end
 
-  defp join_normal_mode(user_id, screen_width, params, socket) do
+  defp join_normal_mode(user_id, params, socket) do
     feed_filter = Feeds.get_feed_filter(user_id)
     {location, gender} = Accounts.get_location_and_gender!(user_id)
+
+    %{screen_width: screen_width, version: version} = socket.assigns
 
     missed_calls =
       user_id
       |> Calls.list_missed_calls_with_profile(after: params["missed_calls_cursor"])
-      |> render_missed_calls_with_profile(screen_width)
+      |> render_missed_calls_with_profile(version, screen_width)
 
     likes =
       user_id
       |> Feeds.list_received_likes()
-      |> render_likes(screen_width)
+      |> render_likes(version, screen_width)
 
     matches =
       user_id
       |> Matches.list_matches()
-      |> render_matches(screen_width)
+      |> render_matches(version, screen_width)
 
     expired_matches =
       user_id
       |> Matches.list_expired_matches()
-      |> render_matches(screen_width)
+      |> render_matches(version, screen_width)
 
     archived_matches =
       user_id
       |> Matches.list_archived_matches()
-      |> render_matches(screen_width)
+      |> render_matches(version, screen_width)
 
     news =
       user_id
@@ -81,6 +82,7 @@ defmodule TWeb.FeedChannel do
     %{
       current_user: user,
       screen_width: screen_width,
+      version: version,
       feed_filter: feed_filter,
       gender: gender,
       location: location
@@ -96,16 +98,17 @@ defmodule TWeb.FeedChannel do
         params["cursor"]
       )
 
-    {:reply, {:ok, %{"feed" => render_feed(feed, screen_width), "cursor" => cursor}}, socket}
+    {:reply, {:ok, %{"feed" => render_feed(feed, version, screen_width), "cursor" => cursor}},
+     socket}
   end
 
   def handle_in("archived-matches", _params, socket) do
-    %{current_user: user, screen_width: screen_width} = socket.assigns
+    %{current_user: user, screen_width: screen_width, version: version} = socket.assigns
 
     archived_matches =
       user.id
       |> Matches.list_archived_matches()
-      |> render_matches(screen_width)
+      |> render_matches(version, screen_width)
 
     {:reply, {:ok, %{"archived_matches" => archived_matches}}, socket}
   end
@@ -176,7 +179,7 @@ defmodule TWeb.FeedChannel do
   end
 
   def handle_in("like", %{"user_id" => liked}, socket) do
-    %{current_user: %{id: liker}, screen_width: screen_width} = socket.assigns
+    %{current_user: %{id: liker}, screen_width: screen_width, version: version} = socket.assigns
 
     Events.save_like(liker, liked)
 
@@ -199,6 +202,7 @@ defmodule TWeb.FeedChannel do
               id: match_id,
               profile: profile,
               screen_width: screen_width,
+              version: version,
               audio_only: mate_audio_only,
               expiration_date: expiration_date,
               inserted_at: inserted_at
@@ -217,15 +221,8 @@ defmodule TWeb.FeedChannel do
   end
 
   def handle_in("decline", %{"user_id" => liker}, socket) do
-    %{current_user: %{id: user}} = socket.assigns
-
-    reply =
-      case Matches.decline_like(user, liker) do
-        {:ok, %{}} -> :ok
-        {:error, _step, _reason, _changes} -> :ok
-      end
-
-    {:reply, reply, socket}
+    Matches.decline_like(me_id(socket), liker)
+    {:reply, :ok, socket}
   end
 
   def handle_in("offer-slots", _params, socket) do
@@ -344,11 +341,11 @@ defmodule TWeb.FeedChannel do
 
   @impl true
   def handle_info({Matches, :liked, like}, socket) do
-    %{screen_width: screen_width} = socket.assigns
+    %{screen_width: screen_width, version: version} = socket.assigns
     %{by_user_id: by_user_id} = like
 
     if profile = Feeds.get_mate_feed_profile(by_user_id) do
-      rendered = render_feed_item(profile, screen_width)
+      rendered = render_feed_item(profile, version, screen_width)
       push(socket, "invite", rendered)
     end
 
@@ -356,7 +353,7 @@ defmodule TWeb.FeedChannel do
   end
 
   def handle_info({Matches, :matched, match}, socket) do
-    %{screen_width: screen_width} = socket.assigns
+    %{screen_width: screen_width, version: version} = socket.assigns
 
     %{
       id: match_id,
@@ -374,6 +371,7 @@ defmodule TWeb.FeedChannel do
             audio_only: audio_only,
             profile: profile,
             screen_width: screen_width,
+            version: version,
             inserted_at: inserted_at,
             expiration_date: expiration_date
           })
@@ -486,34 +484,35 @@ defmodule TWeb.FeedChannel do
     {:noreply, socket}
   end
 
-  defp render_feed_item(profile, screen_width) do
-    assigns = [profile: profile, screen_width: screen_width]
+  defp render_feed_item(profile, version, screen_width) do
+    assigns = [profile: profile, screen_width: screen_width, version: version]
     render(FeedView, "feed_item.json", assigns)
   end
 
-  defp render_feed(feed, screen_width) do
-    Enum.map(feed, fn feed_item -> render_feed_item(feed_item, screen_width) end)
+  defp render_feed(feed, version, screen_width) do
+    Enum.map(feed, fn feed_item -> render_feed_item(feed_item, version, screen_width) end)
   end
 
-  defp render_likes(likes, screen_width) do
+  defp render_likes(likes, version, screen_width) do
     Enum.map(likes, fn %{profile: profile, seen: seen} ->
       profile
-      |> render_feed_item(screen_width)
+      |> render_feed_item(version, screen_width)
       |> maybe_put("seen", seen)
     end)
   end
 
-  defp render_missed_calls_with_profile(missed_calls, screen_width) do
+  defp render_missed_calls_with_profile(missed_calls, version, screen_width) do
     Enum.map(missed_calls, fn {call, profile} ->
       render(FeedView, "missed_call.json",
         profile: profile,
         call: call,
-        screen_width: screen_width
+        screen_width: screen_width,
+        version: version
       )
     end)
   end
 
-  defp render_matches(matches, screen_width) do
+  defp render_matches(matches, version, screen_width) do
     Enum.map(matches, fn
       %Matches.Match{
         id: match_id,
@@ -536,6 +535,7 @@ defmodule TWeb.FeedChannel do
           contact: contact,
           voicemail: voicemail,
           screen_width: screen_width,
+          version: version,
           expiration_date: expiration_date,
           last_interaction_id: last_interaction_id,
           seen: seen
@@ -545,13 +545,23 @@ defmodule TWeb.FeedChannel do
         match_id: match_id,
         profile: profile
       } ->
-        render_match(%{id: match_id, profile: profile, screen_width: screen_width})
+        render_match(%{
+          id: match_id,
+          profile: profile,
+          version: version,
+          screen_width: screen_width
+        })
 
       %Matches.ArchivedMatch{
         match_id: match_id,
         profile: profile
       } ->
-        render_match(%{id: match_id, profile: profile, screen_width: screen_width})
+        render_match(%{
+          id: match_id,
+          profile: profile,
+          version: version,
+          screen_width: screen_width
+        })
     end)
   end
 

@@ -6,7 +6,8 @@ defmodule TWeb.ProfileView do
 
   def render("show_with_location.json", %{
         profile: %Profile{location: location} = profile,
-        screen_width: screen_width
+        screen_width: screen_width,
+        version: version
       }) do
     profile
     |> render_profile(
@@ -21,6 +22,7 @@ defmodule TWeb.ProfileView do
         :distance,
         :audio_only
       ],
+      version,
       screen_width,
       _env = :profile
     )
@@ -28,8 +30,12 @@ defmodule TWeb.ProfileView do
     |> Map.put(:longitude, lon(location))
   end
 
-  def render("editor_tutorial_story.json", %{story: story, screen_width: screen_width}) do
-    ViewHelpers.postprocess_story(story, screen_width, _env = :feed)
+  def render("editor_tutorial_story.json", %{
+        story: story,
+        screen_width: screen_width,
+        version: version
+      }) do
+    ViewHelpers.postprocess_story(story, version, screen_width, _env = :feed)
   end
 
   defp lat(%Geo.Point{coordinates: {_lon, lat}}), do: lat
@@ -38,9 +44,9 @@ defmodule TWeb.ProfileView do
   defp lon(%Geo.Point{coordinates: {lon, _lat}}), do: lon
   defp lon(nil), do: nil
 
-  defp render_profile(%Profile{story: story} = profile, fields, screen_width, env) do
+  defp render_profile(%Profile{story: story} = profile, fields, version, screen_width, env) do
     profile
     |> Map.take(fields)
-    |> Map.merge(%{story: ViewHelpers.postprocess_story(story || [], screen_width, env)})
+    |> Map.merge(%{story: ViewHelpers.postprocess_story(story || [], version, screen_width, env)})
   end
 end

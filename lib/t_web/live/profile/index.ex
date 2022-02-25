@@ -75,14 +75,6 @@ defmodule TWeb.ProfileLive.Index do
         <% else %>
           <button phx-click="block" phx-value-user-id={@profile.user_id} class="bg-red-200 dark:bg-red-500 px-2 rounded border border-red-500 dark:border-red-700 font-semibold hover:bg-red-300 dark:hover:bg-red-600 transition" data-confirm={"Are you sure you want to block #{@profile.name}?"}>Block</button>
         <% end %>
-
-        <%= live_redirect to: Routes.contact_index_path(TWeb.Endpoint, :show, @profile.user_id) do %>
-          <%= case @profile.has_text_contact? do %>
-            <% true -> %><p class="font-semibold text-green-800 rounded px-2 bg-green-200 dark:bg-green-500 border-green-500 dark:border-green-700 border hover:bg-green-300 dark:hover:bg-green-600 transition">Has contact</p>
-            <% false -> %><p class="font-semibold rounded px-2 bg-gray-200 dark:bg-gray-500 border-gray-500 dark:border-gray-700 border hover:bg-gray-300 dark:hover:bg-gray-600 transition">Doesn't have contact</p>
-            <% nil -> %><p class="font-semibold rounded px-2 text-black bg-yellow-200 dark:bg-yellow-500 border-yellow-500 dark:border-yellow-700 border hover:bg-yellow-300 dark:hover:bg-yellow-600 transition">Needs contact check</p>
-          <% end %>
-        <% end %>
       </div>
       <div class="mt-2 flex space-x-2 items-center">
         <p class="text-gray-500 dark:text-gray-400 font-mono text-sm"><%= @profile.user_id %></p>
@@ -93,7 +85,7 @@ defmodule TWeb.ProfileLive.Index do
       </div>
       <% end %>
 
-      <div class="mt-2 flex space-x-2  overflow-auto w-full">
+      <div class="mt-2 flex space-x-2 overflow-auto w-full">
         <%= for page <- @profile.story || [] do %>
           <.story_page page={page} />
         <% end %>
@@ -194,7 +186,7 @@ defmodule TWeb.ProfileLive.Index do
 
       ~H"""
       <div class="absolute text-lg font-medium" style={@style}>
-        <%= for line <- String.split(@label["value"], "\n") do %>
+        <%= for line <- String.split(@label["value"] || @label["answer"], "\n") do %>
           <p><span class="bg-black leading-8 px-3 inline-block whitespace-nowrap" style={render_style(%{"background-color" => label["background_fill"]})}><%= line %></span></p>
         <% end %>
       </div>
@@ -222,15 +214,13 @@ defmodule TWeb.ProfileLive.Index.Ctx do
     profiles_q =
       Profile
       |> join(:inner, [p], u in User, on: p.user_id == u.id)
-      |> join(:left, [p], c in "checked_profiles", on: c.user_id == p.user_id)
       |> order_by([p], desc: p.last_active, desc: p.user_id)
-      |> select([p, u, c], %{
+      |> select([p, u], %{
         user_id: p.user_id,
         name: p.name,
         email: u.email,
         last_active: p.last_active,
         story: p.story,
-        has_text_contact?: c.has_text_contact?,
         blocked_at: u.blocked_at
       })
       |> limit(5)

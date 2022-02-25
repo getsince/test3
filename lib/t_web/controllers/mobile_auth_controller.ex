@@ -27,7 +27,7 @@ defmodule TWeb.MobileAuthController do
           profile: user.profile,
           screen_width: 1000,
           # TODO update to 6.0.0
-          version: "5.2.3"
+          version: "6.0.0"
         )
     })
   end

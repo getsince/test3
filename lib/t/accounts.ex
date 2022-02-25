@@ -444,20 +444,6 @@ defmodule T.Accounts do
     get_user_by_session_token_and_update_version(token, nil, context)
   end
 
-  @spec list_app_versions(Ecto.Bigflake.UUID.t()) :: [String.t()]
-  def list_app_versions(user_id) do
-    UserToken |> where(user_id: ^user_id) |> select([t], t.version) |> Repo.all()
-  end
-
-  @spec has_previous_version?(Ecto.Bigflake.UUID.t()) :: bool
-  def has_previous_version?(user_id) do
-    UserToken
-    |> where(user_id: ^user_id)
-    # assuming latest version is ios/6.*.* we check for tokens with version other than that
-    |> where([t], not ilike(t.version, "ios/6.%"))
-    |> Repo.exists?()
-  end
-
   def get_user_by_session_token_and_update_version(token, version, context) do
     {:ok, query} =
       case context do

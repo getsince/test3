@@ -266,7 +266,7 @@ defmodule TWeb.FeedChannel do
         dgettext("alerts", "Sending contacts is no longer supported, please upgrade.")
       )
 
-    {:reply, {:error, %{alerts: alert}}, socket}
+    {:reply, {:error, %{alert: alert}}, socket}
   end
 
   def handle_in("open-contact", %{"match_id" => match_id, "contact_type" => contact_type}, socket) do

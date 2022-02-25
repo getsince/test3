@@ -16,7 +16,7 @@ msgstr ""
 #: lib/t_web/channels/feed_channel.ex:235
 #: lib/t_web/channels/feed_channel.ex:245
 msgid "Calls are no longer supported, please upgrade."
-msgstr "Звонки больше не работают, пожалуйста обновитесь."
+msgstr "Звонки больше не работают, пожалуйста обновись."
 
 #, elixir-autogen, elixir-format
 #: lib/t_web/channels/feed_channel.ex:171
@@ -30,9 +30,9 @@ msgstr "Приложение устарело"
 #, elixir-autogen, elixir-format
 #: lib/t_web/channels/feed_channel.ex:327
 msgid "Voicemail is no longer supported, please upgrade."
-msgstr "Голововая почта больше не работает, пожалуйста обновитесь."
+msgstr "Голововая почта больше не работает, пожалуйста обновись."
 
 #, elixir-autogen, elixir-format
 #: lib/t_web/channels/feed_channel.ex:266
 msgid "Sending contacts is no longer supported, please upgrade."
-msgstr "Отправка контактов больше не работает, пожалуйста обновитесь."
+msgstr "Отправка контактов больше не работает, пожалуйста обновись."

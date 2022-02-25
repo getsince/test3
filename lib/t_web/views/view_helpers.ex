@@ -91,7 +91,7 @@ defmodule TWeb.ViewHelpers do
       labels
       |> Enum.reduce([], fn label, acc ->
         # users on version < 6.0.0 don't support contact stickers, so they are removed
-        if Map.get(label, "question") in @contacts do
+        if Map.get(label, "question") in @contacts or Map.get(label, "text-change") do
           acc
         else
           label = label |> process_label() |> Map.delete("text-contact")

@@ -75,11 +75,10 @@ defmodule Dev do
   end
 
   defp filter_valid_igs(igs) do
-    Enum.filter(igs, fn ig ->
-      Regex.match?(
-        ~r/^[A-Za-z0-9_](?:(?:[A-Za-z0-9_]|(?:\.(?!\.))){0,99}(?:[A-Za-z0-9_]))$/,
-        ig |> String.replace(["@"], "") |> String.trim()
-      )
+    igs
+    |> Enum.map(fn ig -> ig |> String.replace(["@"], "") |> String.trim() end)
+    |> Enum.filter(fn ig ->
+      Regex.match?(~r/^[A-Za-z0-9_](?:(?:[A-Za-z0-9_]|(?:\.(?!\.))){0,99}(?:[A-Za-z0-9_]))$/, ig)
     end)
   end
 

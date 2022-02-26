@@ -58,7 +58,7 @@ defmodule TWeb.FeedChannel do
     news =
       user_id
       |> News.list_news()
-      |> render_news(screen_width)
+      |> render_news(version, screen_width)
 
     reply =
       %{}
@@ -593,7 +593,11 @@ defmodule TWeb.FeedChannel do
     render(MatchView, "interaction.json", interaction: interaction)
   end
 
-  defp render_news(news, screen_width) do
-    Enum.map(news, fn n -> render(FeedView, "news.json", news: n, screen_width: screen_width) end)
+  defp render_news(news, version, screen_width) do
+    alias TWeb.ViewHelpers
+
+    Enum.map(news, fn %{story: story} = news ->
+      %{news | story: ViewHelpers.postprocess_story(story, version, screen_width, :feed)}
+    end)
   end
 end

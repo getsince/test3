@@ -1,7 +1,7 @@
 defmodule TWeb.FeedView do
   use TWeb, :view
   alias TWeb.{ViewHelpers, CallView}
-  alias T.Feeds.{FeedProfile}
+  alias T.Feeds.FeedProfile
 
   def render("feed_item.json", %{profile: profile, version: version, screen_width: screen_width}) do
     profile =
@@ -46,12 +46,6 @@ defmodule TWeb.FeedView do
       )
 
     %{"profile" => profile, "call" => CallView.render("call.json", call: call)}
-  end
-
-  def render("news.json", %{news: news, screen_width: screen_width}) do
-    Map.update!(news, :story, fn story ->
-      ViewHelpers.postprocess_news(story, screen_width)
-    end)
   end
 
   defp render_profile(%FeedProfile{} = profile, fields, version, screen_width, env) do

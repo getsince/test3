@@ -66,14 +66,12 @@ defmodule T.News do
               %{
                 "position" => [50.0, 404.0],
                 "answer" => "getsince",
-                "url" => "https://t.me/getsince",
                 "question" => "telegram",
                 "rotation" => 20
               },
               %{
                 "position" => [160.0, 339.0],
                 "answer" => "getsince.app",
-                "url" => "https://www.instagram.com/getsince.app",
                 "question" => "instagram",
                 "rotation" => -17
               },

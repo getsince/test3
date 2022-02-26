@@ -44,6 +44,9 @@ defmodule T.Accounts.Profile do
   end
 
   @known_genders ["M", "F", "N"]
+  @contacts ["telegram", "instagram", "whatsapp", "phone", "email"]
+
+  def contacts, do: @contacts
 
   def essential_info_changeset(profile, attrs, opts \\ []) do
     attrs = attrs |> prepare_location()

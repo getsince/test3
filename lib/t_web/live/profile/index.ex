@@ -38,7 +38,7 @@ defmodule TWeb.ProfileLive.Index do
   end
 
   defp background_image(%{"background" => %{"s3_key" => s3_key}}) do
-    %{s3_key: s3_key, url: T.Media.user_imgproxy_cdn_url(s3_key, 250, force_width: true)}
+    %{s3_key: s3_key, url: T.Media.user_imgproxy_cdn_url(s3_key, 500, force_width: true)}
   end
 
   defp background_image(_other), do: nil
@@ -98,8 +98,8 @@ defmodule TWeb.ProfileLive.Index do
 
   defp story_page(%{page: %{"size" => [size_x, size_y]}} = assigns) do
     styles = %{
-      "width" => "#{size_x}px",
-      "height" => "#{size_y}px"
+      "width" => "#{round(size_x / 1.5)}px",
+      "height" => "#{round(size_y / 1.5)}px"
     }
 
     assigns = assign(assigns, style: render_style(styles))
@@ -107,7 +107,7 @@ defmodule TWeb.ProfileLive.Index do
     ~H"""
     <div class="p-1 shrink-0">
     <%= if image = background_image(@page) do %>
-      <div class="shrink-0 relative cursor-pointer rounded-lg border border-gray-300 dark:border-gray-700" style={@style} phx-click={JS.toggle(to: "[data-for-image='#{image.s3_key}']")}>
+      <div class="shrink-0 relative cursor-pointer overflow-y-hidden rounded-lg border border-gray-300 dark:border-gray-700" style={@style} phx-click={JS.toggle(to: "[data-for-image='#{image.s3_key}']")}>
         <img src={image.url} class="w-full h-full rounded-lg object-cover" />
         <div class="absolute top-0 left-0 w-full h-full" data-for-image={image.s3_key}>
           <%= for label <- (@page["labels"] || []) do %>
@@ -116,7 +116,7 @@ defmodule TWeb.ProfileLive.Index do
         </div>
       </div>
     <% else %>
-      <div class="shrink-0 relative rounded-lg border dark:border-gray-700" style={"background-color:#{background_color(@page)};" <> @style}>
+      <div class="shrink-0 relative overflow-y-hidden rounded-lg border dark:border-gray-700" style={"background-color:#{background_color(@page)};" <> @style}>
         <%= for label <- (@page["labels"] || []) do %>
           <.story_label label={label} size={@page["size"]} />
         <% end %>
@@ -152,11 +152,11 @@ defmodule TWeb.ProfileLive.Index do
 
     if url do
       styles = %{
-        "top" => "#{y}px",
-        "left" => "#{x}px",
+        "top" => "#{round(y / 1.5)}px",
+        "left" => "#{round(x / 1.5)}px",
         "transform-origin" => "top left",
         "transform" => transform,
-        "width" => "#{round(size_width / 3)}px"
+        "width" => "#{round(size_width / 4.5)}px"
       }
 
       assigns = assign(assigns, url: url, style: render_style(styles))
@@ -174,21 +174,20 @@ defmodule TWeb.ProfileLive.Index do
         end
 
       styles = %{
-        "top" => "#{y}px",
-        "left" => "#{x}px",
+        "top" => "#{round(y / 1.5)}px",
+        "left" => "#{round(x / 1.5)}px",
         "transform-origin" => "top left",
         "transform" => transform,
         "color" => label["text_color"],
-        "text-align" => text_align
+        "text-align" => text_align,
+        "font-size" => "12.3px"
       }
 
-      assigns = assign(assigns, style: render_style(styles))
+      assigns = assign(assigns, style: render_style(styles), alignment: text_align)
 
       ~H"""
-      <div class="absolute text-lg font-medium" style={@style}>
-        <%= for line <- String.split(@label["value"] || @label["answer"], "\n") do %>
-          <p><span class="bg-black leading-8 px-3 inline-block whitespace-nowrap" style={render_style(%{"background-color" => label["background_fill"]})}><%= line %></span></p>
-        <% end %>
+      <div class="absolute font-medium" style={@style}>
+        <.text_label text={@label["value"] || @label["answer"]} alignment={@alignment} bg={@label["background_fill"]} />
       </div>
       """
     end
@@ -201,6 +200,100 @@ defmodule TWeb.ProfileLive.Index do
       {k, v}, acc -> [k, ?:, v, ?; | acc]
     end)
     |> IO.iodata_to_binary()
+  end
+
+  defp text_label(%{text: text} = assigns) do
+    case String.split(text, "\n", trim: true) do
+      [_single_line] ->
+        style = %{
+          "background-color" => assigns[:bg]
+        }
+
+        assigns = assign(assigns, style: render_style(style))
+
+        ~H"""
+        <span class="bg-black leading-6 px-2 rounded-full inline-block whitespace-nowrap" style={@style}><%= @text %></span>
+        """
+
+      lines ->
+        count = length(lines)
+
+        {style_top, style_mid, style_bottom} =
+          case assigns[:alignment] do
+            left when left in ["left", nil] ->
+              {
+                _top =
+                  render_style(%{
+                    "background-color" => assigns[:bg],
+                    "border-top-right-radius" => "2rem",
+                    "border-top-left-radius" => "2rem",
+                    "border-bottom-right-radius" => "2rem"
+                  }),
+                _mid =
+                  render_style(%{
+                    "background-color" => assigns[:bg],
+                    "border-top-right-radius" => "1.8rem",
+                    "border-bottom-right-radius" => "1.8rem"
+                  }),
+                _bottom =
+                  render_style(%{
+                    "background-color" => assigns[:bg],
+                    "border-top-right-radius" => "2rem",
+                    "border-bottom-right-radius" => "2rem",
+                    "border-bottom-left-radius" => "2rem"
+                  })
+              }
+
+            "center" ->
+              shared =
+                render_style(%{"background-color" => assigns[:bg], "border-radius" => "1.9rem"})
+
+              {shared, shared, shared}
+
+            "right" ->
+              {
+                _top =
+                  render_style(%{
+                    "background-color" => assigns[:bg],
+                    "border-top-right-radius" => "2rem",
+                    "border-top-left-radius" => "2rem",
+                    "border-bottom-left-radius" => "2rem"
+                  }),
+                _mid =
+                  render_style(%{
+                    "background-color" => assigns[:bg],
+                    "border-top-left-radius" => "1.8rem",
+                    "border-bottom-left-radius" => "1.8rem"
+                  }),
+                _bottom =
+                  render_style(%{
+                    "background-color" => assigns[:bg],
+                    "border-top-left-radius" => "2rem",
+                    "border-bottom-right-radius" => "2rem",
+                    "border-bottom-left-radius" => "2rem"
+                  })
+              }
+          end
+
+        lines =
+          lines
+          |> Enum.with_index(1)
+          |> Enum.map(fn {text, idx} ->
+            cond do
+              idx == 1 -> %{text: text, style: style_top}
+              idx == count -> %{text: text, style: style_bottom}
+              true -> %{text: text, style: style_mid}
+            end
+          end)
+
+        assigns = assign(assigns, lines: lines)
+
+        ~H"""
+        <%= for line <- @lines do %>
+        <p><span class="bg-black leading-6 -my-0.5 px-2 inline-block whitespace-nowrap" style={line.style}><%= line.text %></span></p>
+        <% end %>
+        """
+    end
   end
 end
 

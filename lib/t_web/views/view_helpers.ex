@@ -1,6 +1,7 @@
 defmodule TWeb.ViewHelpers do
   @moduledoc false
   alias T.Media
+  alias T.Accounts.Profile
 
   @type env :: :feed | :match | :profile
 
@@ -30,12 +31,6 @@ defmodule TWeb.ViewHelpers do
         [rendered | acc]
     end)
     |> :lists.reverse()
-  end
-
-  def postprocess_news(story, screen_width) when is_list(story) do
-    Enum.map(story, fn page ->
-      page |> blur(screen_width, :feed) |> add_bg_url(screen_width)
-    end)
   end
 
   defp blur(%{"blurred" => %{"s3_key" => s3_key} = bg}, screen_width, :feed) do
@@ -84,14 +79,12 @@ defmodule TWeb.ViewHelpers do
 
   defp process_labels_v6(page), do: page
 
-  @contacts ["telegram", "instagram", "whatsapp", "phone", "email"]
-
   defp process_labels_pre_v6(%{"labels" => labels} = page) do
     labels =
       labels
       |> Enum.reduce([], fn label, acc ->
         # users on version < 6.0.0 don't support contact stickers, so they are removed
-        if Map.get(label, "question") in @contacts or Map.get(label, "text-change") do
+        if Map.get(label, "question") in Profile.contacts() or Map.get(label, "text-change") do
           acc
         else
           label = label |> process_label() |> Map.delete("text-contact")

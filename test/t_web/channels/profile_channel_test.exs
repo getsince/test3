@@ -260,12 +260,10 @@ defmodule TWeb.ProfileChannelTest do
                          "zoom" => 1.2
                        },
                        %{
-                         "answer" => "msu",
-                         "dimensions" => [400, 800],
+                         "answer" => "durov",
                          "position" => [150, 150],
-                         "question" => "university",
-                         "type" => "answer",
-                         "value" => "🥊\nменя воспитала улица"
+                         "question" => "telegram",
+                         "url" => "https://t.me/durov"
                        }
                      ]
                    }

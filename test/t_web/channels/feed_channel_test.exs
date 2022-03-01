@@ -499,6 +499,30 @@ defmodule TWeb.FeedChannelTest do
 
       assert 1 == Repo.get!(News.SeenNews, me.id).last_id
     end
+
+    test "without todos", %{socket: socket, me: me} do
+      assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id)
+      refute reply["todos"]
+    end
+
+    test "with todos", %{socket: socket, me: me} do
+      {:ok, _profile} =
+        Accounts.update_profile(me.profile, %{
+          "story" => [
+            %{
+              "background" => %{"s3_key" => "photo.jpg"},
+              "labels" => []
+            }
+          ]
+        })
+
+      assert {:ok, %{"todos" => todos}, _socket} = join(socket, "feed:" <> me.id)
+
+      assert [_first_todos_item = %{story: story}] = todos
+      assert [p1] = story
+
+      assert %{"background" => %{"color" => _}, "labels" => _, "size" => _} = p1
+    end
   end
 
   describe "more" do

@@ -26,7 +26,7 @@ msgstr ""
 msgid "Жми 👇"
 msgstr ""
 
-#, elixir-autogen, elixir-format, fuzzy
+#, elixir-autogen, elixir-format
 #: lib/t/todos.ex:16
 msgid "В твоей истории\nне хватает контакта"
 msgstr ""

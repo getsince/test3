@@ -186,7 +186,7 @@ defmodule TWeb.ProfileLive.Index do
       assigns = assign(assigns, style: render_style(styles), alignment: text_align)
 
       ~H"""
-      <div class="absolute font-medium" style={@style}>
+      <div class="absolute font-medium text-white" style={@style}>
         <.text_label text={@label["value"] || @label["answer"]} alignment={@alignment} bg={@label["background_fill"]} />
       </div>
       """

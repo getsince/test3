@@ -28,5 +28,5 @@ msgstr ""
 
 #, elixir-autogen, elixir-format, fuzzy
 #: lib/t/todos.ex:16
-msgid "В твоей истории\nне хватает твоего контакта"
+msgid "В твоей истории\nне хватает контакта"
 msgstr ""

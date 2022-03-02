@@ -28,5 +28,5 @@ msgstr "Press 👇"
 
 #, elixir-autogen, elixir-format
 #: lib/t/todos.ex:16
-msgid "В твоей истории\nне хватает твоего контакта"
-msgstr "You don't have\nyour contact in your story"
+msgid "В твоей истории\nне хватает контакта"
+msgstr "You don't have\na contact in your story"

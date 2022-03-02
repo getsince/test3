@@ -13,7 +13,7 @@ defmodule T.Todos do
             "background" => %{"color" => "#111010"},
             "labels" => [
               %{
-                "value" => dgettext("todos", "В твоей истории\nне хватает твоего контакта"),
+                "value" => dgettext("todos", "В твоей истории\nне хватает контакта"),
                 "position" => [24.0, 150.0],
                 "background_fill" => "#F97EB9"
               },

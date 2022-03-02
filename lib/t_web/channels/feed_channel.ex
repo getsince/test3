@@ -2,7 +2,7 @@ defmodule TWeb.FeedChannel do
   use TWeb, :channel
   import TWeb.ChannelHelpers
 
-  alias TWeb.{FeedView, MatchView, ErrorView}
+  alias TWeb.{FeedView, MatchView}
   alias T.{Feeds, Calls, Matches, Accounts, Events, News, Todos}
 
   @impl true

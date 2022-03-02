@@ -2,7 +2,7 @@ defmodule TWeb.FeedChannel do
   use TWeb, :channel
   import TWeb.ChannelHelpers
 
-  alias TWeb.{FeedView, MatchView, ErrorView}
+  alias TWeb.{FeedView, MatchView}
   alias T.{Feeds, Calls, Matches, Accounts, Events, News, Todos}
 
   @impl true
@@ -174,24 +174,20 @@ defmodule TWeb.FeedChannel do
     {:reply, :ok, socket}
   end
 
-  def handle_in("call", %{"user_id" => called}, socket) do
-    caller = me_id(socket)
+  def handle_in("call", _params, socket) do
+    alert =
+      alert(
+        dgettext("alerts", "Deprecation warning"),
+        dgettext("alerts", "Calls are no longer supported, please upgrade.")
+      )
 
-    reply =
-      case Calls.call(caller, called) do
-        {:ok, call_id} -> {:ok, %{"call_id" => call_id}}
-        {:error, reason} -> {:error, %{"reason" => reason}}
-      end
-
-    {:reply, reply, socket}
+    {:reply, {:error, %{alert: alert}}, socket}
   end
 
   def handle_in("like", %{"user_id" => liked}, socket) do
     %{current_user: %{id: liker}, screen_width: screen_width, version: version} = socket.assigns
 
     Events.save_like(liker, liked)
-
-    # TODO check that we had a call?
 
     reply =
       case Matches.like_user(liker, liked) do
@@ -235,32 +231,24 @@ defmodule TWeb.FeedChannel do
     {:reply, :ok, socket}
   end
 
-  def handle_in("offer-slots", %{"slots" => slots} = params, socket) do
-    me = me_id(socket)
+  def handle_in("offer-slots", _params, socket) do
+    alert =
+      alert(
+        dgettext("alerts", "Deprecation warning"),
+        dgettext("alerts", "Calls are no longer supported, please upgrade.")
+      )
 
-    reply =
-      params
-      |> case do
-        %{"match_id" => match_id} -> Matches.save_slots_offer_for_match(me, match_id, slots)
-        %{"user_id" => user_id} -> Matches.save_slots_offer_for_user(me, user_id, slots)
-      end
-      |> case do
-        {:ok, _timeslot} -> :ok
-        {:error, %Ecto.Changeset{} = changeset} -> {:error, render_changeset(changeset)}
-      end
-
-    {:reply, reply, socket}
+    {:reply, {:error, %{alert: alert}}, socket}
   end
 
-  def handle_in("pick-slot", %{"slot" => slot} = params, socket) do
-    me = me_id(socket)
+  def handle_in("pick-slot", _params, socket) do
+    alert =
+      alert(
+        dgettext("alerts", "Deprecation warning"),
+        dgettext("alerts", "Calls are no longer supported, please upgrade.")
+      )
 
-    case params do
-      %{"match_id" => match_id} -> Matches.accept_slot_for_match(me, match_id, slot)
-      %{"user_id" => user_id} -> Matches.accept_slot_for_matched_user(me, user_id, slot)
-    end
-
-    {:reply, :ok, socket}
+    {:reply, {:error, %{alert: alert}}, socket}
   end
 
   def handle_in("cancel-slot", params, socket) do
@@ -274,13 +262,14 @@ defmodule TWeb.FeedChannel do
     {:reply, :ok, socket}
   end
 
-  def handle_in("send-contact", %{"match_id" => match_id, "contacts" => contacts}, socket) do
-    me = me_id(socket)
+  def handle_in("send-contact", _params, socket) do
+    alert =
+      alert(
+        dgettext("alerts", "Deprecation warning"),
+        dgettext("alerts", "Sending contacts is no longer supported, please upgrade.")
+      )
 
-    {:ok, %Matches.MatchContact{contacts: contacts}} =
-      Matches.save_contacts_offer_for_match(me, match_id, contacts)
-
-    {:reply, {:ok, %{"contacts" => contacts}}, socket}
+    {:reply, {:error, %{alert: alert}}, socket}
   end
 
   def handle_in("open-contact", %{"match_id" => match_id, "contact_type" => contact_type}, socket) do
@@ -334,14 +323,14 @@ defmodule TWeb.FeedChannel do
 
   # voicemail
 
-  def handle_in("send-voicemail", %{"match_id" => match_id, "s3_key" => s3_key}, socket) do
-    reply =
-      case Calls.voicemail_save_message(me_id(socket), match_id, s3_key) do
-        {:ok, %Calls.Voicemail{id: message_id}} -> {:ok, %{"id" => message_id}}
-        {:error, reason} -> {:error, %{"reason" => reason}}
-      end
+  def handle_in("send-voicemail", _params, socket) do
+    alert =
+      alert(
+        dgettext("alerts", "Deprecation warning"),
+        dgettext("alerts", "Voicemail is no longer supported, please upgrade.")
+      )
 
-    {:reply, reply, socket}
+    {:reply, {:error, %{alert: alert}}, socket}
   end
 
   def handle_in("listen-voicemail", %{"id" => voicemail_id}, socket) do
@@ -516,10 +505,6 @@ defmodule TWeb.FeedChannel do
       |> render_feed_item(version, screen_width)
       |> maybe_put("seen", seen)
     end)
-  end
-
-  defp render_changeset(changeset) do
-    render(ErrorView, "changeset.json", changeset: changeset)
   end
 
   defp render_missed_calls_with_profile(missed_calls, version, screen_width) do

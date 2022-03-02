@@ -1090,363 +1090,54 @@ defmodule TWeb.FeedChannelTest do
     end
   end
 
-  describe "failed calls to active mate" do
+  describe "calls" do
     setup [:joined]
 
-    setup do
-      {:ok,
-       mate: onboarded_user(name: "mate", story: [], gender: "F", location: apple_location())}
-    end
+    test "result in deprecation warning", %{socket: socket} do
+      ref = push(socket, "call", _params = %{})
+      assert_reply ref, :error, reply
 
-    setup :joined_mate
-
-    test "missing invite", %{socket: socket, mate: mate} do
-      ref = push(socket, "call", %{"user_id" => mate.id})
-      assert_reply(ref, :error, reply)
-      assert reply == %{"reason" => "call not allowed"}
-    end
-
-    test "missing pushkit devices", %{me: me, socket: socket, mate: mate} do
-      insert(:match, user_id_1: me.id, user_id_2: mate.id)
-
-      # call still fails since mate is missing pushkit devices
-      ref = push(socket, "call", %{"user_id" => mate.id})
-      assert_reply(ref, :error, reply)
-      assert reply == %{"reason" => "no pushkit devices available"}
-    end
-
-    test "failed apns request", %{
-      me: me,
-      socket: socket,
-      mate: mate,
-      mate_socket: mate_socket
-    } do
-      "user_socket:" <> mate_token = mate_socket.id
-      # store some apns devices for mate
-      :ok =
-        Accounts.save_pushkit_device_id(
-          mate.id,
-          mate_token,
-          Base.decode16!("ABABABAB"),
-          env: "prod"
-        )
-
-      :ok =
-        Accounts.save_pushkit_device_id(
-          mate.id,
-          mate
-          |> Accounts.generate_user_session_token("mobile")
-          |> Accounts.UserToken.encoded_token(),
-          Base.decode16!("BABABABABA"),
-          env: "sandbox"
-        )
-
-      insert(:match, user_id_1: me.id, user_id_2: mate.id)
-
-      # assert_reply(ref, :ok, _reply)
-
-      MockAPNS
-      # ABABABAB on prod -> fails!
-      |> expect(:push, fn %{env: :prod} = n ->
-        assert n.device_id == "ABABABAB"
-        assert n.topic == "app.topic"
-        assert n.push_type == "voip"
-        assert n.payload["caller_id"] == me.id
-        assert n.payload["caller_name"] == "that"
-        assert n.payload["call_id"]
-        {:error, :bad_device_token}
-      end)
-      # BABABABABA on sandbox -> fails!
-      |> expect(:push, fn %{env: :dev} = n ->
-        assert n.device_id == "BABABABABA"
-        assert n.topic == "app.topic"
-        assert n.push_type == "voip"
-        assert n.payload["caller_id"] == me.id
-        assert n.payload["caller_name"] == "that"
-        assert n.payload["call_id"]
-        {:error, :bad_device_token}
-      end)
-
-      # call still can fail if apns requests fail
-      ref = push(socket, "call", %{"user_id" => mate.id})
-      assert_reply(ref, :error, reply)
-      assert reply == %{"reason" => "all pushes failed"}
+      assert reply == %{
+               alert: %{
+                 title: "Deprecation warning",
+                 body: "Calls are no longer supported, please upgrade."
+               }
+             }
     end
   end
 
-  describe "successful calls to active mate" do
-    setup [:joined]
-
-    setup do
-      {:ok, mate: onboarded_user(story: [], location: apple_location(), name: "mate")}
-    end
-
-    setup :joined_mate
-
-    setup %{mate: mate, mate_socket: mate_socket} do
-      "user_socket:" <> mate_token = mate_socket.id
-
-      :ok =
-        Accounts.save_pushkit_device_id(
-          mate.id,
-          mate_token,
-          Base.decode16!("ABABABAB"),
-          env: "prod"
-        )
-
-      :ok =
-        Accounts.save_pushkit_device_id(
-          mate.id,
-          mate
-          |> Accounts.generate_user_session_token("mobile")
-          |> Accounts.UserToken.encoded_token(),
-          Base.decode16!("BABABABABA"),
-          env: "sandbox"
-        )
-    end
-
-    test "when matched with mate", %{me: me, mate: mate, socket: socket} do
-      insert(:match, user_id_1: me.id, user_id_2: mate.id)
-
-      # these are the pushes sent to mate
-      MockAPNS
-      # ABABABAB on prod -> success!
-      |> expect(:push, fn %{env: :prod} -> :ok end)
-      # BABABABABA on sandbox -> fails!
-      |> expect(:push, fn %{env: :dev} -> {:error, :bad_device_token} end)
-
-      ref = push(socket, "call", %{"user_id" => mate.id})
-      assert_reply(ref, :ok, %{"call_id" => call_id})
-
-      assert %Call{id: ^call_id} = call = Repo.get!(Calls.Call, call_id)
-
-      refute call.ended_at
-      refute call.accepted_at
-      assert call.caller_id == me.id
-      assert call.called_id == mate.id
-    end
-  end
-
-  # TODO re-offer
-  describe "offer-slots success" do
+  describe "offer-slots" do
     setup :joined
 
-    setup %{me: me} do
-      mate = onboarded_user(story: [], location: apple_location(), name: "mate")
-      match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
+    test "results in deprecation warning", %{socket: socket} do
+      ref = push(socket, "offer-slots", _params = %{})
+      assert_reply ref, :error, reply
 
-      # if it's 14:47 right now, then the slots are
-      %DateTime{hour: next_hour} = dt = DateTime.utc_now() |> DateTime.add(_seconds = 3600)
-      date = DateTime.to_date(dt)
-
-      slots = [
-        # 15:15
-        DateTime.new!(date, Time.new!(next_hour, 15, 0)),
-        # 15:30
-        DateTime.new!(date, Time.new!(next_hour, 30, 0)),
-        # 15:45
-        DateTime.new!(date, Time.new!(next_hour, 45, 0))
-      ]
-
-      {:ok, mate: mate, match: match, slots: slots}
-    end
-
-    setup :joined_mate
-
-    test "with match_id", %{slots: slots, match: match, socket: socket} do
-      ref =
-        push(socket, "offer-slots", %{
-          "match_id" => match.id,
-          "slots" => Enum.map(slots, &DateTime.to_iso8601/1)
-        })
-
-      assert_reply(ref, :ok, %{})
-
-      # mate received slots
-      assert_push("slots_offer", push)
-
-      assert push == %{"match_id" => match.id, "slots" => slots}
-    end
-
-    test "with user_id", %{slots: slots, mate: mate, match: match, socket: socket} do
-      ref =
-        push(socket, "offer-slots", %{
-          "user_id" => mate.id,
-          "slots" => Enum.map(slots, &DateTime.to_iso8601/1)
-        })
-
-      assert_reply(ref, :ok, %{})
-
-      # mate received slots
-      assert_push("slots_offer", push)
-
-      assert push == %{"match_id" => match.id, "slots" => slots}
+      assert reply == %{
+               alert: %{
+                 title: "Deprecation warning",
+                 body: "Calls are no longer supported, please upgrade."
+               }
+             }
     end
   end
 
-  describe "offer-slots when no match" do
-    setup :joined
-
-    setup do
-      {:ok, mate: onboarded_user(story: [], location: apple_location(), name: "mate")}
-    end
-
-    @tag skip: true
-    test "when no match exists", %{socket: socket, mate: mate} do
-      Process.flag(:trap_exit, true)
-      push(socket, "offer-slots", %{"user_id" => mate.id, "slots" => []})
-      assert_receive {:EXIT, _pid, {%Ecto.NoResultsError{}, _stacktrace}}
-    end
-  end
-
-  describe "offer-slots when invalid slots" do
-    setup :joined
-
-    setup %{me: me} do
-      mate = onboarded_user(story: [], location: apple_location(), name: "mate")
-      match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
-
-      # if it's 14:47 right now, then the slots are
-      %DateTime{hour: prev_hour} = dt = DateTime.utc_now() |> DateTime.add(_seconds = -3600)
-      date = DateTime.to_date(dt)
-
-      slots =
-        [
-          # 13:15
-          DateTime.new!(date, Time.new!(prev_hour, 15, 0)),
-          # 13:30
-          DateTime.new!(date, Time.new!(prev_hour, 30, 0)),
-          # 13:45
-          DateTime.new!(date, Time.new!(prev_hour, 45, 0))
-        ]
-        |> Enum.map(&DateTime.to_iso8601/1)
-
-      {:ok, mate: mate, match: match, slots: slots}
-    end
-
-    test "with match_id", %{slots: slots, match: match, socket: socket} do
-      ref = push(socket, "offer-slots", %{"match_id" => match.id, "slots" => []})
-      assert_reply(ref, :error, %{slots: ["should have at least 1 item(s)"]})
-
-      ref = push(socket, "offer-slots", %{"match_id" => match.id, "slots" => slots})
-      assert_reply(ref, :error, %{slots: ["should have at least 1 item(s)"]})
-    end
-
-    test "with user_id", %{slots: slots, mate: mate, socket: socket} do
-      ref = push(socket, "offer-slots", %{"user_id" => mate.id, "slots" => []})
-      assert_reply(ref, :error, %{slots: ["should have at least 1 item(s)"]})
-
-      ref = push(socket, "offer-slots", %{"user_id" => mate.id, "slots" => slots})
-      assert_reply(ref, :error, %{slots: ["should have at least 1 item(s)"]})
-    end
-  end
-
-  # TODO re-offer when mate offered
-  # TODO try to pick slot by mate -> expect error
   describe "pick-slot success" do
     setup :joined
 
-    setup %{me: me} do
-      mate = onboarded_user(story: [], location: apple_location(), name: "mate")
-      match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
-      {:ok, mate: mate, match: match}
-    end
+    test "results in deprecation warning", %{socket: socket} do
+      ref = push(socket, "pick-slot", _params = %{})
+      assert_reply ref, :error, reply
 
-    setup :joined_mate
-
-    # mate offers slots to us
-    setup %{mate_socket: mate_socket, match: match} do
-      # if it's 14:47 right now, then the slots are
-      %DateTime{hour: next_hour} = dt = DateTime.utc_now() |> DateTime.add(_seconds = 3600)
-      date = DateTime.to_date(dt)
-
-      slots = [
-        # 15:15
-        DateTime.new!(date, Time.new!(next_hour, 15, 0)),
-        # 15:30
-        DateTime.new!(date, Time.new!(next_hour, 30, 0)),
-        # 15:45
-        DateTime.new!(date, Time.new!(next_hour, 45, 0))
-      ]
-
-      iso_slots = Enum.map(slots, &DateTime.to_iso8601/1)
-
-      ref = push(mate_socket, "offer-slots", %{"match_id" => match.id, "slots" => iso_slots})
-      assert_reply(ref, :ok, _reply)
-
-      # we get slots_offer
-      assert_push("slots_offer", push)
-
-      assert push == %{"match_id" => match.id, "slots" => slots}
-
-      {:ok, slots: slots}
-    end
-
-    test "with match_id", %{slots: [_s1, s2, _s3] = slots, match: match, socket: socket, me: me} do
-      iso_slot = DateTime.to_iso8601(s2)
-      ref = push(socket, "pick-slot", %{"match_id" => match.id, "slot" => iso_slot})
-      assert_reply(ref, :ok, _reply)
-
-      assert %Timeslot{} = timeslot = Repo.get_by(Timeslot, match_id: match.id)
-      assert timeslot.picker_id == me.id
-      assert timeslot.slots == slots
-      assert timeslot.selected_slot == s2
-
-      # mate gets a slot_accepted notification
-      assert_push("slot_accepted", push)
-
-      assert push == %{"match_id" => match.id, "selected_slot" => s2}
-    end
-
-    test "with user_id", %{
-      slots: [_s1, s2, _s3] = slots,
-      match: match,
-      mate: mate,
-      socket: socket,
-      me: me
-    } do
-      iso_slot = DateTime.to_iso8601(s2)
-      ref = push(socket, "pick-slot", %{"user_id" => mate.id, "slot" => iso_slot})
-      assert_reply(ref, :ok, _reply)
-
-      assert %Timeslot{} = timeslot = Repo.get_by(Timeslot, match_id: match.id)
-      assert timeslot.picker_id == me.id
-      assert timeslot.slots == slots
-      assert timeslot.selected_slot == s2
-
-      # mate gets a slot_accepted notification
-      assert_push("slot_accepted", push)
-
-      assert push == %{"match_id" => match.id, "selected_slot" => s2}
-    end
-
-    test "repick", %{slots: [s1, s2, _s3] = slots, match: match, socket: socket, me: me} do
-      iso_slot = DateTime.to_iso8601(s2)
-      ref = push(socket, "pick-slot", %{"match_id" => match.id, "slot" => iso_slot})
-      assert_reply(ref, :ok, _reply)
-
-      # mate first gets second slot
-      assert_push("slot_accepted", push)
-
-      assert push == %{"match_id" => match.id, "selected_slot" => s2}
-
-      iso_slot = DateTime.to_iso8601(s1)
-      ref = push(socket, "pick-slot", %{"match_id" => match.id, "slot" => iso_slot})
-      assert_reply(ref, :ok, _reply)
-
-      # then mate gets first slot
-      assert_push("slot_accepted", push)
-
-      assert push == %{"match_id" => match.id, "selected_slot" => s1}
-
-      assert %Timeslot{} = timeslot = Repo.get_by(Timeslot, match_id: match.id)
-      assert timeslot.picker_id == me.id
-      assert timeslot.slots == slots
-      assert timeslot.selected_slot == s1
+      assert reply == %{
+               alert: %{
+                 title: "Deprecation warning",
+                 body: "Calls are no longer supported, please upgrade."
+               }
+             }
     end
   end
 
-  # TODO cancel-slot before pick-slot
   describe "cancel-slot after pick-slot success" do
     setup :joined
 
@@ -1459,7 +1150,7 @@ defmodule TWeb.FeedChannelTest do
     setup :joined_mate
 
     # mate offers slots to us, we pick one
-    setup %{socket: socket, mate_socket: mate_socket, match: match, mate: mate} do
+    setup %{match: match, mate: mate, me: me} do
       # if it's 14:47 right now, then the slots are
       %DateTime{hour: next_hour} = dt = DateTime.utc_now() |> DateTime.add(_seconds = 3600)
       date = DateTime.to_date(dt)
@@ -1476,8 +1167,7 @@ defmodule TWeb.FeedChannelTest do
 
       iso_slots = Enum.map(slots, &DateTime.to_iso8601/1)
 
-      ref = push(mate_socket, "offer-slots", %{"match_id" => match.id, "slots" => iso_slots})
-      assert_reply(ref, :ok, _reply)
+      {:ok, %Matches.Timeslot{}} = Matches.save_slots_offer_for_user(mate.id, me.id, iso_slots)
 
       # we get slots_offer
       assert_push("slots_offer", push)
@@ -1486,8 +1176,7 @@ defmodule TWeb.FeedChannelTest do
 
       # we accept seocnd slot
       iso_slot = DateTime.to_iso8601(s2)
-      ref = push(socket, "pick-slot", %{"user_id" => mate.id, "slot" => iso_slot})
-      assert_reply(ref, :ok, _reply)
+      %Timeslot{} = Matches.accept_slot_for_matched_user(me.id, mate.id, iso_slot)
 
       # mate gets a slot_accepted notification
       assert_push("slot_accepted", push)
@@ -1768,67 +1457,16 @@ defmodule TWeb.FeedChannelTest do
   describe "send-voicemail" do
     setup :joined
 
-    test "failure: when match doesn't exist", %{socket: socket} do
-      match_id = Ecto.UUID.generate()
-      s3_key = Ecto.UUID.generate()
+    test "results in deprecation warning", %{socket: socket} do
+      ref = push(socket, "send-voicemail", _params = %{})
+      assert_reply ref, :error, reply
 
-      ref = push(socket, "send-voicemail", %{"match_id" => match_id, "s3_key" => s3_key})
-      assert_reply ref, :error, error
-      assert error == %{"reason" => "voicemail not allowed"}
-    end
-
-    test "failure: when me is not part of the match", %{socket: socket} do
-      u1 = onboarded_user()
-      u2 = onboarded_user()
-      %{id: match_id} = insert(:match, user_id_1: u1.id, user_id_2: u2.id)
-      s3_key = Ecto.UUID.generate()
-
-      ref = push(socket, "send-voicemail", %{"match_id" => match_id, "s3_key" => s3_key})
-      assert_reply ref, :error, error
-      assert error == %{"reason" => "voicemail not allowed"}
-    end
-
-    test "success: when users are matched, voicemail is saved and pushed to receiver", ctx do
-      %{me: %{id: me_id}} = ctx
-      %{id: mate_id} = mate = onboarded_user()
-      %{id: match_id} = insert(:match, user_id_1: me_id, user_id_2: mate_id)
-
-      {:ok, _reply, mate_socket} =
-        mate
-        |> connected_socket()
-        |> join("feed:" <> mate_id, %{"mode" => "normal"})
-
-      # mate -voice-> me
-
-      s3_key = Ecto.UUID.generate()
-      ref = push(mate_socket, "send-voicemail", %{"match_id" => match_id, "s3_key" => s3_key})
-
-      assert_reply ref, :ok, reply
-      assert Map.keys(reply) == ["id"]
-      assert %{"id" => voicemail_id} = reply
-
-      assert %Calls.Voicemail{
-               id: ^voicemail_id,
-               caller_id: ^mate_id,
-               match_id: ^match_id,
-               s3_key: ^s3_key,
-               inserted_at: inserted_at
-             } = Repo.get(Calls.Voicemail, voicemail_id)
-
-      assert_push "voicemail_received", %{"url" => url} = push
-
-      assert push == %{
-               "id" => voicemail_id,
-               "inserted_at" => DateTime.from_naive!(inserted_at, "Etc/UTC"),
-               "match_id" => match_id,
-               "s3_key" => s3_key,
-               "url" => url
+      assert reply == %{
+               alert: %{
+                 title: "Deprecation warning",
+                 body: "Voicemail is no longer supported, please upgrade."
+               }
              }
-
-      assert String.starts_with?(
-               push["url"],
-               "https://s3.eu-north-1.amazonaws.com/pretend-this-is-real/" <> s3_key
-             )
     end
   end
 
@@ -1836,27 +1474,21 @@ defmodule TWeb.FeedChannelTest do
     setup :joined
 
     test "success: sets voicemail's listened_at date", ctx do
-      %{me: %{id: me_id}, socket: socket} = ctx
-      %{id: mate_id} = mate = onboarded_user()
-      %{id: match_id} = insert(:match, user_id_1: me_id, user_id_2: mate_id)
+      %{me: me} = ctx
+      mate = onboarded_user()
+      match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
 
       # me -voice-> mate
 
-      ref =
-        push(socket, "send-voicemail", %{
-          "match_id" => match_id,
-          "s3_key" => Ecto.UUID.generate()
-        })
-
-      assert_reply ref, :ok, %{"id" => voicemail_id}
-      assert %Calls.Voicemail{listened_at: nil} = Repo.get(Calls.Voicemail, voicemail_id)
+      assert {:ok, %Calls.Voicemail{id: voicemail_id, listened_at: nil}} =
+               Calls.voicemail_save_message(me.id, match.id, _s3_key = Ecto.UUID.generate())
 
       # mate -listen-> voice
 
       {:ok, _reply, mate_socket} =
         mate
         |> connected_socket()
-        |> subscribe_and_join("feed:" <> mate_id, %{"mode" => "normal"})
+        |> subscribe_and_join("feed:" <> mate.id, %{"mode" => "normal"})
 
       now = DateTime.utc_now()
       freeze_time(mate_socket, now)

@@ -312,6 +312,13 @@ defmodule T.Matches do
     |> DateTime.add(match_ttl())
   end
 
+  def fetch_mate_id(by_user_id, match_id) do
+    match_q = where(Match, id: ^match_id)
+    match_q_1 = match_q |> where(user_id_1: ^by_user_id) |> select([m], m.user_id_2)
+    match_q_2 = match_q |> where(user_id_2: ^by_user_id) |> select([m], m.user_id_1)
+    match_q_1 |> union(^match_q_2) |> Repo.one()
+  end
+
   defp archived_match_ids_q(user_id) do
     ArchivedMatch |> where(by_user_id: ^user_id) |> select([m], m.match_id)
   end

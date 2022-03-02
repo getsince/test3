@@ -98,46 +98,46 @@ msgid "must be equal to %{number}"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/accounts/profile.ex:279
+#: lib/t/accounts/profile.ex:282
 msgid "%{label} can't be blank"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/accounts/profile.ex:245
+#: lib/t/accounts/profile.ex:248
 msgid "%{label} has invalid format"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/accounts/profile.ex:257
+#: lib/t/accounts/profile.ex:260
 msgid "%{label} should be at least %{count} character(s)"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/accounts/profile.ex:268
+#: lib/t/accounts/profile.ex:271
 msgid "%{label} should be at most %{count} character(s)"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/accounts/profile.ex:214
+#: lib/t/accounts/profile.ex:217
 msgid "email address"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/accounts/profile.ex:179
+#: lib/t/accounts/profile.ex:182
 msgid "instagram username"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/accounts/profile.ex:204
+#: lib/t/accounts/profile.ex:207
 msgid "phone number"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/accounts/profile.ex:169
+#: lib/t/accounts/profile.ex:172
 msgid "telegram username"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/accounts/profile.ex:194
+#: lib/t/accounts/profile.ex:197
 msgid "whatsapp phone number"
 msgstr ""

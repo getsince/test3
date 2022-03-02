@@ -13,24 +13,24 @@ defmodule T.Todos do
             "background" => %{"color" => "#111010"},
             "labels" => [
               %{
-                "value" => dgettext("news", "В твоей истории\nне хватает контакта"),
-                "position" => [24.0, 80.0],
+                "value" => dgettext("todos", "В твоей истории\nне хватает твоего контакта"),
+                "position" => [24.0, 150.0],
                 "background_fill" => "#F97EB9"
               },
               %{
-                "value" => dgettext("news", "Добавь его на приватную страницу"),
-                "position" => [24.0, 148.0],
+                "value" => dgettext("todos", "Без него твои мэтчи\nне смогут связаться с тобой"),
+                "position" => [24.0, 240.0],
                 "background_fill" => "#F97EB9"
               },
               %{
-                "value" => dgettext("news", "Жми 👇"),
-                "position" => [24.0, 423.0],
+                "value" => dgettext("todos", "Жми 👇"),
+                "position" => [24.0, 330.0],
                 "background_fill" => "#F97EB9"
               },
               %{
                 "action" => "add_contact",
-                "value" => dgettext("news", "Добавить контакт"),
-                "position" => [150.0, 513.0]
+                "value" => dgettext("todos", "Добавить контакт"),
+                "position" => [24.0, 500.0]
               }
             ],
             "size" => [375, 667]

@@ -1,0 +1,32 @@
+## "msgid"s in this file come from POT (.pot) files.
+##
+## Do not add, change, or remove "msgid"s manually here as
+## they're tied to the ones in the corresponding POT file
+## (with the same domain).
+##
+## Use "mix gettext.extract --merge" or "mix gettext.merge"
+## to merge POT files into PO files.
+msgid ""
+msgstr ""
+"Language: ru\n"
+"Plural-Forms: nplurals=3\n"
+
+#, elixir-autogen, elixir-format
+#: lib/t/todos.ex:21
+msgid "Без него твои мэтчи\nне смогут связаться с тобой"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+#: lib/t/todos.ex:32
+msgid "Добавить контакт"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+#: lib/t/todos.ex:26
+msgid "Жми 👇"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+#: lib/t/todos.ex:16
+msgid "В твоей истории\nне хватает контакта"
+msgstr ""

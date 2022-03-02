@@ -124,11 +124,8 @@ defmodule T.Factory do
             "zoom" => 1.2
           },
           %{
-            "type" => "answer",
-            "answer" => "msu",
-            "question" => "university",
-            "value" => "🥊\nменя воспитала улица",
-            "dimensions" => [400, 800],
+            "answer" => "durov",
+            "question" => "telegram",
             "position" => [150, 150]
           }
         ]

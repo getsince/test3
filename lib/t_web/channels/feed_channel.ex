@@ -3,7 +3,7 @@ defmodule TWeb.FeedChannel do
   import TWeb.ChannelHelpers
 
   alias TWeb.{FeedView, MatchView, ErrorView}
-  alias T.{Feeds, Calls, Matches, Accounts, Events, News}
+  alias T.{Feeds, Calls, Matches, Accounts, Events, News, Todos}
 
   @impl true
   def join("feed:" <> user_id, params, socket) do
@@ -60,9 +60,15 @@ defmodule TWeb.FeedChannel do
       |> News.list_news()
       |> render_news(version, screen_width)
 
+    todos =
+      user_id
+      |> Todos.list_todos()
+      |> render_news(version, screen_width)
+
     reply =
       %{}
       |> maybe_put("news", news)
+      |> maybe_put("todos", todos)
       |> maybe_put("missed_calls", missed_calls)
       |> maybe_put("likes", likes)
       |> maybe_put("matches", matches)

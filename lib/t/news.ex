@@ -65,15 +65,13 @@ defmodule T.News do
               },
               %{
                 "position" => [50.0, 404.0],
-                "value" => "getsince",
-                "answer" => "https://t.me/getsince",
+                "answer" => "getsince",
                 "question" => "telegram",
                 "rotation" => 20
               },
               %{
                 "position" => [160.0, 339.0],
-                "value" => "getsince.app",
-                "answer" => "https://www.instagram.com/getsince.app",
+                "answer" => "getsince.app",
                 "question" => "instagram",
                 "rotation" => -17
               },

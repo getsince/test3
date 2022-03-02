@@ -227,9 +227,13 @@ defmodule T.Feeds do
   end
 
   defp profiles_that_accept_gender_q(query, gender) do
-    join(query, :inner, [p], gp in GenderPreference,
-      on: gp.gender == ^gender and p.user_id == gp.user_id
-    )
+    if gender do
+      join(query, :inner, [p], gp in GenderPreference,
+        on: gp.gender == ^gender and p.user_id == gp.user_id
+      )
+    else
+      query
+    end
   end
 
   defp maybe_gender_preferenced_q(query, _no_preferences = []), do: query

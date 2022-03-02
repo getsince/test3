@@ -50,17 +50,17 @@ defmodule TWeb.ViewHelpersTest do
                  %{
                    "answer" => "putin",
                    "question" => "telegram",
-                   "value" => "https://t.me/putin"
+                   "url" => "https://t.me/putin"
                  },
                  %{
                    "answer" => "79169752435",
                    "question" => "whatsapp",
-                   "value" => "https://wa.me/79169752435"
+                   "url" => "https://wa.me/79169752435"
                  },
                  %{
                    "answer" => "putin",
                    "question" => "instagram",
-                   "value" => "https://instagram.com/putin"
+                   "url" => "https://instagram.com/putin"
                  },
                  %{"answer" => "putin@hotmail.com", "question" => "email"}
                ],

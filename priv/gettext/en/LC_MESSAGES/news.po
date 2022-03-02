@@ -17,7 +17,7 @@ msgid "Вот наши, нажми 👇"
 msgstr "Here are ours, click 👇"
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:114
+#: lib/t/news.ex:112
 msgid "Выглядит вот так 👉"
 msgstr "It looks like this 👉"
 
@@ -32,12 +32,12 @@ msgid "Мы убрали аудио-дэйты\nи голосовые сообщ
 msgstr "We removed audio dates\nand voice messages."
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:106
+#: lib/t/news.ex:104
 msgid "На нее можно поместить\nсвой контакт и что-то\nболее личное про тебя."
 msgstr "You can place\nyour contact and something\nmore personal about you."
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:91
+#: lib/t/news.ex:89
 msgid "Новые\nприватные страницы 👀"
 msgstr "New\nprivate pages 👀"
 
@@ -52,7 +52,7 @@ msgid "Подробности 👉"
 msgstr "Details 👉"
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:130
+#: lib/t/news.ex:128
 msgid "Попробуй новый Since ✨"
 msgstr "Try new Since ✨"
 
@@ -67,7 +67,7 @@ msgid "Привет! 👋"
 msgstr "Hi! 👋"
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:97
+#: lib/t/news.ex:95
 msgid "Создай приватную страницу,\nона будет видна только\nтвоим мэтчам."
 msgstr "Create a private page,\nonly your matches\nwould see it."
 
@@ -82,6 +82,6 @@ msgid "У нас важные новости."
 msgstr "We have important news."
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:81
+#: lib/t/news.ex:79
 msgid "Это ещё не всё 👉"
 msgstr "That's not all 👉"

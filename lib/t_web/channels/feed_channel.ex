@@ -2,8 +2,8 @@ defmodule TWeb.FeedChannel do
   use TWeb, :channel
   import TWeb.ChannelHelpers
 
-  alias TWeb.{FeedView, MatchView}
-  alias T.{Feeds, Calls, Matches, Accounts, Events, News}
+  alias TWeb.{FeedView, MatchView, ErrorView}
+  alias T.{Feeds, Calls, Matches, Accounts, Events, News, Todos}
 
   @impl true
   def join("feed:" <> user_id, params, socket) do
@@ -58,11 +58,17 @@ defmodule TWeb.FeedChannel do
     news =
       user_id
       |> News.list_news()
-      |> render_news(screen_width)
+      |> render_news(version, screen_width)
+
+    todos =
+      user_id
+      |> Todos.list_todos()
+      |> render_news(version, screen_width)
 
     reply =
       %{}
       |> maybe_put("news", news)
+      |> maybe_put("todos", todos)
       |> maybe_put("missed_calls", missed_calls)
       |> maybe_put("likes", likes)
       |> maybe_put("matches", matches)
@@ -578,7 +584,11 @@ defmodule TWeb.FeedChannel do
     render(MatchView, "interaction.json", interaction: interaction)
   end
 
-  defp render_news(news, screen_width) do
-    Enum.map(news, fn n -> render(FeedView, "news.json", news: n, screen_width: screen_width) end)
+  defp render_news(news, version, screen_width) do
+    alias TWeb.ViewHelpers
+
+    Enum.map(news, fn %{story: story} = news ->
+      %{news | story: ViewHelpers.postprocess_story(story, version, screen_width, :feed)}
+    end)
   end
 end

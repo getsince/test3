@@ -32,10 +32,10 @@ defmodule T.Matches do
   @pubsub T.PubSub
   @topic "__m"
 
-  @seven_days 7 * 24 * 60 * 60
+  @one_day 24 * 60 * 60
 
   @doc "Time-to-live for a match without life-prolonging events like calls, meetings, voice-messages"
-  def match_ttl, do: @seven_days
+  def match_ttl, do: @one_day
 
   defp pubsub_user_topic(user_id) when is_binary(user_id) do
     @topic <> ":u:" <> String.downcase(user_id)
@@ -1183,7 +1183,7 @@ defmodule T.Matches do
     to =
       reference
       |> DateTime.add(-match_ttl())
-      |> DateTime.add(_24_hours = 24 * 3600)
+      |> DateTime.add(_2_hours = 2 * 3600)
 
     from = DateTime.add(to, -60)
     {from, to}

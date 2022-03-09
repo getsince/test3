@@ -34,16 +34,16 @@ defmodule T.Matches.ExpiredMatchTest do
   end
 
   describe "expiration_list_soon_to_expire/0,1" do
-    defp a_day_before_expiration(match) do
+    defp two_hours_before_expiration(match) do
       match.inserted_at
       |> DateTime.from_naive!("Etc/UTC")
       |> DateTime.add(Matches.match_ttl())
-      |> DateTime.add(_24h = -24 * 3600)
+      |> DateTime.add(_2h = -2 * 3600)
     end
 
     test "lists matches without undying event" do
       match = match(inserted_at: ~N[2021-01-01 12:00:00])
-      assert ~U[2021-01-07 12:00:00Z] = dt = a_day_before_expiration(match)
+      assert ~U[2021-01-02 10:00:00Z] = dt = two_hours_before_expiration(match)
       assert Matches.expiration_list_soon_to_expire(dt) == [match.id]
     end
 
@@ -51,21 +51,21 @@ defmodule T.Matches.ExpiredMatchTest do
       match = match(inserted_at: ~N[2021-01-01 12:00:00])
       match_event(match: match, event: "call_start")
 
-      assert Matches.expiration_list_soon_to_expire(a_day_before_expiration(match)) == []
+      assert Matches.expiration_list_soon_to_expire(two_hours_before_expiration(match)) == []
     end
 
     test "doesn't list matches with contact offers" do
       match = match(inserted_at: ~N[2021-01-01 12:00:00])
       match_event(match: match, event: "contact_offer")
 
-      assert Matches.expiration_list_soon_to_expire(a_day_before_expiration(match)) == []
+      assert Matches.expiration_list_soon_to_expire(two_hours_before_expiration(match)) == []
     end
 
     test "doesn't list matches with contact clicks" do
       match = match(inserted_at: ~N[2021-01-01 12:00:00])
       match_event(match: match, event: "contact_click")
 
-      assert Matches.expiration_list_soon_to_expire(a_day_before_expiration(match)) == []
+      assert Matches.expiration_list_soon_to_expire(two_hours_before_expiration(match)) == []
     end
   end
 
@@ -128,7 +128,7 @@ defmodule T.Matches.ExpiredMatchTest do
     test "recent match is not expired" do
       me = insert(:user)
       not_me = insert(:user)
-      long_ago = DateTime.add(DateTime.utc_now(), -2 * 24 * 60 * 58)
+      long_ago = DateTime.add(DateTime.utc_now(), -12 * 60 * 58)
 
       m = insert(:match, user_id_1: me.id, user_id_2: not_me.id, inserted_at: long_ago)
       insert(:match_event, match_id: m.id, event: "created", timestamp: long_ago)
@@ -169,7 +169,7 @@ defmodule T.Matches.ExpiredMatchTest do
     test "push notification is scheduled for soon to be expired match" do
       me = insert(:user)
       not_me = insert(:user)
-      long_ago = DateTime.add(DateTime.utc_now(), -6 * 24 * 60 * 60 - 30)
+      long_ago = DateTime.add(DateTime.utc_now(), -22 * 60 * 60 - 30)
 
       m = insert(:match, user_id_1: me.id, user_id_2: not_me.id, inserted_at: long_ago)
       insert(:match_event, match_id: m.id, event: "created", timestamp: long_ago)

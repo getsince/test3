@@ -173,7 +173,7 @@ defmodule TWeb.FeedChannelTest do
                  "profile" => %{name: "mate-6", story: [], user_id: p6.id, gender: "F"},
                  "audio_only" => false,
                  "voicemail" => voicemail_m6,
-                 "expiration_date" => ~U[2021-10-07 12:16:10Z],
+                 "expiration_date" => ~U[2021-10-01 12:16:10Z],
                  "inserted_at" => ~U[2021-09-30 12:16:10Z],
                  "last_interaction_id" => last_interaction_id.(0)
                },
@@ -182,7 +182,7 @@ defmodule TWeb.FeedChannelTest do
                  "profile" => %{name: "mate-5", story: [], user_id: p5.id, gender: "F"},
                  "audio_only" => false,
                  "voicemail" => voicemail_m5,
-                 "expiration_date" => ~U[2021-10-07 12:16:09Z],
+                 "expiration_date" => ~U[2021-10-01 12:16:09Z],
                  "inserted_at" => ~U[2021-09-30 12:16:09Z],
                  "last_interaction_id" => last_interaction_id.(1)
                },
@@ -190,7 +190,7 @@ defmodule TWeb.FeedChannelTest do
                  "id" => m4.id,
                  "profile" => %{name: "mate-4", story: [], user_id: p4.id, gender: "F"},
                  "audio_only" => false,
-                 "expiration_date" => ~U[2021-10-07 12:16:08Z],
+                 "expiration_date" => ~U[2021-10-01 12:16:08Z],
                  "inserted_at" => ~U[2021-09-30 12:16:08Z]
                },
                %{
@@ -202,7 +202,7 @@ defmodule TWeb.FeedChannelTest do
                    "inserted_at" => ~U[2021-09-30 14:47:00Z]
                  },
                  "audio_only" => false,
-                 "expiration_date" => ~U[2021-10-07 12:16:07Z],
+                 "expiration_date" => ~U[2021-10-01 12:16:07Z],
                  "inserted_at" => ~U[2021-09-30 12:16:07Z],
                  "last_interaction_id" => last_interaction_id.(3)
                },
@@ -1407,7 +1407,7 @@ defmodule TWeb.FeedChannelTest do
                    "seen_at" => ~U[2022-01-12 13:18:42Z]
                  },
                  "audio_only" => false,
-                 "expiration_date" => ~U[2021-10-07 12:16:05Z],
+                 "expiration_date" => ~U[2021-10-01 12:16:05Z],
                  "inserted_at" => ~U[2021-09-30 12:16:05Z]
                }
              ]
@@ -1429,7 +1429,7 @@ defmodule TWeb.FeedChannelTest do
                    "seen_at" => ~U[2022-01-12 13:18:42Z]
                  },
                  "audio_only" => false,
-                 "expiration_date" => ~U[2021-10-07 12:16:05Z],
+                 "expiration_date" => ~U[2021-10-01 12:16:05Z],
                  "inserted_at" => ~U[2021-09-30 12:16:05Z]
                }
              ]
@@ -1447,7 +1447,7 @@ defmodule TWeb.FeedChannelTest do
                  "id" => m1.id,
                  "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
                  "audio_only" => false,
-                 "expiration_date" => ~U[2021-10-07 12:16:05Z],
+                 "expiration_date" => ~U[2021-10-01 12:16:05Z],
                  "inserted_at" => ~U[2021-09-30 12:16:05Z]
                }
              ]

@@ -290,14 +290,14 @@ defmodule T.MatchesTest do
       assert [%Match{id: ^match_id, expiration_date: nil}] = Matches.list_matches(u2_id)
     end
 
-    test "matches have expiration date = inserted_at + 7 * 24h", ctx do
+    test "matches have expiration date = inserted_at + 24h", ctx do
       %{
         profiles: [%{user_id: u1_id}, %{user_id: u2_id}],
         match: %{id: match_id, inserted_at: inserted_at}
       } = ctx
 
       expected_expiration_date =
-        inserted_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.add(_7_days = 7 * 24 * 3600)
+        inserted_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.add(_1_day = 1 * 24 * 3600)
 
       assert [%Match{id: ^match_id, expiration_date: ^expected_expiration_date}] =
                Matches.list_matches(u1_id)

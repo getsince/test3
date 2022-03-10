@@ -7,7 +7,7 @@ defmodule T.Matches do
   require Logger
 
   alias T.Repo
-  alias T.Matches.{Match, Like, ArchivedMatch}
+  alias T.Matches.{Match, Like}
   alias T.Feeds.FeedProfile
   alias T.Accounts.Profile
   alias T.PushNotifications.DispatchJob
@@ -217,7 +217,6 @@ defmodule T.Matches do
   def list_matches(user_id) do
     Match
     |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
-    |> where([m], m.id not in subquery(archived_match_ids_q(user_id)))
     |> order_by(desc: :inserted_at)
     |> Repo.all()
     |> Enum.map(fn match -> %Match{match | expiration_date: expiration_date(match)} end)
@@ -228,39 +227,6 @@ defmodule T.Matches do
     inserted_at
     |> DateTime.from_naive!("Etc/UTC")
     |> DateTime.add(match_ttl())
-  end
-
-  defp archived_match_ids_q(user_id) do
-    ArchivedMatch |> where(by_user_id: ^user_id) |> select([m], m.match_id)
-  end
-
-  @spec list_archived_matches(any) :: list
-  def list_archived_matches(user_id) do
-    ArchivedMatch
-    |> where([m], m.by_user_id == ^user_id)
-    |> order_by(desc: :inserted_at)
-    |> join(:inner, [m], p in FeedProfile, on: m.with_user_id == p.user_id)
-    |> select([m, p], {m, p})
-    |> Repo.all()
-    |> Enum.map(fn {match, feed_profile} ->
-      %ArchivedMatch{match | profile: feed_profile}
-    end)
-  end
-
-  def mark_match_archived(match_id, by_user_id) do
-    %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} =
-      get_match_for_user!(match_id, by_user_id)
-
-    [mate] = [uid1, uid2] -- [by_user_id]
-
-    Repo.insert!(%ArchivedMatch{match_id: match_id, by_user_id: by_user_id, with_user_id: mate})
-  end
-
-  def unarchive_match(match_id, by_user_id) do
-    ArchivedMatch
-    |> where(match_id: ^match_id)
-    |> where(by_user_id: ^by_user_id)
-    |> Repo.delete_all()
   end
 
   @spec unmatch_match(uuid, uuid) :: boolean
@@ -449,20 +415,6 @@ defmodule T.Matches do
 
       {:ok, count}
     end)
-  end
-
-  defp get_match_for_user!(match_id, user_id) do
-    Match
-    |> where(id: ^match_id)
-    |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
-    |> Repo.one!()
-    |> preload_mate!(user_id)
-  end
-
-  defp preload_mate!(match, user_id) do
-    [mate_id] = [match.user_id_1, match.user_id_2] -- [user_id]
-    mate = Repo.get!(Profile, mate_id)
-    %Match{match | profile: mate}
   end
 
   # Expired Matches

@@ -35,16 +35,10 @@ defmodule TWeb.FeedChannel do
       |> Matches.list_matches()
       |> render_matches(screen_width)
 
-    archived_matches =
-      user_id
-      |> Matches.list_archived_matches()
-      |> render_matches(screen_width)
-
     reply =
       %{}
       |> maybe_put("likes", likes)
       |> maybe_put("matches", matches)
-      |> maybe_put("archived_matches", archived_matches)
 
     {:ok, reply,
      assign(socket,
@@ -75,27 +69,6 @@ defmodule TWeb.FeedChannel do
       )
 
     {:reply, {:ok, %{"feed" => render_feed(feed, screen_width), "cursor" => cursor}}, socket}
-  end
-
-  def handle_in("archived-matches", _params, socket) do
-    %{current_user: user, screen_width: screen_width} = socket.assigns
-
-    archived_matches =
-      user.id
-      |> Matches.list_archived_matches()
-      |> render_matches(screen_width)
-
-    {:reply, {:ok, %{"archived_matches" => archived_matches}}, socket}
-  end
-
-  def handle_in("archive-match", %{"match_id" => match_id}, socket) do
-    Matches.mark_match_archived(match_id, me_id(socket))
-    {:reply, :ok, socket}
-  end
-
-  def handle_in("unarchive-match", %{"match_id" => match_id}, socket) do
-    Matches.unarchive_match(match_id, me_id(socket))
-    {:reply, :ok, socket}
   end
 
   # TODO possibly batch
@@ -239,12 +212,6 @@ defmodule TWeb.FeedChannel do
           screen_width: screen_width,
           expiration_date: expiration_date
         })
-
-      %Matches.ArchivedMatch{
-        match_id: match_id,
-        profile: profile
-      } ->
-        render_match(%{id: match_id, profile: profile, screen_width: screen_width})
     end)
   end
 

@@ -584,7 +584,7 @@ ALTER TABLE ONLY public.apns_devices
 
 ALTER TABLE ONLY public.checked_profiles
     ADD CONSTRAINT checked_profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(user_id) ON DELETE CASCADE;
-
+    
 
 --
 -- Name: feeded_profiles feeded_profiles_for_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -

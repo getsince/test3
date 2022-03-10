@@ -1,0 +1,34 @@
+vegetarian
+vegan
+fruitarian
+keto diet
+raw food
+healthy eating
+sugar free
+gluten free
+asian food
+american food
+georgian food
+russian food
+italian food
+indian food
+mexican food
+pan-asian food
+fast food
+mediterranean food
+french food
+burgers
+pizza
+pasta
+hot dogs
+bowls
+salads
+poke
+sushi
+ramen
+falafel
+wok
+steak
+chocolate
+ice cream
+pastry

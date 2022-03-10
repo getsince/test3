@@ -18,8 +18,10 @@ defmodule T.PushNotifications.DispatchJob do
       %Matches.Match{user_id_1: uid1, user_id_2: uid2} = match
 
       data = %{"match_id" => match_id}
-      uid1 |> Accounts.list_apns_devices() |> schedule_apns("match", data)
-      uid2 |> Accounts.list_apns_devices() |> schedule_apns("match", data)
+      template_uid1 = if has_contact?(uid1), do: "match", else: "match_no_contact"
+      template_uid2 = if has_contact?(uid2), do: "match", else: "match_no_contact"
+      uid1 |> Accounts.list_apns_devices() |> schedule_apns(template_uid1, data)
+      uid2 |> Accounts.list_apns_devices() |> schedule_apns(template_uid2, data)
 
       :ok
     else
@@ -85,6 +87,19 @@ defmodule T.PushNotifications.DispatchJob do
     |> where(user_id: ^user_id)
     |> select([p], {p.name, p.gender})
     |> Repo.one()
+  end
+
+  defp has_contact?(user_id) do
+    Accounts.Profile
+    |> where(user_id: ^user_id)
+    |> select([p], p.story)
+    |> Repo.one()
+    |> then(fn story -> story || [] end)
+    |> Enum.any?(fn page ->
+      Enum.any?(page["labels"] || [], fn label ->
+        label["question"] in Accounts.Profile.contacts()
+      end)
+    end)
   end
 
   defp alive_match(match_id) do

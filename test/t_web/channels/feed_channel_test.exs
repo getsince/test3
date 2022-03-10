@@ -1,7 +1,7 @@
 defmodule TWeb.FeedChannelTest do
   use TWeb.ChannelCase, async: true
 
-  alias T.{Accounts, Matches}
+  alias T.{Accounts, Matches, News}
   alias Matches.Match
 
   import Mox
@@ -15,6 +15,39 @@ defmodule TWeb.FeedChannelTest do
   describe "join" do
     test "with invalid topic", %{socket: socket} do
       assert {:error, %{"error" => "forbidden"}} = join(socket, "feed:" <> Ecto.UUID.generate())
+    end
+
+    test "shows private pages of matches", %{socket: socket, me: me} do
+      stacy =
+        onboarded_user(
+          name: "Private Stacy",
+          location: apple_location(),
+          story: [
+            %{"background" => %{"s3_key" => "public1"}, "labels" => [], "size" => [400, 100]},
+            %{
+              "background" => %{"s3_key" => "private"},
+              "blurred" => %{"s3_key" => "blurred"},
+              "labels" => [
+                %{
+                  "value" => "some private info",
+                  "position" => [100, 100]
+                }
+              ],
+              "size" => [100, 400]
+            }
+          ],
+          gender: "F",
+          accept_genders: ["M"]
+        )
+
+      insert(:match, user_id_1: me.id, user_id_2: stacy.id)
+
+      assert {:ok, %{"matches" => [%{"profile" => %{story: [public, private]}}]}, _socket} =
+               join(socket, "feed:" <> me.id)
+
+      assert Map.keys(public) == ["background", "labels", "size"]
+      assert Map.keys(private) == ["background", "labels", "private", "size"]
+      assert %{"private" => true} = private
     end
 
     test "with matches", %{socket: socket, me: me} do
@@ -36,6 +69,12 @@ defmodule TWeb.FeedChannelTest do
         insert(:match, user_id_1: me.id, user_id_2: p6.id, inserted_at: ~N[2021-09-30 12:16:10])
       ]
 
+      # first match is also seen
+      :ok = Matches.mark_match_seen(me.id, m1.id)
+
+      # and second match is also seen
+      :ok = Matches.mark_match_seen(me.id, m2.id)
+
       assert {:ok, %{"matches" => matches}, _socket} =
                join(socket, "feed:" <> me.id, %{"mode" => "normal"})
 
@@ -44,45 +83,50 @@ defmodule TWeb.FeedChannelTest do
                  "id" => m6.id,
                  "profile" => %{name: "mate-6", story: [], user_id: p6.id, gender: "F"},
                  "inserted_at" => ~U[2021-09-30 12:16:10Z],
-                 "expiration_date" => ~U[2021-10-07 12:16:10Z]
+                 "expiration_date" => ~U[2021-10-01 12:16:10Z]
                },
                %{
                  "id" => m5.id,
                  "profile" => %{name: "mate-5", story: [], user_id: p5.id, gender: "F"},
                  "inserted_at" => ~U[2021-09-30 12:16:09Z],
-                 "expiration_date" => ~U[2021-10-07 12:16:09Z]
+                 "expiration_date" => ~U[2021-10-01 12:16:09Z]
                },
                %{
                  "id" => m4.id,
                  "profile" => %{name: "mate-4", story: [], user_id: p4.id, gender: "F"},
                  "inserted_at" => ~U[2021-09-30 12:16:08Z],
-                 "expiration_date" => ~U[2021-10-07 12:16:08Z]
+                 "expiration_date" => ~U[2021-10-01 12:16:08Z]
                },
                %{
                  "id" => m3.id,
                  "profile" => %{name: "mate-3", story: [], user_id: p3.id, gender: "M"},
                  "inserted_at" => ~U[2021-09-30 12:16:07Z],
-                 "expiration_date" => ~U[2021-10-07 12:16:07Z]
+                 "expiration_date" => ~U[2021-10-01 12:16:07Z]
                },
                %{
                  "id" => m2.id,
                  "profile" => %{name: "mate-2", story: [], user_id: p2.id, gender: "N"},
                  "inserted_at" => ~U[2021-09-30 12:16:06Z],
-                 "expiration_date" => ~U[2021-10-07 12:16:06Z]
+                 "expiration_date" => ~U[2021-10-01 12:16:06Z],
+                 "seen" => true
                },
                %{
                  "id" => m1.id,
                  "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
                  "inserted_at" => ~U[2021-09-30 12:16:05Z],
-                 "expiration_date" => ~U[2021-10-07 12:16:05Z]
+                 "expiration_date" => ~U[2021-10-01 12:16:05Z],
+                 "seen" => true
                }
              ]
     end
 
     test "with likes", %{socket: socket, me: me} do
-      mate = onboarded_user(story: [], name: "mate", location: apple_location(), gender: "F")
+      mate1 = onboarded_user(story: [], name: "mate-1", location: apple_location(), gender: "F")
+      mate2 = onboarded_user(story: [], name: "mate-2", location: apple_location(), gender: "F")
 
-      assert {:ok, %{like: %Matches.Like{}}} = Matches.like_user(mate.id, me.id)
+      assert {:ok, %{like: %Matches.Like{}}} = Matches.like_user(mate1.id, me.id)
+      assert {:ok, %{like: %Matches.Like{}}} = Matches.like_user(mate2.id, me.id)
+      assert :ok = Matches.mark_like_seen(me.id, mate2.id)
 
       assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id, %{"mode" => "normal"})
 
@@ -90,14 +134,93 @@ defmodule TWeb.FeedChannelTest do
                "likes" => [
                  %{
                    "profile" => %{
-                     name: "mate",
+                     name: "mate-1",
                      story: [],
-                     user_id: mate.id,
+                     user_id: mate1.id,
                      gender: "F"
                    }
+                 },
+                 %{
+                   "profile" => %{name: "mate-2", story: [], user_id: mate2.id, gender: "F"},
+                   "seen" => true
                  }
                ]
              }
+    end
+
+    test "with news", %{socket: socket, me: me} do
+      import Ecto.Query
+
+      {1, _} =
+        News.SeenNews
+        |> where(user_id: ^me.id)
+        |> Repo.delete_all()
+
+      assert {:ok, %{"news" => news}, socket} = join(socket, "feed:" <> me.id)
+
+      assert [_first_news_item = %{id: 1, story: story}] = news
+      assert [p1, p2, p3, p4, p5] = story
+
+      for page <- [p1, p2, p3, p5] do
+        assert %{"background" => %{"color" => _}, "labels" => _, "size" => _} = page
+      end
+
+      assert %{
+               "blurred" => %{
+                 "s3_key" => "5cfbe96c-e456-43bb-8d3a-98e849c00d5d",
+                 "proxy" => "https://d1234.cloudfront.net/" <> _
+               },
+               "private" => true
+             } = p4
+
+      tg_contact = Enum.find(p2["labels"], fn label -> label["question"] == "telegram" end)
+      ig_contact = Enum.find(p2["labels"], fn label -> label["question"] == "instagram" end)
+
+      assert Map.take(tg_contact, ["answer", "url"]) == %{
+               "answer" => "getsince",
+               "url" => "https://t.me/getsince"
+             }
+
+      assert Map.take(ig_contact, ["answer", "url"]) == %{
+               "answer" => "getsince.app",
+               "url" => "https://instagram.com/getsince.app"
+             }
+
+      ref = push(socket, "seen", %{"news_story_id" => 1})
+      assert_reply ref, :ok, _
+
+      # should be no-op since the user has already seen story with id=1
+      ref = push(socket, "seen", %{"news_story_id" => 0})
+      assert_reply ref, :ok, _
+
+      assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id)
+      refute reply["news"]
+
+      assert 1 == Repo.get!(News.SeenNews, me.id).last_id
+    end
+
+    test "without todos", %{socket: socket, me: me} do
+      assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id)
+      refute reply["todos"]
+    end
+
+    test "with todos", %{socket: socket, me: me} do
+      {:ok, _profile} =
+        Accounts.update_profile(me.profile, %{
+          "story" => [
+            %{
+              "background" => %{"s3_key" => "photo.jpg"},
+              "labels" => []
+            }
+          ]
+        })
+
+      assert {:ok, %{"todos" => todos}, _socket} = join(socket, "feed:" <> me.id)
+
+      assert [_first_todos_item = %{story: story}] = todos
+      assert [p1] = story
+
+      assert %{"background" => %{"color" => _}, "labels" => _, "size" => _} = p1
     end
   end
 
@@ -450,17 +573,41 @@ defmodule TWeb.FeedChannelTest do
     setup :joined
 
     setup do
-      {:ok, mate: onboarded_user(story: [], location: apple_location(), name: "mate")}
+      stacy =
+        onboarded_user(
+          name: "Private Stacy",
+          location: apple_location(),
+          story: [
+            %{"background" => %{"s3_key" => "public1"}, "labels" => [], "size" => [400, 100]},
+            %{
+              "background" => %{"s3_key" => "private"},
+              "blurred" => %{"s3_key" => "blurred"},
+              "labels" => [
+                %{
+                  "value" => "some private info",
+                  "position" => [100, 100]
+                }
+              ],
+              "size" => [100, 400]
+            }
+          ],
+          gender: "F",
+          accept_genders: ["M"]
+        )
+
+      {:ok, mate: stacy}
     end
 
     setup :joined_mate
 
-    test "when already liked by mate", %{
-      me: me,
-      socket: socket,
-      mate: mate,
-      mate_socket: mate_socket
-    } do
+    test "when already liked by mate", ctx do
+      %{
+        me: me,
+        socket: socket,
+        mate: mate,
+        mate_socket: mate_socket
+      } = ctx
+
       # mate likes us
       ref = push(mate_socket, "like", %{"user_id" => me.id})
       assert_reply(ref, :ok, reply)
@@ -471,32 +618,54 @@ defmodule TWeb.FeedChannelTest do
       assert me_from_db.like_ratio == 1.0
 
       # we got notified of like
-      assert_push("invite", invite)
+      assert_push("invite", %{"profile" => %{story: [public, private] = story}} = invite)
 
       assert invite == %{
                "profile" => %{
-                 gender: "M",
-                 name: "mate",
-                 story: [],
+                 gender: "F",
+                 name: "Private Stacy",
+                 story: story,
                  user_id: mate.id
                }
              }
 
+      # when we get notified of like, we are not showing private pages of the liker
+      assert Map.keys(public) == ["background", "labels", "size"]
+      assert Map.keys(private) == ["blurred", "private"]
+
+      assert %{
+               "blurred" => %{"s3_key" => "blurred", "proxy" => "https://" <> _},
+               "private" => true
+             } = private
+
       # now it's our turn
       ref = push(socket, "like", %{"user_id" => mate.id})
-      assert_reply(ref, :ok, %{"match_id" => match_id, "expiration_date" => ed})
+
+      assert_reply(ref, :ok, %{
+        "match_id" => match_id,
+        "expiration_date" => ed,
+        "profile" => %{story: [public, private]}
+      })
+
       refute is_nil(ed)
       assert is_binary(match_id)
 
       assert_push "matched", _payload
+
+      # when we are matched, we can see private pages of the liker (now mate)
+      assert Map.keys(public) == ["background", "labels", "size"]
+      assert Map.keys(private) == ["background", "labels", "private", "size"]
+      assert %{"private" => true} = private
     end
 
-    test "when not yet liked by mate", %{
-      me: me,
-      socket: socket,
-      mate: mate,
-      mate_socket: mate_socket
-    } do
+    test "when not yet liked by mate", ctx do
+      %{
+        me: me,
+        socket: socket,
+        mate: mate,
+        mate_socket: mate_socket
+      } = ctx
+
       # we like mate
       ref = push(socket, "like", %{"user_id" => mate.id})
       assert_reply(ref, :ok, reply)
@@ -517,14 +686,59 @@ defmodule TWeb.FeedChannelTest do
       assert %DateTime{} = inserted_at = match["inserted_at"]
       assert abs(DateTime.diff(now, inserted_at)) <= 1
 
+      assert %{"match" => %{"profile" => %{story: [public, private] = story}}} = push
+
       assert push == %{
                "match" => %{
                  "id" => match_id,
-                 "profile" => %{name: "mate", story: [], user_id: mate.id, gender: "M"},
+                 "profile" => %{
+                   name: "Private Stacy",
+                   story: story,
+                   user_id: mate.id,
+                   gender: "F"
+                 },
                  "expiration_date" => expiration_date,
                  "inserted_at" => inserted_at
                }
              }
+
+      # when we are matched, we can see private pages
+      assert Map.keys(public) == ["background", "labels", "size"]
+      assert Map.keys(private) == ["background", "labels", "private", "size"]
+      assert %{"private" => true} = private
+    end
+
+    test "seen-like", ctx do
+      import Ecto.Query
+
+      %{me: me, socket: socket, mate: mate} = ctx
+
+      # mate likes us
+      {:ok, _} = Matches.like_user(mate.id, me.id)
+
+      # we see mate's like
+      ref = push(socket, "seen-like", %{"user_id" => mate.id})
+      assert_reply ref, :ok, _reply
+
+      assert %Matches.Like{seen: true} =
+               Matches.Like
+               |> where(by_user_id: ^mate.id)
+               |> where(user_id: ^me.id)
+               |> Repo.one!()
+    end
+  end
+
+  describe "seen-match" do
+    setup :joined
+
+    test "marks match as seen", %{me: me, socket: socket} do
+      mate = onboarded_user()
+      match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
+
+      ref = push(socket, "seen-match", %{"match_id" => match.id})
+      assert_reply ref, :ok, _reply
+
+      assert [%Match{seen: true}] = Matches.list_matches(me.id)
     end
   end
 
@@ -646,6 +860,67 @@ defmodule TWeb.FeedChannelTest do
       Accounts.update_profile(profile, %{"min_age" => 31})
       new_filter = %T.Feeds.FeedFilter{initial_filter | min_age: 31}
       assert_receive {Accounts, :feed_filter_updated, ^new_filter}
+    end
+  end
+
+  describe "private stories" do
+    setup :joined
+
+    setup do
+      now = DateTime.utc_now()
+
+      stacy =
+        onboarded_user(
+          name: "Private Stacy",
+          location: apple_location(),
+          story: [
+            %{"background" => %{"s3_key" => "public1"}, "labels" => [], "size" => [400, 100]},
+            %{
+              "background" => %{"s3_key" => "private"},
+              "blurred" => %{"s3_key" => "blurred"},
+              "labels" => [
+                %{
+                  "value" => "some private info",
+                  "position" => [100, 100]
+                }
+              ],
+              "size" => [100, 400]
+            }
+          ],
+          gender: "F",
+          accept_genders: ["M"],
+          last_active: DateTime.add(now, -1)
+        )
+
+      {:ok, stacy: stacy}
+    end
+
+    test "more: private stories are blurred", %{socket: socket} do
+      ref = push(socket, "more")
+      assert_reply(ref, :ok, %{"feed" => feed})
+
+      assert [%{"profile" => %{story: [public, private]}}] = feed
+
+      assert Map.keys(public) == ["background", "labels", "size"]
+      assert Map.keys(private) == ["blurred", "private"]
+
+      assert %{
+               "blurred" => %{
+                 "s3_key" => "blurred",
+                 "proxy" => "https://d1234.cloudfront.net/" <> _
+               },
+               "private" => true
+             } = private
+    end
+
+    test "matched: private story becomes visible", %{me: me, stacy: stacy} do
+      Matches.like_user(me.id, stacy.id)
+      Matches.like_user(stacy.id, me.id)
+
+      assert_push "matched", %{"match" => %{"profile" => %{story: [public, private]}}}
+      assert Map.keys(public) == ["background", "labels", "size"]
+      assert Map.keys(private) == ["background", "labels", "private", "size"]
+      assert %{"private" => true} = private
     end
   end
 

@@ -11,6 +11,7 @@ defmodule T.Matches.Like do
 
     field :liker_profile, :map, virtual: true
     field :declined, :boolean
+    field :seen, :boolean
 
     timestamps(updated_at: false)
   end

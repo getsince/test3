@@ -20,11 +20,12 @@ defmodule TWeb.MobileAuthController do
     |> json(%{
       token: Accounts.UserToken.encoded_token(token),
       user: render_user(user),
-      # TODO proper screen_width
+      # TODO remove in `new-socket`
       profile:
         TWeb.ProfileView.render("show_with_location.json",
           profile: user.profile,
-          screen_width: 1000
+          screen_width: 1000,
+          version: "6.0.0"
         )
     })
   end

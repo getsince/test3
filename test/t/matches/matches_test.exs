@@ -106,12 +106,42 @@ defmodule T.MatchesTest do
     end
   end
 
+  describe "mark_like_seen/2" do
+    test "sets like.seen = true" do
+      me = onboarded_user()
+      liker = onboarded_user()
+
+      {:ok, _} = Matches.like_user(liker.id, me.id)
+
+      assert %Like{seen: false} =
+               Like |> where(by_user_id: ^liker.id) |> where(user_id: ^me.id) |> Repo.one!()
+
+      :ok = Matches.mark_like_seen(me.id, liker.id)
+
+      assert %Like{seen: true} =
+               Like |> where(by_user_id: ^liker.id) |> where(user_id: ^me.id) |> Repo.one!()
+    end
+  end
+
   describe "list_matches/1" do
     setup do
       p1 = insert(:profile)
       p2 = insert(:profile)
       match = insert(:match, user_id_1: p1.user_id, user_id_2: p2.user_id)
       {:ok, profiles: [p1, p2], match: match}
+    end
+
+    test "matches with contact clicks don't have expiration date", ctx do
+      %{profiles: [%{user_id: u1_id}, %{user_id: u2_id}], match: %{id: match_id}} = ctx
+
+      insert(:match_event,
+        match_id: match_id,
+        timestamp: DateTime.utc_now(),
+        event: "contact_click"
+      )
+
+      assert [%Match{id: ^match_id, expiration_date: nil}] = Matches.list_matches(u1_id)
+      assert [%Match{id: ^match_id, expiration_date: nil}] = Matches.list_matches(u2_id)
     end
 
     test "matches have expiration date = inserted_at + 7 * 24h", ctx do
@@ -121,13 +151,33 @@ defmodule T.MatchesTest do
       } = ctx
 
       expected_expiration_date =
-        inserted_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.add(_7_days = 7 * 24 * 3600)
+        inserted_at |> DateTime.from_naive!("Etc/UTC") |> DateTime.add(_1_day = 1 * 24 * 3600)
 
       assert [%Match{id: ^match_id, expiration_date: ^expected_expiration_date}] =
                Matches.list_matches(u1_id)
 
       assert [%Match{id: ^match_id, expiration_date: ^expected_expiration_date}] =
                Matches.list_matches(u2_id)
+    end
+
+    test "with seen matches", ctx do
+      %{
+        profiles: [%{user_id: u1_id}, %{user_id: u2_id}],
+        match: %{id: match_id}
+      } = ctx
+
+      assert [%Match{id: ^match_id, seen: false}] = Matches.list_matches(u1_id)
+      assert [%Match{id: ^match_id, seen: false}] = Matches.list_matches(u2_id)
+
+      :ok = Matches.mark_match_seen(u1_id, match_id)
+
+      assert [%Match{id: ^match_id, seen: true}] = Matches.list_matches(u1_id)
+      assert [%Match{id: ^match_id, seen: false}] = Matches.list_matches(u2_id)
+
+      :ok = Matches.mark_match_seen(u2_id, match_id)
+
+      assert [%Match{id: ^match_id, seen: true}] = Matches.list_matches(u1_id)
+      assert [%Match{id: ^match_id, seen: true}] = Matches.list_matches(u2_id)
     end
   end
 

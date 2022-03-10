@@ -20,19 +20,22 @@ defmodule TWeb.UserSocket do
       Logger.metadata(remote_ip: remote_ip)
     end
 
-    version = if params["version"], do: "ios/" <> params["version"]
+    version = params["version"]
+    ios_version = if version, do: "ios/" <> version
 
-    if user = Accounts.get_user_by_session_token_and_update_version(token, version, "mobile") do
+    if user = Accounts.get_user_by_session_token_and_update_version(token, ios_version, "mobile") do
       Logger.metadata(user_id: user.id)
       Logger.warn("user online #{user.id}")
       Accounts.update_last_active(user.id)
 
-      if check_version(params["version"]) do
+      if check_version(version) do
         {:ok,
          assign(socket,
            current_user: user,
            token: token,
-           screen_width: params["screen_width"] || 1000
+           screen_width: params["screen_width"] || 1000,
+           locale: params["locale"],
+           version: version
          )}
       else
         Accounts.schedule_upgrade_app_push(user.id)
@@ -49,8 +52,7 @@ defmodule TWeb.UserSocket do
   end
 
   defp check_version(nil), do: false
-
-  defp check_version(version), do: Version.match?(version, ">= 5.0.0")
+  defp check_version(version), do: Version.match?(version, ">= 6.0.0")
 
   def handle_error(conn, :unsupported_version),
     do: Plug.Conn.send_resp(conn, 418, "")

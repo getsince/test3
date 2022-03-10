@@ -3,7 +3,7 @@
 --
 
 -- Dumped from database version 13.1 (Debian 13.1-1.pgdg100+1)
--- Dumped by pg_dump version 14.1
+-- Dumped by pg_dump version 14.2
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -89,6 +89,18 @@ CREATE TABLE public.apns_devices (
 
 
 --
+-- Name: checked_profiles; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.checked_profiles (
+    user_id uuid NOT NULL,
+    "has_text_contact?" boolean NOT NULL,
+    inserted_at timestamp(0) without time zone NOT NULL,
+    updated_at timestamp(0) without time zone NOT NULL
+);
+
+
+--
 -- Name: feeded_profiles; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -116,7 +128,8 @@ CREATE TABLE public.liked_profiles (
     by_user_id uuid NOT NULL,
     user_id uuid NOT NULL,
     inserted_at timestamp(0) without time zone NOT NULL,
-    declined boolean
+    declined boolean,
+    seen boolean DEFAULT false NOT NULL
 );
 
 
@@ -129,6 +142,16 @@ CREATE TABLE public.matches (
     user_id_1 uuid NOT NULL,
     user_id_2 uuid NOT NULL,
     inserted_at timestamp(0) without time zone NOT NULL
+);
+
+
+--
+-- Name: matches_seen; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.matches_seen (
+    user_id uuid NOT NULL,
+    match_id uuid NOT NULL
 );
 
 
@@ -222,6 +245,16 @@ CREATE TABLE public.schema_migrations (
 
 
 --
+-- Name: seen_news; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.seen_news (
+    user_id uuid NOT NULL,
+    last_id integer
+);
+
+
+--
 -- Name: seen_profiles; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -292,6 +325,14 @@ ALTER TABLE ONLY public.apns_devices
 
 
 --
+-- Name: checked_profiles checked_profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.checked_profiles
+    ADD CONSTRAINT checked_profiles_pkey PRIMARY KEY (user_id);
+
+
+--
 -- Name: feeded_profiles feeded_profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -324,6 +365,14 @@ ALTER TABLE ONLY public.matches
 
 
 --
+-- Name: matches_seen matches_seen_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.matches_seen
+    ADD CONSTRAINT matches_seen_pkey PRIMARY KEY (user_id, match_id);
+
+
+--
 -- Name: oban_jobs oban_jobs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -345,6 +394,14 @@ ALTER TABLE ONLY public.profiles
 
 ALTER TABLE ONLY public.schema_migrations
     ADD CONSTRAINT schema_migrations_pkey PRIMARY KEY (version);
+
+
+--
+-- Name: seen_news seen_news_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.seen_news
+    ADD CONSTRAINT seen_news_pkey PRIMARY KEY (user_id);
 
 
 --
@@ -522,6 +579,14 @@ ALTER TABLE ONLY public.apns_devices
 
 
 --
+-- Name: checked_profiles checked_profiles_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.checked_profiles
+    ADD CONSTRAINT checked_profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(user_id) ON DELETE CASCADE;
+
+
+--
 -- Name: feeded_profiles feeded_profiles_for_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -562,6 +627,22 @@ ALTER TABLE ONLY public.liked_profiles
 
 
 --
+-- Name: matches_seen matches_seen_match_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.matches_seen
+    ADD CONSTRAINT matches_seen_match_id_fkey FOREIGN KEY (match_id) REFERENCES public.matches(id) ON DELETE CASCADE;
+
+
+--
+-- Name: matches_seen matches_seen_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.matches_seen
+    ADD CONSTRAINT matches_seen_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: matches matches_user_id_1_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -583,6 +664,14 @@ ALTER TABLE ONLY public.matches
 
 ALTER TABLE ONLY public.profiles
     ADD CONSTRAINT profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: seen_news seen_news_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.seen_news
+    ADD CONSTRAINT seen_news_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
@@ -650,3 +739,14 @@ INSERT INTO public."schema_migrations" (version) VALUES (20211109083906);
 INSERT INTO public."schema_migrations" (version) VALUES (20211116102238);
 INSERT INTO public."schema_migrations" (version) VALUES (20211220142445);
 INSERT INTO public."schema_migrations" (version) VALUES (20211221161830);
+INSERT INTO public."schema_migrations" (version) VALUES (20211222133341);
+INSERT INTO public."schema_migrations" (version) VALUES (20211229125434);
+INSERT INTO public."schema_migrations" (version) VALUES (20220101121429);
+INSERT INTO public."schema_migrations" (version) VALUES (20220111113337);
+INSERT INTO public."schema_migrations" (version) VALUES (20220112131454);
+INSERT INTO public."schema_migrations" (version) VALUES (20220112133053);
+INSERT INTO public."schema_migrations" (version) VALUES (20220131152510);
+INSERT INTO public."schema_migrations" (version) VALUES (20220214160407);
+INSERT INTO public."schema_migrations" (version) VALUES (20220216202050);
+INSERT INTO public."schema_migrations" (version) VALUES (20220222103203);
+INSERT INTO public."schema_migrations" (version) VALUES (20220222114013);

@@ -10,7 +10,8 @@ defmodule T.Factory do
   }
 
   alias T.Feeds.SeenProfile
-  alias T.Matches.Match
+  alias T.Matches.{Match, MatchEvent}
+  alias T.News
 
   def user_factory do
     %User{apple_id: apple_id()}
@@ -31,6 +32,10 @@ defmodule T.Factory do
 
   def match_factory do
     %Match{}
+  end
+
+  def match_event_factory do
+    %MatchEvent{}
   end
 
   def gender_preference_factory do
@@ -80,11 +85,8 @@ defmodule T.Factory do
             "zoom" => 1.2
           },
           %{
-            "type" => "answer",
-            "answer" => "msu",
-            "question" => "university",
-            "value" => "🥊\nменя воспитала улица",
-            "dimensions" => [400, 800],
+            "answer" => "durov",
+            "question" => "telegram",
             "position" => [150, 150]
           }
         ]
@@ -138,6 +140,7 @@ defmodule T.Factory do
     user =
       registered_user(opts[:apple_id] || apple_id(), opts[:last_active] || DateTime.utc_now())
 
+    News.mark_seen(user.id)
     {:ok, profile} = Accounts.onboard_profile(user.profile, onboarding_attrs(opts))
     %Accounts.User{user | profile: profile}
   end

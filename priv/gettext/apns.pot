@@ -54,3 +54,8 @@ msgstr ""
 #: lib/t/push_notifications/apns.ex:87
 msgid "Update the app in the App Store ✨"
 msgstr ""
+
+#, elixir-autogen, elixir-format
+#: lib/t/push_notifications/apns.ex:83
+msgid "Добавь контакт в свой профиль, чтобы с тобой могли связаться"
+msgstr ""

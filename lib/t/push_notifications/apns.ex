@@ -56,6 +56,15 @@ defmodule T.PushNotifications.APNS do
     base_alert_payload(type, alert)
   end
 
+  def build_alert_payload("match_no_contact" = type, _data) do
+    alert = %{
+      "title" => dgettext("apns", "Это новый мэтч!"),
+      "body" => dgettext("apns", "Добавь контакт в свой профиль, чтобы с тобой могли связаться")
+    }
+
+    base_alert_payload(type, alert)
+  end
+
   def build_alert_payload("match_about_to_expire" = type, data) do
     %{"name" => name} = data
 

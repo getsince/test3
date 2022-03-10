@@ -3,19 +3,38 @@ defmodule TWeb.FeedView do
   alias TWeb.ViewHelpers
   alias T.Feeds.FeedProfile
 
-  def render("feed_item.json", %{profile: profile, screen_width: screen_width}) do
-    %{"profile" => render_profile(profile, [:user_id, :name, :gender, :story], screen_width)}
+  def render("feed_item.json", %{profile: profile, version: version, screen_width: screen_width}) do
+    profile =
+      render_profile(
+        profile,
+        [:user_id, :name, :gender, :story],
+        version,
+        screen_width,
+        _env = :feed
+      )
+
+    %{"profile" => profile}
   end
 
-  def render("feed_profile.json", %{profile: profile, screen_width: screen_width}) do
-    render_profile(profile, [:user_id, :name, :gender, :story], screen_width)
+  def render("feed_profile.json", %{
+        profile: profile,
+        version: version,
+        screen_width: screen_width
+      }) do
+    render_profile(
+      profile,
+      [:user_id, :name, :gender, :story],
+      version,
+      screen_width,
+      _env = :match
+    )
   end
 
-  defp render_profile(%FeedProfile{} = profile, fields, screen_width) do
+  defp render_profile(%FeedProfile{} = profile, fields, version, screen_width, env) do
     profile
     |> Map.take(fields)
     |> Map.update!(:story, fn story ->
-      ViewHelpers.postprocess_story(story, screen_width)
+      ViewHelpers.postprocess_story(story, version, screen_width, env)
     end)
   end
 end

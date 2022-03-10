@@ -7,7 +7,7 @@ defmodule T.Matches do
   require Logger
 
   alias T.Repo
-  alias T.Matches.{Match, Like}
+  alias T.Matches.{Match, Like, MatchEvent, Seen}
   alias T.Feeds.FeedProfile
   alias T.Accounts.Profile
   alias T.PushNotifications.DispatchJob
@@ -20,10 +20,10 @@ defmodule T.Matches do
   @pubsub T.PubSub
   @topic "__m"
 
-  @seven_days 7 * 24 * 60 * 60
+  @one_day 24 * 60 * 60
 
   @doc "Time-to-live for a match without life-prolonging events like calls, meetings, voice-messages"
-  def match_ttl, do: @seven_days
+  def match_ttl, do: @one_day
 
   defp pubsub_user_topic(user_id) when is_binary(user_id) do
     @topic <> ":u:" <> String.downcase(user_id)
@@ -117,28 +117,19 @@ defmodule T.Matches do
 
   defp with_mutual_liker(multi, by_user_id, user_id) do
     Multi.run(multi, :mutual, fn _repo, _changes ->
-      Like
-      # if I am liked
-      |> where(user_id: ^by_user_id)
-      # by who I liked
-      |> where(by_user_id: ^user_id)
-      |> join(:inner, [pl], p in Profile, on: p.user_id == pl.by_user_id)
-      # and who I liked is not hidden
-      |> select([..., p], not p.hidden?)
-      |> Repo.one()
-      |> case do
-        # nobody likes me, sad
-        _no_liker = nil ->
-          {:ok, nil}
+      maybe_liker =
+        Like
+        # if I am liked
+        |> where(user_id: ^by_user_id)
+        # by who I liked
+        |> where(by_user_id: ^user_id)
+        # and who I liked is not hidden
+        |> join(:inner, [pl], p in FeedProfile, on: p.user_id == pl.by_user_id and not p.hidden?)
+        # then I have a mate
+        |> select([..., p], p)
+        |> Repo.one()
 
-        # someone likes me, and they are not hidden
-        _not_hidden = true ->
-          {:ok, _mutual? = true}
-
-        # somebody likes me, but they are hidden -> like is discarded
-        _not_hidden = false ->
-          {:ok, _mutual? = false}
-      end
+      {:ok, maybe_liker}
     end)
   end
 
@@ -194,6 +185,16 @@ defmodule T.Matches do
     Multi.insert(multi, :like, changeset)
   end
 
+  @spec mark_like_seen(uuid, uuid) :: :ok
+  def mark_like_seen(user_id, by_user_id) do
+    Like
+    |> where(by_user_id: ^by_user_id)
+    |> where(user_id: ^user_id)
+    |> Repo.update_all(set: [seen: true])
+
+    :ok
+  end
+
   @spec decline_like(Ecto.UUID.t(), Ecto.UUID.t()) ::
           {:ok, %{}} | {:error, atom, term, map}
   def decline_like(user_id, liker_id) do
@@ -215,18 +216,58 @@ defmodule T.Matches do
 
   @spec list_matches(uuid) :: [%Match{}]
   def list_matches(user_id) do
-    Match
+    matches_with_undying_events_q()
     |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
     |> order_by(desc: :inserted_at)
+    |> join(:left, [m], s in Seen, as: :seen, on: s.match_id == m.id and s.user_id == ^user_id)
+    |> select(
+      [match: m, undying_event: e, seen: s],
+      {m, e.timestamp, s.match_id}
+    )
     |> Repo.all()
-    |> Enum.map(fn match -> %Match{match | expiration_date: expiration_date(match)} end)
+    |> Enum.map(fn {match, undying_event_timestamp, seen_match_id} ->
+      expiration_date =
+        unless undying_event_timestamp do
+          expiration_date(match)
+        end
+
+      %Match{
+        match
+        | expiration_date: expiration_date,
+          seen: !!seen_match_id
+      }
+    end)
     |> preload_match_profiles(user_id)
+  end
+
+  defp named_match_q do
+    from m in Match, as: :match
+  end
+
+  defp matches_with_undying_events_q(query \\ named_match_q()) do
+    undying_events_q =
+      MatchEvent
+      |> where(match_id: parent_as(:match).id)
+      |> where(
+        [e],
+        e.event == "call_start" or e.event == "contact_offer" or e.event == "contact_click"
+      )
+      |> select([e], e.timestamp)
+      |> limit(1)
+
+    join(query, :left_lateral, [m], e in subquery(undying_events_q), as: :undying_event)
   end
 
   defp expiration_date(%Match{inserted_at: inserted_at}) do
     inserted_at
     |> DateTime.from_naive!("Etc/UTC")
     |> DateTime.add(match_ttl())
+  end
+
+  @spec mark_match_seen(uuid, uuid) :: :ok
+  def mark_match_seen(by_user_id, match_id) do
+    Repo.insert_all(Seen, [%{user_id: by_user_id, match_id: match_id}], on_conflict: :nothing)
+    :ok
   end
 
   @spec unmatch_match(uuid, uuid) :: boolean
@@ -430,7 +471,7 @@ defmodule T.Matches do
   def expiration_list_expired_matches(reference \\ DateTime.utc_now()) do
     expiration_date = DateTime.add(reference, -match_ttl())
 
-    Match
+    expiring_matches_q()
     |> where([m], m.inserted_at < ^expiration_date)
     |> select([m], map(m, [:id, :user_id_1, :user_id_2]))
     |> Repo.all()
@@ -448,7 +489,7 @@ defmodule T.Matches do
     to =
       reference
       |> DateTime.add(-match_ttl())
-      |> DateTime.add(_24_hours = 24 * 3600)
+      |> DateTime.add(_2_hours = 2 * 3600)
 
     from = DateTime.add(to, -60)
     {from, to}
@@ -457,10 +498,16 @@ defmodule T.Matches do
   def expiration_list_soon_to_expire(reference \\ DateTime.utc_now()) do
     {from, to} = expiration_notification_interval(reference)
 
-    Match
+    expiring_matches_q()
     # TODO can result in duplicates with more than one worker
     |> where([m], m.inserted_at > ^from and m.inserted_at <= ^to)
     |> select([m], m.id)
     |> Repo.all()
+  end
+
+  defp expiring_matches_q(query \\ named_match_q()) do
+    query
+    |> matches_with_undying_events_q()
+    |> where([undying_event: e], is_nil(e.timestamp))
   end
 end

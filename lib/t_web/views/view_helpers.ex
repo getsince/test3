@@ -1,31 +1,128 @@
 defmodule TWeb.ViewHelpers do
   @moduledoc false
   alias T.Media
+  alias T.Accounts.Profile
 
-  def postprocess_story(story, screen_width) when is_list(story) do
+  @type env :: :feed | :match | :profile
+
+  @spec postprocess_story([map], String.t(), pos_integer(), env) :: [map]
+  def postprocess_story(story, "6." <> _rest, screen_width, env) when is_list(story) do
+    Enum.map(story, fn page ->
+      page
+      |> blur(screen_width, env)
+      |> add_bg_url(screen_width)
+      |> process_labels_v6()
+    end)
+  end
+
+  def postprocess_story(story, _version, screen_width, _env) when is_list(story) do
     story
-    |> Enum.map(fn
+    |> Enum.reduce([], fn
+      # users on version < 6.0.0 don't support private pages
+      %{"blurred" => _} = _private_page, acc ->
+        acc
+
+      page, acc ->
+        rendered =
+          page
+          |> add_bg_url(screen_width)
+          |> process_labels_pre_v6()
+
+        [rendered | acc]
+    end)
+    |> :lists.reverse()
+  end
+
+  defp blur(%{"blurred" => %{"s3_key" => s3_key} = bg}, screen_width, :feed) do
+    bg = Map.merge(bg, s3_key_urls(s3_key, screen_width))
+    %{"blurred" => bg, "private" => true}
+  end
+
+  defp blur(%{"blurred" => _blurred} = page, _screen_width, :match) do
+    page |> Map.delete("blurred") |> Map.put("private", true)
+  end
+
+  defp blur(%{"blurred" => %{"s3_key" => s3_key} = bg} = page, screen_width, :profile) do
+    bg = Map.merge(bg, s3_key_urls(s3_key, screen_width))
+    page |> Map.put("blurred", bg) |> Map.put("private", true)
+  end
+
+  defp blur(page, _screen_width, _env), do: page
+
+  defp add_bg_url(page, screen_width) do
+    case page do
       %{"background" => %{"s3_key" => key} = bg} = page when not is_nil(key) ->
         bg = Map.merge(bg, s3_key_urls(key, screen_width))
         %{page | "background" => bg}
 
-      other_page ->
-        other_page
-    end)
-    |> Enum.map(fn %{"labels" => labels} = page ->
-      %{page | "labels" => add_urls_to_labels(labels)}
-    end)
+      _ ->
+        page
+    end
   end
 
-  defp add_urls_to_labels(labels) do
-    Enum.map(labels, fn label ->
-      if answer = label["answer"] do
-        if url = Media.known_sticker_url(answer) do
-          Map.put(label, "url", url)
+  defp process_labels_v6(%{"labels" => labels} = page) do
+    labels =
+      labels
+      |> Enum.reduce([], fn label, acc ->
+        # if the label is a text contact, it's removed from page
+        # since it has been replaced with contact stickers
+        if Map.has_key?(label, "text-contact") do
+          acc
+        else
+          [process_label(label) | acc]
         end
-      end || label
-    end)
+      end)
+      |> :lists.reverse()
+
+    %{page | "labels" => labels}
   end
+
+  defp process_labels_v6(page), do: page
+
+  defp process_labels_pre_v6(%{"labels" => labels} = page) do
+    labels =
+      labels
+      |> Enum.reduce([], fn label, acc ->
+        # users on version < 6.0.0 don't support contact stickers, so they are removed
+        if Map.get(label, "question") in Profile.contacts() or Map.get(label, "text-change") do
+          acc
+        else
+          label = label |> process_label() |> Map.delete("text-contact")
+          [label | acc]
+        end
+      end)
+      |> :lists.reverse()
+
+    %{page | "labels" => labels}
+  end
+
+  defp process_labels_pre_v6(page), do: page
+
+  defp process_label(%{"question" => "telegram", "answer" => handle} = label) do
+    Map.put(label, "url", "https://t.me/" <> handle)
+  end
+
+  defp process_label(%{"question" => "instagram", "answer" => handle} = label) do
+    Map.put(label, "url", "https://instagram.com/" <> handle)
+  end
+
+  defp process_label(%{"question" => "whatsapp", "answer" => handle} = label) do
+    Map.put(label, "url", "https://wa.me/" <> handle)
+  end
+
+  defp process_label(%{"question" => q} = label) when q in ["phone", "email"] do
+    label
+  end
+
+  defp process_label(%{"answer" => a} = label) do
+    if url = Media.known_sticker_url(a) do
+      Map.put(label, "url", url)
+    else
+      label
+    end
+  end
+
+  defp process_label(label), do: label
 
   defp s3_key_urls(key, width) when is_binary(key) do
     %{"proxy" => Media.user_imgproxy_cdn_url(key, width)}

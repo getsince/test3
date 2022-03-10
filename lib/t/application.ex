@@ -10,9 +10,10 @@ defmodule T.Application do
     children =
       [
         {Task.Supervisor, name: T.TaskSupervisor},
+        {T.Events, events_config()},
         APNS.Token,
-        # T.PromEx,
-        # TODO add apple keys endpoint (possibly aws as well)
+
+        # TODO add apple keys endpoint and twilio (possibly aws as well)
         unless_disabled(
           {Finch,
            name: T.Finch,
@@ -66,6 +67,10 @@ defmodule T.Application do
     else
       config
     end
+  end
+
+  defp events_config do
+    _config = Application.get_env(:t, T.Events)
   end
 
   defp maybe_migrator do

@@ -3,40 +3,57 @@ defmodule TWeb.FeedChannel do
   import TWeb.ChannelHelpers
 
   alias TWeb.{FeedView, MatchView}
-  alias T.{Feeds, Matches, Accounts}
+  alias T.{Feeds, Matches, Accounts, Events, News, Todos}
 
   @impl true
   def join("feed:" <> user_id, _params, socket) do
     if ChannelHelpers.valid_user_topic?(socket, user_id) do
+      if locale = socket.assigns[:locale] do
+        Gettext.put_locale(locale)
+      end
+
       user_id = String.downcase(user_id)
-      %{screen_width: screen_width} = socket.assigns
 
       :ok = Matches.subscribe_for_user(user_id)
       :ok = Accounts.subscribe_for_user(user_id)
       :ok = Feeds.subscribe_for_user(user_id)
 
-      join_normal_mode(user_id, screen_width, socket)
+      join_normal_mode(user_id, socket)
     else
       {:error, %{"error" => "forbidden"}}
     end
   end
 
-  defp join_normal_mode(user_id, screen_width, socket) do
+  defp join_normal_mode(user_id, socket) do
     feed_filter = Feeds.get_feed_filter(user_id)
     {location, gender} = Accounts.get_location_and_gender!(user_id)
+
+    %{screen_width: screen_width, version: version} = socket.assigns
 
     likes =
       user_id
       |> Feeds.list_received_likes()
-      |> render_feed(screen_width)
+      |> render_likes(version, screen_width)
 
     matches =
       user_id
       |> Matches.list_matches()
-      |> render_matches(screen_width)
+      |> render_matches(version, screen_width)
+
+    news =
+      user_id
+      |> News.list_news()
+      |> render_news(version, screen_width)
+
+    todos =
+      user_id
+      |> Todos.list_todos()
+      |> render_news(version, screen_width)
 
     reply =
       %{}
+      |> maybe_put("news", news)
+      |> maybe_put("todos", todos)
       |> maybe_put("likes", likes)
       |> maybe_put("matches", matches)
 
@@ -53,6 +70,7 @@ defmodule TWeb.FeedChannel do
     %{
       current_user: user,
       screen_width: screen_width,
+      version: version,
       feed_filter: feed_filter,
       gender: gender,
       location: location
@@ -68,19 +86,59 @@ defmodule TWeb.FeedChannel do
         params["cursor"]
       )
 
-    {:reply, {:ok, %{"feed" => render_feed(feed, screen_width), "cursor" => cursor}}, socket}
+    {:reply, {:ok, %{"feed" => render_feed(feed, version, screen_width), "cursor" => cursor}},
+     socket}
   end
 
   # TODO possibly batch
-  def handle_in("seen", %{"user_id" => user_id}, socket) do
-    Feeds.mark_profile_seen(user_id, by: me_id(socket))
+  def handle_in("seen", %{"user_id" => user_id} = params, socket) do
+    me = me_id(socket)
+
+    if timings = params["timings"] do
+      Events.save_seen_timings(:feed, me, user_id, timings)
+    end
+
+    Feeds.mark_profile_seen(user_id, by: me)
+    {:reply, :ok, socket}
+  end
+
+  def handle_in("seen", %{"expired_match_id" => match_id}, socket) do
+    by_user_id = me_id(socket)
+    Matches.delete_expired_match(match_id, by_user_id)
+    {:reply, :ok, socket}
+  end
+
+  def handle_in("seen", %{"news_story_id" => news_story_id}, socket) do
+    News.mark_seen(me_id(socket), news_story_id)
+    {:reply, :ok, socket}
+  end
+
+  def handle_in("seen-match", %{"match_id" => match_id} = params, socket) do
+    me = me_id(socket)
+
+    if timings = params["timings"] do
+      Events.save_seen_timings(:match, me, match_id, timings)
+    end
+
+    Matches.mark_match_seen(me, match_id)
+    {:reply, :ok, socket}
+  end
+
+  def handle_in("seen-like", %{"user_id" => by_user_id} = params, socket) do
+    me = me_id(socket)
+
+    if timings = params["timings"] do
+      Events.save_seen_timings(:like, me, by_user_id, timings)
+    end
+
+    Matches.mark_like_seen(me, by_user_id)
     {:reply, :ok, socket}
   end
 
   def handle_in("like", %{"user_id" => liked}, socket) do
-    %{current_user: %{id: liker}} = socket.assigns
+    %{current_user: %{id: liker}, screen_width: screen_width, version: version} = socket.assigns
 
-    # TODO check that we had a call?
+    Events.save_like(liker, liked)
 
     reply =
       case Matches.like_user(liker, liked) do
@@ -89,18 +147,24 @@ defmodule TWeb.FeedChannel do
 
         {:ok,
          %{
-           match: %{id: match_id, inserted_at: inserted_at}
+           match: %{id: match_id, inserted_at: inserted_at},
+           mutual: profile
          }} ->
           # TODO return these timestamps from like_user
-          inserted_at = DateTime.from_naive!(inserted_at, "Etc/UTC")
-          expiration_date = DateTime.add(inserted_at, Matches.match_ttl())
+          expiration_date = NaiveDateTime.add(inserted_at, Matches.match_ttl())
 
-          {:ok,
-           %{
-             "match_id" => match_id,
-             "expiration_date" => expiration_date,
-             "inserted_at" => inserted_at
-           }}
+          rendered =
+            render_match(%{
+              id: match_id,
+              profile: profile,
+              screen_width: screen_width,
+              version: version,
+              expiration_date: expiration_date,
+              inserted_at: inserted_at
+            })
+            |> Map.put("match_id", match_id)
+
+          {:ok, rendered}
 
         {:error, _step, _reason, _changes} ->
           :ok
@@ -137,11 +201,11 @@ defmodule TWeb.FeedChannel do
 
   @impl true
   def handle_info({Matches, :liked, like}, socket) do
-    %{screen_width: screen_width} = socket.assigns
+    %{screen_width: screen_width, version: version} = socket.assigns
     %{by_user_id: by_user_id} = like
 
     if profile = Feeds.get_mate_feed_profile(by_user_id) do
-      rendered = render_feed_item(profile, screen_width)
+      rendered = render_feed_item(profile, version, screen_width)
       push(socket, "invite", rendered)
     end
 
@@ -149,7 +213,7 @@ defmodule TWeb.FeedChannel do
   end
 
   def handle_info({Matches, :matched, match}, socket) do
-    %{screen_width: screen_width} = socket.assigns
+    %{screen_width: screen_width, version: version} = socket.assigns
 
     %{
       id: match_id,
@@ -165,6 +229,7 @@ defmodule TWeb.FeedChannel do
             id: match_id,
             profile: profile,
             screen_width: screen_width,
+            version: version,
             inserted_at: inserted_at,
             expiration_date: expiration_date
           })
@@ -188,29 +253,40 @@ defmodule TWeb.FeedChannel do
     {:noreply, assign(socket, :feed_filter, feed_filter)}
   end
 
-  defp render_feed_item(profile, screen_width) do
-    assigns = [profile: profile, screen_width: screen_width]
+  defp render_feed_item(profile, version, screen_width) do
+    assigns = [profile: profile, screen_width: screen_width, version: version]
     render(FeedView, "feed_item.json", assigns)
   end
 
-  defp render_feed(feed, screen_width) do
-    Enum.map(feed, fn feed_item -> render_feed_item(feed_item, screen_width) end)
+  defp render_feed(feed, version, screen_width) do
+    Enum.map(feed, fn feed_item -> render_feed_item(feed_item, version, screen_width) end)
   end
 
-  defp render_matches(matches, screen_width) do
+  defp render_likes(likes, version, screen_width) do
+    Enum.map(likes, fn %{profile: profile, seen: seen} ->
+      profile
+      |> render_feed_item(version, screen_width)
+      |> maybe_put("seen", seen)
+    end)
+  end
+
+  defp render_matches(matches, version, screen_width) do
     Enum.map(matches, fn
       %Matches.Match{
         id: match_id,
         inserted_at: inserted_at,
         profile: profile,
-        expiration_date: expiration_date
+        expiration_date: expiration_date,
+        seen: seen
       } ->
         render_match(%{
           id: match_id,
           inserted_at: inserted_at,
           profile: profile,
           screen_width: screen_width,
-          expiration_date: expiration_date
+          version: version,
+          expiration_date: expiration_date,
+          seen: seen
         })
     end)
   end
@@ -218,5 +294,13 @@ defmodule TWeb.FeedChannel do
   @compile inline: [render_match: 1]
   defp render_match(assigns) do
     render(MatchView, "match.json", assigns)
+  end
+
+  defp render_news(news, version, screen_width) do
+    alias TWeb.ViewHelpers
+
+    Enum.map(news, fn %{story: story} = news ->
+      %{news | story: ViewHelpers.postprocess_story(story, version, screen_width, :feed)}
+    end)
   end
 end

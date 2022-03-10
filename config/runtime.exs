@@ -24,8 +24,6 @@ config :sentry,
   environment_name: config_env(),
   included_environments: [:prod]
 
-config :t, T.PromEx, disabled: config_env() != :prod
-
 config :t, Oban,
   repo: T.Repo,
   plugins: [
@@ -52,12 +50,6 @@ if config_env() == :prod do
 
   config :sentry,
     dsn: System.fetch_env!("SENTRY_DSN")
-
-  config :t, T.PromEx,
-    manual_metrics_start_delay: :no_delay,
-    drop_metrics_groups: [],
-    grafana: :disabled,
-    metrics_server: :disabled
 
   config :t, T.Bot,
     token: System.fetch_env!("TG_BOT_KEY"),
@@ -118,6 +110,10 @@ if config_env() == :prod do
     user_bucket: System.fetch_env!("AWS_S3_BUCKET"),
     static_bucket: System.fetch_env!("AWS_S3_BUCKET_STATIC"),
     static_cdn: System.fetch_env!("STATIC_CDN")
+
+  config :t, T.Events,
+    buffers: [:seen_buffer, :like_buffer, :contact_buffer],
+    bucket: System.fetch_env!("AWS_S3_BUCKET_EVENTS")
 end
 
 if config_env() == :dev do
@@ -189,6 +185,7 @@ if config_env() == :dev do
     static_bucket: System.fetch_env!("AWS_S3_BUCKET_STATIC"),
     static_cdn: System.fetch_env!("STATIC_CDN")
 
+  config :t, T.Events, buffers: false, bucket: System.get_env("AWS_S3_BUCKET_EVENTS")
   config :t, T.Media.Static, disabled?: !!System.get_env("DISABLE_MEDIA")
   config :t, T.Periodics, disabled?: !!System.get_env("DISABLE_PERIODICS")
 end
@@ -240,7 +237,6 @@ if config_env() == :test do
     room_id: String.to_integer("-1234")
 
   config :t, T.PushNotifications.APNS, default_topic: "app.topic"
-
   config :t, T.Periodics, disabled?: true
   config :t, Finch, disabled?: true
 end

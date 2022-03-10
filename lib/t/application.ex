@@ -13,7 +13,7 @@ defmodule T.Application do
         {T.Events, events_config()},
         APNS.Token,
 
-        # TODO add apple keys endpoint and twilio (possibly aws as well)
+        # TODO add apple keys endpoint (possibly aws as well)
         unless_disabled(
           {Finch,
            name: T.Finch,

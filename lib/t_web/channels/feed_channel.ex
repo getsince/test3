@@ -102,12 +102,6 @@ defmodule TWeb.FeedChannel do
     {:reply, :ok, socket}
   end
 
-  def handle_in("seen", %{"expired_match_id" => match_id}, socket) do
-    by_user_id = me_id(socket)
-    Matches.delete_expired_match(match_id, by_user_id)
-    {:reply, :ok, socket}
-  end
-
   def handle_in("seen", %{"news_story_id" => news_story_id}, socket) do
     News.mark_seen(me_id(socket), news_story_id)
     {:reply, :ok, socket}

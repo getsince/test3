@@ -87,13 +87,15 @@ defmodule T.PushNotifications.APNS do
   end
 
   def build_alert_payload("match_about_to_expire" = type, data) do
-    %{"name" => name, "gender" => gender} = data
+    %{"name" => name} = data
+    # TODO proper in the next release
+    gender = data["gender"]
 
     body =
       case gender do
         "F" -> dgettext("apns", "Contact her ✨")
         "M" -> dgettext("apns", "Contact him ✨")
-        "N" -> dgettext("apns", "Contact them ✨")
+        _ -> dgettext("apns", "Contact them ✨")
       end
 
     alert = %{

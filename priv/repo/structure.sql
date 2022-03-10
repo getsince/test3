@@ -101,18 +101,6 @@ CREATE TABLE public.archived_matches (
 
 
 --
--- Name: expired_matches; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.expired_matches (
-    match_id uuid NOT NULL,
-    user_id uuid NOT NULL,
-    with_user_id uuid NOT NULL,
-    inserted_at timestamp(0) without time zone NOT NULL
-);
-
-
---
 -- Name: feeded_profiles; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -418,13 +406,6 @@ CREATE UNIQUE INDEX archived_matches_by_user_id_match_id_index ON public.archive
 
 
 --
--- Name: expired_matches_user_id_match_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX expired_matches_user_id_match_id_index ON public.expired_matches USING btree (user_id, match_id);
-
-
---
 -- Name: liked_profiles_user_id_by_user_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -573,14 +554,6 @@ ALTER TABLE ONLY public.archived_matches
 
 ALTER TABLE ONLY public.archived_matches
     ADD CONSTRAINT archived_matches_with_user_id_fkey FOREIGN KEY (with_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: expired_matches expired_matches_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.expired_matches
-    ADD CONSTRAINT expired_matches_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --

@@ -10,7 +10,7 @@ defmodule T.Factory do
   }
 
   alias T.Feeds.SeenProfile
-  alias T.Matches.{Match, ExpiredMatch}
+  alias T.Matches.Match
 
   def user_factory do
     %User{apple_id: apple_id()}
@@ -31,10 +31,6 @@ defmodule T.Factory do
 
   def match_factory do
     %Match{}
-  end
-
-  def expired_match_factory do
-    %ExpiredMatch{}
   end
 
   def gender_preference_factory do

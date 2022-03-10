@@ -7,7 +7,7 @@ defmodule T.Matches do
   require Logger
 
   alias T.Repo
-  alias T.Matches.{Match, Like, ExpiredMatch, ArchivedMatch}
+  alias T.Matches.{Match, Like, ArchivedMatch}
   alias T.Feeds.FeedProfile
   alias T.Accounts.Profile
   alias T.PushNotifications.DispatchJob
@@ -234,19 +234,6 @@ defmodule T.Matches do
     ArchivedMatch |> where(by_user_id: ^user_id) |> select([m], m.match_id)
   end
 
-  @spec list_expired_matches(uuid) :: [%Match{}]
-  def list_expired_matches(user_id) do
-    ExpiredMatch
-    |> where([m], m.user_id == ^user_id)
-    |> order_by(asc: :inserted_at)
-    |> join(:inner, [m], p in FeedProfile, on: m.with_user_id == p.user_id)
-    |> select([m, p], {m, p})
-    |> Repo.all()
-    |> Enum.map(fn {match, feed_profile} ->
-      %ExpiredMatch{match | profile: feed_profile}
-    end)
-  end
-
   @spec list_archived_matches(any) :: list
   def list_archived_matches(user_id) do
     ArchivedMatch
@@ -407,7 +394,6 @@ defmodule T.Matches do
       end
     end)
     |> delete_likes()
-    |> insert_expired_match()
     |> Repo.transaction()
     |> case do
       {:ok, %{unmatch: %{id: match_id}}} ->
@@ -462,29 +448,6 @@ defmodule T.Matches do
         |> Repo.delete_all()
 
       {:ok, count}
-    end)
-  end
-
-  defp insert_expired_match(multi) do
-    Multi.insert_all(multi, :insert_expired_match, ExpiredMatch, fn %{unmatch: unmatch} ->
-      %{id: match_id, users: [user_id_1, user_id_2]} = unmatch
-
-      timestamp = DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.to_naive()
-
-      [
-        %{
-          match_id: match_id,
-          user_id: user_id_1,
-          with_user_id: user_id_2,
-          inserted_at: timestamp
-        },
-        %{
-          match_id: match_id,
-          user_id: user_id_2,
-          with_user_id: user_id_1,
-          inserted_at: timestamp
-        }
-      ]
     end)
   end
 
@@ -547,11 +510,5 @@ defmodule T.Matches do
     |> where([m], m.inserted_at > ^from and m.inserted_at <= ^to)
     |> select([m], m.id)
     |> Repo.all()
-  end
-
-  def delete_expired_match(match_id, by_user_id) do
-    ExpiredMatch
-    |> where(match_id: ^match_id, user_id: ^by_user_id)
-    |> Repo.delete_all()
   end
 end

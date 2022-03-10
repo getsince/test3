@@ -143,28 +143,6 @@ defmodule TWeb.FeedChannelTest do
                ]
              }
     end
-
-    test "with expired matches", %{socket: socket, me: me} do
-      p = onboarded_user(story: [], name: "mate", location: apple_location(), gender: "F")
-
-      m =
-        insert(:expired_match,
-          match_id: Ecto.Bigflake.UUID.generate(),
-          user_id: me.id,
-          with_user_id: p.id,
-          inserted_at: ~N[2021-09-30 12:16:05]
-        )
-
-      assert {:ok, %{"expired_matches" => expired_matches}, _socket} =
-               join(socket, "feed:" <> me.id, %{"mode" => "normal"})
-
-      assert expired_matches == [
-               %{
-                 "id" => m.match_id,
-                 "profile" => %{name: "mate", story: [], user_id: p.id, gender: "F"}
-               }
-             ]
-    end
   end
 
   describe "more" do
@@ -509,47 +487,6 @@ defmodule TWeb.FeedChannelTest do
       assert_reply(ref, :ok, %{"cursor" => _cursor, "feed" => feed2})
 
       assert feed0 == feed2
-    end
-
-    test "non-seen expired match is not returned in feed", %{socket: socket, me: me} do
-      mate =
-        onboarded_user(
-          name: "mate",
-          location: apple_location(),
-          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
-          gender: "M",
-          accept_genders: ["M"]
-        )
-
-      T.Repo.insert(%T.Matches.ExpiredMatch{
-        match_id: Ecto.Bigflake.UUID.generate(),
-        user_id: me.id,
-        with_user_id: mate.id
-      })
-
-      ref = push(socket, "more", %{"count" => 5})
-      assert_reply(ref, :ok, %{"cursor" => _cursor, "feed" => []})
-    end
-
-    test "seen expired match is returned in feed", %{socket: socket, me: me} do
-      mate =
-        onboarded_user(
-          name: "mate",
-          location: apple_location(),
-          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
-          gender: "M",
-          accept_genders: ["M"]
-        )
-
-      T.Repo.insert(%T.Matches.ExpiredMatch{
-        match_id: Ecto.Bigflake.UUID.generate(),
-        user_id: mate.id,
-        with_user_id: me.id
-      })
-
-      ref = push(socket, "more", %{"count" => 5})
-      assert_reply(ref, :ok, %{"cursor" => _cursor, "feed" => feed})
-      assert length(feed) == 1
     end
   end
 

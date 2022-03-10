@@ -38,9 +38,6 @@ defmodule T.Matches.ExpiredMatchTest do
 
       matches_after = Matches.Match |> T.Repo.all()
       assert length(matches_after) == 0
-
-      expired_matches = Matches.ExpiredMatch |> T.Repo.all()
-      assert length(expired_matches) == 2
     end
 
     test "recent match is not expired" do
@@ -57,9 +54,6 @@ defmodule T.Matches.ExpiredMatchTest do
 
       matches_after = Matches.Match |> T.Repo.all()
       assert length(matches_after) == 1
-
-      expired_matches = Matches.ExpiredMatch |> T.Repo.all()
-      assert length(expired_matches) == 0
     end
 
     test "push notification is scheduled for soon to be expired match" do

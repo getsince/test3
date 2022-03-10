@@ -35,11 +35,6 @@ defmodule TWeb.FeedChannel do
       |> Matches.list_matches()
       |> render_matches(screen_width)
 
-    expired_matches =
-      user_id
-      |> Matches.list_expired_matches()
-      |> render_matches(screen_width)
-
     archived_matches =
       user_id
       |> Matches.list_archived_matches()
@@ -49,7 +44,6 @@ defmodule TWeb.FeedChannel do
       %{}
       |> maybe_put("likes", likes)
       |> maybe_put("matches", matches)
-      |> maybe_put("expired_matches", expired_matches)
       |> maybe_put("archived_matches", archived_matches)
 
     {:ok, reply,
@@ -107,12 +101,6 @@ defmodule TWeb.FeedChannel do
   # TODO possibly batch
   def handle_in("seen", %{"user_id" => user_id}, socket) do
     Feeds.mark_profile_seen(user_id, by: me_id(socket))
-    {:reply, :ok, socket}
-  end
-
-  def handle_in("seen", %{"expired_match_id" => match_id}, socket) do
-    by_user_id = me_id(socket)
-    Matches.delete_expired_match(match_id, by_user_id)
     {:reply, :ok, socket}
   end
 
@@ -251,12 +239,6 @@ defmodule TWeb.FeedChannel do
           screen_width: screen_width,
           expiration_date: expiration_date
         })
-
-      %Matches.ExpiredMatch{
-        match_id: match_id,
-        profile: profile
-      } ->
-        render_match(%{id: match_id, profile: profile, screen_width: screen_width})
 
       %Matches.ArchivedMatch{
         match_id: match_id,

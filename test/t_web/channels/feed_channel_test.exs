@@ -79,50 +79,6 @@ defmodule TWeb.FeedChannelTest do
              ]
     end
 
-    test "with archive match", %{socket: socket, me: me} do
-      p1 = onboarded_user(story: [], name: "mate-1", location: apple_location(), gender: "F")
-
-      m1 =
-        insert(:match, user_id_1: me.id, user_id_2: p1.id, inserted_at: ~N[2021-09-30 12:16:05])
-
-      expiration_date =
-        m1.inserted_at
-        |> DateTime.from_naive!("Etc/UTC")
-        |> DateTime.add(Matches.match_ttl())
-
-      assert {:ok, %{"matches" => matches}, socket} =
-               join(socket, "feed:" <> me.id, %{"mode" => "normal"})
-
-      assert matches == [
-               %{
-                 "id" => m1.id,
-                 "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
-                 "expiration_date" => expiration_date,
-                 "inserted_at" => ~U[2021-09-30 12:16:05Z]
-               }
-             ]
-
-      push(socket, "archive-match", %{"match_id" => m1.id})
-
-      assert {:ok, reply, socket} = join(socket, "feed:" <> me.id, %{"mode" => "normal"})
-
-      assert reply["matches"] == nil
-
-      push(socket, "unarchive-match", %{"match_id" => m1.id})
-
-      assert {:ok, %{"matches" => matches}, _socket} =
-               join(socket, "feed:" <> me.id, %{"mode" => "normal"})
-
-      assert matches == [
-               %{
-                 "id" => m1.id,
-                 "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
-                 "expiration_date" => expiration_date,
-                 "inserted_at" => ~U[2021-09-30 12:16:05Z]
-               }
-             ]
-    end
-
     test "with likes", %{socket: socket, me: me} do
       mate = onboarded_user(story: [], name: "mate", location: apple_location(), gender: "F")
 
@@ -690,45 +646,6 @@ defmodule TWeb.FeedChannelTest do
       Accounts.update_profile(profile, %{"min_age" => 31})
       new_filter = %T.Feeds.FeedFilter{initial_filter | min_age: 31}
       assert_receive {Accounts, :feed_filter_updated, ^new_filter}
-    end
-  end
-
-  describe "archived-matches" do
-    setup :joined
-
-    test "works", %{me: me, socket: socket} do
-      ref = push(socket, "archived-matches")
-      assert_reply(ref, :ok, reply)
-      assert reply == %{"archived_matches" => []}
-
-      p1 = onboarded_user(story: [], name: "mate-1", location: apple_location(), gender: "F")
-
-      m1 =
-        insert(:match, user_id_1: me.id, user_id_2: p1.id, inserted_at: ~N[2021-09-30 12:16:05])
-
-      ref = push(socket, "archived-matches")
-      assert_reply(ref, :ok, reply)
-      assert reply == %{"archived_matches" => []}
-
-      push(socket, "archive-match", %{"match_id" => m1.id})
-
-      ref = push(socket, "archived-matches")
-      assert_reply(ref, :ok, reply)
-
-      assert reply == %{
-               "archived_matches" => [
-                 %{
-                   "id" => m1.id,
-                   "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"}
-                 }
-               ]
-             }
-
-      push(socket, "unarchive-match", %{"match_id" => m1.id})
-
-      ref = push(socket, "archived-matches")
-      assert_reply(ref, :ok, reply)
-      assert reply == %{"archived_matches" => []}
     end
   end
 

@@ -9,7 +9,6 @@ defmodule T.Matches do
   alias T.Repo
   alias T.Matches.{Match, Like, MatchEvent, Seen}
   alias T.Feeds.FeedProfile
-  alias T.Accounts.Profile
   alias T.PushNotifications.DispatchJob
   alias T.Bot
 

@@ -100,6 +100,14 @@ defmodule T.MixProject do
   end
 
   defp releases do
-    [t: [include_executables_for: [:unix]]]
+    config = [
+      include_executables_for: [:unix],
+      steps: if(System.get_env("ARCHIVE_RELEASE"), do: [:assemble, :tar]),
+      version: System.get_env("RELEASE_VERSION"),
+      path: System.get_env("RELEASE_PATH")
+    ]
+
+    config = Enum.reject(config, fn {_k, v} -> is_nil(v) end)
+    [t: config]
   end
 end

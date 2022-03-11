@@ -13,11 +13,11 @@ config :t, TWeb.Endpoint,
 
 config :logger, :console,
   format: "$time $metadata[$level] $message\n",
-  metadata: [:request_id, :user_id, :remote_ip]
+  metadata: [:request_id, :user_id, :remote_ip, :node]
 
 config :logger,
   utc_log: true,
-  metadata: [:user_id, :remote_ip],
+  metadata: [:user_id, :remote_ip, :node],
   format: "$time $metadata[$level] $message\n"
 
 config :sentry,
@@ -49,7 +49,7 @@ if config_env() == :prod do
 
   config :logger, CloudWatch,
     level: :warn,
-    metadata: [:user_id, :remote_ip],
+    metadata: [:user_id, :remote_ip, :node],
     log_stream_name: "backend",
     log_group_name: "prod"
 
@@ -119,6 +119,21 @@ if config_env() == :prod do
   config :t, T.Events,
     buffers: [:seen_buffer, :like_buffer, :contact_buffer],
     bucket: System.fetch_env!("AWS_S3_BUCKET_EVENTS")
+
+  ec2_polling_interval = String.to_integer(System.get_env("EC2_POLL_INTERVAL_SECONDS") || "5")
+
+  config :libcluster,
+    topologies: [
+      aws: [
+        strategy: T.Cluster.Strategy,
+        config: [
+          app_prefix: :t,
+          name: System.get_env("EC2_NAME") || "since-backend",
+          polling_interval: :timer.seconds(ec2_polling_interval),
+          regions: ["eu-north-1", "us-east-2"]
+        ]
+      ]
+    ]
 end
 
 if config_env() == :dev do

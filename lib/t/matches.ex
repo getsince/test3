@@ -8,7 +8,7 @@ defmodule T.Matches do
 
   alias T.Repo
   alias T.Matches.{Match, Like}
-  alias T.Feeds.FeedProfile
+  alias T.Feeds.{FeedProfile, SeenProfile}
   alias T.Accounts.Profile
   alias T.PushNotifications.DispatchJob
   alias T.Bot
@@ -360,6 +360,7 @@ defmodule T.Matches do
       end
     end)
     |> delete_likes()
+    |> bump_seen_dates()
     |> Repo.transaction()
     |> case do
       {:ok, %{unmatch: %{id: match_id}}} ->
@@ -412,6 +413,30 @@ defmodule T.Matches do
         |> where([l], l.by_user_id == ^uid1 and l.user_id == ^uid2)
         |> or_where([l], l.by_user_id == ^uid2 and l.user_id == ^uid1)
         |> Repo.delete_all()
+
+      {:ok, count}
+    end)
+  end
+
+  defp bump_seen_dates(multi) do
+    Multi.run(multi, :bump_seen_dates, fn _repo, %{unmatch: unmatch} ->
+      [uid1, uid2] =
+        case unmatch do
+          [_uid1, _uid2] = ids -> ids
+          %{users: [_uid1, _uid2] = ids} -> ids
+        end
+
+      now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+
+      {count, _} =
+        Repo.insert_all(
+          SeenProfile,
+          [
+            %{by_user_id: uid1, user_id: uid2, inserted_at: now},
+            %{by_user_id: uid2, user_id: uid1, inserted_at: now}
+          ],
+          returning: true
+        )
 
       {:ok, count}
     end)

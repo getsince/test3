@@ -12,7 +12,6 @@ defmodule T.Application do
         {Task.Supervisor, name: T.TaskSupervisor},
         {T.Events, events_config()},
         APNS.Token,
-
         # TODO add apple keys endpoint and twilio (possibly aws as well)
         unless_disabled(
           {Finch,
@@ -22,6 +21,7 @@ defmodule T.Application do
              "https://api.push.apple.com" => [protocol: :http2, count: 1]
            }}
         ),
+        maybe_cluster(),
         T.Twilio,
         {Phoenix.PubSub, name: T.PubSub},
         unless_disabled(T.Media.Static),
@@ -45,6 +45,12 @@ defmodule T.Application do
     unless Code.ensure_loaded?(IEx) && IEx.started?() do
       Oban.Telemetry.attach_default_logger(:info)
       T.ObanReporter.attach()
+    end
+
+    node = node()
+
+    unless node == :nonode@nohost do
+      :logger.update_primary_config(%{metadata: %{node: node}})
     end
 
     opts = [strategy: :one_for_one, name: T.Supervisor]
@@ -86,6 +92,12 @@ defmodule T.Application do
   defp maybe_setup_locus do
     if key = Application.get_env(:t, :maxmind_license_key) do
       T.Location.setup(key)
+    end
+  end
+
+  defp maybe_cluster do
+    if topologies = Application.get_env(:libcluster, :topologies) do
+      {Cluster.Supervisor, [topologies, [name: T.Cluster.Supervisor]]}
     end
   end
 

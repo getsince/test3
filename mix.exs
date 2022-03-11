@@ -71,7 +71,9 @@ defmodule T.MixProject do
       {:benchee, "~> 1.0", only: :bench},
       {:dialyxir, "~> 1.1", only: :dev, runtime: false},
       {:jose, "~> 1.11"},
-      {:nimble_csv, "~> 1.2"}
+      {:nimble_csv, "~> 1.2"},
+      {:libcluster, "~> 3.3"},
+      {:ex_aws_ec2, "~> 2.0"}
     ]
   end
 

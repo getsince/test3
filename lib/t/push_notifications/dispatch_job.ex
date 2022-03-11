@@ -37,10 +37,10 @@ defmodule T.PushNotifications.DispatchJob do
 
       if profile1 = profile_info(uid1) do
         if profile2 = profile_info(uid2) do
-          {name1, _gender} = profile1
-          {name2, _gender} = profile2
-          data1 = %{"match_id" => match_id, "name" => name2}
-          data2 = %{"match_id" => match_id, "name" => name1}
+          {name1, gender1} = profile1
+          {name2, gender2} = profile2
+          data1 = %{"match_id" => match_id, "name" => name2, "gender" => gender2}
+          data2 = %{"match_id" => match_id, "name" => name1, "gender" => gender1}
           uid1 |> Accounts.list_apns_devices() |> schedule_apns("match_about_to_expire", data1)
           uid2 |> Accounts.list_apns_devices() |> schedule_apns("match_about_to_expire", data2)
         end

@@ -12,27 +12,27 @@ msgstr ""
 "Plural-Forms: nplurals=2\n"
 
 #, elixir-autogen, elixir-format
-#: lib/t_web/channels/feed_channel.ex:172
-#: lib/t_web/channels/feed_channel.ex:235
-#: lib/t_web/channels/feed_channel.ex:245
+#: lib/t_web/channels/feed_channel.ex:181
+#: lib/t_web/channels/feed_channel.ex:238
+#: lib/t_web/channels/feed_channel.ex:248
 msgid "Calls are no longer supported, please upgrade."
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t_web/channels/feed_channel.ex:171
-#: lib/t_web/channels/feed_channel.ex:234
-#: lib/t_web/channels/feed_channel.ex:244
-#: lib/t_web/channels/feed_channel.ex:265
-#: lib/t_web/channels/feed_channel.ex:326
+#: lib/t_web/channels/feed_channel.ex:180
+#: lib/t_web/channels/feed_channel.ex:237
+#: lib/t_web/channels/feed_channel.ex:247
+#: lib/t_web/channels/feed_channel.ex:268
+#: lib/t_web/channels/feed_channel.ex:329
 msgid "Deprecation warning"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t_web/channels/feed_channel.ex:327
+#: lib/t_web/channels/feed_channel.ex:330
 msgid "Voicemail is no longer supported, please upgrade."
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t_web/channels/feed_channel.ex:266
+#: lib/t_web/channels/feed_channel.ex:269
 msgid "Sending contacts is no longer supported, please upgrade."
 msgstr ""

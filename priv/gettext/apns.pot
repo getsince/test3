@@ -11,22 +11,22 @@ msgid ""
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:117
+#: lib/t/push_notifications/apns.ex:119
 msgid "Заходи, чтобы ответить на приглашение 👀"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:150
+#: lib/t/push_notifications/apns.ex:152
 msgid "Попробуй предложить другое время 👉"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:161
+#: lib/t/push_notifications/apns.ex:163
 msgid "Приготовься, у тебя 15 минут 👋"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:172
+#: lib/t/push_notifications/apns.ex:174
 msgid "Скорее заходи и звони 🖤"
 msgstr ""
 
@@ -42,107 +42,122 @@ msgid "Это новый мэтч!"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:102
+#: lib/t/push_notifications/apns.ex:104
 msgid "%{name} invited you to connect"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:94
-msgid "Invite your match to a date if you want to keep it alive ✨"
-msgstr ""
-
-#, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:139
+#: lib/t/push_notifications/apns.ex:141
 msgid "Заходи и звони сейчас 👉"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:113
+#: lib/t/push_notifications/apns.ex:115
 msgid "%{name} пригласил%{gender_a} тебя на дэйт!"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:93
+#: lib/t/push_notifications/apns.ex:95
 msgid "Match with %{name} is about to expire"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:171
+#: lib/t/push_notifications/apns.ex:173
 msgid "Аудио-дэйт с %{name} начинается"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:160
+#: lib/t/push_notifications/apns.ex:162
 msgid "Аудио-дэйт с %{name} совсем скоро"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:127
-#: lib/t/push_notifications/apns.ex:138
+#: lib/t/push_notifications/apns.ex:129
+#: lib/t/push_notifications/apns.ex:140
 msgid "Приглашение на дэйт c %{name} принято"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:149
+#: lib/t/push_notifications/apns.ex:151
 msgid "Твой дэйт с %{name} отменён"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:180
+#: lib/t/push_notifications/apns.ex:182
 msgid "Hey, create your own cool profile ✨"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:181
+#: lib/t/push_notifications/apns.ex:183
 msgid "Meet interesting people ✌️"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:128
+#: lib/t/push_notifications/apns.ex:130
 msgid "Аудио-дэйт уже в твоём календаре, не пропусти 👀"
 msgstr ""
 
 #, elixir-autogen
-#: lib/t/push_notifications/apns.ex:194
+#: lib/t/push_notifications/apns.ex:196
 msgid "%{name} прислал%{gender_a} тебe контакт!"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:198
+#: lib/t/push_notifications/apns.ex:200
 msgid "Заходи, чтобы просмотреть и написать ✨"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:207
+#: lib/t/push_notifications/apns.ex:209
 msgid "The current version is no longer supported 🙃"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:206
+#: lib/t/push_notifications/apns.ex:208
 msgid "Update the app in the App Store ✨"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:221
+#: lib/t/push_notifications/apns.ex:223
 msgid "%{name} прислал тебe аудио-сообщение!"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:219
+#: lib/t/push_notifications/apns.ex:221
 msgid "%{name} прислала тебe аудио-сообщение!"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:220
+#: lib/t/push_notifications/apns.ex:222
 msgid "%{name} прислали тебe аудио-сообщение!"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:227
+#: lib/t/push_notifications/apns.ex:229
 msgid "Заходи, чтобы просмотреть и ответить ✨"
 msgstr ""
 
 #, elixir-autogen, elixir-format
 #: lib/t/push_notifications/apns.ex:83
 msgid "Добавь контакт в свой профиль, чтобы с тобой могли связаться"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+#: lib/t/push_notifications/apns.ex:96
+msgid "Contact %{pronoun} ✨"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+#: lib/t/push_notifications/apns.ex:235
+msgid "her"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+#: lib/t/push_notifications/apns.ex:236
+msgid "him"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+#: lib/t/push_notifications/apns.ex:237
+msgid "them"
 msgstr ""

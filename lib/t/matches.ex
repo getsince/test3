@@ -435,7 +435,8 @@ defmodule T.Matches do
             %{by_user_id: uid1, user_id: uid2, inserted_at: now},
             %{by_user_id: uid2, user_id: uid1, inserted_at: now}
           ],
-          returning: true
+          on_conflict: {:replace, [:inserted_at]},
+          conflict_target: [:by_user_id, :user_id]
         )
 
       {:ok, count}

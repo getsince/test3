@@ -91,16 +91,9 @@ defmodule T.PushNotifications.APNS do
     # TODO proper in the next release
     gender = data["gender"]
 
-    body =
-      case gender do
-        "F" -> dgettext("apns", "Contact her ✨")
-        "M" -> dgettext("apns", "Contact him ✨")
-        _ -> dgettext("apns", "Contact them ✨")
-      end
-
     alert = %{
       "title" => dgettext("apns", "Match with %{name} is about to expire", name: name),
-      "body" => body
+      "body" => dgettext("apns", "Contact %{pronoun} ✨", pronoun: pronoun(gender))
     }
 
     base_alert_payload(type, alert)
@@ -238,6 +231,10 @@ defmodule T.PushNotifications.APNS do
 
     base_alert_payload(type, alert, data)
   end
+
+  defp pronoun("F"), do: dgettext("apns", "her")
+  defp pronoun("M"), do: dgettext("apns", "him")
+  defp pronoun(_), do: dgettext("apns", "them")
 
   # backround notifications
 

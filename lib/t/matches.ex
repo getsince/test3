@@ -360,7 +360,7 @@ defmodule T.Matches do
       end
     end)
     |> delete_likes()
-    |> bump_seen_dates()
+    |> mark_seen()
     |> Repo.transaction()
     |> case do
       {:ok, %{unmatch: %{id: match_id}}} ->
@@ -418,8 +418,8 @@ defmodule T.Matches do
     end)
   end
 
-  defp bump_seen_dates(multi) do
-    Multi.run(multi, :bump_seen_dates, fn _repo, %{unmatch: unmatch} ->
+  defp mark_seen(multi) do
+    Multi.run(multi, :mark_seen, fn _repo, %{unmatch: unmatch} ->
       [uid1, uid2] =
         case unmatch do
           [_uid1, _uid2] = ids -> ids

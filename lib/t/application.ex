@@ -10,29 +10,21 @@ defmodule T.Application do
     children =
       [
         {Task.Supervisor, name: T.TaskSupervisor},
-        {T.Events, events_config()},
+        maybe_events(),
         APNS.Token,
-        # TODO add apple keys endpoint and twilio (possibly aws as well)
-        unless_disabled(
-          {Finch,
-           name: T.Finch,
-           pools: %{
-             "https://api.development.push.apple.com" => [protocol: :http2],
-             "https://api.push.apple.com" => [protocol: :http2, count: 1]
-           }}
-        ),
+        maybe_finch(),
         maybe_cluster(),
-        T.Twilio,
+        maybe_twilio(),
         {Phoenix.PubSub, name: T.PubSub},
         unless_disabled(T.Media.Static),
         TWeb.CallTracker,
         TWeb.Presence,
         TWeb.UserSocket.Monitor,
-        T.Repo,
+        maybe_repo(),
         maybe_migrator(),
-        {Oban, oban_config()},
+        maybe_oban(),
         unless_disabled(T.Periodics),
-        TWeb.Endpoint,
+        maybe_endpoint(),
         TWeb.Telemetry,
         Supervisor.child_spec({Task, &T.Release.mark_ready/0}, id: :readiness_notifier)
       ]
@@ -78,8 +70,71 @@ defmodule T.Application do
     end
   end
 
-  defp events_config do
-    _config = Application.get_env(:t, T.Events)
+  defp repo_config do
+    Application.get_env(:t, T.Repo)
+  end
+
+  defp repo_url do
+    get_in(repo_config(), [:url])
+  end
+
+  defp maybe_oban do
+    if repo_url() do
+      {Oban, oban_config()}
+    else
+      Logger.warn("not starting oban due to missing repo url info")
+      nil
+    end
+  end
+
+  defp maybe_finch do
+    # TODO add apple keys endpoint (possibly aws as well)
+    unless_disabled(
+      {Finch,
+       name: T.Finch,
+       pools: %{
+         "https://api.development.push.apple.com" => [protocol: :http2],
+         "https://api.push.apple.com" => [protocol: :http2, count: 1]
+       }}
+    )
+  end
+
+  defp maybe_twilio do
+    if Application.get_env(:t, T.Twilio) do
+      T.Twilio
+    else
+      Logger.warn("not starting twilio due to missing config")
+      nil
+    end
+  end
+
+  defp maybe_endpoint do
+    config = Application.get_env(:t, TWeb.Endpoint)
+
+    if get_in(config, [:http]) do
+      TWeb.Endpoint
+    else
+      Logger.warn("not starting web endpoint due to missing http info")
+      nil
+    end
+  end
+
+  defp maybe_repo do
+    if repo_url() do
+      T.Repo
+    else
+      Logger.warn("not starting repo due to missing url info")
+      nil
+    end
+  end
+
+  defp maybe_events do
+    if config = Application.get_env(:t, T.Events) do
+      {T.Events, config}
+    else
+      Logger.warn("not staring events due to missing config")
+      nil
+    end
   end
 
   defp maybe_migrator do

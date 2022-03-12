@@ -34,9 +34,19 @@ config :t, Oban,
 
 config :ex_aws,
   json_codec: Jason,
+  # TODO switch to US
   region: "eu-north-1"
 
-if config_env() == :prod do
+smoke? = !!System.get_env("SMOKE")
+
+if config_env() == :prod and smoke? do
+  config :t, T.Media.Static, disabled?: true
+  config :t, T.Periodics, disabled?: true
+  config :t, Finch, disabled?: true
+end
+
+if config_env() == :prod and not smoke? do
+  # TODO remove
   config :t, current_admin_id: System.fetch_env!("ADMIN_ID")
 
   config :t, T.Twilio,
@@ -53,32 +63,34 @@ if config_env() == :prod do
     log_stream_name: "backend",
     log_group_name: "prod"
 
-  config :sentry,
-    dsn: System.fetch_env!("SENTRY_DSN")
+  config :sentry, dsn: System.fetch_env!("SENTRY_DSN")
 
   config :t, T.Bot,
     token: System.fetch_env!("TG_BOT_KEY"),
     room_id: System.fetch_env!("TG_ROOM_ID") |> String.to_integer()
+
+  apns_topic = System.fetch_env!("APNS_TOPIC")
+  team_id = System.fetch_env!("APNS_TEAM_ID")
+
+  config :t, T.PushNotifications.APNS, default_topic: apns_topic
 
   config :t, APNS,
     keys: [
       %{
         key: System.fetch_env!("SANDBOX_APNS_KEY"),
         key_id: System.fetch_env!("SANDBOX_APNS_KEY_ID"),
-        team_id: System.fetch_env!("APNS_TEAM_ID"),
-        topic: System.fetch_env!("APNS_TOPIC"),
+        team_id: team_id,
+        topic: apns_topic,
         env: :dev
       },
       %{
         key: System.fetch_env!("PROD_APNS_KEY"),
         key_id: System.fetch_env!("PROD_APNS_KEY_ID"),
-        team_id: System.fetch_env!("APNS_TEAM_ID"),
-        topic: System.fetch_env!("APNS_TOPIC"),
+        team_id: team_id,
+        topic: apns_topic,
         env: :prod
       }
     ]
-
-  config :t, T.PushNotifications.APNS, default_topic: System.fetch_env!("APNS_TOPIC")
 
   config :t, run_migrations_on_start?: true
 
@@ -224,10 +236,7 @@ if config_env() == :test do
   # to provide built-in test partitioning in CI environment.
   # Run `mix help test` for more information.
   config :t, T.Repo,
-    username: "postgres",
-    password: "postgres",
-    database: "t_test#{System.get_env("MIX_TEST_PARTITION")}",
-    hostname: "localhost",
+    url: "ecto://postgres:postgres@localhost:5432/t_test#{System.get_env("MIX_TEST_PARTITION")}",
     pool: Ecto.Adapters.SQL.Sandbox
 
   # We don't run a server during test. If one is required,

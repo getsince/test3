@@ -2,6 +2,7 @@ defmodule T.Matches.ExpiredMatchTest do
   use T.DataCase, async: true
   use Oban.Testing, repo: T.Repo
   alias T.Matches
+  alias T.Feeds
 
   describe "expiration_list_expired_matches/0,1" do
     test "doesn't list matches with contact clicks" do
@@ -42,12 +43,15 @@ defmodule T.Matches.ExpiredMatchTest do
       {:ok, me: me}
     end
 
-    test "matches ought to be expired are deleted from matches and inserted intro expired matches" do
+    test "matches ought to be expired are deleted from matches and seen profiles are inserted" do
       me = insert(:user)
       not_me = insert(:user)
       long_ago = DateTime.add(DateTime.utc_now(), -8 * 24 * 60 * 60)
 
-      insert(:match, user_id_1: me.id, user_id_2: not_me.id, inserted_at: long_ago)
+      user_id_1 = me.id
+      user_id_2 = not_me.id
+
+      insert(:match, user_id_1: user_id_1, user_id_2: user_id_2, inserted_at: long_ago)
 
       matches = Matches.Match |> T.Repo.all()
       assert length(matches) == 1
@@ -56,6 +60,16 @@ defmodule T.Matches.ExpiredMatchTest do
 
       matches_after = Matches.Match |> T.Repo.all()
       assert length(matches_after) == 0
+
+      assert Feeds.SeenProfile
+             |> where([s], s.by_user_id == ^user_id_1)
+             |> where([s], s.user_id == ^user_id_2)
+             |> T.Repo.exists?()
+
+      assert Feeds.SeenProfile
+             |> where([s], s.by_user_id == ^user_id_2)
+             |> where([s], s.user_id == ^user_id_1)
+             |> T.Repo.exists?()
     end
 
     test "recent match is not expired" do

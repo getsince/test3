@@ -8,7 +8,7 @@ defmodule T.Matches do
 
   alias T.Repo
   alias T.Matches.{Match, Like, MatchEvent, Seen}
-  alias T.Feeds.FeedProfile
+  alias T.Feeds.{FeedProfile, SeenProfile}
   alias T.PushNotifications.DispatchJob
   alias T.Bot
 
@@ -400,6 +400,7 @@ defmodule T.Matches do
       end
     end)
     |> delete_likes()
+    |> mark_seen()
     |> Repo.transaction()
     |> case do
       {:ok, %{unmatch: %{id: match_id}}} ->
@@ -452,6 +453,31 @@ defmodule T.Matches do
         |> where([l], l.by_user_id == ^uid1 and l.user_id == ^uid2)
         |> or_where([l], l.by_user_id == ^uid2 and l.user_id == ^uid1)
         |> Repo.delete_all()
+
+      {:ok, count}
+    end)
+  end
+
+  defp mark_seen(multi) do
+    Multi.run(multi, :mark_seen, fn _repo, %{unmatch: unmatch} ->
+      [uid1, uid2] =
+        case unmatch do
+          [_uid1, _uid2] = ids -> ids
+          %{users: [_uid1, _uid2] = ids} -> ids
+        end
+
+      now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+
+      {count, _} =
+        Repo.insert_all(
+          SeenProfile,
+          [
+            %{by_user_id: uid1, user_id: uid2, inserted_at: now},
+            %{by_user_id: uid2, user_id: uid1, inserted_at: now}
+          ],
+          on_conflict: {:replace, [:inserted_at]},
+          conflict_target: [:by_user_id, :user_id]
+        )
 
       {:ok, count}
     end)

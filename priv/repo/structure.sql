@@ -101,6 +101,7 @@ CREATE TABLE public.checked_profiles (
 
 
 --
+
 -- Name: feeded_profiles; Type: TABLE; Schema: public; Owner: -
 --
 

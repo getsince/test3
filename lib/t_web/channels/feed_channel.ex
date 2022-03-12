@@ -265,23 +265,24 @@ defmodule TWeb.FeedChannel do
   end
 
   defp render_matches(matches, version, screen_width) do
-    Enum.map(matches, fn
+    Enum.map(matches, fn match ->
       %Matches.Match{
         id: match_id,
         inserted_at: inserted_at,
         profile: profile,
         expiration_date: expiration_date,
         seen: seen
-      } ->
-        render_match(%{
-          id: match_id,
-          inserted_at: inserted_at,
-          profile: profile,
-          screen_width: screen_width,
-          version: version,
-          expiration_date: expiration_date,
-          seen: seen
-        })
+      } = match
+
+      render_match(%{
+        id: match_id,
+        inserted_at: inserted_at,
+        profile: profile,
+        screen_width: screen_width,
+        version: version,
+        expiration_date: expiration_date,
+        seen: seen
+      })
     end)
   end
 

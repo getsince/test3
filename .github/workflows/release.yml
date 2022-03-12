@@ -1,0 +1,62 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "**"
+
+jobs:
+  release:
+    name: plain mix release
+    runs-on: ubuntu-20.04
+
+    permissions:
+      contents: write
+
+    env:
+      MIX_ENV: prod
+      ARCHIVE_RELEASE: true
+      RELEASE_PATH: release
+      # TODO?
+      RELEASE_VERSION: 0.1.0
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: "1.13.1"
+          otp-version: "24.2"
+
+      - name: Restore dependencies cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            deps
+            _build
+
+          key: release-${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+          restore-keys: release-${{ runner.os }}-mix-
+
+      - name: Install dependencies
+        run: mix deps.get
+
+      - name: Build release
+        run: mix release
+
+      - name: Rename archive
+        run: mv release/t-${RELEASE_VERSION}.tar.gz ubuntu-20-04-amd64.tar.gz
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ubuntu-20-04-amd64.tar.gz
+
+      # - name: Upload release to S3
+      #   run: |
+      #     aws --version
+      #     aws configure set region eu-north-1
+      #     aws s3 cp release/t-${{ github.sha }}.tar.gz s3://${{ secrets.RELEASE_BUCKET }}/backend/${ echo ${{ github.ref }} | tr -d /refs/tags/ }.tar.gz

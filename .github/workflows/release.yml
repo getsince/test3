@@ -41,8 +41,18 @@ jobs:
           key: release-${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
           restore-keys: release-${{ runner.os }}-mix-
 
+      - name: Restore assets cache
+        uses: actions/cache@v2
+        with:
+          path: assets/node_modules
+          key: assets-${{ hashFiles('assets/package-lock.json') }}
+          restore-keys: assets-
+
       - name: Install dependencies
         run: mix deps.get
+
+      - name: Build assets
+        run: mix assets.deploy
 
       - name: Build release
         run: mix release

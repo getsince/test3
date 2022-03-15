@@ -32,6 +32,8 @@ defmodule TWeb.Endpoint do
     brotli: true,
     only: ~w(assets fonts images favicon.ico robots.txt)
 
+  plug TWeb.Plugs.HealthCheck
+
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.
   if code_reloading? do
@@ -57,7 +59,7 @@ defmodule TWeb.Endpoint do
   plug Plug.Head
   plug Plug.Session, @session_options
   plug RemoteIp
-  plug TWeb.ConfigureLoggerMetadata
+  plug TWeb.Plugs.ConfigureLoggerMetadata
 
   plug Sentry.PlugContext
   plug TWeb.Router

@@ -1,4 +1,4 @@
-defmodule TWeb.ConfigureLoggerMetadata do
+defmodule TWeb.Plugs.ConfigureLoggerMetadata do
   @behaviour Plug
   require Logger
 

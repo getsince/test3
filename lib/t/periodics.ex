@@ -13,22 +13,22 @@ defmodule T.Periodics do
       build_spec(
         seen_pruner: {
           _period = :timer.hours(1),
-          _task = {Feeds, :prune_seen_profiles, [_ttl_days = 30]}
+          _task = {Feeds, :local_prune_seen_profiles, [_ttl_days = 30]}
         },
         timeslots_pruner: {
           :timer.minutes(1),
-          {Matches, :prune_stale_timeslots, []}
+          {Matches, :local_prune_stale_timeslots, []}
         },
         match_expirer: {
           :timer.minutes(1),
           fn ->
-            Matches.expiration_notify_soon_to_expire()
+            Matches.local_expiration_notify_soon_to_expire()
             Matches.expiration_prune()
           end
         },
         scheduled_pushes: {
           :timer.minutes(1),
-          {Accounts, :push_users_to_complete_onboarding, []}
+          {Accounts, :local_push_users_to_complete_onboarding, []}
         }
       )
 

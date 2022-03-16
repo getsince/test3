@@ -134,6 +134,9 @@ if config_env() == :prod and not smoke? do
 
   ec2_polling_interval = String.to_integer(System.get_env("EC2_POLL_INTERVAL_SECONDS") || "5")
 
+  # export EC2_REGIONS=eu-north-1,ap-southeast-1,us-west-1
+  regions = "EC2_REGIONS" |> System.fetch_env!() |> String.split(",")
+
   config :libcluster,
     topologies: [
       aws: [
@@ -142,10 +145,14 @@ if config_env() == :prod and not smoke? do
           app_prefix: :t,
           name: System.get_env("EC2_NAME") || "since-backend",
           polling_interval: :timer.seconds(ec2_polling_interval),
-          regions: ["eu-north-1", "us-east-2"]
+          regions: regions
         ]
       ]
     ]
+
+  # TODO use cidr like in PRIMARY_SUBNET=10.0.0.0/16
+  # export PRIMARY_HOST_PREFIX=10.0.
+  config :e, primary_prefix: System.fetch_env!("PRIMARY_HOST_PREFIX")
 end
 
 if config_env() == :dev do
@@ -273,6 +280,8 @@ if config_env() == :test do
   config :t, T.PushNotifications.APNS, default_topic: "app.topic"
   config :t, T.Periodics, disabled?: true
   config :t, Finch, disabled?: true
+
+  config :t, primary_prefix: "10.0."
 end
 
 if config_env() == :bench do

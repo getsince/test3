@@ -23,7 +23,7 @@ defmodule T.Application do
         maybe_repo(),
         maybe_migrator(),
         maybe_oban(),
-        unless_disabled(T.Periodics),
+        maybe_periodics(),
         maybe_endpoint(),
         TWeb.Telemetry,
         Supervisor.child_spec({Task, &T.Release.mark_ready/0}, id: :readiness_notifier)
@@ -80,10 +80,21 @@ defmodule T.Application do
 
   defp maybe_oban do
     if repo_url() do
-      {Oban, oban_config()}
+      if T.Cluster.is_primary() do
+        {Oban, oban_config()}
+      else
+        Logger.warn("not starting oban in read-replica region")
+        nil
+      end
     else
       Logger.warn("not starting oban due to missing repo url info")
       nil
+    end
+  end
+
+  defp maybe_periodics do
+    if T.Cluster.is_primary() do
+      unless_disabled(T.Periodics)
     end
   end
 
@@ -138,7 +149,7 @@ defmodule T.Application do
   end
 
   defp maybe_migrator do
-    if Application.get_env(:t, :run_migrations_on_start?) do
+    if Application.get_env(:t, :run_migrations_on_start?) && T.Cluster.is_primary() do
       Logger.info("Running migrations")
       T.Release.Migrator
     end

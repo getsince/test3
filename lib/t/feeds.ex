@@ -7,6 +7,8 @@ defmodule T.Feeds do
 
   require Logger
 
+  import T.Cluster, only: [primary_rpc: 3]
+
   alias T.Repo
 
   alias T.Accounts.{Profile, UserReport, GenderPreference}
@@ -46,6 +48,7 @@ defmodule T.Feeds do
           String.t() | nil
         ) ::
           {[%FeedProfile{}], String.t()}
+  # TODO remove writes
   def fetch_feed(user_id, location, gender, feed_filter, count, feed_cursor) do
     if feed_cursor == nil do
       empty_feeded_profiles(user_id)
@@ -143,13 +146,24 @@ defmodule T.Feeds do
   end
 
   defp empty_feeded_profiles(user_id) do
+    primary_rpc(__MODULE__, :local_empty_feeded_profiles, [user_id])
+  end
+
+  @doc false
+  def local_empty_feeded_profiles(user_id) do
     FeededProfile |> where(for_user_id: ^user_id) |> Repo.delete_all()
   end
 
   defp mark_profiles_feeded(for_user_id, feed_profiles) do
+    feeded_user_ids = Enum.map(feed_profiles, fn profile -> profile.user_id end)
+    primary_rpc(__MODULE__, :local_mark_profiles_feeded, [for_user_id, feeded_user_ids])
+  end
+
+  @doc false
+  def local_mark_profiles_feeded(for_user_id, feeded_user_ids) do
     data =
-      Enum.map(feed_profiles, fn p ->
-        %{for_user_id: for_user_id, user_id: p.user_id}
+      Enum.map(feeded_user_ids, fn feeded_user_id ->
+        %{for_user_id: for_user_id, user_id: feeded_user_id}
       end)
 
     Repo.insert_all(FeededProfile, data, on_conflict: :nothing)
@@ -290,10 +304,14 @@ defmodule T.Feeds do
   @doc "mark_profile_seen(user_id, by: <user-id>)"
   def mark_profile_seen(user_id, opts) do
     by_user_id = Keyword.fetch!(opts, :by)
+    primary_rpc(__MODULE__, :local_mark_profile_seen, [by_user_id, user_id])
+  end
 
+  @doc false
+  def local_mark_profile_seen(by_user_id, user_id) do
     seen_changeset(by_user_id, user_id)
     |> Repo.insert()
-    |> maybe_bump_shown_count(user_id)
+    |> local_maybe_bump_shown_count(user_id)
   end
 
   defp seen_changeset(by_user_id, user_id) do
@@ -302,7 +320,7 @@ defmodule T.Feeds do
     |> unique_constraint(:seen, name: :seen_profiles_pkey)
   end
 
-  defp maybe_bump_shown_count(repo, user_id) do
+  defp local_maybe_bump_shown_count(repo, user_id) do
     case repo do
       {:ok, _} = result ->
         FeedProfile
@@ -320,7 +338,7 @@ defmodule T.Feeds do
     end
   end
 
-  def prune_seen_profiles(ttl_days) do
+  def local_prune_seen_profiles(ttl_days) do
     SeenProfile
     |> where([s], s.inserted_at < fragment("now() - ? * interval '1 day'", ^ttl_days))
     |> Repo.delete_all()

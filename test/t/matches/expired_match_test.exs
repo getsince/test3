@@ -69,7 +69,7 @@ defmodule T.Matches.ExpiredMatchTest do
     end
   end
 
-  describe "expire_match/3" do
+  describe "local_expire_match/3" do
     test "deletes voicemail" do
       %{user: u1} = insert(:profile)
       %{user: u2} = insert(:profile)
@@ -81,7 +81,7 @@ defmodule T.Matches.ExpiredMatchTest do
       {:ok, %Calls.Voicemail{id: v2_id}} =
         Calls.voicemail_save_message(u1.id, match_id, s3_key_2 = Ecto.UUID.generate())
 
-      Matches.expire_match(match_id, u1.id, u2.id)
+      Matches.local_expire_match(match_id, u1.id, u2.id)
 
       refute Repo.get(Calls.Voicemail, v1_id)
       refute Repo.get(Calls.Voicemail, v2_id)
@@ -177,7 +177,7 @@ defmodule T.Matches.ExpiredMatchTest do
       matches = Matches.Match |> T.Repo.all()
       assert length(matches) == 1
 
-      Matches.expiration_notify_soon_to_expire()
+      Matches.local_expiration_notify_soon_to_expire()
 
       match_id = m.id
 

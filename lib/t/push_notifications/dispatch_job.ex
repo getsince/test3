@@ -120,7 +120,7 @@ defmodule T.PushNotifications.DispatchJob do
         Matches.Timeslot |> where(match_id: ^match_id, selected_slot: ^slot) |> Repo.one()
 
       if timeslot do
-        Matches.schedule_timeslot_ended(match, timeslot)
+        Matches.local_schedule_timeslot_ended(match, timeslot)
 
         if profile = profile_info(picker_id) do
           {name, _gender} = profile
@@ -155,7 +155,7 @@ defmodule T.PushNotifications.DispatchJob do
 
         if type == "timeslot_started" do
           Matches.notify_timeslot_started(match)
-          Matches.schedule_timeslot_ended(match, timeslot)
+          Matches.local_schedule_timeslot_ended(match, timeslot)
         end
 
         if profile1 = profile_info(uid1) do

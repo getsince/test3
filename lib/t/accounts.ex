@@ -9,6 +9,8 @@ defmodule T.Accounts do
 
   require Logger
 
+  import T.Cluster, only: [primary_rpc: 3]
+
   alias T.{Repo, Media, Bot, Matches}
 
   alias T.Accounts.{
@@ -61,8 +63,12 @@ defmodule T.Accounts do
 
   ## User registration
 
-  @doc false
   def register_user_with_apple_id(attrs, now \\ DateTime.utc_now()) do
+    primary_rpc(__MODULE__, :local_register_user_with_apple_id, [attrs, now])
+  end
+
+  @doc false
+  def local_register_user_with_apple_id(attrs, now) do
     Multi.new()
     |> Multi.insert(:user, User.apple_id_registration_changeset(%User{}, attrs))
     |> add_profile(now)
@@ -99,9 +105,13 @@ defmodule T.Accounts do
     )
   end
 
-  def update_last_active(user_id, time \\ DateTime.utc_now()) do
-    time = DateTime.truncate(time, :second)
+  def update_last_active(user_id, now \\ DateTime.utc_now()) do
+    now = DateTime.truncate(now, :second)
+    primary_rpc(__MODULE__, :local_update_last_active, [user_id, now])
+  end
 
+  @doc false
+  def local_update_last_active(user_id, time) do
     Profile
     |> where(user_id: ^user_id)
     |> Repo.update_all(set: [last_active: time])
@@ -110,13 +120,17 @@ defmodule T.Accounts do
   defp ensure_has_profile(%User{profile: %Profile{}} = user), do: user
 
   defp ensure_has_profile(%User{profile: nil} = user) do
-    profile =
-      Repo.insert!(%Profile{
-        user_id: user.id,
-        last_active: DateTime.truncate(DateTime.utc_now(), :second)
-      })
-
+    profile = primary_rpc(__MODULE__, :local_ensure_has_profile, [user.id])
     %User{user | profile: profile}
+  end
+
+  # TODO race condition
+  @doc false
+  def local_ensure_has_profile(user_id) do
+    Repo.insert!(%Profile{
+      user_id: user_id,
+      last_active: DateTime.truncate(DateTime.utc_now(), :second)
+    })
   end
 
   @spec login_or_register_user_with_apple_id(String.t()) ::
@@ -132,16 +146,19 @@ defmodule T.Accounts do
     end
   end
 
-  # TODO in one transaction
+  # TODO in one transaction in primary
   defp get_or_register_user_with_apple_id(apple_id, email) do
-    if u = get_user_by_apple_id_updating_email(apple_id, email) do
-      {:ok, ensure_has_profile(u)}
+    user = primary_rpc(__MODULE__, :local_get_user_by_apple_id_updating_email, [apple_id, email])
+
+    if user do
+      {:ok, ensure_has_profile(user)}
     else
       register_user_with_apple_id(%{apple_id: apple_id, email: email})
     end
   end
 
-  defp get_user_by_apple_id_updating_email(apple_id, email) do
+  @doc false
+  def local_get_user_by_apple_id_updating_email(apple_id, email) do
     User
     |> where(apple_id: ^apple_id)
     |> select([u], u)
@@ -154,6 +171,11 @@ defmodule T.Accounts do
 
   # TODO test
   def report_user(from_user_id, on_user_id, reason) do
+    primary_rpc(__MODULE__, :local_report_user, [from_user_id, on_user_id, reason])
+  end
+
+  @doc false
+  def local_report_user(from_user_id, on_user_id, reason) do
     Logger.warn("user #{from_user_id} reported #{on_user_id} with reason #{reason}")
 
     {reported_user_name, story} = name_and_story(on_user_id)
@@ -219,6 +241,11 @@ defmodule T.Accounts do
   end
 
   def block_user(user_id) do
+    primary_rpc(__MODULE__, :local_block_user, [user_id])
+  end
+
+  @doc false
+  def local_block_user(user_id) do
     Multi.new()
     |> Multi.run(:block, fn repo, _changes ->
       user_id |> block_user_q() |> repo.update_all([])
@@ -283,6 +310,11 @@ defmodule T.Accounts do
 
   # TODO deactivate session
   def delete_user(user_id) do
+    primary_rpc(__MODULE__, :local_delete_user, [user_id])
+  end
+
+  @doc false
+  def local_delete_user(user_id) do
     {delete_user_name, story} = name_and_story(user_id)
     story_string = story_to_string(story)
 
@@ -327,6 +359,11 @@ defmodule T.Accounts do
   end
 
   def save_apns_device_id(user_id, token, device_id, extra \\ []) do
+    primary_rpc(__MODULE__, :local_save_apns_device_id, [user_id, token, device_id, extra])
+  end
+
+  @doc false
+  def local_save_apns_device_id(user_id, token, device_id, extra) do
     %UserToken{id: token_id} = token |> UserToken.token_and_context_query("mobile") |> Repo.one!()
 
     prev_device_q =
@@ -373,12 +410,22 @@ defmodule T.Accounts do
 
   @doc "remove_apns_device(device_id_base_16)"
   def remove_apns_device(device_id) do
+    primary_rpc(__MODULE__, :local_remove_apns_device, [device_id])
+  end
+
+  @doc false
+  def local_remove_apns_device(device_id) do
     APNSDevice
     |> where(device_id: ^Base.decode16!(device_id))
     |> Repo.delete_all()
   end
 
   def save_pushkit_device_id(user_id, token, device_id, extra) do
+    primary_rpc(__MODULE__, :local_save_pushkit_device_id, [user_id, token, device_id, extra])
+  end
+
+  @doc false
+  def local_save_pushkit_device_id(user_id, token, device_id, extra) do
     %UserToken{id: token_id} = token |> UserToken.token_and_context_query("mobile") |> Repo.one!()
 
     prev_device_q =
@@ -403,6 +450,11 @@ defmodule T.Accounts do
 
   @doc "remove_pushkit_device(device_id_base_16)"
   def remove_pushkit_device(device_id) do
+    primary_rpc(__MODULE__, :local_remove_pushkit_device, [device_id])
+  end
+
+  @doc false
+  def local_remove_pushkit_device(device_id) do
     PushKitDevice
     |> where(device_id: ^Base.decode16!(device_id))
     |> Repo.delete_all()
@@ -421,8 +473,17 @@ defmodule T.Accounts do
   @doc """
   Generates a session token for a user.
   """
-  def generate_user_session_token(user, context) do
-    {token, user_token} = UserToken.build_token(user, context)
+  def generate_user_session_token(%User{id: user_id}, context) do
+    generate_user_session_token(user_id, context)
+  end
+
+  def generate_user_session_token(user_id, context) when is_binary(user_id) do
+    primary_rpc(__MODULE__, :local_generate_user_session_token, [user_id, context])
+  end
+
+  @doc false
+  def local_generate_user_session_token(user_id, context) do
+    {token, user_token} = UserToken.build_token(user_id, context)
     Repo.insert!(user_token)
     token
   end
@@ -445,6 +506,16 @@ defmodule T.Accounts do
   end
 
   def get_user_by_session_token_and_update_version(token, version, context) do
+    primary_rpc(__MODULE__, :local_get_user_by_session_token_and_update_version, [
+      token,
+      version,
+      context
+    ])
+  end
+
+  # TODO split update, only do if old_version != new_version
+  @doc false
+  def local_get_user_by_session_token_and_update_version(token, version, context) do
     {:ok, query} =
       case context do
         "session" -> UserToken.verify_session_token_query(token)
@@ -465,6 +536,11 @@ defmodule T.Accounts do
   Deletes the signed token with the given context.
   """
   def delete_session_token(token, context) do
+    primary_rpc(__MODULE__, :local_delete_session_token, [token, context])
+  end
+
+  @doc false
+  def local_delete_session_token(token, context) do
     Repo.delete_all(UserToken.token_and_context_query(token, context))
     :ok
   end
@@ -521,7 +597,13 @@ defmodule T.Accounts do
     %Profile{profile | gender_preference: gender_preference, audio_only: audio_only}
   end
 
-  def onboard_profile(%Profile{user_id: user_id, audio_only: audio_only} = profile, attrs) do
+  def onboard_profile(profile, attrs) do
+    %Profile{user_id: user_id, gender_preference: genders, audio_only: audio_only} = profile
+    primary_rpc(__MODULE__, :local_onboard_profile, [user_id, genders, audio_only, attrs])
+  end
+
+  @doc false
+  def local_onboard_profile(user_id, old_genders, audio_only, attrs) do
     Multi.new()
     |> Multi.run(:user, fn repo, _changes ->
       user = repo.get!(User, user_id)
@@ -535,7 +617,7 @@ defmodule T.Accounts do
     |> Multi.update(:profile, fn %{user: %{profile: profile}} ->
       Profile.changeset(profile, attrs, validate_required?: true)
     end)
-    |> maybe_update_profile_gender_preferences(profile, attrs)
+    |> maybe_update_profile_gender_preferences(user_id, old_genders, attrs)
     |> Multi.run(:mark_onboarded, fn repo, %{user: user} ->
       {1, nil} =
         User
@@ -580,12 +662,18 @@ defmodule T.Accounts do
     # |> notify_subscribers([:user, :new])
   end
 
-  def update_profile(%Profile{audio_only: audio_only} = profile, attrs, opts \\ []) do
+  # TODO can do changeset stuff before rpc
+  def update_profile(profile, attrs, opts \\ []) do
+    primary_rpc(__MODULE__, :local_update_profile, [profile, attrs, opts])
+  end
+
+  @doc false
+  def local_update_profile(%Profile{audio_only: audio_only} = profile, attrs, opts) do
     Logger.warn("user #{profile.user_id} updates profile with #{inspect(attrs)}")
 
     Multi.new()
     |> Multi.update(:profile, Profile.changeset(profile, attrs, opts), returning: true)
-    |> maybe_update_profile_gender_preferences(profile, attrs)
+    |> maybe_update_profile_gender_preferences(profile.user_id, profile.gender_preference, attrs)
     |> Multi.run(:maybe_unhide, fn _repo, %{profile: profile} ->
       has_story? = !!profile.story
       hidden? = profile.hidden?
@@ -641,20 +729,18 @@ defmodule T.Accounts do
     end
   end
 
-  defp maybe_update_profile_gender_preferences(multi, profile, attrs) when is_map(attrs) do
+  defp maybe_update_profile_gender_preferences(multi, user_id, old_genders, attrs)
+       when is_map(attrs) do
     maybe_update_profile_gender_preferences(
       multi,
-      profile,
+      user_id,
+      old_genders,
       attrs[:gender_preference] || attrs["gender_preference"]
     )
   end
 
   # TODO test
-  defp maybe_update_profile_gender_preferences(
-         multi,
-         %Profile{user_id: user_id, gender_preference: old_genders},
-         new_genders
-       )
+  defp maybe_update_profile_gender_preferences(multi, user_id, old_genders, new_genders)
        when is_list(new_genders) do
     Multi.run(multi, :gender_preferences, fn _repo, _changes ->
       old_genders = old_genders || []
@@ -666,22 +752,18 @@ defmodule T.Accounts do
       |> where([p], p.gender in ^to_remove)
       |> Repo.delete_all()
 
-      insert_all_gender_preferences(to_add, user_id)
+      Repo.insert_all(
+        GenderPreference,
+        Enum.map(to_add, fn g -> %{user_id: user_id, gender: g} end),
+        returning: true
+      )
 
       {:ok, new_genders}
     end)
   end
 
-  defp maybe_update_profile_gender_preferences(multi, %Profile{gender_preference: genders}, _atrs) do
+  defp maybe_update_profile_gender_preferences(multi, _user_id, genders, _attrs) do
     Multi.run(multi, :gender_preferences, fn _repo, _changes -> {:ok, genders} end)
-  end
-
-  defp insert_all_gender_preferences(genders, user_id) when is_list(genders) do
-    Repo.insert_all(
-      GenderPreference,
-      Enum.map(genders, fn g -> %{user_id: user_id, gender: g} end),
-      returning: true
-    )
   end
 
   def get_location_and_gender!(user_id) do
@@ -796,29 +878,40 @@ defmodule T.Accounts do
     |> Repo.all()
   end
 
-  def push_users_to_complete_onboarding do
-    Profile
-    |> where([p], is_nil(p.story))
-    |> where([p], p.last_active <= fragment("now() - interval '1 day'"))
-    |> where([p], p.last_active > fragment("now() - interval '1 day 1 minute'"))
-    |> select([p], p.user_id)
-    |> Repo.all()
-    |> Enum.map(fn user_id ->
-      schedule_complete_onboarding_push(user_id)
-    end)
-  end
+  # TODO unique
+  def local_push_users_to_complete_onboarding do
+    user_ids =
+      Profile
+      |> where([p], is_nil(p.story))
+      |> where([p], p.last_active <= fragment("now() - interval '1 day'"))
+      |> where([p], p.last_active > fragment("now() - interval '1 day 1 minute'"))
+      |> select([p], p.user_id)
+      |> Repo.all()
 
-  defp schedule_complete_onboarding_push(user_id) do
-    job = DispatchJob.new(%{"type" => "complete_onboarding", "user_id" => user_id})
-    Oban.insert(job)
+    jobs =
+      Enum.map(user_ids, fn user_id ->
+        DispatchJob.new(%{"type" => "complete_onboarding", "user_id" => user_id})
+      end)
+
+    Oban.insert_all(jobs)
   end
 
   def schedule_upgrade_app_push(user_id) do
+    primary_rpc(__MODULE__, :local_schedule_upgrade_app_push, [user_id])
+  end
+
+  @doc false
+  def local_schedule_upgrade_app_push(user_id) do
     job = DispatchJob.new(%{"type" => "upgrade_app", "user_id" => user_id})
     Oban.insert(job)
   end
 
   def set_audio_only(user_id, bool) do
+    primary_rpc(__MODULE__, :local_set_audio_only, [user_id, bool])
+  end
+
+  @doc false
+  def local_set_audio_only(user_id, bool) do
     {1, _} =
       UserSettings
       |> where(user_id: ^user_id)

@@ -327,7 +327,7 @@ defmodule T.MatchesTest do
     end
   end
 
-  describe "prune_stale_timeslots/1" do
+  describe "local_prune_stale_timeslots/1" do
     test "deletes slot offers older than 30 min if no selected slot" do
       [u1, u2, u3, u4] = insert_list(4, :user)
       m1 = insert(:match, user_id_1: u1.id, user_id_2: u2.id)
@@ -345,7 +345,7 @@ defmodule T.MatchesTest do
         match: m2
       )
 
-      assert {1, nil} == Matches.prune_stale_timeslots(~U[2021-11-15 14:00:00Z])
+      assert {1, nil} == Matches.local_prune_stale_timeslots(~U[2021-11-15 14:00:00Z])
       refute Repo.get(Matches.Timeslot, m1.id)
       assert Repo.get(Matches.Timeslot, m2.id)
     end
@@ -369,7 +369,7 @@ defmodule T.MatchesTest do
         match: m2
       )
 
-      assert {1, nil} == Matches.prune_stale_timeslots(~U[2021-11-15 14:30:00Z])
+      assert {1, nil} == Matches.local_prune_stale_timeslots(~U[2021-11-15 14:30:00Z])
       refute Repo.get(Matches.Timeslot, m1.id)
       assert Repo.get(Matches.Timeslot, m2.id)
     end

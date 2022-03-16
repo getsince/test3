@@ -112,7 +112,7 @@ defmodule T.Feeds.SeenTest do
 
       assert length(seen_profiles) == 1
 
-      Feeds.prune_seen_profiles(5)
+      Feeds.local_prune_seen_profiles(5)
 
       seen_profiles_after =
         SeenProfile

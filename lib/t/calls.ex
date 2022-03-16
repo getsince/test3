@@ -5,6 +5,8 @@ defmodule T.Calls do
 
   require Logger
 
+  import T.Cluster, only: [primary_rpc: 3]
+
   alias T.{Repo, Twilio, Accounts, Feeds, Matches}
   alias T.Calls.{Call, Voicemail}
   alias T.Feeds.{FeedProfile}
@@ -38,11 +40,7 @@ defmodule T.Calls do
     with :ok <- ensure_call_allowed(caller_id, called_id),
          {:ok, devices} <- ensure_has_devices(called_id),
          :ok <- push_call(caller_id, call_id, devices) do
-      {:ok, interaction} =
-        Repo.transaction(fn ->
-          Repo.insert!(call)
-          if interaction, do: Repo.insert!(interaction)
-        end)
+      interaction = primary_rpc(__MODULE__, :local_insert_call, [call, interaction])
 
       if interaction do
         Matches.broadcast_interaction(interaction)
@@ -56,6 +54,17 @@ defmodule T.Calls do
 
       {:ok, call_id}
     end
+  end
+
+  @doc false
+  def local_insert_call(call, interaction) do
+    {:ok, interaction} =
+      Repo.transaction(fn ->
+        Repo.insert!(call)
+        if interaction, do: Repo.insert!(interaction)
+      end)
+
+    interaction
   end
 
   @spec ensure_call_allowed(uuid, uuid) :: :ok | {:error, reason :: String.t()}
@@ -152,7 +161,7 @@ defmodule T.Calls do
     DateTime.truncate(DateTime.utc_now(), :second)
   end
 
-  defp update_call_m(multi, call_id, updates) do
+  defp local_update_call_m(multi, call_id, updates) do
     call_q = Call |> where(id: ^call_id) |> select([c], c)
     Multi.update_all(multi, :call, call_q, updates)
   end
@@ -172,7 +181,7 @@ defmodule T.Calls do
     end)
   end
 
-  defp maybe_insert_call_start_event_m(multi, now) do
+  defp local_maybe_insert_call_start_event_m(multi, now) do
     Multi.run(multi, :event, fn _repo, %{match_id: match_id} ->
       if match_id do
         event = %MatchEvent{timestamp: now, match_id: match_id, event: "call_start"}
@@ -194,7 +203,7 @@ defmodule T.Calls do
     end
   end
 
-  defp update_call_interaction_m(multi) do
+  defp local_update_call_interaction_m(multi) do
     interaction = fn %{call: call_update} ->
       {1, [%Call{id: call_id, accepted_at: accepted_at, ended_at: ended_at}]} = call_update
 
@@ -217,11 +226,16 @@ defmodule T.Calls do
   # TODO not ignore errors (currently always :ok)
   @spec accept_call(uuid, DateTime.t()) :: :ok
   def accept_call(call_id, now \\ utc_now()) do
+    primary_rpc(__MODULE__, :local_accept_call, [call_id, now])
+  end
+
+  @doc false
+  def local_accept_call(call_id, now) do
     Multi.new()
-    |> update_call_m(call_id, set: [accepted_at: now])
+    |> local_update_call_m(call_id, set: [accepted_at: now])
     |> get_match_id_m()
-    |> maybe_insert_call_start_event_m(now)
-    |> update_call_interaction_m()
+    |> local_maybe_insert_call_start_event_m(now)
+    |> local_update_call_interaction_m()
     |> Repo.transaction()
     |> tap(fn
       {:ok, changes} = success ->
@@ -268,10 +282,15 @@ defmodule T.Calls do
 
   @spec end_call(uuid, uuid, DateTime.t()) :: :ok
   def end_call(user_id, call_id, now \\ utc_now()) do
+    primary_rpc(__MODULE__, :local_end_call, [user_id, call_id, now])
+  end
+
+  @doc false
+  def local_end_call(user_id, call_id, now) do
     Multi.new()
-    |> update_call_m(call_id, set: [ended_at: now, ended_by: user_id])
+    |> local_update_call_m(call_id, set: [ended_at: now, ended_by: user_id])
     |> get_match_id_m()
-    |> update_call_interaction_m()
+    |> local_update_call_interaction_m()
     |> Repo.transaction()
     |> tap(fn
       {:ok, changes} ->
@@ -365,6 +384,11 @@ defmodule T.Calls do
   @spec voicemail_save_message(uuid, uuid, uuid) ::
           {:ok, %Voicemail{}} | {:error, reason :: String.t()}
   def voicemail_save_message(caller_id, match_id, s3_key) do
+    primary_rpc(__MODULE__, :local_voicemail_save_message, [caller_id, match_id, s3_key])
+  end
+
+  @doc false
+  def local_voicemail_save_message(caller_id, match_id, s3_key) do
     voicemail = %Voicemail{caller_id: caller_id, match_id: match_id, s3_key: s3_key}
 
     Multi.new()
@@ -436,7 +460,11 @@ defmodule T.Calls do
   @spec voicemail_listen_message(uuid, uuid, DateTime.t()) :: boolean()
   def voicemail_listen_message(user_id, voicemail_id, now \\ DateTime.utc_now()) do
     listened_at = DateTime.truncate(now, :second)
+    primary_rpc(__MODULE__, :local_voicemail_listen_message, [user_id, voicemail_id, listened_at])
+  end
 
+  @doc false
+  def local_voicemail_listen_message(user_id, voicemail_id, listened_at) do
     {count, _} =
       Voicemail
       |> where(id: ^voicemail_id)
@@ -452,6 +480,11 @@ defmodule T.Calls do
 
   @spec voicemail_delete_all(uuid) :: :ok
   def voicemail_delete_all(match_id) do
+    primary_rpc(__MODULE__, :local_voicemail_delete_all, [match_id])
+  end
+
+  @doc false
+  def local_voicemail_delete_all(match_id) do
     {_count, s3_keys} =
       Voicemail
       |> where(match_id: ^match_id)

@@ -10,7 +10,7 @@ defmodule T.PushNotifications.ScheduledPushesTest do
 
       user = onboarded_user(story: nil, last_active: day_ago)
 
-      Accounts.push_users_to_complete_onboarding()
+      Accounts.local_push_users_to_complete_onboarding()
 
       user_id = user.id
 
@@ -30,7 +30,7 @@ defmodule T.PushNotifications.ScheduledPushesTest do
 
     _user = onboarded_user(last_active: day_ago)
 
-    Accounts.push_users_to_complete_onboarding()
+    Accounts.local_push_users_to_complete_onboarding()
 
     assert [] = all_enqueued(worker: T.PushNotifications.DispatchJob)
   end

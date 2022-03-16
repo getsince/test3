@@ -73,29 +73,45 @@ defmodule T.Feeds do
       distance: distance
     } = feed_filter
 
-    feeded = FeededProfile |> where(for_user_id: ^user_id) |> select([s], s.user_id)
+    # feeded = FeededProfile |> where(for_user_id: ^user_id) |> select([s], s.user_id)
 
-    most_liked_count = count - div(count, 2)
+    # most_liked_count = count - div(count, 2)
 
-    most_liked =
-      most_liked_q(user_id, gender, gender_preferences, feeded)
-      |> maybe_apply_age_filters(min_age, max_age)
-      |> maybe_apply_distance_filter(location, distance)
-      |> limit(^most_liked_count)
-      |> Repo.all()
+    # most_liked_q(user_id, gender, gender_preferences, feeded)
+    # most_liked =
+    feed_profiles_q(user_id, gender, gender_preferences)
+    # |> maybe_apply_age_filters(min_age, max_age)
+    # |> maybe_apply_distance_filter(location, distance)
+    # |> limit(^most_liked_count)
+    # |> select_merge([p], %{distance: st_distance(^location, p.location) / 1000})
+    # select([p], %{p | distance: st_distance(^location, p.location) / 1000})
+    |> select([p], {p, fragment("st_distance(?, location) / 1000", ^location)})
+    |> order_by(fragment("st_distance(?, location) / 1000", ^location))
+    |> limit(^count)
+    |> Repo.all()
+    |> Enum.map(fn {profile, distance} ->
+      IO.puts(distance)
+      %FeedProfile{profile | distance: distance}
+    end)
 
-    filter_out_ids = Enum.map(most_liked, fn p -> p.user_id end)
+    # |> Enum.map(fn {profile, distance} -> %FeedProfile{profile | distance: distance} end)
 
-    most_recent_count = count - length(most_liked)
+    # filter_out_ids = Enum.map(most_liked, fn p -> p.user_id end)
 
-    most_recent =
-      most_recent_q(user_id, gender, gender_preferences, feeded, filter_out_ids)
-      |> maybe_apply_age_filters(min_age, max_age)
-      |> maybe_apply_distance_filter(location, distance)
-      |> limit(^most_recent_count)
-      |> Repo.all()
+    # most_recent_count = count - length(most_liked)
 
-    most_liked ++ most_recent
+    # most_recent_q(user_id, gender, gender_preferences, feeded, filter_out_ids)
+    # most_recent =
+    #   feed_profiles_q(user_id, gender, gender_preferences)
+    #   |> maybe_apply_age_filters(min_age, max_age)
+    #   |> maybe_apply_distance_filter(location, distance)
+    #   |> limit(^most_recent_count)
+    # |> select([p], {p, st_distance(^location, p.location) / 1000})
+    #   |> order_by([p, d], desc: d)
+    #   |> Repo.all()
+    # |> Enum.map(fn {profile, distance} -> %FeedProfile{profile | distance: distance} end)
+
+    # most_liked ++ most_recent
   end
 
   defp most_liked_q(user_id, gender, gender_preferences, feeded) do
@@ -175,7 +191,7 @@ defmodule T.Feeds do
   end
 
   defp feed_profiles_q(user_id, gender, gender_preference) do
-    treshold_date = DateTime.utc_now() |> DateTime.add(-60 * 24 * 60 * 60, :second)
+    treshold_date = DateTime.utc_now() |> DateTime.add(-120 * 24 * 60 * 60, :second)
 
     filtered_profiles_q(user_id, gender, gender_preference)
     |> where([p], p.user_id != ^user_id)

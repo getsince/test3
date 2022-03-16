@@ -7,7 +7,7 @@ defmodule TWeb.FeedView do
     profile =
       render_profile(
         profile,
-        [:user_id, :name, :gender, :story],
+        [:user_id, :name, :gender, :story, :distance],
         version,
         screen_width,
         _env = :feed

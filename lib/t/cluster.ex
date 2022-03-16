@@ -36,7 +36,7 @@ defmodule T.Cluster do
   Checks if the node is in primary region.
 
       iex> is_primary() # checks self
-      false
+      true
 
       iex> is_primary(:"t@10.0.1.234")
       true

@@ -224,11 +224,22 @@ defmodule T.Matches do
     end)
   end
 
-  defp maybe_schedule_match_push_m(multi) do
+  defp maybe_schedule_match_push_m(multi, now \\ DateTime.utc_now()) do
     Multi.run(multi, :push, fn _repo, %{match: match} ->
       if match do
-        job = DispatchJob.new(%{"type" => "match", "match_id" => match.id})
-        Oban.insert(job)
+        before_expire =
+          DateTime.truncate(now, :second)
+          |> DateTime.add(match_ttl())
+          |> DateTime.add(-2 * 3600)
+
+        jobs = [
+          DispatchJob.new(%{"type" => "match", "match_id" => match.id}),
+          DispatchJob.new(%{"type" => "match_about_to_expire", "match_id" => match.id},
+            scheduled_at: before_expire
+          )
+        ]
+
+        {:ok, Oban.insert_all(jobs)}
       else
         {:ok, nil}
       end
@@ -1230,37 +1241,6 @@ defmodule T.Matches do
     |> Repo.all()
   end
 
-  def local_expiration_notify_soon_to_expire(reference \\ DateTime.utc_now()) do
-    expiration_list_soon_to_expire(reference)
-    |> Enum.map(fn match_id ->
-      DispatchJob.new(%{"type" => "match_about_to_expire", "match_id" => match_id})
-    end)
-    |> Oban.insert_all()
-  end
-
-  defp expiration_notification_interval(reference) do
-    to =
-      reference
-      |> DateTime.add(-match_ttl())
-      |> DateTime.add(_2_hours = 2 * 3600)
-
-    from = DateTime.add(to, -60)
-    {from, to}
-  end
-
-  def expiration_list_soon_to_expire(reference \\ DateTime.utc_now()) do
-    {from, to} = expiration_notification_interval(reference)
-
-    expiring_matches_q()
-    # TODO can result in duplicates with more than one worker
-    |> where(
-      [match: m],
-      m.inserted_at > ^from and m.inserted_at <= ^to
-    )
-    |> select([m], m.id)
-    |> Repo.all()
-  end
-
   def delete_expired_match(match_id, by_user_id) do
     primary_rpc(__MODULE__, :local_delete_expired_match, [match_id, by_user_id])
   end
@@ -1294,6 +1274,16 @@ defmodule T.Matches do
       |> limit(1)
 
     join(query, :left_lateral, [m], e in subquery(undying_events_q), as: :undying_event)
+  end
+
+  def has_undying_events?(match_id) do
+    MatchEvent
+    |> where(match_id: ^match_id)
+    |> where(
+      [e],
+      e.event == "call_start" or e.event == "contact_offer" or e.event == "contact_click"
+    )
+    |> Repo.exists?()
   end
 
   # Contact Exchange

@@ -33,10 +33,12 @@ defmodule T.PushNotifications.DispatchJob do
     %{"match_id" => match_id} = args
 
     if match = alive_match(match_id) do
-      %Matches.Match{user_id_1: uid1, user_id_2: uid2} = match
+      unless Matches.has_undying_events?(match_id) do
+        %Matches.Match{user_id_1: uid1, user_id_2: uid2} = match
+        profile1 = profile_info(uid1)
+        profile2 = profile_info(uid2)
 
-      if profile1 = profile_info(uid1) do
-        if profile2 = profile_info(uid2) do
+        if profile1 && profile2 do
           {name1, gender1} = profile1
           {name2, gender2} = profile2
           data1 = %{"match_id" => match_id, "name" => name2, "gender" => gender2}
@@ -45,11 +47,9 @@ defmodule T.PushNotifications.DispatchJob do
           uid2 |> Accounts.list_apns_devices() |> schedule_apns("match_about_to_expire", data2)
         end
       end
-
-      :ok
-    else
-      :discard
     end
+
+    :ok
   end
 
   defp handle_type("timeslot_offer" = type, args) do

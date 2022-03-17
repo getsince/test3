@@ -61,7 +61,8 @@ defmodule T.MatchesTest do
 
       expected = [
         %{"by_user_id" => p1_id, "type" => "invite", "user_id" => p2_id},
-        %{"match_id" => match_id, "type" => "match"}
+        %{"match_id" => match_id, "type" => "match"},
+        %{"match_id" => match_id, "type" => "match_about_to_expire"}
       ]
 
       actual = Enum.map(all_enqueued(worker: DispatchJob), fn job -> job.args end)

@@ -46,4 +46,51 @@ defmodule Dev do
       end
     end
   end
+
+  alias T.{Repo, Matches, PushNotifications.DispatchJob}
+  import Ecto.Query
+
+  def backfill_match_about_to_expire do
+    now = DateTime.truncate(DateTime.utc_now(), :second)
+    match_ttl = Matches.match_ttl()
+    two_hours = 2 * 3600
+    not_yet_notified = DateTime.add(now, -match_ttl + two_hours)
+
+    matches =
+      "matches"
+      |> where([m], m.inserted_at > ^not_yet_notified)
+      |> select([m], {m.id, m.inserted_at})
+      |> Repo.all()
+
+    jobs =
+      Enum.map(matches, fn {id, inserted_at} ->
+        before_expire = DateTime.add(inserted_at, match_ttl - two_hours)
+
+        %{"type" => "match_about_to_expire", "match_id" => id}
+        |> DispatchJob.new(scheduled_at: before_expire)
+      end)
+
+    Oban.insert_all(jobs)
+  end
+
+  def backfill_onboarding_nags do
+    now = DateTime.truncate(DateTime.utc_now(), :second)
+    not_yet_notified = DateTime.add(now, -24 * 3600)
+
+    users =
+      "users"
+      |> where([u], u.inserted_at > ^not_yet_notified)
+      |> select([u], {u.id, u.inserted_at})
+      |> Repo.all()
+
+    jobs =
+      Enum.map(users, fn {id, inserted_at} ->
+        DispatchJob.new(
+          %{"type" => "complete_onboarding", "user_id" => id},
+          scheduled_at: _in_24h = DateTime.add(inserted_at, 24 * 3600)
+        )
+      end)
+
+    Oban.insert_all(jobs)
+  end
 end

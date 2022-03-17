@@ -33,7 +33,6 @@ defmodule T.PeriodicsTest do
     me = self()
 
     assert [
-             {:scheduled_pushes, _pid, :worker, [Periodic]},
              {:match_expirer, _, :worker, [Periodic]},
              {:timeslots_pruner, _, :worker, [Periodic]},
              {:seen_pruner, _, :worker, [Periodic]}

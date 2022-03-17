@@ -152,7 +152,7 @@ if config_env() == :prod and not smoke? do
 
   # TODO use cidr like in PRIMARY_SUBNET=10.0.0.0/16
   # export PRIMARY_HOST_PREFIX=10.0.
-  config :e, primary_prefix: System.fetch_env!("PRIMARY_HOST_PREFIX")
+  config :t, primary_prefix: System.fetch_env!("PRIMARY_HOST_PREFIX")
 end
 
 if config_env() == :dev do
@@ -232,6 +232,9 @@ if config_env() == :dev do
   config :t, T.Events, buffers: false, bucket: System.get_env("AWS_S3_BUCKET_EVENTS")
   config :t, T.Media.Static, disabled?: !!System.get_env("DISABLE_MEDIA")
   config :t, T.Periodics, disabled?: !!System.get_env("DISABLE_PERIODICS")
+
+  # TODO
+  config :t, primary_prefix: "nohost"
 end
 
 if config_env() == :test do
@@ -281,7 +284,8 @@ if config_env() == :test do
   config :t, T.Periodics, disabled?: true
   config :t, Finch, disabled?: true
 
-  config :t, primary_prefix: "10.0."
+  # TODO
+  config :t, primary_prefix: "nohost"
 end
 
 if config_env() == :bench do

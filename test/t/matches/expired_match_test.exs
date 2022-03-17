@@ -187,7 +187,9 @@ defmodule T.Matches.ExpiredMatchTest do
                    "match_id" => ^match_id,
                    "type" => "match_about_to_expire"
                  }
-               }
+               },
+               # TODO remove from this test
+               %Oban.Job{args: %{"type" => "complete_onboarding", "user_id" => _}}
              ] = all_enqueued(worker: T.PushNotifications.DispatchJob)
     end
   end

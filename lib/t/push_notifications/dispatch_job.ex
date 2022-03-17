@@ -232,7 +232,9 @@ defmodule T.PushNotifications.DispatchJob do
   defp handle_type("complete_onboarding" = type, args) do
     %{"user_id" => user_id} = args
 
-    user_id |> Accounts.list_apns_devices() |> schedule_apns(type, args)
+    unless has_story?(user_id) do
+      user_id |> Accounts.list_apns_devices() |> schedule_apns(type, args)
+    end
 
     :ok
   end
@@ -306,6 +308,18 @@ defmodule T.PushNotifications.DispatchJob do
     Matches.Match
     |> where(id: ^match_id)
     |> Repo.one()
+  end
+
+  defp has_story?(user_id) do
+    Accounts.Profile
+    |> where(user_id: ^user_id)
+    |> select([p], p.story)
+    |> Repo.one()
+    |> case do
+      [] -> false
+      nil -> false
+      [_ | _] -> true
+    end
   end
 
   @spec schedule_apns([%Accounts.APNSDevice{}], String.t(), map) :: [Oban.Job.t()]

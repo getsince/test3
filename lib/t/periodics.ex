@@ -1,7 +1,7 @@
 defmodule T.Periodics do
   @moduledoc "Supervisor for periodic tasks"
   use Supervisor
-  alias T.{Accounts, Matches, Feeds}
+  alias T.{Matches, Feeds}
 
   def start_link(init_arg) do
     Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
@@ -21,14 +21,7 @@ defmodule T.Periodics do
         },
         match_expirer: {
           :timer.minutes(1),
-          fn ->
-            Matches.local_expiration_notify_soon_to_expire()
-            Matches.expiration_prune()
-          end
-        },
-        scheduled_pushes: {
-          :timer.minutes(1),
-          {Accounts, :local_push_users_to_complete_onboarding, []}
+          {Matches, :expiration_prune, []}
         }
       )
 

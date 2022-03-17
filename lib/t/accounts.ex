@@ -64,6 +64,7 @@ defmodule T.Accounts do
   ## User registration
 
   def register_user_with_apple_id(attrs, now \\ DateTime.utc_now()) do
+    now = DateTime.truncate(now, :second)
     primary_rpc(__MODULE__, :local_register_user_with_apple_id, [attrs, now])
   end
 
@@ -73,6 +74,15 @@ defmodule T.Accounts do
     |> Multi.insert(:user, User.apple_id_registration_changeset(%User{}, attrs))
     |> add_profile(now)
     |> add_settings()
+    |> Multi.run(:onboard_nag, fn _repo, %{user: %User{id: user_id}} ->
+      job =
+        DispatchJob.new(
+          %{"type" => "complete_onboarding", "user_id" => user_id},
+          scheduled_at: _in_24h = DateTime.add(now, 24 * 3600)
+        )
+
+      Oban.insert(job)
+    end)
     |> Repo.transaction()
     |> case do
       {:ok, %{user: user, profile: profile, user_settings: user_settings}} ->
@@ -876,24 +886,6 @@ defmodule T.Accounts do
     Profile
     |> order_by(desc: :last_active)
     |> Repo.all()
-  end
-
-  # TODO unique
-  def local_push_users_to_complete_onboarding do
-    user_ids =
-      Profile
-      |> where([p], is_nil(p.story))
-      |> where([p], p.last_active <= fragment("now() - interval '1 day'"))
-      |> where([p], p.last_active > fragment("now() - interval '1 day 1 minute'"))
-      |> select([p], p.user_id)
-      |> Repo.all()
-
-    jobs =
-      Enum.map(user_ids, fn user_id ->
-        DispatchJob.new(%{"type" => "complete_onboarding", "user_id" => user_id})
-      end)
-
-    Oban.insert_all(jobs)
   end
 
   def schedule_upgrade_app_push(user_id) do

@@ -35,13 +35,13 @@ defmodule T.Cluster do
   @doc """
   Checks if the node is in primary region.
 
-      iex> is_primary() # checks self
+      is_primary() # checks self
       true
 
-      iex> is_primary(:"t@10.0.1.234")
+      is_primary(:"t@10.0.1.234")
       true
 
-      iex> is_primary(:"t@10.1.0.88")
+      is_primary(:"t@10.1.0.88")
       false
 
       iex> is_primary(:"t@10.1.0.88", "10.1.")
@@ -57,7 +57,7 @@ defmodule T.Cluster do
   @doc """
   Returns host prefix for nodes in primary region.
 
-      iex> primary_prefix()
+      primary_prefix()
       "10.0."
 
   """

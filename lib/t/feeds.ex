@@ -85,7 +85,10 @@ defmodule T.Feeds do
     # |> limit(^most_liked_count)
     # |> select_merge([p], %{distance: st_distance(^location, p.location) / 1000})
     # select([p], %{p | distance: st_distance(^location, p.location) / 1000})
-    |> select([p], {p, fragment("st_distance(?, location) / 1000", ^location)})
+    |> select(
+      [p],
+      {p, fragment("st_distance(?, location) / 1000", ^location)}
+    )
     |> order_by(fragment("st_distance(?, location) / 1000", ^location))
     |> limit(^count)
     |> Repo.all()

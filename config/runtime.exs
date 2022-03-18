@@ -276,12 +276,14 @@ end
 if config_env() == :bench do
   config :logger, level: :info
 
-  config :t, T.Media.Static, disabled?: true
   config :t, Oban, queues: false, plugins: false
-  config :t, T.Feeds.SeenPruner, disabled?: true
-  config :t, T.Matches.MatchExpirer, disabled?: true
-  config :t, T.PushNotifications.ScheduledPushes, disabled?: true
+
+  config :t, T.Media.Static, disabled?: true
+  config :t, T.Periodics, disabled?: true
   config :t, Finch, disabled?: true
+
+  # TODO
+  config :t, primary_prefix: "nohost"
 
   config :t, T.Repo,
     url: System.get_env("DATABASE_URL") || "ecto://postgres:postgres@localhost:5432/t_dev",

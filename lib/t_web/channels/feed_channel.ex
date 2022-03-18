@@ -263,12 +263,14 @@ defmodule TWeb.FeedChannel do
     {:reply, {:error, %{alert: alert}}, socket}
   end
 
-  def handle_in("open-contact", %{"match_id" => match_id, "contact_type" => contact_type}, socket) do
-    me = me_id(socket)
+  def handle_in("open-contact", _params, socket) do
+    alert =
+      alert(
+        dgettext("alerts", "Deprecation warning"),
+        dgettext("alerts", "Contact sharing is no longer supported, please upgrade.")
+      )
 
-    :ok = Matches.open_contact_for_match(me, match_id, contact_type, utc_now(socket))
-
-    {:reply, :ok, socket}
+    {:reply, {:error, %{alert: alert}}, socket}
   end
 
   def handle_in("click-contact", %{"user_id" => user_id, "contact" => contact}, socket) do
@@ -282,20 +284,24 @@ defmodule TWeb.FeedChannel do
     {:reply, :ok, socket}
   end
 
-  def handle_in("report-we-met", %{"match_id" => match_id}, socket) do
-    me = me_id(socket)
+  def handle_in("report-we-met", _params, socket) do
+    alert =
+      alert(
+        dgettext("alerts", "Deprecation warning"),
+        dgettext("alerts", "Contact sharing is no longer supported, please upgrade.")
+      )
 
-    :ok = Matches.report_meeting(me, match_id)
-
-    {:reply, :ok, socket}
+    {:reply, {:error, %{alert: alert}}, socket}
   end
 
-  def handle_in("report-we-not-met", %{"match_id" => match_id}, socket) do
-    me = me_id(socket)
+  def handle_in("report-we-not-met", _params, socket) do
+    alert =
+      alert(
+        dgettext("alerts", "Deprecation warning"),
+        dgettext("alerts", "Contact sharing is no longer supported, please upgrade.")
+      )
 
-    :ok = Matches.mark_contact_not_opened(me, match_id)
-
-    {:reply, :ok, socket}
+    {:reply, {:error, %{alert: alert}}, socket}
   end
 
   def handle_in("unmatch", params, socket) do
@@ -336,9 +342,8 @@ defmodule TWeb.FeedChannel do
 
   # history
 
-  def handle_in("list-interactions", %{"match_id" => match_id}, socket) do
-    interactions = Matches.history_list_interactions(match_id)
-    {:reply, {:ok, %{"interactions" => render_interactions(interactions)}}, socket}
+  def handle_in("list-interactions", _params, socket) do
+    {:reply, {:ok, %{"interactions" => []}}, socket}
   end
 
   @impl true
@@ -398,33 +403,8 @@ defmodule TWeb.FeedChannel do
     {:noreply, socket}
   end
 
-  def handle_info({Matches, [:contact, :offered], match_contact}, socket) do
-    %Matches.MatchContact{
-      contacts: contacts,
-      match_id: match_id
-    } = match_contact
-
-    push(socket, "contact_offer", %{
-      "match_id" => match_id,
-      "contacts" => contacts
-    })
-
-    {:noreply, socket}
-  end
-
   def handle_info({Accounts, :feed_filter_updated, feed_filter}, socket) do
     {:noreply, assign(socket, :feed_filter, feed_filter)}
-  end
-
-  def handle_info({Matches, :interaction, interaction}, socket) do
-    %Matches.Interaction{match_id: match_id} = interaction
-
-    push(socket, "interaction", %{
-      "match_id" => match_id,
-      "interaction" => render_interaction(interaction)
-    })
-
-    {:noreply, socket}
   end
 
   defp render_feed_item(profile, version, screen_width) do
@@ -451,9 +431,7 @@ defmodule TWeb.FeedChannel do
         inserted_at: inserted_at,
         audio_only: audio_only,
         profile: profile,
-        contact: contact,
         expiration_date: expiration_date,
-        last_interaction_id: last_interaction_id,
         seen: seen
       } ->
         render_match(%{
@@ -461,11 +439,9 @@ defmodule TWeb.FeedChannel do
           inserted_at: inserted_at,
           audio_only: audio_only,
           profile: profile,
-          contact: contact,
           screen_width: screen_width,
           version: version,
           expiration_date: expiration_date,
-          last_interaction_id: last_interaction_id,
           seen: seen
         })
 
@@ -496,14 +472,6 @@ defmodule TWeb.FeedChannel do
   @compile inline: [render_match: 1]
   defp render_match(assigns) do
     render(MatchView, "match.json", assigns)
-  end
-
-  defp render_interactions(interactions) do
-    Enum.map(interactions, &render_interaction/1)
-  end
-
-  defp render_interaction(interaction) do
-    render(MatchView, "interaction.json", interaction: interaction)
   end
 
   defp render_news(news, version, screen_width) do

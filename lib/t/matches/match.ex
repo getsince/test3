@@ -11,12 +11,8 @@ defmodule T.Matches.Match do
     # TODO
     field :profile, :map, virtual: true
 
-    # TODO :interactions?
-    has_one :contact, T.Matches.MatchContact
-
     field :expiration_date, :utc_datetime, virtual: true
     field :audio_only, :boolean, virtual: true
-    field :last_interaction_id, Ecto.Bigflake.UUID, virtual: true
     field :seen, :boolean, virtual: true
 
     timestamps(updated_at: false)

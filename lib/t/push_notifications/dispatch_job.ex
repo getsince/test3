@@ -76,24 +76,6 @@ defmodule T.PushNotifications.DispatchJob do
     :ok
   end
 
-  defp handle_type("contact_offer" = type, args) do
-    %{"match_id" => match_id, "receiver_id" => receiver_id, "offerer_id" => offerer_id} = args
-
-    if alive_match(match_id) do
-      if profile = profile_info(offerer_id) do
-        {name, gender} = profile
-
-        receiver_id
-        |> Accounts.list_apns_devices()
-        |> schedule_apns(type, %{"match_id" => match_id, "name" => name, "gender" => gender})
-
-        :ok
-      end
-    else
-      :discard
-    end
-  end
-
   defp handle_type("upgrade_app" = type, args) do
     %{"user_id" => user_id} = args
 

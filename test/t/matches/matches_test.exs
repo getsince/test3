@@ -68,42 +68,6 @@ defmodule T.MatchesTest do
 
       assert_lists_equal(expected, actual)
     end
-
-    test "deletes interactions" do
-      %{user: u1} = insert(:profile)
-      %{user: u2} = insert(:profile)
-      %{id: match_id} = insert(:match, user_id_1: u1.id, user_id_2: u2.id)
-
-      assert [] = Matches.history_list_interactions(match_id)
-
-      assert {:ok, %Matches.MatchContact{}} =
-               Matches.save_contacts_offer_for_match(u1.id, match_id, %{
-                 "telegram" => "@ruqkadsadjha"
-               })
-
-      assert [_] = Matches.history_list_interactions(match_id)
-
-      Matches.unmatch_match(u1.id, match_id)
-      assert [] = Matches.history_list_interactions(match_id)
-    end
-  end
-
-  describe "unmatch_with_user/2" do
-    test "deletes interactions" do
-      %{user: u1} = insert(:profile)
-      %{user: u2} = insert(:profile)
-      %{id: match_id} = insert(:match, user_id_1: u1.id, user_id_2: u2.id)
-
-      assert {:ok, %Matches.MatchContact{}} =
-               Matches.save_contacts_offer_for_match(u1.id, match_id, %{
-                 "telegram" => "@ruqkadsadjha"
-               })
-
-      assert [_] = Matches.history_list_interactions(match_id)
-
-      Matches.unmatch_with_user(u1.id, u2.id)
-      assert [] = Matches.history_list_interactions(match_id)
-    end
   end
 
   describe "like/2" do

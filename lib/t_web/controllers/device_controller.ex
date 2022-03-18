@@ -17,10 +17,8 @@ defmodule TWeb.DeviceController do
     send_resp(conn, 201, [])
   end
 
-  def create_push_token(conn, %{"push_token" => pushkit_token}) do
-    pushkit_token = Base.decode64!(pushkit_token)
-    {user_id, user_token, env} = user_info(conn)
-    :ok = Accounts.save_pushkit_device_id(user_id, user_token, pushkit_token, env: env)
+  # TODO remove
+  def create_push_token(conn, _params) do
     send_resp(conn, 201, [])
   end
 

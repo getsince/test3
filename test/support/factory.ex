@@ -6,7 +6,6 @@ defmodule T.Factory do
     Profile,
     GenderPreference,
     APNSDevice,
-    PushKitDevice,
     UserToken
   }
 
@@ -63,19 +62,6 @@ defmodule T.Factory do
       topic: APNS.default_topic(),
       env: "sandbox",
       locale: "en",
-      token: build(:user_token, user: user)
-    }
-  end
-
-  def push_kit_device_factory do
-    alias T.PushNotifications.APNS
-
-    user = build(:user)
-
-    %PushKitDevice{
-      user: user,
-      topic: APNS.default_topic(),
-      env: "sandbox",
       token: build(:user_token, user: user)
     }
   end

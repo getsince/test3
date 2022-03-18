@@ -14,7 +14,6 @@ defmodule T.Application do
         APNS.Token,
         maybe_finch(),
         maybe_cluster(),
-        maybe_twilio(),
         {Phoenix.PubSub, name: T.PubSub},
         unless_disabled(T.Media.Static),
         TWeb.CallTracker,
@@ -108,15 +107,6 @@ defmodule T.Application do
          "https://api.push.apple.com" => [protocol: :http2, count: 1]
        }}
     )
-  end
-
-  defp maybe_twilio do
-    if Application.get_env(:t, T.Twilio) do
-      T.Twilio
-    else
-      Logger.warn("not starting twilio due to missing config")
-      nil
-    end
   end
 
   defp maybe_endpoint do

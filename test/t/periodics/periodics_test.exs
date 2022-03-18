@@ -34,7 +34,6 @@ defmodule T.PeriodicsTest do
 
     assert [
              {:match_expirer, _, :worker, [Periodic]},
-             {:timeslots_pruner, _, :worker, [Periodic]},
              {:seen_pruner, _, :worker, [Periodic]}
            ] = children
 

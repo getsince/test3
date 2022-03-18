@@ -13,7 +13,6 @@ defmodule T.Matches do
   alias T.Matches.{
     Match,
     Like,
-    Timeslot,
     MatchEvent,
     ExpiredMatch,
     MatchContact,
@@ -299,10 +298,9 @@ defmodule T.Matches do
     |> where([match: m], m.id not in subquery(archived_match_ids_q(user_id)))
     |> order_by(desc: :inserted_at)
     |> join(:left, [m], s in Seen, as: :seen, on: s.match_id == m.id and s.user_id == ^user_id)
-    |> join(:left, [m], t in assoc(m, :timeslot), as: :t)
     |> join(:left, [m], c in assoc(m, :contact), as: :c)
     |> join(:left_lateral, [m], i in subquery(last_interaction_q), as: :last_interaction)
-    |> preload([t: t, c: c], timeslot: t, contact: c)
+    |> preload([c: c], contact: c)
     |> select(
       [match: m, undying_event: e, last_interaction: i, seen: s],
       {m, e.timestamp, i.id, s.match_id}
@@ -631,292 +629,6 @@ defmodule T.Matches do
     end)
   end
 
-  # - Timeslots
-
-  @type iso_8601 :: String.t()
-
-  @spec save_slots_offer_for_match(uuid, uuid, [iso_8601], DateTime.t()) ::
-          {:ok, %Timeslot{}} | {:error, %Ecto.Changeset{}}
-  def save_slots_offer_for_match(offerer, match_id, slots, reference \\ DateTime.utc_now()) do
-    %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} =
-      get_match_for_user!(match_id, offerer)
-
-    [mate] = [uid1, uid2] -- [offerer]
-    primary_rpc(__MODULE__, :local_save_slots_offer, [offerer, mate, match_id, slots, reference])
-  end
-
-  @spec save_slots_offer_for_user(uuid, uuid, [iso_8601], DateTime.t()) ::
-          {:ok, %Timeslot{}} | {:error, %Ecto.Changeset{}}
-  def save_slots_offer_for_user(offerer, mate, slots, reference \\ DateTime.utc_now()) do
-    [uid1, uid2] = Enum.sort([offerer, mate])
-    match_id = get_match_id_for_users!(uid1, uid2)
-    primary_rpc(__MODULE__, :local_save_slots_offer, [offerer, mate, match_id, slots, reference])
-  end
-
-  @doc false
-  @spec local_save_slots_offer(uuid, uuid, uuid, [iso_8601 :: String.t()], DateTime.t()) ::
-          {:ok, %Timeslot{}} | {:error, %Ecto.Changeset{}}
-  def local_save_slots_offer(offerer_id, mate_id, match_id, slots, reference) do
-    m =
-      "saving slots offer for match #{match_id} (users #{offerer_id}, #{mate_id}) from #{offerer_id}: #{inspect(slots)}"
-
-    Logger.warn(m)
-    now = DateTime.truncate(reference, :second)
-    inserted_at = DateTime.to_naive(now)
-
-    changeset =
-      timeslot_changeset(
-        %Timeslot{match_id: match_id, picker_id: mate_id, inserted_at: inserted_at},
-        %{slots: slots},
-        reference
-      )
-
-    push_job =
-      DispatchJob.new(%{
-        "type" => "timeslot_offer",
-        "match_id" => match_id,
-        "receiver_id" => mate_id,
-        "offerer_id" => offerer_id
-      })
-
-    match_events = %MatchEvent{
-      timestamp: now,
-      match_id: match_id,
-      event: "slot_save"
-    }
-
-    # conflict_opts = [
-    #   on_conflict: [set: [selected_slot: nil, slots: [], picker_id: mate]],
-    #   conflict_target: [:match_id]
-    # ]
-
-    conflict_opts = [on_conflict: :replace_all, conflict_target: [:match_id]]
-
-    Multi.new()
-    |> Multi.insert(:timeslot, changeset, conflict_opts)
-    |> Multi.insert(:match_event, match_events)
-    |> Multi.insert(:interaction, fn %{timeslot: timeslot} ->
-      %Interaction{
-        from_user_id: offerer_id,
-        to_user_id: mate_id,
-        match_id: match_id,
-        data: %{"type" => "slots_offer", "slots" => timeslot.slots}
-      }
-    end)
-    |> Oban.insert(:push, push_job)
-    |> Repo.transaction()
-    |> case do
-      {:ok, %{timeslot: %Timeslot{} = timeslot, interaction: interaction}} ->
-        local_maybe_unarchive_match(match_id)
-        broadcast_for_user(mate_id, {__MODULE__, [:timeslot, :offered], timeslot})
-        broadcast_interaction(interaction)
-
-        {:ok, timeslot}
-
-      {:error, :timeslot, %Ecto.Changeset{} = changeset, _changes} ->
-        {:error, changeset}
-    end
-  end
-
-  @spec accept_slot_for_match(uuid, uuid, iso_8601, DateTime.t()) :: %Timeslot{}
-  def accept_slot_for_match(picker, match_id, slot, reference \\ DateTime.utc_now()) do
-    %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} = get_match_for_user!(match_id, picker)
-    [mate] = [uid1, uid2] -- [picker]
-    primary_rpc(__MODULE__, :local_accept_slot, [picker, mate, match_id, slot, reference])
-  end
-
-  @spec accept_slot_for_matched_user(uuid, uuid, iso_8601, DateTime.t()) :: %Timeslot{}
-  def accept_slot_for_matched_user(picker, mate, slot, reference \\ DateTime.utc_now()) do
-    [uid1, uid2] = Enum.sort([picker, mate])
-    match_id = get_match_id_for_users!(uid1, uid2)
-    primary_rpc(__MODULE__, :local_accept_slot, [picker, mate, match_id, slot, reference])
-  end
-
-  @doc false
-  @spec local_accept_slot(uuid, uuid, uuid, iso_8601, DateTime.t()) :: %Timeslot{}
-  def local_accept_slot(picker, mate, match_id, slot, reference) do
-    Logger.warn(
-      "accepting slot for match #{match_id} (users #{picker}, #{mate}) by #{picker}: #{inspect(slot)}"
-    )
-
-    {:ok, slot, 0} = DateTime.from_iso8601(slot)
-    accepted_at = DateTime.truncate(reference, :second)
-
-    {picker_name, _number_of_matches1} = user_info(picker)
-    {mate_name, _umber_of_matches2} = user_info(mate)
-
-    seconds = slot |> DateTime.diff(DateTime.utc_now())
-    hours = div(seconds, 3600)
-    minutes = div(rem(seconds, 3600), 60)
-
-    m =
-      "accept slot #{picker_name} (#{picker}) with #{mate_name} (#{mate}) in #{hours}h #{minutes}m"
-
-    Bot.async_post_message(m)
-
-    match_event = %MatchEvent{
-      timestamp: accepted_at,
-      match_id: match_id,
-      event: "slot_accept"
-    }
-
-    interaction = %Interaction{
-      from_user_id: picker,
-      to_user_id: mate,
-      match_id: match_id,
-      data: %{"type" => "slot_accept", "slot" => slot}
-    }
-
-    true = DateTime.compare(slot, prev_slot(reference)) in [:eq, :gt]
-    timeslot_started? = DateTime.compare(slot, reference) in [:lt, :eq]
-
-    if timeslot_started? do
-      notify_timeslot_started(match_id, [picker, mate])
-    end
-
-    pushes =
-      if timeslot_started? do
-        _now_push =
-          DispatchJob.new(%{
-            "type" => "timeslot_accepted_now",
-            "match_id" => match_id,
-            "receiver_id" => mate,
-            "picker_id" => picker,
-            "slot" => slot
-          })
-      else
-        accepted_push =
-          DispatchJob.new(%{
-            "type" => "timeslot_accepted",
-            "match_id" => match_id,
-            "receiver_id" => mate,
-            "picker_id" => picker,
-            "slot" => slot
-          })
-
-        reminder_push =
-          DispatchJob.new(
-            %{"type" => "timeslot_reminder", "match_id" => match_id, "slot" => slot},
-            scheduled_at: DateTime.add(slot, -15 * 60, :second)
-          )
-
-        started_push =
-          DispatchJob.new(
-            %{"type" => "timeslot_started", "match_id" => match_id, "slot" => slot},
-            scheduled_at: slot
-          )
-
-        [accepted_push, reminder_push, started_push]
-      end
-
-    {:ok, %{accept: timeslot, interaction: interaction}} =
-      Multi.new()
-      |> Multi.run(:accept, fn _repo, _changes ->
-        Timeslot
-        |> where(match_id: ^match_id)
-        |> where(picker_id: ^picker)
-        |> where([t], ^slot in t.slots)
-        |> select([t], t)
-        |> Repo.update_all(set: [selected_slot: slot, accepted_at: accepted_at])
-        |> case do
-          {1, [timeslot]} -> {:ok, timeslot}
-          {0, _} -> {:error, :not_found}
-        end
-      end)
-      |> Multi.insert(:interaction, interaction)
-      |> Multi.insert(:event, match_event)
-      |> Oban.insert_all(:pushes, List.wrap(pushes))
-      |> Repo.transaction()
-
-    broadcast_for_user(mate, {__MODULE__, [:timeslot, :accepted], timeslot})
-    broadcast_interaction(interaction)
-    timeslot
-  end
-
-  @spec cancel_slot_for_match(uuid, uuid) :: :ok
-  def cancel_slot_for_match(by_user_id, match_id) do
-    %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} =
-      get_match_for_user!(match_id, by_user_id)
-
-    [mate] = [uid1, uid2] -- [by_user_id]
-    primary_rpc(__MODULE__, :local_cancel_slot, [by_user_id, mate, match_id])
-  end
-
-  @spec cancel_slot_for_matched_user(uuid, uuid) :: :ok
-  def cancel_slot_for_matched_user(by_user_id, user_id) do
-    [uid1, uid2] = Enum.sort([by_user_id, user_id])
-    match_id = get_match_id_for_users!(uid1, uid2)
-    primary_rpc(__MODULE__, :local_cancel_slot, [by_user_id, user_id, match_id])
-  end
-
-  @doc false
-  @spec local_cancel_slot(uuid, uuid, uuid) :: :ok
-  def local_cancel_slot(by_user_id, mate_id, match_id) do
-    Logger.warn(
-      "cancelling timeslot for match #{match_id} (with mate #{mate_id}) by #{by_user_id}"
-    )
-
-    match_event = %MatchEvent{
-      timestamp: DateTime.truncate(DateTime.utc_now(), :second),
-      match_id: match_id,
-      event: "slot_cancel"
-    }
-
-    interaction = %Interaction{
-      from_user_id: by_user_id,
-      to_user_id: mate_id,
-      match_id: match_id,
-      data: %{"type" => "slot_cancel"}
-    }
-
-    {:ok, %{cancel: %Timeslot{selected_slot: selected_slot} = timeslot, interaction: interaction}} =
-      Multi.new()
-      |> Multi.run(:cancel, fn _repo, _changes ->
-        Timeslot
-        |> where(match_id: ^match_id)
-        # |> where([t], t.picker_id in ^[])
-        |> select([t], t)
-        |> Repo.delete_all()
-        |> case do
-          {1, [timeslot]} -> {:ok, timeslot}
-          {0, _} -> {:error, :not_found}
-        end
-      end)
-      |> Multi.insert(:interaction, interaction)
-      |> Multi.insert(:event, match_event)
-      |> Repo.transaction()
-
-    broadcast_for_user(mate_id, {__MODULE__, [:timeslot, :cancelled], timeslot})
-    broadcast_interaction(interaction)
-
-    if selected_slot do
-      {canceller_name, _number_of_matches1} = user_info(by_user_id)
-      {cancelled_name, _umber_of_matches2} = user_info(mate_id)
-
-      seconds = DateTime.utc_now() |> DateTime.diff(selected_slot)
-      hours = div(seconds, 3600)
-      minutes = div(rem(seconds, 3600), 60)
-
-      m =
-        "cancelled slot #{canceller_name} (#{by_user_id}) cancelled slot with #{cancelled_name} (#{mate_id}) in #{hours}h #{minutes}m"
-
-      Bot.async_post_message(m)
-
-      push =
-        DispatchJob.new(%{
-          "type" => "timeslot_cancelled",
-          "match_id" => match_id,
-          "receiver_id" => mate_id,
-          "canceller_id" => by_user_id,
-          "slot" => selected_slot
-        })
-
-      Oban.insert_all([push])
-    end
-
-    :ok
-  end
-
   def save_contacts_offer_for_match(offerer, match_id, contacts, now \\ DateTime.utc_now()) do
     %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} =
       get_match_for_user!(match_id, offerer)
@@ -1079,14 +791,6 @@ defmodule T.Matches do
     |> Repo.one()
   end
 
-  defp get_match_id_for_users!(user_id_1, user_id_2) do
-    Match
-    |> where(user_id_1: ^user_id_1)
-    |> where(user_id_2: ^user_id_2)
-    |> select([m], m.id)
-    |> Repo.one!()
-  end
-
   defp get_match_for_user!(match_id, user_id) do
     Match
     |> where(id: ^match_id)
@@ -1099,75 +803,6 @@ defmodule T.Matches do
     [mate_id] = [match.user_id_1, match.user_id_2] -- [user_id]
     mate = Repo.get!(Profile, mate_id)
     %Match{match | profile: mate}
-  end
-
-  defp timeslot_changeset(timeslot, attrs, reference) do
-    timeslot
-    |> cast(attrs, [:slots])
-    |> update_change(:slots, &filter_valid_slots(&1, reference))
-    |> validate_required([:slots])
-    |> validate_length(:slots, min: 1)
-  end
-
-  defp filter_valid_slots(slots, reference) do
-    slots
-    |> Enum.map(&parse_slot/1)
-    |> Enum.filter(&future_slot?(&1, reference))
-    |> Enum.uniq_by(&DateTime.to_unix/1)
-  end
-
-  defp parse_slot(timestamp) when is_binary(timestamp) do
-    {:ok, dt, 0} = DateTime.from_iso8601(timestamp)
-    dt
-  end
-
-  defp parse_slot(%DateTime{} = dt), do: dt
-
-  defp future_slot?(datetime, reference) do
-    # TODO within_24h? =
-    DateTime.compare(datetime, prev_slot(reference)) in [:eq, :gt]
-  end
-
-  # ~U[2021-03-23 14:12:00Z] -> ~U[2021-03-23 14:00:00Z]
-  # ~U[2021-03-23 14:49:00Z] -> ~U[2021-03-23 14:30:00Z]
-  defp prev_slot(%DateTime{minute: minutes} = dt) do
-    %DateTime{dt | minute: div(minutes, 30) * 30, second: 0, microsecond: {0, 0}}
-  end
-
-  def local_schedule_timeslot_ended(match, timeslot) do
-    ended_at = DateTime.add(timeslot.selected_slot, 60 * 60, :second)
-
-    job =
-      DispatchJob.new(
-        %{"type" => "timeslot_ended", "match_id" => match.id},
-        scheduled_at: ended_at
-      )
-
-    Oban.insert!(job)
-  end
-
-  def notify_timeslot_ended(%Match{id: match_id, user_id_1: uid1, user_id_2: uid2}) do
-    message = {__MODULE__, [:timeslot, :ended], match_id}
-
-    for uid <- [uid1, uid2] do
-      broadcast_for_user(uid, message)
-    end
-  end
-
-  def notify_timeslot_started(match_id, user_ids) do
-    message = {__MODULE__, [:timeslot, :started], match_id}
-
-    for uid <- user_ids do
-      broadcast_for_user(uid, message)
-    end
-  end
-
-  def notify_timeslot_started(%Match{id: match_id, user_id_1: uid1, user_id_2: uid2}) do
-    message = {__MODULE__, [:timeslot, :started], match_id}
-
-    for uid <- [uid1, uid2] do
-      broadcast_for_user(uid, message)
-    end
   end
 
   def notify_match_expiration_reset(match_id, user_ids) do
@@ -1186,29 +821,6 @@ defmodule T.Matches do
     |> Enum.each(fn %{id: match_id, user_id_1: user_id_1, user_id_2: user_id_2} ->
       local_expire_match(match_id, user_id_1, user_id_2)
     end)
-  end
-
-  def local_prune_stale_timeslots(reference \\ DateTime.utc_now()) do
-    offer_expiration_date = DateTime.add(reference, -30 * 60)
-    selected_slot_expiration_date = DateTime.add(reference, -60 * 60)
-
-    unnested_slots =
-      select(Timeslot, [t], %{match_id: t.match_id, slots: fragment("unnest(?)", t.slots)})
-
-    max_slots =
-      from(t in subquery(unnested_slots))
-      |> group_by([t], t.match_id)
-      |> select([t], %{match_id: t.match_id, max: max(t.slots)})
-
-    matches_with_old_slots =
-      from(t in subquery(max_slots))
-      |> where([t], t.max < ^offer_expiration_date)
-      |> select([t], t.match_id)
-
-    Timeslot
-    |> where([t], is_nil(t.selected_slot) and t.match_id in subquery(matches_with_old_slots))
-    |> or_where([t], t.selected_slot < ^selected_slot_expiration_date)
-    |> Repo.delete_all()
   end
 
   def expiration_list_expired_matches(reference \\ DateTime.utc_now()) do

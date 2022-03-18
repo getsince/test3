@@ -80,12 +80,7 @@ defmodule DevAPNS do
   def push_all_templates do
     templates = [
       "match",
-      {"invite", %{"user_id" => "asdf", "name" => "inviter name"}},
-      "timeslot_offer",
-      "timeslot_accepted",
-      "timeslot_cancelled",
-      "timeslot_reminder",
-      "timeslot_started"
+      {"invite", %{"user_id" => "asdf", "name" => "inviter name"}}
     ]
 
     Enum.map(templates, fn template ->

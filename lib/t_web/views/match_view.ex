@@ -1,17 +1,11 @@
 defmodule TWeb.MatchView do
   use TWeb, :view
   alias TWeb.FeedView
-  alias T.Matches.{Timeslot, MatchContact, Interaction}
+  alias T.Matches.{MatchContact, Interaction}
 
   def render("match.json", %{id: id} = assigns) do
     inserted_at = ensure_utc(assigns[:inserted_at])
     expiration_date = ensure_utc(assigns[:expiration_date])
-
-    timeslot =
-      case assigns[:timeslot] do
-        %Timeslot{} = timeslot -> render_timeslot(timeslot)
-        _not_loaded_or_nil -> nil
-      end
 
     contact =
       case assigns[:contact] do
@@ -25,42 +19,12 @@ defmodule TWeb.MatchView do
     |> maybe_put("audio_only", assigns[:audio_only])
     |> maybe_put("last_interaction_id", assigns[:last_interaction_id])
     |> maybe_put_2("seen", assigns[:seen])
-    |> maybe_put("timeslot", timeslot)
     |> maybe_put("contact", contact)
   end
 
   def render("interaction.json", %{interaction: interaction}) do
     %Interaction{data: %{"type" => type}} = interaction
     render_interaction(type, interaction)
-  end
-
-  defp render_interaction("slots_offer" = type, interaction) do
-    %Interaction{id: id, from_user_id: offerer, data: %{"slots" => slots}} = interaction
-
-    %{
-      "id" => id,
-      "type" => type,
-      "slots" => slots,
-      "inserted_at" => datetime(id),
-      "by_user_id" => offerer
-    }
-  end
-
-  defp render_interaction("slot_accept" = type, interaction) do
-    %Interaction{id: id, from_user_id: picker, data: %{"slot" => slot}} = interaction
-
-    %{
-      "id" => id,
-      "type" => type,
-      "by_user_id" => picker,
-      "selected_slot" => slot,
-      "inserted_at" => datetime(id)
-    }
-  end
-
-  defp render_interaction("slot_cancel" = type, interaction) do
-    %Interaction{id: id, from_user_id: offerer} = interaction
-    %{"id" => id, "type" => type, "by_user_id" => offerer, "inserted_at" => datetime(id)}
   end
 
   defp render_interaction("contact_offer" = type, interaction) do
@@ -72,32 +36,6 @@ defmodule TWeb.MatchView do
       "contacts" => contacts,
       "by_user_id" => offerer,
       "inserted_at" => datetime(id)
-    }
-  end
-
-  defp render_timeslot(%Timeslot{
-         selected_slot: nil,
-         accepted_at: nil,
-         picker_id: picker,
-         slots: slots,
-         inserted_at: inserted_at
-       }) do
-    %{
-      "slots" => slots,
-      "picker" => picker,
-      "inserted_at" => DateTime.from_naive!(inserted_at, "Etc/UTC")
-    }
-  end
-
-  defp render_timeslot(%Timeslot{
-         selected_slot: selected_slot,
-         accepted_at: accepted_at,
-         inserted_at: inserted_at
-       }) do
-    %{
-      "selected_slot" => selected_slot,
-      "accepted_at" => accepted_at,
-      "inserted_at" => DateTime.from_naive!(inserted_at, "Etc/UTC")
     }
   end
 

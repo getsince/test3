@@ -15,12 +15,10 @@ defmodule T.Matches do
     Like,
     MatchEvent,
     ExpiredMatch,
-    ArchivedMatch,
     Seen
   }
 
   alias T.Feeds.FeedProfile
-  alias T.Accounts.Profile
   alias T.PushNotifications.DispatchJob
   alias T.Bot
 
@@ -268,7 +266,6 @@ defmodule T.Matches do
   def list_matches(user_id) do
     matches_with_undying_events_q()
     |> where([match: m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
-    |> where([match: m], m.id not in subquery(archived_match_ids_q(user_id)))
     |> order_by(desc: :inserted_at)
     |> join(:left, [m], s in Seen, as: :seen, on: s.match_id == m.id and s.user_id == ^user_id)
     |> select([match: m, undying_event: e, seen: s], {m, e.timestamp, s.match_id})
@@ -301,10 +298,6 @@ defmodule T.Matches do
     match_q_1 |> union(^match_q_2) |> Repo.one()
   end
 
-  defp archived_match_ids_q(user_id) do
-    ArchivedMatch |> where(by_user_id: ^user_id) |> select([m], m.match_id)
-  end
-
   @spec mark_match_seen(uuid, uuid) :: :ok
   def mark_match_seen(by_user_id, match_id) do
     primary_rpc(__MODULE__, :local_mark_match_seen, [by_user_id, match_id])
@@ -327,45 +320,6 @@ defmodule T.Matches do
     |> Enum.map(fn {match, feed_profile} ->
       %ExpiredMatch{match | profile: feed_profile}
     end)
-  end
-
-  @spec list_archived_matches(any) :: list
-  def list_archived_matches(user_id) do
-    ArchivedMatch
-    |> where([m], m.by_user_id == ^user_id)
-    |> order_by(desc: :inserted_at)
-    |> join(:inner, [m], p in FeedProfile, on: m.with_user_id == p.user_id)
-    |> select([m, p], {m, p})
-    |> Repo.all()
-    |> Enum.map(fn {match, feed_profile} ->
-      %ArchivedMatch{match | profile: feed_profile}
-    end)
-  end
-
-  def mark_match_archived(match_id, by_user_id) do
-    primary_rpc(__MODULE__, :local_mark_match_archived, [match_id, by_user_id])
-  end
-
-  @doc false
-  def local_mark_match_archived(match_id, by_user_id) do
-    %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} =
-      get_match_for_user!(match_id, by_user_id)
-
-    [mate] = [uid1, uid2] -- [by_user_id]
-
-    Repo.insert!(%ArchivedMatch{match_id: match_id, by_user_id: by_user_id, with_user_id: mate})
-  end
-
-  def unarchive_match(match_id, by_user_id) do
-    primary_rpc(__MODULE__, :local_unarchive_match, [match_id, by_user_id])
-  end
-
-  @doc false
-  def local_unarchive_match(match_id, by_user_id) do
-    ArchivedMatch
-    |> where(match_id: ^match_id)
-    |> where(by_user_id: ^by_user_id)
-    |> Repo.delete_all()
   end
 
   @spec unmatch_match(uuid, uuid) :: boolean
@@ -618,20 +572,6 @@ defmodule T.Matches do
     |> where(user_id_2: ^user_id_2)
     |> select([m], m.id)
     |> Repo.one()
-  end
-
-  defp get_match_for_user!(match_id, user_id) do
-    Match
-    |> where(id: ^match_id)
-    |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
-    |> Repo.one!()
-    |> preload_mate!(user_id)
-  end
-
-  defp preload_mate!(match, user_id) do
-    [mate_id] = [match.user_id_1, match.user_id_2] -- [user_id]
-    mate = Repo.get!(Profile, mate_id)
-    %Match{match | profile: mate}
   end
 
   def notify_match_expiration_reset(match_id, user_ids) do

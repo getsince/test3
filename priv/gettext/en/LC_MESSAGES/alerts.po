@@ -12,41 +12,49 @@ msgstr ""
 "Plural-Forms: nplurals=2\n"
 
 #, elixir-autogen, elixir-format
-#: lib/t_web/channels/feed_channel.ex:175
-#: lib/t_web/channels/feed_channel.ex:228
-#: lib/t_web/channels/feed_channel.ex:238
-#: lib/t_web/channels/feed_channel.ex:248
+#: lib/t_web/channels/feed_channel.ex:173
+#: lib/t_web/channels/feed_channel.ex:226
+#: lib/t_web/channels/feed_channel.ex:236
+#: lib/t_web/channels/feed_channel.ex:246
 msgid "Calls are no longer supported, please upgrade."
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t_web/channels/feed_channel.ex:174
-#: lib/t_web/channels/feed_channel.ex:227
-#: lib/t_web/channels/feed_channel.ex:237
-#: lib/t_web/channels/feed_channel.ex:247
-#: lib/t_web/channels/feed_channel.ex:257
-#: lib/t_web/channels/feed_channel.ex:267
-#: lib/t_web/channels/feed_channel.ex:288
-#: lib/t_web/channels/feed_channel.ex:298
-#: lib/t_web/channels/feed_channel.ex:324
-#: lib/t_web/channels/feed_channel.ex:334
+#: lib/t_web/channels/feed_channel.ex:107
+#: lib/t_web/channels/feed_channel.ex:117
+#: lib/t_web/channels/feed_channel.ex:172
+#: lib/t_web/channels/feed_channel.ex:225
+#: lib/t_web/channels/feed_channel.ex:235
+#: lib/t_web/channels/feed_channel.ex:245
+#: lib/t_web/channels/feed_channel.ex:255
+#: lib/t_web/channels/feed_channel.ex:265
+#: lib/t_web/channels/feed_channel.ex:286
+#: lib/t_web/channels/feed_channel.ex:296
+#: lib/t_web/channels/feed_channel.ex:322
+#: lib/t_web/channels/feed_channel.ex:332
 msgid "Deprecation warning"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t_web/channels/feed_channel.ex:325
-#: lib/t_web/channels/feed_channel.ex:335
+#: lib/t_web/channels/feed_channel.ex:323
+#: lib/t_web/channels/feed_channel.ex:333
 msgid "Voicemail is no longer supported, please upgrade."
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t_web/channels/feed_channel.ex:258
+#: lib/t_web/channels/feed_channel.ex:256
 msgid "Sending contacts is no longer supported, please upgrade."
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t_web/channels/feed_channel.ex:268
-#: lib/t_web/channels/feed_channel.ex:289
-#: lib/t_web/channels/feed_channel.ex:299
+#: lib/t_web/channels/feed_channel.ex:266
+#: lib/t_web/channels/feed_channel.ex:287
+#: lib/t_web/channels/feed_channel.ex:297
 msgid "Contact sharing is no longer supported, please upgrade."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+#: lib/t_web/channels/feed_channel.ex:108
+#: lib/t_web/channels/feed_channel.ex:118
+msgid "Archived matches are no longer supported, please upgrade."
 msgstr ""

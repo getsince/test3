@@ -45,11 +45,6 @@ defmodule TWeb.FeedChannel do
       |> Matches.list_expired_matches()
       |> render_matches(version, screen_width)
 
-    archived_matches =
-      user_id
-      |> Matches.list_archived_matches()
-      |> render_matches(version, screen_width)
-
     news =
       user_id
       |> News.list_news()
@@ -67,7 +62,6 @@ defmodule TWeb.FeedChannel do
       |> maybe_put("likes", likes)
       |> maybe_put("matches", matches)
       |> maybe_put("expired_matches", expired_matches)
-      |> maybe_put("archived_matches", archived_matches)
 
     {:ok, reply,
      assign(socket,
@@ -102,25 +96,29 @@ defmodule TWeb.FeedChannel do
      socket}
   end
 
+  # TODO remove
   def handle_in("archived-matches", _params, socket) do
-    %{current_user: user, screen_width: screen_width, version: version} = socket.assigns
-
-    archived_matches =
-      user.id
-      |> Matches.list_archived_matches()
-      |> render_matches(version, screen_width)
-
-    {:reply, {:ok, %{"archived_matches" => archived_matches}}, socket}
+    {:reply, {:ok, %{"archived_matches" => []}}, socket}
   end
 
-  def handle_in("archive-match", %{"match_id" => match_id}, socket) do
-    Matches.mark_match_archived(match_id, me_id(socket))
-    {:reply, :ok, socket}
+  def handle_in("archive-match", _params, socket) do
+    alert =
+      alert(
+        dgettext("alerts", "Deprecation warning"),
+        dgettext("alerts", "Archived matches are no longer supported, please upgrade.")
+      )
+
+    {:reply, {:error, %{alert: alert}}, socket}
   end
 
-  def handle_in("unarchive-match", %{"match_id" => match_id}, socket) do
-    Matches.unarchive_match(match_id, me_id(socket))
-    {:reply, :ok, socket}
+  def handle_in("unarchive-match", _params, socket) do
+    alert =
+      alert(
+        dgettext("alerts", "Deprecation warning"),
+        dgettext("alerts", "Archived matches are no longer supported, please upgrade.")
+      )
+
+    {:reply, {:error, %{alert: alert}}, socket}
   end
 
   # TODO possibly batch
@@ -440,17 +438,6 @@ defmodule TWeb.FeedChannel do
         })
 
       %Matches.ExpiredMatch{
-        match_id: match_id,
-        profile: profile
-      } ->
-        render_match(%{
-          id: match_id,
-          profile: profile,
-          version: version,
-          screen_width: screen_width
-        })
-
-      %Matches.ArchivedMatch{
         match_id: match_id,
         profile: profile
       } ->

@@ -89,18 +89,6 @@ CREATE TABLE public.apns_devices (
 
 
 --
--- Name: archived_matches; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.archived_matches (
-    match_id uuid NOT NULL,
-    by_user_id uuid NOT NULL,
-    with_user_id uuid NOT NULL,
-    inserted_at timestamp(0) without time zone NOT NULL
-);
-
-
---
 -- Name: checked_profiles; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -478,13 +466,6 @@ CREATE UNIQUE INDEX apns_devices_device_id_index ON public.apns_devices USING bt
 
 
 --
--- Name: archived_matches_by_user_id_match_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX archived_matches_by_user_id_match_id_index ON public.archived_matches USING btree (by_user_id, match_id);
-
-
---
 -- Name: expired_matches_user_id_match_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -638,22 +619,6 @@ ALTER TABLE ONLY public.apns_devices
 
 ALTER TABLE ONLY public.apns_devices
     ADD CONSTRAINT apns_devices_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: archived_matches archived_matches_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.archived_matches
-    ADD CONSTRAINT archived_matches_by_user_id_fkey FOREIGN KEY (by_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: archived_matches archived_matches_with_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.archived_matches
-    ADD CONSTRAINT archived_matches_with_user_id_fkey FOREIGN KEY (with_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
@@ -833,7 +798,6 @@ INSERT INTO public."schema_migrations" (version) VALUES (20211103061515);
 INSERT INTO public."schema_migrations" (version) VALUES (20211109083906);
 INSERT INTO public."schema_migrations" (version) VALUES (20211116102238);
 INSERT INTO public."schema_migrations" (version) VALUES (20211220142445);
-INSERT INTO public."schema_migrations" (version) VALUES (20211221161830);
 INSERT INTO public."schema_migrations" (version) VALUES (20220214160407);
 INSERT INTO public."schema_migrations" (version) VALUES (20220216202050);
 INSERT INTO public."schema_migrations" (version) VALUES (20220222103203);

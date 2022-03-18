@@ -78,11 +78,4 @@ defmodule TWeb.ChannelCase do
   def freeze_time(%Phoenix.Socket{private: private} = socket, utc_datetime) do
     %{socket | private: Map.put(private, :freeze_time, fn -> utc_datetime end)}
   end
-
-  defmacro assert_presence_diff(pattern) do
-    quote do
-      assert_broadcast "presence_diff", unquote(pattern)
-      assert_push "presence_diff", unquote(pattern)
-    end
-  end
 end

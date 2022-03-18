@@ -3,7 +3,7 @@ defmodule TWeb.FeedChannel do
   import TWeb.ChannelHelpers
 
   alias TWeb.{FeedView, MatchView}
-  alias T.{Feeds, Calls, Matches, Accounts, Events, News, Todos}
+  alias T.{Feeds, Matches, Accounts, Events, News, Todos}
 
   @impl true
   def join("feed:" <> user_id, params, socket) do
@@ -208,8 +208,6 @@ defmodule TWeb.FeedChannel do
               inserted_at: inserted_at
             })
             |> Map.put("match_id", match_id)
-            #  TODO remove after adoption of iOS 5.1.0
-            |> Map.put("exchanged_voicemail", false)
 
           {:ok, rendered}
 
@@ -327,9 +325,14 @@ defmodule TWeb.FeedChannel do
     {:reply, {:error, %{alert: alert}}, socket}
   end
 
-  def handle_in("listen-voicemail", %{"id" => voicemail_id}, socket) do
-    Calls.voicemail_listen_message(me_id(socket), voicemail_id, utc_now(socket))
-    {:reply, :ok, socket}
+  def handle_in("listen-voicemail", _params, socket) do
+    alert =
+      alert(
+        dgettext("alerts", "Deprecation warning"),
+        dgettext("alerts", "Voicemail is no longer supported, please upgrade.")
+      )
+
+    {:reply, {:error, %{alert: alert}}, socket}
   end
 
   # history
@@ -454,25 +457,6 @@ defmodule TWeb.FeedChannel do
     {:noreply, assign(socket, :feed_filter, feed_filter)}
   end
 
-  def handle_info({Calls, [:voicemail, :received], voicemail}, socket) do
-    %Calls.Voicemail{
-      id: id,
-      s3_key: s3_key,
-      match_id: match_id,
-      inserted_at: inserted_at
-    } = voicemail
-
-    push(socket, "voicemail_received", %{
-      "match_id" => match_id,
-      "id" => id,
-      "s3_key" => s3_key,
-      "url" => Calls.voicemail_url(s3_key),
-      "inserted_at" => DateTime.from_naive!(inserted_at, "Etc/UTC")
-    })
-
-    {:noreply, socket}
-  end
-
   def handle_info({Matches, :interaction, interaction}, socket) do
     %Matches.Interaction{match_id: match_id} = interaction
 
@@ -510,7 +494,6 @@ defmodule TWeb.FeedChannel do
         profile: profile,
         timeslot: timeslot,
         contact: contact,
-        voicemail: voicemail,
         expiration_date: expiration_date,
         last_interaction_id: last_interaction_id,
         seen: seen
@@ -522,7 +505,6 @@ defmodule TWeb.FeedChannel do
           profile: profile,
           timeslot: timeslot,
           contact: contact,
-          voicemail: voicemail,
           screen_width: screen_width,
           version: version,
           expiration_date: expiration_date,

@@ -301,10 +301,8 @@ defmodule T.Matches do
     |> join(:left, [m], s in Seen, as: :seen, on: s.match_id == m.id and s.user_id == ^user_id)
     |> join(:left, [m], t in assoc(m, :timeslot), as: :t)
     |> join(:left, [m], c in assoc(m, :contact), as: :c)
-    |> join(:left, [m], v in assoc(m, :voicemail), as: :v)
     |> join(:left_lateral, [m], i in subquery(last_interaction_q), as: :last_interaction)
-    # TODO aggregate voicemail
-    |> preload([t: t, c: c, v: v], timeslot: t, contact: c, voicemail: v)
+    |> preload([t: t, c: c], timeslot: t, contact: c)
     |> select(
       [match: m, undying_event: e, last_interaction: i, seen: s],
       {m, e.timestamp, i.id, s.match_id}
@@ -416,7 +414,6 @@ defmodule T.Matches do
     Logger.warn("#{by_user_id} unmatches match-id=#{match_id}")
 
     Multi.new()
-    |> delete_voicemail_m(match_id)
     |> Multi.run(:unmatch, fn _repo, _changes ->
       Match
       |> where(id: ^match_id)
@@ -455,8 +452,6 @@ defmodule T.Matches do
         |> Repo.one()
 
       if match_id do
-        :ok = T.Calls.voicemail_delete_all(match_id)
-
         {1, _} =
           Match
           |> where(id: ^match_id)
@@ -497,8 +492,6 @@ defmodule T.Matches do
         |> Repo.one()
 
       if match_id do
-        :ok = T.Calls.voicemail_delete_all(match_id)
-
         {1, _} =
           Match
           |> where(id: ^match_id)
@@ -542,7 +535,6 @@ defmodule T.Matches do
     Bot.async_post_message(m)
 
     Multi.new()
-    |> delete_voicemail_m(match_id)
     |> Multi.run(:unmatch, fn _repo, _changes ->
       Match
       |> where(user_id_1: ^user_id_1)
@@ -613,16 +605,6 @@ defmodule T.Matches do
         |> Repo.delete_all()
 
       {:ok, count}
-    end)
-  end
-
-  # note this needs to run before match delete
-  # otherwise DB records would be CASCADE deleted already
-  # and we wouldn't know s3_keys to delete
-  defp delete_voicemail_m(multi, match_id) do
-    Multi.run(multi, :voicemail, fn _repo, _changes ->
-      :ok = T.Calls.voicemail_delete_all(match_id)
-      {:ok, nil}
     end)
   end
 

@@ -20,7 +20,7 @@ defmodule T.Matches do
   }
 
   alias T.Feeds.FeedProfile
-  alias T.Accounts.{Profile, UserSettings}
+  alias T.Accounts.Profile
   alias T.PushNotifications.DispatchJob
   alias T.Bot
 
@@ -59,7 +59,6 @@ defmodule T.Matches do
            %{
              match: %Match{} | nil,
              mutual: %FeedProfile{} | nil,
-             audio_only: [boolean] | nil,
              event: %MatchEvent{} | nil
            }}
           | {:error, atom, term, map}
@@ -75,8 +74,8 @@ defmodule T.Matches do
     |> match_if_mutual_m(by_user_id, user_id)
     |> Repo.transaction()
     |> case do
-      {:ok, %{match: match, audio_only: audio_only}} = success ->
-        maybe_notify_match(match, audio_only, by_user_id, user_id)
+      {:ok, %{match: match}} = success ->
+        maybe_notify_match(match, by_user_id, user_id)
         maybe_notify_liked_user(match, by_user_id, user_id)
         success
 
@@ -99,7 +98,6 @@ defmodule T.Matches do
 
   defp maybe_notify_match(
          %Match{id: match_id, inserted_at: inserted_at} = match,
-         [by_user_id_settings, user_id_settings],
          by_user_id,
          user_id
        ) do
@@ -111,14 +109,14 @@ defmodule T.Matches do
       expiration_date: expiration_date
     }
 
-    by_user_payload = Map.merge(common, %{mate: user_id, audio_only: user_id_settings})
-    user_payload = Map.merge(common, %{mate: by_user_id, audio_only: by_user_id_settings})
+    by_user_payload = Map.merge(common, %{mate: user_id})
+    user_payload = Map.merge(common, %{mate: by_user_id})
 
     broadcast_from_for_user(by_user_id, {__MODULE__, :matched, by_user_payload})
     broadcast_for_user(user_id, {__MODULE__, :matched, user_payload})
   end
 
-  defp maybe_notify_match(nil, _settings, _by_user_id, _user_id), do: :ok
+  defp maybe_notify_match(nil, _by_user_id, _user_id), do: :ok
 
   defp maybe_notify_liked_user(%Match{id: _match_id}, _by_user_id, _user_id), do: :ok
 
@@ -137,7 +135,6 @@ defmodule T.Matches do
     multi
     |> with_mutual_liker_m(by_user_id, user_id)
     |> maybe_create_match_m([by_user_id, user_id])
-    |> maybe_fetch_settings_m([by_user_id, user_id])
     |> maybe_create_match_event_m()
     |> maybe_schedule_match_push_m()
   end
@@ -173,22 +170,6 @@ defmodule T.Matches do
         Bot.async_post_message(m)
 
         Repo.insert(%Match{user_id_1: user_id_1, user_id_2: user_id_2})
-      else
-        {:ok, nil}
-      end
-    end)
-  end
-
-  defp maybe_fetch_settings_m(multi, [by_user_id, user_id]) do
-    Multi.run(multi, :audio_only, fn _repo, %{mutual: mutual} ->
-      if mutual do
-        by_user_id_settings =
-          UserSettings |> where(user_id: ^by_user_id) |> select([s], s.audio_only) |> Repo.one!()
-
-        user_id_settings =
-          UserSettings |> where(user_id: ^user_id) |> select([s], s.audio_only) |> Repo.one!()
-
-        {:ok, [by_user_id_settings, user_id_settings]}
       else
         {:ok, nil}
       end
@@ -558,18 +539,16 @@ defmodule T.Matches do
 
     mates = Map.keys(mate_matches)
 
-    profiles_with_settings =
+    profiles =
       FeedProfile
       |> where([p], p.user_id in ^mates)
-      |> join(:left, [p], s in UserSettings, on: p.user_id == s.user_id)
-      |> select([p, s], {p, s})
       |> Repo.all()
-      |> Map.new(fn {profile, settings} -> {profile.user_id, {profile, settings.audio_only}} end)
+      |> Map.new(fn profile -> {profile.user_id, profile} end)
 
     Enum.map(matches, fn match ->
       [mate_id] = [match.user_id_1, match.user_id_2] -- [user_id]
-      {profile, audio_only} = Map.fetch!(profiles_with_settings, mate_id)
-      %Match{match | profile: profile, audio_only: audio_only}
+      profile = Map.fetch!(profiles, mate_id)
+      %Match{match | profile: profile}
     end)
   end
 

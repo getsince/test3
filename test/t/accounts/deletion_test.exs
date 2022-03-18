@@ -47,7 +47,6 @@ defmodule T.Accounts.DeletionTest do
       assert match == %{
                id: match_id,
                mate: user_id,
-               audio_only: false,
                expiration_date: expiration_date,
                inserted_at: inserted_at
              }

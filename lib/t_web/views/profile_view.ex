@@ -19,8 +19,7 @@ defmodule TWeb.ProfileView do
         :gender_preference,
         :min_age,
         :max_age,
-        :distance,
-        :audio_only
+        :distance
       ],
       version,
       screen_width,

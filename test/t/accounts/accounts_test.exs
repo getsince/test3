@@ -84,15 +84,6 @@ defmodule T.AccountsTest do
     end
   end
 
-  describe "add_settings/1" do
-    test "it works" do
-      {:ok, %{profile: %Profile{audio_only: audio_only}}} =
-        Accounts.register_user_with_apple_id(%{"apple_id" => apple_id()})
-
-      assert audio_only == false
-    end
-  end
-
   describe "list_gender_preferences/1" do
     test "when user doesn't exist" do
       assert Accounts.list_gender_preferences(Ecto.UUID.generate()) == []
@@ -123,29 +114,6 @@ defmodule T.AccountsTest do
       insert(:gender_preference, gender: "N", user_id: user_id)
 
       assert ["F", "N"] == Accounts.get_profile!(user_id).gender_preference
-    end
-
-    test "with user settings" do
-      {:ok, %{profile: %Profile{user_id: user_id}}} =
-        Accounts.register_user_with_apple_id(%{"apple_id" => apple_id()})
-
-      Accounts.set_audio_only(user_id, true)
-
-      assert true == Accounts.get_profile!(user_id).audio_only
-    end
-  end
-
-  describe "set_audio_only/2" do
-    test "works" do
-      {:ok, %{profile: %Profile{user_id: user_id}}} =
-        Accounts.register_user_with_apple_id(%{"apple_id" => apple_id()})
-
-      Accounts.set_audio_only(user_id, true)
-
-      assert Accounts.UserSettings
-             |> where(user_id: ^user_id)
-             |> select([s], s.audio_only)
-             |> T.Repo.one!() == true
     end
   end
 

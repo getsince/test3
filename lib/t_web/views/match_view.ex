@@ -9,7 +9,6 @@ defmodule TWeb.MatchView do
     %{"id" => id, "profile" => render(FeedView, "feed_profile.json", assigns)}
     |> maybe_put("inserted_at", inserted_at)
     |> maybe_put("expiration_date", expiration_date)
-    |> maybe_put("audio_only", assigns[:audio_only])
     |> maybe_put_2("seen", assigns[:seen])
   end
 

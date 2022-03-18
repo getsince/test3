@@ -34,7 +34,7 @@ defmodule T.MatchesTest do
       assert {:ok, %{match: %Match{id: match_id}}} = Matches.like_user(p2_id, p1_id)
 
       # for p1
-      assert_receive {Matches, :matched, %{id: ^match_id, mate: ^p2_id, audio_only: false}}
+      assert_receive {Matches, :matched, %{id: ^match_id, mate: ^p2_id}}
 
       assert [%Match{id: ^match_id, profile: %FeedProfile{user_id: ^p2_id}}] =
                Matches.list_matches(p1_id)

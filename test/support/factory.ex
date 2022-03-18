@@ -5,7 +5,6 @@ defmodule T.Factory do
     User,
     Profile,
     GenderPreference,
-    UserSettings,
     APNSDevice,
     PushKitDevice,
     UserToken
@@ -17,11 +16,7 @@ defmodule T.Factory do
   alias T.News
 
   def user_factory do
-    %User{apple_id: apple_id(), settings: build(:user_settings)}
-  end
-
-  def user_settings_factory do
-    %UserSettings{audio_only: false}
+    %User{apple_id: apple_id()}
   end
 
   def seen_profile_factory do

@@ -35,11 +35,9 @@ defmodule TWeb.CallChannelTest do
 
       assert {:ok, reply, _socket} = join(socket, "call:#{call_id}")
 
-      call_topics = reply[:call_topics]
-
       assert reply == %{
                ice_servers: [],
-               call_topics: call_topics
+               call_topics: []
              }
     end
 
@@ -50,11 +48,9 @@ defmodule TWeb.CallChannelTest do
 
       assert {:ok, reply, _socket} = join(socket, "call:#{call_id}")
 
-      call_topics = reply[:call_topics]
-
       assert reply == %{
                ice_servers: [],
-               call_topics: call_topics,
+               call_topics: [],
                caller: %{
                  name: "that",
                  user_id: caller.id,

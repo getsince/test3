@@ -48,96 +48,46 @@ defmodule TWeb.FeedChannelTest do
     end
 
     test "with matches", %{socket: socket, me: me} do
-      [p1, p2, p3, p4] = [
+      [p1, p2, p3] = [
         onboarded_user(story: [], name: "mate-1", location: apple_location(), gender: "F"),
         onboarded_user(story: [], name: "mate-2", location: apple_location(), gender: "N"),
-        onboarded_user(story: [], name: "mate-3", location: apple_location(), gender: "M"),
-        onboarded_user(story: [], name: "mate-4", location: apple_location(), gender: "F")
+        onboarded_user(story: [], name: "mate-3", location: apple_location(), gender: "M")
       ]
 
-      [m1, m2, m3, m4] = [
+      [m1, m2, m3] = [
         insert(:match, user_id_1: me.id, user_id_2: p1.id, inserted_at: ~N[2021-09-30 12:16:05]),
         insert(:match, user_id_1: me.id, user_id_2: p2.id, inserted_at: ~N[2021-09-30 12:16:06]),
-        insert(:match, user_id_1: me.id, user_id_2: p3.id, inserted_at: ~N[2021-09-30 12:16:07]),
-        insert(:match, user_id_1: me.id, user_id_2: p4.id, inserted_at: ~N[2021-09-30 12:16:08])
+        insert(:match, user_id_1: me.id, user_id_2: p3.id, inserted_at: ~N[2021-09-30 12:16:07])
       ]
 
-      now = ~U[2021-09-30 14:47:00.123456Z]
-
-      # first match is in contacts exchange interaction mode
-      Matches.save_contacts_offer_for_match(
-        me.id,
-        m1.id,
-        _contacts = %{"telegram" => "@abcde"},
-        now
-      )
-
-      # first match is also seen
+      # first and second matches are seen
       :ok = Matches.mark_match_seen(me.id, m1.id)
-
-      # and then sends contacts as well
-      Matches.save_contacts_offer_for_match(
-        me.id,
-        m2.id,
-        _contacts = %{"whatsapp" => "+79666666666"},
-        now
-      )
-
-      # and second match is also seen
       :ok = Matches.mark_match_seen(me.id, m2.id)
+      Matches.save_contact_click(m1.id)
 
-      # fourth match doesn't have any interaction
-      # ¯\_ (ツ)_/¯
-
-      assert {:ok, %{"matches" => matches}, _socket} =
-               join(socket, "feed:" <> me.id, %{"mode" => "normal"})
-
-      last_interaction_id = fn position ->
-        match = Enum.at(matches, position)
-        match["last_interaction_id"]
-      end
+      assert {:ok, %{"matches" => matches}, _socket} = join(socket, "feed:" <> me.id)
 
       assert matches == [
-               %{
-                 "id" => m4.id,
-                 "profile" => %{name: "mate-4", story: [], user_id: p4.id, gender: "F"},
-                 "audio_only" => false,
-                 "expiration_date" => ~U[2021-10-01 12:16:08Z],
-                 "inserted_at" => ~U[2021-09-30 12:16:08Z]
-               },
                %{
                  "id" => m3.id,
                  "profile" => %{name: "mate-3", story: [], user_id: p3.id, gender: "M"},
                  "audio_only" => false,
-                 "expiration_date" => ~U[2021-10-01 12:16:07Z],
-                 "inserted_at" => ~U[2021-09-30 12:16:07Z]
+                 "inserted_at" => ~U[2021-09-30 12:16:07Z],
+                 "expiration_date" => ~U[2021-10-01 12:16:07Z]
                },
                %{
                  "id" => m2.id,
                  "profile" => %{name: "mate-2", story: [], user_id: p2.id, gender: "N"},
-                 "contact" => %{
-                   "contacts" => %{"whatsapp" => "+79666666666"},
-                   "inserted_at" => ~U[2021-09-30 14:47:00Z],
-                   "opened_contact_type" => nil,
-                   "picker" => p2.id
-                 },
                  "audio_only" => false,
                  "inserted_at" => ~U[2021-09-30 12:16:06Z],
-                 "last_interaction_id" => last_interaction_id.(2),
+                 "expiration_date" => ~U[2021-10-01 12:16:06Z],
                  "seen" => true
                },
                %{
                  "id" => m1.id,
                  "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
-                 "contact" => %{
-                   "contacts" => %{"telegram" => "@abcde"},
-                   "picker" => p1.id,
-                   "opened_contact_type" => nil,
-                   "inserted_at" => ~U[2021-09-30 14:47:00Z]
-                 },
                  "audio_only" => false,
                  "inserted_at" => ~U[2021-09-30 12:16:05Z],
-                 "last_interaction_id" => last_interaction_id.(3),
                  "seen" => true
                }
              ]
@@ -1105,87 +1055,6 @@ defmodule TWeb.FeedChannelTest do
   end
 
   # test doesn't make sense since "report-we-met" doesn't affect match expiration now, should be removed
-  describe "open-contact, report-we-met, report-we-not-met" do
-    setup :joined
-
-    test "open-contact, report-we-not-met, report-we-met", %{me: me, socket: socket} do
-      p1 = onboarded_user(story: [], name: "mate-1", location: apple_location(), gender: "F")
-
-      m1 =
-        insert(:match, user_id_1: me.id, user_id_2: p1.id, inserted_at: ~N[2021-09-30 12:16:05])
-
-      insert(:match_contact,
-        match_id: m1.id,
-        contacts: %{"telegram" => "@abcde"},
-        picker_id: p1.id,
-        inserted_at: ~N[2021-09-30 13:16:05]
-      )
-
-      freeze_time(socket, ~U[2022-01-12 13:18:42.240988Z])
-      ref = push(socket, "open-contact", %{"match_id" => m1.id, "contact_type" => "telegram"})
-      assert_reply(ref, :ok, _reply)
-
-      assert {:ok, %{"matches" => matches}, _socket} =
-               join(socket, "feed:" <> me.id, %{"mode" => "normal"})
-
-      assert matches == [
-               %{
-                 "id" => m1.id,
-                 "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
-                 "contact" => %{
-                   "contacts" => %{"telegram" => "@abcde"},
-                   "picker" => p1.id,
-                   "opened_contact_type" => "telegram",
-                   "inserted_at" => ~U[2021-09-30 13:16:05Z],
-                   "seen_at" => ~U[2022-01-12 13:18:42Z]
-                 },
-                 "audio_only" => false,
-                 "expiration_date" => ~U[2021-10-01 12:16:05Z],
-                 "inserted_at" => ~U[2021-09-30 12:16:05Z]
-               }
-             ]
-
-      push(socket, "report-we-not-met", %{"match_id" => m1.id})
-
-      assert {:ok, %{"matches" => matches}, _socket} =
-               join(socket, "feed:" <> me.id, %{"mode" => "normal"})
-
-      assert matches == [
-               %{
-                 "id" => m1.id,
-                 "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
-                 "contact" => %{
-                   "contacts" => %{"telegram" => "@abcde"},
-                   "picker" => p1.id,
-                   "opened_contact_type" => nil,
-                   "inserted_at" => ~U[2021-09-30 13:16:05Z],
-                   "seen_at" => ~U[2022-01-12 13:18:42Z]
-                 },
-                 "audio_only" => false,
-                 "expiration_date" => ~U[2021-10-01 12:16:05Z],
-                 "inserted_at" => ~U[2021-09-30 12:16:05Z]
-               }
-             ]
-
-      ref = push(socket, "open-contact", %{"match_id" => m1.id, "contact_type" => "telegram"})
-      assert_reply(ref, :ok, _reply)
-
-      push(socket, "report-we-met", %{"match_id" => m1.id})
-
-      assert {:ok, %{"matches" => matches}, _socket} =
-               join(socket, "feed:" <> me.id, %{"mode" => "normal"})
-
-      assert matches == [
-               %{
-                 "id" => m1.id,
-                 "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
-                 "audio_only" => false,
-                 "expiration_date" => ~U[2021-10-01 12:16:05Z],
-                 "inserted_at" => ~U[2021-09-30 12:16:05Z]
-               }
-             ]
-    end
-  end
 
   describe "send-voicemail" do
     setup :joined
@@ -1216,43 +1085,6 @@ defmodule TWeb.FeedChannelTest do
                  body: "Voicemail is no longer supported, please upgrade."
                }
              }
-    end
-  end
-
-  describe "list-interactions" do
-    setup :joined
-
-    test "success: lists all interactions for a match", %{me: me, socket: socket} do
-      mate = onboarded_user()
-      match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
-
-      # no interactions in the beginning
-      ref = push(socket, "list-interactions", %{"match_id" => match.id})
-      assert_reply ref, :ok, reply
-      assert reply == %{"interactions" => []}
-
-      # add some interactions (just enough to test all MatchView clauses)
-
-      # - offer contacts
-      Matches.save_contacts_offer_for_match(me.id, match.id, %{"telegram" => "@asdfasdfasf"})
-      assert_push "interaction", %{"interaction" => %{"type" => "contact_offer"}}
-
-      # now we have all possible interactions
-      ref = push(socket, "list-interactions", %{"match_id" => match.id})
-      assert_reply ref, :ok, %{"interactions" => interactions}
-
-      me_id = me.id
-
-      assert [
-               # - offer contacts
-               %{
-                 "id" => _,
-                 "type" => "contact_offer",
-                 "contacts" => %{"telegram" => "@asdfasdfasf"},
-                 "by_user_id" => ^me_id,
-                 "inserted_at" => %DateTime{}
-               }
-             ] = interactions
     end
   end
 

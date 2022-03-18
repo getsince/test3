@@ -12,7 +12,7 @@ defmodule T.Factory do
   }
 
   alias T.Feeds.SeenProfile
-  alias T.Matches.{Match, ExpiredMatch, MatchEvent, MatchContact}
+  alias T.Matches.{Match, ExpiredMatch, MatchEvent}
 
   alias T.News
 
@@ -51,10 +51,6 @@ defmodule T.Factory do
 
   def gender_preference_factory do
     %GenderPreference{}
-  end
-
-  def match_contact_factory do
-    %MatchContact{}
   end
 
   def user_token_factory do

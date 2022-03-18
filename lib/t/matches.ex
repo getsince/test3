@@ -15,9 +15,7 @@ defmodule T.Matches do
     Like,
     MatchEvent,
     ExpiredMatch,
-    MatchContact,
     ArchivedMatch,
-    Interaction,
     Seen
   }
 
@@ -287,26 +285,14 @@ defmodule T.Matches do
 
   @spec list_matches(uuid) :: [%Match{}]
   def list_matches(user_id) do
-    last_interaction_q =
-      Interaction
-      |> where(match_id: parent_as(:match).id)
-      |> order_by(desc: :id)
-      |> limit(1)
-
     matches_with_undying_events_q()
     |> where([match: m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
     |> where([match: m], m.id not in subquery(archived_match_ids_q(user_id)))
     |> order_by(desc: :inserted_at)
     |> join(:left, [m], s in Seen, as: :seen, on: s.match_id == m.id and s.user_id == ^user_id)
-    |> join(:left, [m], c in assoc(m, :contact), as: :c)
-    |> join(:left_lateral, [m], i in subquery(last_interaction_q), as: :last_interaction)
-    |> preload([c: c], contact: c)
-    |> select(
-      [match: m, undying_event: e, last_interaction: i, seen: s],
-      {m, e.timestamp, i.id, s.match_id}
-    )
+    |> select([match: m, undying_event: e, seen: s], {m, e.timestamp, s.match_id})
     |> Repo.all()
-    |> Enum.map(fn {match, undying_event_timestamp, last_interaction_id, seen_match_id} ->
+    |> Enum.map(fn {match, undying_event_timestamp, seen_match_id} ->
       expiration_date =
         unless undying_event_timestamp do
           expiration_date(match)
@@ -314,8 +300,7 @@ defmodule T.Matches do
 
       %Match{
         match
-        | last_interaction_id: last_interaction_id,
-          expiration_date: expiration_date,
+        | expiration_date: expiration_date,
           seen: !!seen_match_id
       }
     end)
@@ -629,73 +614,6 @@ defmodule T.Matches do
     end)
   end
 
-  def save_contacts_offer_for_match(offerer, match_id, contacts, now \\ DateTime.utc_now()) do
-    %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} =
-      get_match_for_user!(match_id, offerer)
-
-    [mate] = [uid1, uid2] -- [offerer]
-    primary_rpc(__MODULE__, :local_save_contacts_offer, [offerer, mate, match_id, contacts, now])
-  end
-
-  @doc false
-  def local_save_contacts_offer(offerer, mate, match_id, contacts, now) do
-    {offerer_name, _number_of_matches1} = user_info(offerer)
-    {mate_name, _umber_of_matches2} = user_info(mate)
-    now = DateTime.truncate(now, :second)
-    inserted_at = DateTime.to_naive(now)
-
-    m = "contact offer from #{offerer_name} (#{offerer}) to #{mate_name} (#{mate})"
-
-    Logger.warn(m)
-    Bot.async_post_message(m)
-
-    changeset =
-      contact_changeset(
-        %MatchContact{match_id: match_id, picker_id: mate, inserted_at: inserted_at},
-        %{contacts: contacts}
-      )
-
-    match_event = %MatchEvent{
-      timestamp: now,
-      match_id: match_id,
-      event: "contact_offer"
-    }
-
-    interaction = %Interaction{
-      data: %{"type" => "contact_offer", "contacts" => contacts},
-      match_id: match_id,
-      from_user_id: offerer,
-      to_user_id: mate
-    }
-
-    push_job =
-      DispatchJob.new(%{
-        "type" => "contact_offer",
-        "match_id" => match_id,
-        "receiver_id" => mate,
-        "offerer_id" => offerer
-      })
-
-    conflict_opts = [on_conflict: :replace_all, conflict_target: [:match_id]]
-
-    Multi.new()
-    |> Multi.insert(:match_contact, changeset, conflict_opts)
-    |> Multi.insert(:match_event, match_event)
-    |> Multi.insert(:interaction, interaction)
-    |> Oban.insert(:push, push_job)
-    |> Repo.transaction()
-    |> case do
-      {:ok, %{match_contact: %MatchContact{} = match_contact, interaction: interaction}} ->
-        local_maybe_unarchive_match(match_id)
-        broadcast_for_user(mate, {__MODULE__, [:contact, :offered], match_contact})
-        broadcast_interaction(interaction)
-        {:ok, match_contact}
-
-      {:error, :match_contact, %Ecto.Changeset{} = changeset, _changes} ->
-        {:error, changeset}
-    end
-  end
-
   def save_contact_click(match_id, now \\ DateTime.utc_now()) do
     timestamp = DateTime.truncate(now, :second)
     primary_rpc(__MODULE__, :local_save_contact_click, [match_id, timestamp])
@@ -710,74 +628,6 @@ defmodule T.Matches do
     }
 
     Repo.insert(match_event)
-  end
-
-  def open_contact_for_match(me, match_id, contact_type, now \\ DateTime.utc_now()) do
-    seen_at = DateTime.truncate(now, :second)
-    primary_rpc(__MODULE__, :local_open_contact_for_match, [me, match_id, contact_type, seen_at])
-  end
-
-  @doc false
-  def local_open_contact_for_match(me, match_id, contact_type, seen_at) do
-    m = "contact opened for match #{match_id} by #{me}"
-
-    Logger.warn(m)
-    Bot.async_post_message(m)
-
-    {1, _} =
-      MatchContact
-      |> where(match_id: ^match_id)
-      |> Repo.update_all(set: [opened_contact_type: contact_type, seen_at: seen_at])
-
-    :ok
-  end
-
-  def report_meeting(me, match_id) do
-    primary_rpc(__MODULE__, :local_report_meeting, [me, match_id])
-  end
-
-  @doc false
-  def local_report_meeting(me, match_id) do
-    m = "meeting reported for match #{match_id} by #{me}"
-
-    Logger.warn(m)
-    Bot.async_post_message(m)
-
-    Multi.new()
-    |> Multi.delete_all(:match_contact, MatchContact |> where(match_id: ^match_id))
-    |> Multi.insert(:match_event, %MatchEvent{
-      timestamp: DateTime.truncate(DateTime.utc_now(), :second),
-      match_id: match_id,
-      event: "meeting_report"
-    })
-    |> Repo.transaction()
-    |> case do
-      {:ok, _changes} -> :ok
-      {:error, _changes} -> :error
-    end
-  end
-
-  def mark_contact_not_opened(me, match_id) do
-    primary_rpc(__MODULE__, :local_mark_contact_not_opened, [me, match_id])
-  end
-
-  @doc false
-  def local_mark_contact_not_opened(me, match_id) do
-    m = "haven't yet met for match #{match_id} by #{me}"
-
-    Logger.warn(m)
-    Bot.async_post_message(m)
-
-    {1, _} =
-      MatchContact
-      |> where(match_id: ^match_id)
-      |> Repo.update_all(set: [opened_contact_type: nil])
-
-    :ok
-  end
-
-  defp local_maybe_unarchive_match(match_id) do
-    ArchivedMatch |> where(match_id: ^match_id) |> Repo.delete_all()
   end
 
   @spec get_match_id([uuid]) :: uuid | nil
@@ -878,41 +728,5 @@ defmodule T.Matches do
       e.event == "call_start" or e.event == "contact_offer" or e.event == "contact_click"
     )
     |> Repo.exists?()
-  end
-
-  # Contact Exchange
-
-  defp contact_changeset(contact, attrs) do
-    contact
-    |> cast(attrs, [:contacts])
-    |> validate_required([:contacts])
-    |> validate_change(:contacts, fn :contacts, contacts ->
-      case contacts
-           |> Map.keys()
-           |> Enum.find(fn key ->
-             key not in ["whatsapp", "telegram", "instagram", "phone"]
-           end) do
-        nil -> []
-        _ -> [contacts: "unrecognized contact type"]
-      end
-    end)
-  end
-
-  # History
-
-  @spec history_list_interactions(uuid) :: [%Interaction{}]
-  def history_list_interactions(match_id) do
-    Interaction
-    |> where(match_id: ^match_id)
-    |> order_by(asc: :id)
-    |> Repo.all()
-  end
-
-  @spec broadcast_interaction(%Interaction{}) :: :ok
-  def broadcast_interaction(%Interaction{from_user_id: from, to_user_id: to} = interaction) do
-    message = {__MODULE__, :interaction, interaction}
-    broadcast_for_user(from, message)
-    broadcast_for_user(to, message)
-    :ok
   end
 end

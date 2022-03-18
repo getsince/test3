@@ -5,7 +5,7 @@ defmodule T.Media do
   # TODO use mox in test env
 
   @doc """
-  Bucket for user-generated content. Like photos, audios, etc.
+  Bucket for user-generated content. Like photos.
   """
   def user_bucket, do: bucket(:user_bucket)
 

@@ -28,9 +28,6 @@ defmodule T.Accounts.Profile do
     field :name, :string
     field :gender, :string
     field :birthdate, :date
-
-    # settings
-    field :audio_only, :boolean, virtual: true
   end
 
   def changeset(profile, attrs, opts \\ []) do

@@ -191,8 +191,7 @@ defmodule TWeb.FeedChannel do
         {:ok,
          %{
            match: %{id: match_id, inserted_at: inserted_at},
-           mutual: profile,
-           audio_only: [_our, mate_audio_only]
+           mutual: profile
          }} ->
           # TODO return these timestamps from like_user
           expiration_date = NaiveDateTime.add(inserted_at, Matches.match_ttl())
@@ -203,7 +202,6 @@ defmodule TWeb.FeedChannel do
               profile: profile,
               screen_width: screen_width,
               version: version,
-              audio_only: mate_audio_only,
               expiration_date: expiration_date,
               inserted_at: inserted_at
             })
@@ -366,8 +364,7 @@ defmodule TWeb.FeedChannel do
       id: match_id,
       inserted_at: inserted_at,
       expiration_date: expiration_date,
-      mate: mate_id,
-      audio_only: audio_only
+      mate: mate_id
     } = match
 
     if profile = Feeds.get_mate_feed_profile(mate_id) do
@@ -375,7 +372,6 @@ defmodule TWeb.FeedChannel do
         "match" =>
           render_match(%{
             id: match_id,
-            audio_only: audio_only,
             profile: profile,
             screen_width: screen_width,
             version: version,
@@ -429,7 +425,6 @@ defmodule TWeb.FeedChannel do
       %Matches.Match{
         id: match_id,
         inserted_at: inserted_at,
-        audio_only: audio_only,
         profile: profile,
         expiration_date: expiration_date,
         seen: seen
@@ -437,7 +432,6 @@ defmodule TWeb.FeedChannel do
         render_match(%{
           id: match_id,
           inserted_at: inserted_at,
-          audio_only: audio_only,
           profile: profile,
           screen_width: screen_width,
           version: version,

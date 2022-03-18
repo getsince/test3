@@ -12,7 +12,6 @@ defmodule T.Matches.Match do
     field :profile, :map, virtual: true
 
     field :expiration_date, :utc_datetime, virtual: true
-    field :audio_only, :boolean, virtual: true
     field :seen, :boolean, virtual: true
 
     timestamps(updated_at: false)

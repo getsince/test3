@@ -46,9 +46,6 @@ if config_env() == :prod and smoke? do
 end
 
 if config_env() == :prod and not smoke? do
-  # TODO remove
-  config :t, current_admin_id: System.fetch_env!("ADMIN_ID")
-
   config :logger, backends: [:console, CloudWatch, Sentry.LoggerBackend]
   config :logger, :console, level: :info
 
@@ -228,8 +225,6 @@ if config_env() == :dev do
 end
 
 if config_env() == :test do
-  config :t, current_admin_id: "36a0a181-db31-400a-8397-db7f560c152e"
-
   # Configure your database
   #
   # The MIX_TEST_PARTITION environment variable can be used

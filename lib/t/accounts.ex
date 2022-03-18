@@ -865,29 +865,6 @@ defmodule T.Accounts do
     ]
   end
 
-  # ADMIN functions
-
-  @spec current_admin_id :: Ecto.UUID.t()
-  def current_admin_id do
-    Application.fetch_env!(:t, :current_admin_id)
-  end
-
-  @spec is_admin?(%User{} | String.t()) :: boolean()
-  def is_admin?(%User{id: user_id}) do
-    is_admin?(user_id)
-  end
-
-  def is_admin?(user_id) when is_binary(user_id) do
-    user_id == current_admin_id()
-  end
-
-  @spec admin_list_profiles_ordered_by_activity :: [%Profile{}]
-  def admin_list_profiles_ordered_by_activity do
-    Profile
-    |> order_by(desc: :last_active)
-    |> Repo.all()
-  end
-
   def schedule_upgrade_app_push(user_id) do
     primary_rpc(__MODULE__, :local_schedule_upgrade_app_push, [user_id])
   end

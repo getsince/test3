@@ -10,8 +10,6 @@ defmodule TWeb.UserSocket do
   channel "call:*", TWeb.CallChannel
   # profile:<user-id>
   channel "profile:*", TWeb.ProfileChannel
-  # admin
-  channel "admin", TWeb.AdminChannel
 
   @impl true
   @spec connect(any, any, any) :: :error | {:ok, Phoenix.Socket.t()}

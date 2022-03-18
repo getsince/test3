@@ -243,15 +243,14 @@ defmodule TWeb.FeedChannel do
     {:reply, {:error, %{alert: alert}}, socket}
   end
 
-  def handle_in("cancel-slot", params, socket) do
-    me = me_id(socket)
+  def handle_in("cancel-slot", _params, socket) do
+    alert =
+      alert(
+        dgettext("alerts", "Deprecation warning"),
+        dgettext("alerts", "Calls are no longer supported, please upgrade.")
+      )
 
-    case params do
-      %{"match_id" => match_id} -> Matches.cancel_slot_for_match(me, match_id)
-      %{"user_id" => user_id} -> Matches.cancel_slot_for_matched_user(me, user_id)
-    end
-
-    {:reply, :ok, socket}
+    {:reply, {:error, %{alert: alert}}, socket}
   end
 
   def handle_in("send-contact", _params, socket) do
@@ -399,46 +398,6 @@ defmodule TWeb.FeedChannel do
     {:noreply, socket}
   end
 
-  def handle_info({Matches, [:timeslot, :offered], timeslot}, socket) do
-    %Matches.Timeslot{slots: slots, match_id: match_id} = timeslot
-
-    push(socket, "slots_offer", %{
-      "match_id" => match_id,
-      "slots" => slots
-    })
-
-    {:noreply, socket}
-  end
-
-  def handle_info({Matches, [:timeslot, :accepted], timeslot}, socket) do
-    %Matches.Timeslot{selected_slot: slot, match_id: match_id} = timeslot
-
-    push(socket, "slot_accepted", %{
-      "match_id" => match_id,
-      "selected_slot" => slot
-    })
-
-    {:noreply, socket}
-  end
-
-  def handle_info({Matches, [:timeslot, :cancelled], timeslot}, socket) do
-    %Matches.Timeslot{match_id: match_id} = timeslot
-
-    push(socket, "slot_cancelled", %{"match_id" => match_id})
-
-    {:noreply, socket}
-  end
-
-  def handle_info({Matches, [:timeslot, :started], match_id}, socket) do
-    push(socket, "timeslot_started", %{"match_id" => match_id})
-    {:noreply, socket}
-  end
-
-  def handle_info({Matches, [:timeslot, :ended], match_id}, socket) do
-    push(socket, "timeslot_ended", %{"match_id" => match_id})
-    {:noreply, socket}
-  end
-
   def handle_info({Matches, [:contact, :offered], match_contact}, socket) do
     %Matches.MatchContact{
       contacts: contacts,
@@ -492,7 +451,6 @@ defmodule TWeb.FeedChannel do
         inserted_at: inserted_at,
         audio_only: audio_only,
         profile: profile,
-        timeslot: timeslot,
         contact: contact,
         expiration_date: expiration_date,
         last_interaction_id: last_interaction_id,
@@ -503,7 +461,6 @@ defmodule TWeb.FeedChannel do
           inserted_at: inserted_at,
           audio_only: audio_only,
           profile: profile,
-          timeslot: timeslot,
           contact: contact,
           screen_width: screen_width,
           version: version,

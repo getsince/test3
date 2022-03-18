@@ -12,19 +12,12 @@ defmodule T.Matches.Match do
     field :profile, :map, virtual: true
 
     # TODO :interactions?
-    has_one :timeslot, T.Matches.Timeslot
     has_one :contact, T.Matches.MatchContact
 
     field :expiration_date, :utc_datetime, virtual: true
     field :audio_only, :boolean, virtual: true
     field :last_interaction_id, Ecto.Bigflake.UUID, virtual: true
     field :seen, :boolean, virtual: true
-
-    # embeds_one :slot_offer, Timeslot do
-    #   field :offerer, Ecto.Bigflake.UUID
-    #   field :slots, {:array, DateTime}
-    #   field :accepted_slot, DateTime
-    # end
 
     timestamps(updated_at: false)
   end

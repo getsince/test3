@@ -281,7 +281,6 @@ if config_env() == :bench do
   config :t, T.Feeds.SeenPruner, disabled?: true
   config :t, T.Matches.MatchExpirer, disabled?: true
   config :t, T.PushNotifications.ScheduledPushes, disabled?: true
-  config :t, T.Matches.TimeslotPruner, disabled?: true
   config :t, Finch, disabled?: true
 
   config :t, T.Repo,

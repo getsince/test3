@@ -2,7 +2,7 @@ defmodule TWeb.FeedChannelTest do
   use TWeb.ChannelCase, async: true
 
   alias T.{Accounts, Matches, News}
-  alias Matches.{Timeslot, Match, MatchEvent}
+  alias Matches.{Match, MatchEvent}
 
   setup do
     me = onboarded_user(location: moscow_location(), accept_genders: ["F", "N", "M"])
@@ -64,14 +64,6 @@ defmodule TWeb.FeedChannelTest do
 
       now = ~U[2021-09-30 14:47:00.123456Z]
 
-      slots = [
-        ~U[2021-09-30 15:15:00Z],
-        s2 = ~U[2021-09-30 15:30:00Z],
-        ~U[2021-09-30 15:45:00Z]
-      ]
-
-      raw_slots = Enum.map(slots, &DateTime.to_iso8601/1)
-
       # first match is in contacts exchange interaction mode
       Matches.save_contacts_offer_for_match(
         me.id,
@@ -83,8 +75,6 @@ defmodule TWeb.FeedChannelTest do
       # first match is also seen
       :ok = Matches.mark_match_seen(me.id, m1.id)
 
-      # second match starts off as timeslots exchange
-      Matches.save_slots_offer_for_match(p2.id, m2.id, raw_slots, now)
       # and then sends contacts as well
       Matches.save_contacts_offer_for_match(
         me.id,
@@ -95,10 +85,6 @@ defmodule TWeb.FeedChannelTest do
 
       # and second match is also seen
       :ok = Matches.mark_match_seen(me.id, m2.id)
-
-      # third match is in timeslots exchange interaction mode
-      Matches.save_slots_offer_for_match(me.id, m3.id, raw_slots, now)
-      Matches.accept_slot_for_match(p3.id, m3.id, DateTime.to_iso8601(s2), now)
 
       # fourth match doesn't have any interaction
       # ¯\_ (ツ)_/¯
@@ -122,28 +108,13 @@ defmodule TWeb.FeedChannelTest do
                %{
                  "id" => m3.id,
                  "profile" => %{name: "mate-3", story: [], user_id: p3.id, gender: "M"},
-                 "timeslot" => %{
-                   "selected_slot" => s2,
-                   "accepted_at" => ~U[2021-09-30 14:47:00Z],
-                   "inserted_at" => ~U[2021-09-30 14:47:00Z]
-                 },
                  "audio_only" => false,
                  "expiration_date" => ~U[2021-10-01 12:16:07Z],
-                 "inserted_at" => ~U[2021-09-30 12:16:07Z],
-                 "last_interaction_id" => last_interaction_id.(1)
+                 "inserted_at" => ~U[2021-09-30 12:16:07Z]
                },
                %{
                  "id" => m2.id,
                  "profile" => %{name: "mate-2", story: [], user_id: p2.id, gender: "N"},
-                 "timeslot" => %{
-                   "picker" => me.id,
-                   "slots" => [
-                     ~U[2021-09-30 15:15:00Z],
-                     ~U[2021-09-30 15:30:00Z],
-                     ~U[2021-09-30 15:45:00Z]
-                   ],
-                   "inserted_at" => ~U[2021-09-30 14:47:00Z]
-                 },
                  "contact" => %{
                    "contacts" => %{"whatsapp" => "+79666666666"},
                    "inserted_at" => ~U[2021-09-30 14:47:00Z],
@@ -941,7 +912,7 @@ defmodule TWeb.FeedChannelTest do
     end
   end
 
-  describe "pick-slot success" do
+  describe "pick-slot" do
     setup :joined
 
     test "results in deprecation warning", %{socket: socket} do
@@ -957,76 +928,19 @@ defmodule TWeb.FeedChannelTest do
     end
   end
 
-  describe "cancel-slot after pick-slot success" do
+  describe "cancel-slot" do
     setup :joined
 
-    setup %{me: me} do
-      mate = onboarded_user(story: [], location: apple_location(), name: "mate")
-      match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
-      {:ok, mate: mate, match: match}
-    end
+    test "results in deprecation warning", %{socket: socket} do
+      ref = push(socket, "cancel-slot", _params = %{})
+      assert_reply ref, :error, reply
 
-    setup :joined_mate
-
-    # mate offers slots to us, we pick one
-    setup %{match: match, mate: mate, me: me} do
-      # if it's 14:47 right now, then the slots are
-      %DateTime{hour: next_hour} = dt = DateTime.utc_now() |> DateTime.add(_seconds = 3600)
-      date = DateTime.to_date(dt)
-
-      [_s1, s2, _s3] =
-        slots = [
-          # 15:15
-          DateTime.new!(date, Time.new!(next_hour, 15, 0)),
-          # 15:30
-          DateTime.new!(date, Time.new!(next_hour, 30, 0)),
-          # 15:45
-          DateTime.new!(date, Time.new!(next_hour, 45, 0))
-        ]
-
-      iso_slots = Enum.map(slots, &DateTime.to_iso8601/1)
-
-      {:ok, %Matches.Timeslot{}} = Matches.save_slots_offer_for_user(mate.id, me.id, iso_slots)
-
-      # we get slots_offer
-      assert_push("slots_offer", push)
-
-      assert push == %{"match_id" => match.id, "slots" => slots}
-
-      # we accept seocnd slot
-      iso_slot = DateTime.to_iso8601(s2)
-      %Timeslot{} = Matches.accept_slot_for_matched_user(me.id, mate.id, iso_slot)
-
-      # mate gets a slot_accepted notification
-      assert_push("slot_accepted", push)
-
-      assert push == %{"match_id" => match.id, "selected_slot" => s2}
-
-      {:ok, slots: slots}
-    end
-
-    test "with match_id", %{socket: socket, match: match} do
-      ref = push(socket, "cancel-slot", %{"match_id" => match.id})
-      assert_reply(ref, :ok, _reply)
-
-      # mate gets slot_cancelled notification
-      assert_push("slot_cancelled", push)
-      assert push == %{"match_id" => match.id}
-
-      # timeslot is reset
-      refute Repo.get_by(Timeslot, match_id: match.id)
-    end
-
-    test "with user_id", %{socket: socket, match: match, mate: mate} do
-      ref = push(socket, "cancel-slot", %{"user_id" => mate.id})
-      assert_reply(ref, :ok, _reply)
-
-      # mate gets slot_cancelled notification
-      assert_push("slot_cancelled", push)
-      assert push == %{"match_id" => match.id}
-
-      # timeslot is reset
-      refute Repo.get_by(Timeslot, match_id: match.id)
+      assert reply == %{
+               alert: %{
+                 title: "Deprecation warning",
+                 body: "Calls are no longer supported, please upgrade."
+               }
+             }
     end
   end
 
@@ -1323,35 +1237,10 @@ defmodule TWeb.FeedChannelTest do
       Matches.save_contacts_offer_for_match(me.id, match.id, %{"telegram" => "@asdfasdfasf"})
       assert_push "interaction", %{"interaction" => %{"type" => "contact_offer"}}
 
-      slots = [
-        "2021-03-23 13:15:00Z",
-        "2021-03-23 13:30:00Z",
-        "2021-03-23 14:00:00Z",
-        "2021-03-23 14:15:00Z",
-        "2021-03-23 14:30:00Z"
-      ]
-
-      now = ~U[2021-03-23 14:12:00Z]
-
-      # - offer and cancel timelots
-      Matches.save_slots_offer_for_match(me.id, match.id, slots, now)
-      assert_push "interaction", %{"interaction" => %{"type" => "slots_offer"}}
-
-      Matches.cancel_slot_for_match(me.id, match.id)
-      assert_push "interaction", %{"interaction" => %{"type" => "slot_cancel"}}
-
-      # - offer and accept timelots
-      Matches.save_slots_offer_for_match(me.id, match.id, slots, now)
-      assert_push "interaction", %{"interaction" => %{"type" => "slots_offer"}}
-
-      Matches.accept_slot_for_match(mate.id, match.id, _slot = "2021-03-23 14:00:00Z", now)
-      assert_push "interaction", %{"interaction" => %{"type" => "slot_accept"}}
-
       # now we have all possible interactions
       ref = push(socket, "list-interactions", %{"match_id" => match.id})
       assert_reply ref, :ok, %{"interactions" => interactions}
 
-      mate_id = mate.id
       me_id = me.id
 
       assert [
@@ -1361,43 +1250,6 @@ defmodule TWeb.FeedChannelTest do
                  "type" => "contact_offer",
                  "contacts" => %{"telegram" => "@asdfasdfasf"},
                  "by_user_id" => ^me_id,
-                 "inserted_at" => %DateTime{}
-               },
-               # - offer and cancel timelots
-               %{
-                 "id" => _,
-                 "type" => "slots_offer",
-                 "slots" => [
-                   "2021-03-23T14:00:00Z",
-                   "2021-03-23T14:15:00Z",
-                   "2021-03-23T14:30:00Z"
-                 ],
-                 "by_user_id" => ^me_id,
-                 "inserted_at" => %DateTime{}
-               },
-               %{
-                 "id" => _,
-                 "type" => "slot_cancel",
-                 "by_user_id" => ^me_id,
-                 "inserted_at" => %DateTime{}
-               },
-               # - offer and accept timelots
-               %{
-                 "id" => _,
-                 "type" => "slots_offer",
-                 "slots" => [
-                   "2021-03-23T14:00:00Z",
-                   "2021-03-23T14:15:00Z",
-                   "2021-03-23T14:30:00Z"
-                 ],
-                 "by_user_id" => ^me_id,
-                 "inserted_at" => %DateTime{}
-               },
-               %{
-                 "id" => _,
-                 "type" => "slot_accept",
-                 "selected_slot" => "2021-03-23T14:00:00Z",
-                 "by_user_id" => ^mate_id,
                  "inserted_at" => %DateTime{}
                }
              ] = interactions

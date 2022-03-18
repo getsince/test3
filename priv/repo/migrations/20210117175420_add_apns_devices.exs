@@ -15,17 +15,6 @@ defmodule T.Repo.Migrations.AddApnsDevices do
       timestamps()
     end
 
-    create table(:pushkit_devices, primary_key: false) do
-      add :user_id, references(:users, @opts), primary_key: true
-      add :token_id, references(:users_tokens, @opts), primary_key: true
-      add :device_id, :binary, null: false
-      add :topic, :string
-      add :env, :string
-
-      timestamps()
-    end
-
     create unique_index(:apns_devices, [:device_id])
-    create unique_index(:pushkit_devices, [:device_id])
   end
 end

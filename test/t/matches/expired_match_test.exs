@@ -2,7 +2,7 @@ defmodule T.Matches.ExpiredMatchTest do
   use T.DataCase, async: true
   use Oban.Testing, repo: T.Repo
 
-  alias T.{Matches, Calls}
+  alias T.Matches
 
   describe "expiration_list_expired_matches/0,1" do
     test "doesn't list matches with calls" do
@@ -30,36 +30,6 @@ defmodule T.Matches.ExpiredMatchTest do
       assert Matches.expiration_list_expired_matches(_at = ~U[2021-01-01 12:00:01Z]) == []
       assert Matches.expiration_list_expired_matches(_at = ~U[2021-01-03 12:00:00Z]) == []
       assert Matches.expiration_list_expired_matches(_at = ~U[2021-01-10 12:00:00Z]) == []
-    end
-  end
-
-  describe "local_expire_match/3" do
-    test "deletes voicemail" do
-      %{user: u1} = insert(:profile)
-      %{user: u2} = insert(:profile)
-      %{id: match_id} = insert(:match, user_id_1: u1.id, user_id_2: u2.id)
-
-      {:ok, %Calls.Voicemail{id: v1_id}} =
-        Calls.voicemail_save_message(u1.id, match_id, s3_key_1 = Ecto.UUID.generate())
-
-      {:ok, %Calls.Voicemail{id: v2_id}} =
-        Calls.voicemail_save_message(u1.id, match_id, s3_key_2 = Ecto.UUID.generate())
-
-      Matches.local_expire_match(match_id, u1.id, u2.id)
-
-      refute Repo.get(Calls.Voicemail, v1_id)
-      refute Repo.get(Calls.Voicemail, v2_id)
-
-      assert [
-               %{
-                 "bucket" => "pretend-this-is-real",
-                 "s3_key" => s3_key_2
-               },
-               %{
-                 "bucket" => "pretend-this-is-real",
-                 "s3_key" => s3_key_1
-               }
-             ] == Enum.map(all_enqueued(worker: T.Media.S3DeleteJob), & &1.args)
     end
   end
 

@@ -2,9 +2,8 @@ defmodule T.MatchesTest do
   use T.DataCase, async: true
   use Oban.Testing, repo: Repo
 
-  alias T.{Matches, Feeds, Calls, PushNotifications.DispatchJob}
+  alias T.{Matches, Feeds, PushNotifications.DispatchJob}
   alias T.Feeds.FeedProfile
-  alias T.Calls.Voicemail
   alias T.Matches.{Match, Like}
 
   describe "unmatch_match/2" do
@@ -70,37 +69,6 @@ defmodule T.MatchesTest do
       assert_lists_equal(expected, actual)
     end
 
-    test "deletes voicemail" do
-      %{user: u1} = insert(:profile)
-      %{user: u2} = insert(:profile)
-      %{id: match_id} = insert(:match, user_id_1: u1.id, user_id_2: u2.id)
-
-      {:ok, %Calls.Voicemail{id: v1_id}} =
-        Calls.voicemail_save_message(u1.id, match_id, s3_key_1 = Ecto.UUID.generate())
-
-      {:ok, %Calls.Voicemail{id: v2_id}} =
-        Calls.voicemail_save_message(u1.id, match_id, s3_key_2 = Ecto.UUID.generate())
-
-      Matches.unmatch_match(u1.id, match_id)
-
-      refute Repo.get(Calls.Voicemail, v1_id)
-      refute Repo.get(Calls.Voicemail, v2_id)
-
-      expected_args = [
-        %{
-          "bucket" => "pretend-this-is-real",
-          "s3_key" => s3_key_1
-        },
-        %{
-          "bucket" => "pretend-this-is-real",
-          "s3_key" => s3_key_2
-        }
-      ]
-
-      actual_args = Enum.map(all_enqueued(worker: T.Media.S3DeleteJob), & &1.args)
-      assert_lists_equal(expected_args, actual_args)
-    end
-
     test "deletes interactions" do
       %{user: u1} = insert(:profile)
       %{user: u2} = insert(:profile)
@@ -108,15 +76,12 @@ defmodule T.MatchesTest do
 
       assert [] = Matches.history_list_interactions(match_id)
 
-      {:ok, %Calls.Voicemail{}} =
-        Calls.voicemail_save_message(u1.id, match_id, Ecto.UUID.generate())
-
       assert {:ok, %Matches.MatchContact{}} =
                Matches.save_contacts_offer_for_match(u1.id, match_id, %{
                  "telegram" => "@ruqkadsadjha"
                })
 
-      assert [_, _] = Matches.history_list_interactions(match_id)
+      assert [_] = Matches.history_list_interactions(match_id)
 
       Matches.unmatch_match(u1.id, match_id)
       assert [] = Matches.history_list_interactions(match_id)
@@ -124,48 +89,17 @@ defmodule T.MatchesTest do
   end
 
   describe "unmatch_with_user/2" do
-    test "deletes voicemail" do
-      %{user: u1} = insert(:profile)
-      %{user: u2} = insert(:profile)
-      %{id: match_id} = insert(:match, user_id_1: u1.id, user_id_2: u2.id)
-
-      {:ok, %Calls.Voicemail{id: v1_id}} =
-        Calls.voicemail_save_message(u1.id, match_id, s3_key_1 = Ecto.UUID.generate())
-
-      {:ok, %Calls.Voicemail{id: v2_id}} =
-        Calls.voicemail_save_message(u1.id, match_id, s3_key_2 = Ecto.UUID.generate())
-
-      Matches.unmatch_with_user(u1.id, u2.id)
-
-      refute Repo.get(Calls.Voicemail, v1_id)
-      refute Repo.get(Calls.Voicemail, v2_id)
-
-      assert [
-               %{
-                 "bucket" => "pretend-this-is-real",
-                 "s3_key" => s3_key_2
-               },
-               %{
-                 "bucket" => "pretend-this-is-real",
-                 "s3_key" => s3_key_1
-               }
-             ] == Enum.map(all_enqueued(worker: T.Media.S3DeleteJob), & &1.args)
-    end
-
     test "deletes interactions" do
       %{user: u1} = insert(:profile)
       %{user: u2} = insert(:profile)
       %{id: match_id} = insert(:match, user_id_1: u1.id, user_id_2: u2.id)
-
-      {:ok, %Calls.Voicemail{}} =
-        Calls.voicemail_save_message(u1.id, match_id, Ecto.UUID.generate())
 
       assert {:ok, %Matches.MatchContact{}} =
                Matches.save_contacts_offer_for_match(u1.id, match_id, %{
                  "telegram" => "@ruqkadsadjha"
                })
 
-      assert [_, _] = Matches.history_list_interactions(match_id)
+      assert [_] = Matches.history_list_interactions(match_id)
 
       Matches.unmatch_with_user(u1.id, u2.id)
       assert [] = Matches.history_list_interactions(match_id)
@@ -232,29 +166,6 @@ defmodule T.MatchesTest do
       p2 = insert(:profile)
       match = insert(:match, user_id_1: p1.user_id, user_id_2: p2.user_id)
       {:ok, profiles: [p1, p2], match: match}
-    end
-
-    test "can list multiple voicemail messages", ctx do
-      %{profiles: [%{user_id: u1_id}, %{user_id: u2_id}], match: %{id: match_id}} = ctx
-
-      {:ok, %Voicemail{} = v1} =
-        Calls.voicemail_save_message(
-          u1_id,
-          match_id,
-          _s3_key = "4f5509bd-b26a-45c0-b858-6f48172678d5"
-        )
-
-      {:ok, %Voicemail{} = v2} =
-        Calls.voicemail_save_message(
-          u1_id,
-          match_id,
-          _s3_key = "79c3a8d1-e8b6-4517-a8f2-311d90afaf70"
-        )
-
-      # both me and mate receive current voicemail in interaction, no matter who left it
-      assert [%Match{id: ^match_id, voicemail: voicemail}] = Matches.list_matches(u1_id)
-      assert [%Match{id: ^match_id, voicemail: ^voicemail}] = Matches.list_matches(u2_id)
-      assert_lists_equal(voicemail, [v1, v2])
     end
 
     test "matches with calls don't have expiration date", ctx do

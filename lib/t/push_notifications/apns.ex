@@ -193,26 +193,6 @@ defmodule T.PushNotifications.APNS do
     base_alert_payload(type, alert)
   end
 
-  def build_alert_payload("voicemail_sent" = type, data) do
-    %{"name" => name, "gender" => gender} = data
-
-    title =
-      case gender do
-        # TODO
-        "F" -> dgettext("apns", "%{name} прислала тебe аудио-сообщение!", name: name)
-        "N" -> dgettext("apns", "%{name} прислали тебe аудио-сообщение!", name: name)
-        "M" -> dgettext("apns", "%{name} прислал тебe аудио-сообщение!", name: name)
-      end
-
-    alert = %{
-      "title" => title,
-      # TODO
-      "body" => dgettext("apns", "Заходи, чтобы просмотреть и ответить ✨")
-    }
-
-    base_alert_payload(type, alert, data)
-  end
-
   defp pronoun("F"), do: dgettext("apns", "her")
   defp pronoun("M"), do: dgettext("apns", "him")
   defp pronoun(_), do: dgettext("apns", "them")

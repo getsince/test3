@@ -13,7 +13,7 @@ defmodule T.Factory do
 
   alias T.Feeds.SeenProfile
   alias T.Matches.{Match, Timeslot, ExpiredMatch, MatchEvent, MatchContact}
-  alias T.Calls.Call
+
   alias T.News
 
   def user_factory do
@@ -43,13 +43,6 @@ defmodule T.Factory do
 
   def timeslot_factory do
     %Timeslot{}
-  end
-
-  def call_factory do
-    %Call{
-      caller: build(:user),
-      called: build(:user)
-    }
   end
 
   def expired_match_factory do

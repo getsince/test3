@@ -1,7 +1,7 @@
 defmodule T.PushNotifications.APNS do
   @moduledoc false
 
-  alias T.Accounts.{PushKitDevice, APNSDevice}
+  alias T.Accounts.{APNSDevice}
   import T.Gettext
   require Logger
 
@@ -22,30 +22,11 @@ defmodule T.PushNotifications.APNS do
     |> Keyword.fetch!(:default_topic)
   end
 
-  @spec apns_env(%PushKitDevice{} | %APNSDevice{} | String.t() | nil) :: APNS.env()
-  def apns_env(%PushKitDevice{env: env}), do: apns_env(env)
+  @spec apns_env(%APNSDevice{} | String.t() | nil) :: APNS.env()
   def apns_env(%APNSDevice{env: env}), do: apns_env(env)
   def apns_env("prod"), do: :prod
   def apns_env("sandbox"), do: :dev
   def apns_env(nil), do: :dev
-
-  # pushkit
-
-  @spec pushkit_call([%PushKitDevice{}], map) :: [APNS.response()]
-  def pushkit_call(devices, payload) when is_list(devices) do
-    Enum.map(devices, fn device ->
-      device
-      |> build_call_notification(payload)
-      |> push()
-    end)
-  end
-
-  @spec build_call_notification(%PushKitDevice{}, map) :: APNS.notification()
-  defp build_call_notification(device, payload) do
-    %PushKitDevice{device_id: device_id, topic: topic} = device
-    topic = topic || default_topic()
-    APNS.build_notification(device_id, topic, payload, apns_env(device), _type = "voip")
-  end
 
   # alerts
 

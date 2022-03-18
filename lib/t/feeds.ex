@@ -1,5 +1,5 @@
 defmodule T.Feeds do
-  @moduledoc "Feeds for alternative app. Invites & Calls."
+  @moduledoc "Profile feeds for the app."
 
   import Ecto.Query
   import Ecto.Changeset

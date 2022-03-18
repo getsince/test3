@@ -6,15 +6,14 @@ defmodule TWeb.CallChannel do
   alias T.Calls
 
   @impl true
-  def join("call:" <> call_id, params, socket) do
+  def join("call:" <> call_id, _params, socket) do
     %{current_user: current_user, screen_width: screen_width, version: version} = socket.assigns
     socket = assign(socket, call_id: call_id)
-    topics = Calls.Topics.topics_json_fragment(params["locale"])
 
     case Calls.get_call_role_and_peer(call_id, current_user.id) do
       {:ok, :caller = role, _peer} ->
         send(self(), :after_join)
-        reply = %{ice_servers: [], call_topics: topics}
+        reply = %{ice_servers: [], call_topics: []}
         {:ok, reply, assign(socket, role: role)}
 
       {:ok, :called = role, peer} ->
@@ -23,7 +22,7 @@ defmodule TWeb.CallChannel do
         reply = %{
           caller: render_peer(peer, version, screen_width),
           ice_servers: [],
-          call_topics: topics
+          call_topics: []
         }
 
         {:ok, reply, assign(socket, role: role)}

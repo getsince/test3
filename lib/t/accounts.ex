@@ -19,7 +19,6 @@ defmodule T.Accounts do
     UserToken,
     UserReport,
     APNSDevice,
-    PushKitDevice,
     GenderPreference,
     AppleSignIn
   }
@@ -348,10 +347,6 @@ defmodule T.Accounts do
     Enum.map(devices, &with_base16_encoded_apns_device_id/1)
   end
 
-  defp with_base16_encoded_apns_device_id(%PushKitDevice{device_id: device_id} = device) do
-    %PushKitDevice{device | device_id: Base.encode16(device_id)}
-  end
-
   defp with_base16_encoded_apns_device_id(%APNSDevice{device_id: device_id} = device) do
     %APNSDevice{device | device_id: Base.encode16(device_id)}
   end
@@ -416,54 +411,6 @@ defmodule T.Accounts do
     APNSDevice
     |> where(device_id: ^Base.decode16!(device_id))
     |> Repo.delete_all()
-  end
-
-  def save_pushkit_device_id(user_id, token, device_id, extra) do
-    primary_rpc(__MODULE__, :local_save_pushkit_device_id, [user_id, token, device_id, extra])
-  end
-
-  @doc false
-  def local_save_pushkit_device_id(user_id, token, device_id, extra) do
-    %UserToken{id: token_id} = token |> UserToken.token_and_context_query("mobile") |> Repo.one!()
-
-    prev_device_q =
-      PushKitDevice
-      |> where([d], d.user_id == ^user_id and d.token_id == ^token_id)
-      |> or_where(device_id: ^device_id)
-
-    Repo.transaction(fn ->
-      Repo.delete_all(prev_device_q)
-
-      Repo.insert!(%PushKitDevice{
-        user_id: user_id,
-        token_id: token_id,
-        device_id: device_id,
-        env: extra[:env],
-        topic: extra[:topic] || default_apns_topic()
-      })
-    end)
-
-    :ok
-  end
-
-  @doc "remove_pushkit_device(device_id_base_16)"
-  def remove_pushkit_device(device_id) do
-    primary_rpc(__MODULE__, :local_remove_pushkit_device, [device_id])
-  end
-
-  @doc false
-  def local_remove_pushkit_device(device_id) do
-    PushKitDevice
-    |> where(device_id: ^Base.decode16!(device_id))
-    |> Repo.delete_all()
-  end
-
-  @spec list_pushkit_devices(Ecto.UUID.t()) :: [%PushKitDevice{}]
-  def list_pushkit_devices(user_id) when is_binary(user_id) do
-    PushKitDevice
-    |> where(user_id: ^user_id)
-    |> Repo.all()
-    |> with_base16_encoded_apns_device_id()
   end
 
   ## Session

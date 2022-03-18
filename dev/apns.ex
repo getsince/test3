@@ -27,27 +27,6 @@ defmodule DevAPNS do
     |> then(fn %{device_id: id} = device -> %{device | device_id: Base.encode16(id)} end)
   end
 
-  # %T.Accounts.PushKitDevice{
-  #   __meta__: #Ecto.Schema.Metadata<:loaded, "pushkit_devices">,
-  #   device_id: "9B94528E7E7626F1693A20269864A116540CFCCB869A18AFB08C334900048628",
-  #   env: "prod",
-  #   inserted_at: ~N[2021-10-22 12:00:32],
-  #   token: #Ecto.Association.NotLoaded<association :token is not loaded>,
-  #   token_id: "0000017c-a7df-c377-0242-ac1100040000",
-  #   topic: "since.app.ios",
-  #   updated_at: ~N[2021-10-22 12:00:32],
-  #   user: #Ecto.Association.NotLoaded<association :user is not loaded>,
-  #   user_id: "0000017c-a7df-c36e-0242-ac1100040000"
-  # }
-  def pushkit_device do
-    import Ecto.Query
-
-    T.Accounts.PushKitDevice
-    |> where(user_id: ^ruslan_id())
-    |> T.Repo.one!()
-    |> then(fn %{device_id: id} = device -> %{device | device_id: Base.encode16(id)} end)
-  end
-
   # %{
   #   device_id: "2DAE2436E3D183F3683907FACD8EF8D515FAF541CA55A265A4144371C2A83137",
   #   env: "prod",

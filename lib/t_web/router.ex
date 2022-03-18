@@ -51,9 +51,6 @@ defmodule TWeb.Router do
     live_session :admin do
       live "/", AdminLive.Index, :index
 
-      # live "/trace/calls", TraceLive.Index, :index
-      # live "/trace/calls/:user_id", TraceLive.Show, :show
-
       live "/profiles", ProfileLive.Index, :index
       live "/profiles/:user_id", ProfileLive.Index, :show
 

@@ -3,10 +3,6 @@ defmodule TWeb.FeedChannelTest do
 
   alias T.{Accounts, Calls, Matches, News}
   alias Matches.{Timeslot, Match, MatchEvent}
-  alias Calls.Call
-
-  import Mox
-  setup :verify_on_exit!
 
   setup do
     me = onboarded_user(location: moscow_location(), accept_genders: ["F", "N", "M"])
@@ -340,113 +336,6 @@ defmodule TWeb.FeedChannelTest do
                  "profile" => %{name: "mate", story: [], user_id: p.id, gender: "F"}
                }
              ]
-    end
-
-    test "with missed calls", %{socket: socket, me: me} do
-      "user_socket:" <> token = socket.id
-      mate = onboarded_user(story: [], location: apple_location(), name: "mate", gender: "F")
-
-      # prepare pushkit devices
-      :ok = Accounts.save_pushkit_device_id(me.id, token, Base.decode16!("ABABAB"), env: "prod")
-
-      # prepare apns mock
-      expect(MockAPNS, :push, 3, fn _notification -> :ok end)
-
-      match =
-        insert(:match, user_id_1: me.id, user_id_2: mate.id, inserted_at: ~N[2021-09-30 12:16:05])
-
-      expiration_date =
-        match.inserted_at
-        |> DateTime.from_naive!("Etc/UTC")
-        |> DateTime.add(Matches.match_ttl())
-
-      # mate calls me
-      {:ok, call_id1} = Calls.call(mate.id, me.id)
-
-      # mate calls me
-      {:ok, call_id2} = Calls.call(mate.id, me.id)
-
-      # TODO forbid "duplicate" calls?
-      {:ok, call_id3} = Calls.call(mate.id, me.id)
-
-      assert [_, _, _] = Enum.uniq([call_id1, call_id2, call_id3])
-
-      # me ends call, so call_id1 shouldn't be considered missed
-      :ok = Calls.end_call(me.id, call_id1)
-
-      # mate ends call, so call_id2, should be considered missed
-      :ok = Calls.end_call(mate.id, call_id2)
-
-      %Call{} = c1 = Repo.get(Call, call_id1)
-      %Call{} = c2 = Repo.get(Call, call_id2)
-      %Call{} = c3 = Repo.get(Call, call_id2)
-
-      assert c1.ended_at
-      assert c1.ended_by == me.id
-
-      assert c2.ended_at
-      assert c2.ended_by == mate.id
-
-      assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id, %{"mode" => "normal"})
-
-      assert reply == %{
-               "missed_calls" => [
-                 %{
-                   # TODO call without ended_at should be joined from ios?
-                   "call" => %{
-                     "id" => call_id2,
-                     "started_at" => DateTime.from_naive!(c2.inserted_at, "Etc/UTC"),
-                     "ended_at" => DateTime.from_naive!(c3.ended_at, "Etc/UTC")
-                   },
-                   "profile" => %{name: "mate", story: [], user_id: mate.id, gender: "F"}
-                 },
-                 %{
-                   "call" => %{
-                     "id" => call_id3,
-                     "started_at" => DateTime.from_naive!(c3.inserted_at, "Etc/UTC")
-                   },
-                   "profile" => %{name: "mate", story: [], user_id: mate.id, gender: "F"}
-                 }
-               ],
-               "matches" => [
-                 %{
-                   "id" => match.id,
-                   "audio_only" => false,
-                   "expiration_date" => expiration_date,
-                   "inserted_at" => ~U[2021-09-30 12:16:05Z],
-                   "profile" => %{gender: "F", name: "mate", story: [], user_id: mate.id},
-                   "last_interaction_id" => call_id3
-                 }
-               ]
-             }
-
-      # now with missed_calls_cursor
-      assert {:ok, reply, _socket} =
-               join(socket, "feed:" <> me.id, %{
-                 "missed_calls_cursor" => call_id2
-               })
-
-      assert reply == %{
-               "missed_calls" => [
-                 %{
-                   "call" => %{
-                     "id" => call_id3,
-                     "started_at" => DateTime.from_naive!(c3.inserted_at, "Etc/UTC")
-                   },
-                   "profile" => %{name: "mate", story: [], user_id: mate.id, gender: "F"}
-                 }
-               ],
-               "matches" => [
-                 %{
-                   "id" => match.id,
-                   "profile" => %{gender: "F", name: "mate", story: [], user_id: mate.id},
-                   "audio_only" => false,
-                   "expiration_date" => expiration_date,
-                   "inserted_at" => ~U[2021-09-30 12:16:05Z],
-                   "last_interaction_id" => call_id3
-                 }
-               ]
-             }
     end
 
     test "with news", %{socket: socket, me: me} do
@@ -1549,33 +1438,6 @@ defmodule TWeb.FeedChannelTest do
 
       assert_push "interaction", %{"interaction" => %{"type" => "voicemail"}}
 
-      # - attempt, accept, and end call
-      insert(:push_kit_device,
-        device_id: "ABAB",
-        user: mate,
-        token: build(:user_token, user: mate)
-      )
-
-      expect(MockAPNS, :push, fn _notification -> :ok end)
-
-      {:ok, call_id} = Calls.call(me.id, mate.id)
-
-      assert_push "interaction", %{
-        "interaction" => %{"type" => "call"}
-      }
-
-      :ok = Calls.accept_call(call_id, _now = ~U[2021-03-23 14:01:02Z])
-
-      assert_push "interaction", %{
-        "interaction" => %{"type" => "call", "accepted_at" => _}
-      }
-
-      :ok = Calls.end_call(mate.id, call_id, _now = ~U[2021-03-23 14:05:13Z])
-
-      assert_push "interaction", %{
-        "interaction" => %{"type" => "call", "accepted_at" => _, "ended_at" => _}
-      }
-
       # now we have all possible interactions
       ref = push(socket, "list-interactions", %{"match_id" => match.id})
       assert_reply ref, :ok, %{"interactions" => interactions}
@@ -1637,16 +1499,6 @@ defmodule TWeb.FeedChannelTest do
                  "type" => "voicemail",
                  "url" => _,
                  "s3_key" => ^voicemail_s3_key,
-                 "by_user_id" => ^me_id,
-                 "inserted_at" => %DateTime{}
-               },
-               # - complete call
-               %{
-                 "id" => ^call_id,
-                 "type" => "call",
-                 "call_id" => ^call_id,
-                 "accepted_at" => "2021-03-23T14:01:02Z",
-                 "ended_at" => "2021-03-23T14:05:13Z",
                  "by_user_id" => ^me_id,
                  "inserted_at" => %DateTime{}
                }

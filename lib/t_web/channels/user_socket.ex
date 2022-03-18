@@ -6,8 +6,6 @@ defmodule TWeb.UserSocket do
 
   # feed:<user-id>
   channel "feed:*", TWeb.FeedChannel
-  # call:<call-id>
-  channel "call:*", TWeb.CallChannel
   # profile:<user-id>
   channel "profile:*", TWeb.ProfileChannel
 

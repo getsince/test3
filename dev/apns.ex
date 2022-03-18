@@ -96,20 +96,6 @@ defmodule DevAPNS do
     end)
   end
 
-  def push_call(payload, pushkit_device \\ pushkit_device()) do
-    Push.pushkit_call([pushkit_device], payload)
-  end
-
-  def push_call do
-    payload = %{
-      "caller_id" => Ecto.UUID.generate(),
-      "call_id" => Ecto.UUID.generate(),
-      "caller_name" => "Zuck"
-    }
-
-    push_call(payload)
-  end
-
   # too_many_concurrent_requests tracing
   # https://gist.github.com/ruslandoga/8332cc8a2cf260c4c3a6d23386c8a06a
 

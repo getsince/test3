@@ -24,16 +24,11 @@ defmodule TWeb.FeedChannel do
     end
   end
 
-  defp join_normal_mode(user_id, params, socket) do
+  defp join_normal_mode(user_id, _params, socket) do
     feed_filter = Feeds.get_feed_filter(user_id)
     {location, gender} = Accounts.get_location_and_gender!(user_id)
 
     %{screen_width: screen_width, version: version} = socket.assigns
-
-    missed_calls =
-      user_id
-      |> Calls.list_missed_calls_with_profile(after: params["missed_calls_cursor"])
-      |> render_missed_calls_with_profile(version, screen_width)
 
     likes =
       user_id
@@ -69,7 +64,6 @@ defmodule TWeb.FeedChannel do
       %{}
       |> maybe_put("news", news)
       |> maybe_put("todos", todos)
-      |> maybe_put("missed_calls", missed_calls)
       |> maybe_put("likes", likes)
       |> maybe_put("matches", matches)
       |> maybe_put("expired_matches", expired_matches)
@@ -504,17 +498,6 @@ defmodule TWeb.FeedChannel do
       profile
       |> render_feed_item(version, screen_width)
       |> maybe_put("seen", seen)
-    end)
-  end
-
-  defp render_missed_calls_with_profile(missed_calls, version, screen_width) do
-    Enum.map(missed_calls, fn {call, profile} ->
-      render(FeedView, "missed_call.json",
-        profile: profile,
-        call: call,
-        screen_width: screen_width,
-        version: version
-      )
     end)
   end
 

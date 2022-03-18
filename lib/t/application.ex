@@ -16,7 +16,6 @@ defmodule T.Application do
         maybe_cluster(),
         {Phoenix.PubSub, name: T.PubSub},
         unless_disabled(T.Media.Static),
-        TWeb.CallTracker,
         TWeb.Presence,
         TWeb.UserSocket.Monitor,
         maybe_repo(),

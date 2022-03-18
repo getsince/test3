@@ -11,8 +11,8 @@ defmodule T.Cluster do
     request =
       ExAws.EC2.describe_instances(
         filters: [
-          {"tag:Name", name},
-          {"instance-state-name", "running"}
+          {"tag:Name", [name]},
+          {"instance-state-name", ["running"]}
         ]
       )
 

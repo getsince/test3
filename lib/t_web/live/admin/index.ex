@@ -8,11 +8,9 @@ defmodule TWeb.AdminLive.Index do
 
   defp routes(socket) do
     [
-      # Routes.match_index_path(socket, :index),
+      Routes.profile_index_path(socket, :index),
       Routes.token_index_path(socket, :index),
       Routes.sticker_index_path(socket, :index)
-      # Routes.support_index_path(socket, :index),
-      # Routes.trace_index_path(socket, :index)
     ]
   end
 end

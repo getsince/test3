@@ -7,7 +7,7 @@ defmodule T.Calls do
 
   import T.Cluster, only: [primary_rpc: 3]
 
-  alias T.{Repo, Twilio, Accounts, Feeds, Matches}
+  alias T.{Repo, Accounts, Feeds, Matches}
   alias T.Calls.{Call, Voicemail}
   alias T.Feeds.{FeedProfile}
   alias T.Matches.{Match, MatchEvent, ArchivedMatch, Interaction}
@@ -15,11 +15,6 @@ defmodule T.Calls do
   alias T.Bot
 
   @type uuid :: Ecto.Bigflake.UUID.t()
-
-  @spec ice_servers :: [map]
-  def ice_servers do
-    Twilio.ice_servers()
-  end
 
   @spec call(uuid, uuid) :: {:ok, call_id :: uuid} | {:error, reason :: String.t()}
   def call(caller_id, called_id) do

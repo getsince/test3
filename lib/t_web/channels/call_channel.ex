@@ -14,7 +14,7 @@ defmodule TWeb.CallChannel do
     case Calls.get_call_role_and_peer(call_id, current_user.id) do
       {:ok, :caller = role, _peer} ->
         send(self(), :after_join)
-        reply = %{ice_servers: Calls.ice_servers(), call_topics: topics}
+        reply = %{ice_servers: [], call_topics: topics}
         {:ok, reply, assign(socket, role: role)}
 
       {:ok, :called = role, peer} ->
@@ -22,7 +22,7 @@ defmodule TWeb.CallChannel do
 
         reply = %{
           caller: render_peer(peer, version, screen_width),
-          ice_servers: Calls.ice_servers(),
+          ice_servers: [],
           call_topics: topics
         }
 

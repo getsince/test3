@@ -11,6 +11,7 @@ defmodule T.Accounts.Profile do
 
     field :story, {:array, :map}
     field :location, Geo.PostGIS.Geometry
+    field :h3, :decimal
 
     # filters
     field :gender_preference, {:array, :string}, virtual: true
@@ -46,13 +47,14 @@ defmodule T.Accounts.Profile do
   def contacts, do: @contacts
 
   def essential_info_changeset(profile, attrs, opts \\ []) do
-    attrs = attrs |> prepare_location()
+    attrs = attrs |> prepare_location() |> prepare_h3()
 
     profile
     |> cast(attrs, [
       :name,
       :gender,
       :location,
+      :h3,
       :birthdate,
       :min_age,
       :max_age,
@@ -94,6 +96,12 @@ defmodule T.Accounts.Profile do
   defp point(lat, lon) do
     %Geo.Point{coordinates: {lon, lat}, srid: 4326}
   end
+
+  defp prepare_h3(%{location: location} = attrs) do
+    Map.put(attrs, :h3, :h3.from_geo(location.coordinates, 10))
+  end
+
+  defp prepare_h3(attrs), do: attrs
 
   def story_changeset(profile, attrs) do
     profile

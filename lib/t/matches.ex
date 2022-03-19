@@ -9,16 +9,8 @@ defmodule T.Matches do
   import T.Cluster, only: [primary_rpc: 3]
 
   alias T.Repo
-
-  alias T.Matches.{
-    Match,
-    Like,
-    MatchEvent,
-    ExpiredMatch,
-    Seen
-  }
-
-  alias T.Feeds.FeedProfile
+  alias T.Matches.{Match, Like, MatchEvent, Seen}
+  alias T.Feeds.{FeedProfile, SeenProfile}
   alias T.PushNotifications.DispatchJob
   alias T.Bot
 
@@ -309,19 +301,6 @@ defmodule T.Matches do
     :ok
   end
 
-  @spec list_expired_matches(uuid) :: [%Match{}]
-  def list_expired_matches(user_id) do
-    ExpiredMatch
-    |> where([m], m.user_id == ^user_id)
-    |> order_by(asc: :inserted_at)
-    |> join(:inner, [m], p in FeedProfile, on: m.with_user_id == p.user_id)
-    |> select([m, p], {m, p})
-    |> Repo.all()
-    |> Enum.map(fn {match, feed_profile} ->
-      %ExpiredMatch{match | profile: feed_profile}
-    end)
-  end
-
   @spec unmatch_match(uuid, uuid) :: boolean
   def unmatch_match(by_user_id, match_id) do
     primary_rpc(__MODULE__, :local_unmatch_match, [by_user_id, match_id])
@@ -465,7 +444,7 @@ defmodule T.Matches do
       end
     end)
     |> delete_likes_m()
-    |> insert_expired_match_m()
+    |> mark_match_seen_m()
     |> Repo.transaction()
     |> case do
       {:ok, %{unmatch: %{id: match_id}}} ->
@@ -524,26 +503,28 @@ defmodule T.Matches do
     end)
   end
 
-  defp insert_expired_match_m(multi) do
-    Multi.insert_all(multi, :insert_expired_match, ExpiredMatch, fn %{unmatch: unmatch} ->
-      %{id: match_id, users: [user_id_1, user_id_2]} = unmatch
+  defp mark_match_seen_m(multi) do
+    Multi.run(multi, :mark_seen, fn _repo, %{unmatch: unmatch} ->
+      [uid1, uid2] =
+        case unmatch do
+          [_uid1, _uid2] = ids -> ids
+          %{users: [_uid1, _uid2] = ids} -> ids
+        end
 
-      timestamp = DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.to_naive()
+      now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
 
-      [
-        %{
-          match_id: match_id,
-          user_id: user_id_1,
-          with_user_id: user_id_2,
-          inserted_at: timestamp
-        },
-        %{
-          match_id: match_id,
-          user_id: user_id_2,
-          with_user_id: user_id_1,
-          inserted_at: timestamp
-        }
-      ]
+      {count, _} =
+        Repo.insert_all(
+          SeenProfile,
+          [
+            %{by_user_id: uid1, user_id: uid2, inserted_at: now},
+            %{by_user_id: uid2, user_id: uid1, inserted_at: now}
+          ],
+          on_conflict: {:replace, [:inserted_at]},
+          conflict_target: [:by_user_id, :user_id]
+        )
+
+      {:ok, count}
     end)
   end
 
@@ -602,17 +583,6 @@ defmodule T.Matches do
     )
     |> select([match: m], map(m, [:id, :user_id_1, :user_id_2]))
     |> Repo.all()
-  end
-
-  def delete_expired_match(match_id, by_user_id) do
-    primary_rpc(__MODULE__, :local_delete_expired_match, [match_id, by_user_id])
-  end
-
-  @doc false
-  def local_delete_expired_match(match_id, by_user_id) do
-    ExpiredMatch
-    |> where(match_id: ^match_id, user_id: ^by_user_id)
-    |> Repo.delete_all()
   end
 
   defp named_match_q do

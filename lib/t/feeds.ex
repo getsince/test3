@@ -12,7 +12,7 @@ defmodule T.Feeds do
   alias T.Repo
 
   alias T.Accounts.{Profile, UserReport, GenderPreference}
-  alias T.Matches.{Match, Like, ExpiredMatch}
+  alias T.Matches.{Match, Like}
   alias T.Feeds.{FeedProfile, SeenProfile, FeededProfile, FeedFilter}
 
   ### PubSub
@@ -232,14 +232,6 @@ defmodule T.Feeds do
     where(query, [p], p.user_id not in subquery(seen_user_ids_q(user_id)))
   end
 
-  defp expired_match_user_ids_q(user_id) do
-    ExpiredMatch |> where(user_id: ^user_id) |> select([s], s.with_user_id)
-  end
-
-  defp not_expired_match_with_q(query, user_id) do
-    where(query, [p], p.user_id not in subquery(expired_match_user_ids_q(user_id)))
-  end
-
   defp profiles_that_accept_gender_q(query, gender) do
     if gender do
       join(query, :inner, [p], gp in GenderPreference,
@@ -262,7 +254,6 @@ defmodule T.Feeds do
     |> not_liked_profiles_q(user_id)
     |> not_liker_profiles_q(user_id)
     |> not_seen_profiles_q(user_id)
-    |> not_expired_match_with_q(user_id)
     |> profiles_that_accept_gender_q(gender)
     |> maybe_gender_preferenced_q(gender_preference)
   end

@@ -40,11 +40,6 @@ defmodule TWeb.FeedChannel do
       |> Matches.list_matches()
       |> render_matches(version, screen_width)
 
-    expired_matches =
-      user_id
-      |> Matches.list_expired_matches()
-      |> render_matches(version, screen_width)
-
     news =
       user_id
       |> News.list_news()
@@ -61,7 +56,6 @@ defmodule TWeb.FeedChannel do
       |> maybe_put("todos", todos)
       |> maybe_put("likes", likes)
       |> maybe_put("matches", matches)
-      |> maybe_put("expired_matches", expired_matches)
 
     {:ok, reply,
      assign(socket,
@@ -133,9 +127,8 @@ defmodule TWeb.FeedChannel do
     {:reply, :ok, socket}
   end
 
-  def handle_in("seen", %{"expired_match_id" => match_id}, socket) do
-    by_user_id = me_id(socket)
-    Matches.delete_expired_match(match_id, by_user_id)
+  # TODO remove
+  def handle_in("seen", %{"expired_match_id" => _match_id}, socket) do
     {:reply, :ok, socket}
   end
 
@@ -419,34 +412,24 @@ defmodule TWeb.FeedChannel do
   end
 
   defp render_matches(matches, version, screen_width) do
-    Enum.map(matches, fn
+    Enum.map(matches, fn match ->
       %Matches.Match{
         id: match_id,
         inserted_at: inserted_at,
         profile: profile,
         expiration_date: expiration_date,
         seen: seen
-      } ->
-        render_match(%{
-          id: match_id,
-          inserted_at: inserted_at,
-          profile: profile,
-          screen_width: screen_width,
-          version: version,
-          expiration_date: expiration_date,
-          seen: seen
-        })
+      } = match
 
-      %Matches.ExpiredMatch{
-        match_id: match_id,
-        profile: profile
-      } ->
-        render_match(%{
-          id: match_id,
-          profile: profile,
-          version: version,
-          screen_width: screen_width
-        })
+      render_match(%{
+        id: match_id,
+        inserted_at: inserted_at,
+        profile: profile,
+        screen_width: screen_width,
+        version: version,
+        expiration_date: expiration_date,
+        seen: seen
+      })
     end)
   end
 

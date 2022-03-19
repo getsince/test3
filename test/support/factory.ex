@@ -1,16 +1,9 @@
 defmodule T.Factory do
   use ExMachina.Ecto, repo: T.Repo
 
-  alias T.Accounts.{
-    User,
-    Profile,
-    GenderPreference,
-    APNSDevice,
-    UserToken
-  }
-
+  alias T.Accounts.{User, Profile, GenderPreference, APNSDevice, UserToken}
   alias T.Feeds.SeenProfile
-  alias T.Matches.{Match, ExpiredMatch, MatchEvent}
+  alias T.Matches.{Match, MatchEvent}
 
   alias T.News
 
@@ -33,10 +26,6 @@ defmodule T.Factory do
 
   def match_factory do
     %Match{}
-  end
-
-  def expired_match_factory do
-    %ExpiredMatch{}
   end
 
   def match_event_factory do

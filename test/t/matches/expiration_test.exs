@@ -1,8 +1,7 @@
-defmodule T.Matches.ExpiredMatchTest do
+defmodule T.Matches.ExpirationTest do
   use T.DataCase, async: true
   use Oban.Testing, repo: T.Repo
-
-  alias T.Matches
+  alias T.{Matches, Feeds}
 
   describe "expiration_list_expired_matches/0,1" do
     test "doesn't list matches with calls" do
@@ -39,7 +38,7 @@ defmodule T.Matches.ExpiredMatchTest do
       {:ok, me: me}
     end
 
-    test "matches ought to be expired are deleted from matches and inserted intro expired matches" do
+    test "matches are and profiles are seen" do
       me = insert(:user)
       not_me = insert(:user)
       long_ago = DateTime.add(DateTime.utc_now(), -8 * 24 * 60 * 60)
@@ -55,8 +54,15 @@ defmodule T.Matches.ExpiredMatchTest do
       matches_after = Matches.Match |> T.Repo.all()
       assert length(matches_after) == 0
 
-      expired_matches = Matches.ExpiredMatch |> T.Repo.all()
-      assert length(expired_matches) == 2
+      assert Feeds.SeenProfile
+             |> where([s], s.by_user_id == ^me.id)
+             |> where([s], s.user_id == ^not_me.id)
+             |> Repo.exists?()
+
+      assert Feeds.SeenProfile
+             |> where([s], s.by_user_id == ^not_me.id)
+             |> where([s], s.user_id == ^me.id)
+             |> Repo.exists?()
     end
 
     test "recent match is not expired" do
@@ -74,9 +80,6 @@ defmodule T.Matches.ExpiredMatchTest do
 
       matches_after = Matches.Match |> T.Repo.all()
       assert length(matches_after) == 1
-
-      expired_matches = Matches.ExpiredMatch |> T.Repo.all()
-      assert length(expired_matches) == 0
     end
 
     test "match with call is not expired" do
@@ -95,9 +98,6 @@ defmodule T.Matches.ExpiredMatchTest do
 
       matches_after = Matches.Match |> T.Repo.all()
       assert length(matches_after) == 1
-
-      expired_matches = Matches.ExpiredMatch |> T.Repo.all()
-      assert length(expired_matches) == 0
     end
   end
 

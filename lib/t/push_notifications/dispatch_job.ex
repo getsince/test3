@@ -134,9 +134,7 @@ defmodule T.PushNotifications.DispatchJob do
         "locale" => locale,
         "data" => data,
         "env" => env,
-        "topic" => topic,
-        "push_type" => "alert",
-        "priority" => "10"
+        "topic" => topic
       })
     end)
     # TODO might need to chunk later

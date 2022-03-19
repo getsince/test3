@@ -100,18 +100,6 @@ CREATE TABLE public.checked_profiles (
 
 
 --
--- Name: expired_matches; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.expired_matches (
-    match_id uuid NOT NULL,
-    user_id uuid NOT NULL,
-    with_user_id uuid NOT NULL,
-    inserted_at timestamp(0) without time zone NOT NULL
-);
-
-
---
 -- Name: feeded_profiles; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -466,13 +454,6 @@ CREATE UNIQUE INDEX apns_devices_device_id_index ON public.apns_devices USING bt
 
 
 --
--- Name: expired_matches_user_id_match_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX expired_matches_user_id_match_id_index ON public.expired_matches USING btree (user_id, match_id);
-
-
---
 -- Name: liked_profiles_user_id_by_user_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -630,22 +611,6 @@ ALTER TABLE ONLY public.checked_profiles
 
 
 --
--- Name: expired_matches expired_matches_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.expired_matches
-    ADD CONSTRAINT expired_matches_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: expired_matches expired_matches_with_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.expired_matches
-    ADD CONSTRAINT expired_matches_with_user_id_fkey FOREIGN KEY (with_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
 -- Name: feeded_profiles feeded_profiles_for_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -794,7 +759,6 @@ INSERT INTO public."schema_migrations" (version) VALUES (20211023090119);
 INSERT INTO public."schema_migrations" (version) VALUES (20211026203244);
 INSERT INTO public."schema_migrations" (version) VALUES (20211028121057);
 INSERT INTO public."schema_migrations" (version) VALUES (20211102131430);
-INSERT INTO public."schema_migrations" (version) VALUES (20211103061515);
 INSERT INTO public."schema_migrations" (version) VALUES (20211109083906);
 INSERT INTO public."schema_migrations" (version) VALUES (20211116102238);
 INSERT INTO public."schema_migrations" (version) VALUES (20211220142445);

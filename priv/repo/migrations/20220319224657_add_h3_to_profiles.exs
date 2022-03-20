@@ -1,4 +1,4 @@
-defmodule :"Elixir.T.Repo.Migrations.Add-h3-to-profiles" do
+defmodule T.Repo.Migrations.AddhH3ToProfiles do
   use Ecto.Migration
 
   import Ecto.Query

@@ -107,11 +107,18 @@ defmodule TWeb.FeedChannelTest do
                      name: "mate-1",
                      story: [],
                      user_id: mate1.id,
-                     gender: "F"
+                     gender: "F",
+                     distance: nil
                    }
                  },
                  %{
-                   "profile" => %{name: "mate-2", story: [], user_id: mate2.id, gender: "F"},
+                   "profile" => %{
+                     name: "mate-2",
+                     story: [],
+                     user_id: mate2.id,
+                     gender: "F",
+                     distance: nil
+                   },
                    "seen" => true
                  }
                ]
@@ -271,7 +278,8 @@ defmodule TWeb.FeedChannelTest do
                        },
                        "labels" => []
                      }
-                   ]
+                   ],
+                   distance: 9510
                  }
                },
                %{
@@ -288,7 +296,8 @@ defmodule TWeb.FeedChannelTest do
                        },
                        "labels" => []
                      }
-                   ]
+                   ],
+                   distance: 9510
                  }
                }
              ]
@@ -315,7 +324,8 @@ defmodule TWeb.FeedChannelTest do
                        },
                        "labels" => []
                      }
-                   ]
+                   ],
+                   distance: 9510
                  }
                }
              ]
@@ -385,7 +395,8 @@ defmodule TWeb.FeedChannelTest do
                        },
                        "labels" => []
                      }
-                   ]
+                   ],
+                   distance: 9510
                  }
                }
              ]
@@ -442,7 +453,8 @@ defmodule TWeb.FeedChannelTest do
                        },
                        "labels" => []
                      }
-                   ]
+                   ],
+                   distance: 0
                  }
                }
              ]
@@ -477,7 +489,8 @@ defmodule TWeb.FeedChannelTest do
                        },
                        "labels" => []
                      }
-                   ]
+                   ],
+                   distance: 9510
                  }
                },
                %{
@@ -494,7 +507,8 @@ defmodule TWeb.FeedChannelTest do
                        },
                        "labels" => []
                      }
-                   ]
+                   ],
+                   distance: 0
                  }
                }
              ]
@@ -595,7 +609,8 @@ defmodule TWeb.FeedChannelTest do
                  gender: "F",
                  name: "Private Stacy",
                  story: story,
-                 user_id: mate.id
+                 user_id: mate.id,
+                 distance: nil
                }
              }
 

@@ -1,7 +1,7 @@
 FROM hexpm/elixir:1.13.1-erlang-24.2-alpine-3.15.0 as build
 
 # install build dependencies
-RUN apk add --no-cache --update git build-base nodejs npm
+RUN apk add --no-cache --update git build-base nodejs npm cmake
 
 # prepare build dir
 RUN mkdir /app

@@ -74,7 +74,6 @@ defmodule T.MixProject do
       {:nimble_csv, "~> 1.2"},
       {:libcluster, "~> 3.3"},
       {:ex_aws_ec2, "~> 2.0"},
-      {:elixir_cmake, "~> 0.7.0"},
       {:h3, "~> 3.6.4"}
     ]
   end

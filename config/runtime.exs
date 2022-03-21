@@ -90,11 +90,18 @@ if config_env() == :prod and not smoke? do
     url: System.fetch_env!("DATABASE_URL"),
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "20")
 
+  host = System.fetch_env!("HOST")
+
+  # export CHECK_ORIGIN=//*.example.com,//*.пример.рф
+  # results in check_origin = ["//*.example.com", "//*.пример.рф"]
+  check_origin = "CHECK_ORIGIN" |> System.fetch_env!() |> String.split(",")
+
   config :t, TWeb.Endpoint,
     # For production, don't forget to configure the url host
     # to something meaningful, Phoenix uses this information
     # when generating URLs.
-    url: [scheme: "https", host: System.fetch_env!("HOST"), port: 443],
+    url: [scheme: "https", host: host, port: 443],
+    check_origin: check_origin,
     http: [
       # Enable IPv6 and bind on all interfaces.
       # Set it to {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.

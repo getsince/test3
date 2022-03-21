@@ -45,12 +45,7 @@ defmodule T.Matches do
   # - Likes
 
   @spec like_user(Ecto.UUID.t(), Ecto.UUID.t()) ::
-          {:ok,
-           %{
-             match: %Match{} | nil,
-             mutual: %FeedProfile{} | nil,
-             event: %MatchEvent{} | nil
-           }}
+          {:ok, %{match: %Match{} | nil, mutual: %FeedProfile{} | nil}}
           | {:error, atom, term, map}
   def like_user(by_user_id, user_id) do
     primary_rpc(__MODULE__, :local_like_user, [by_user_id, user_id])
@@ -125,7 +120,6 @@ defmodule T.Matches do
     multi
     |> with_mutual_liker_m(by_user_id, user_id)
     |> maybe_create_match_m([by_user_id, user_id])
-    |> maybe_create_match_event_m()
     |> maybe_schedule_match_push_m()
   end
 
@@ -176,20 +170,6 @@ defmodule T.Matches do
       |> Repo.one()
 
     {name, number_of_matches}
-  end
-
-  defp maybe_create_match_event_m(multi) do
-    Multi.run(multi, :event, fn _repo, %{match: match} ->
-      if match do
-        Repo.insert(%MatchEvent{
-          timestamp: DateTime.utc_now() |> DateTime.truncate(:second),
-          match_id: match.id,
-          event: "created"
-        })
-      else
-        {:ok, nil}
-      end
-    end)
   end
 
   defp maybe_schedule_match_push_m(multi, now \\ DateTime.utc_now()) do
@@ -422,11 +402,8 @@ defmodule T.Matches do
     {name1, number_of_matches1} = user_info(user_id_1)
     {name2, number_of_matches2} = user_info(user_id_2)
 
-    number_of_events =
-      MatchEvent |> where(match_id: ^match_id) |> select([e], count(e.timestamp)) |> Repo.one!()
-
     m =
-      "match between #{name1} (#{user_id_1}, #{number_of_matches1} matches) and #{name2} (#{user_id_2}, #{number_of_matches2}) expired, there were #{number_of_events - 1} events between them"
+      "match between #{name1} (#{user_id_1}, #{number_of_matches1} matches) and #{name2} (#{user_id_2}, #{number_of_matches2}) expired"
 
     Logger.warn(m)
     Bot.async_post_message(m)
@@ -434,6 +411,7 @@ defmodule T.Matches do
     Multi.new()
     |> Multi.run(:unmatch, fn _repo, _changes ->
       Match
+      |> where(id: ^match_id)
       |> where(user_id_1: ^user_id_1)
       |> where(user_id_2: ^user_id_2)
       |> select([m], %{id: m.id, users: [m.user_id_1, m.user_id_2]})
@@ -480,8 +458,7 @@ defmodule T.Matches do
 
     Enum.map(matches, fn match ->
       [mate_id] = [match.user_id_1, match.user_id_2] -- [user_id]
-      profile = Map.fetch!(profiles, mate_id)
-      %Match{match | profile: profile}
+      %Match{match | profile: Map.fetch!(profiles, mate_id)}
     end)
   end
 

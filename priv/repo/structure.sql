@@ -89,17 +89,6 @@ CREATE TABLE public.apns_devices (
 
 
 --
--- Name: checked_profiles; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.checked_profiles (
-    user_id uuid NOT NULL,
-    inserted_at timestamp(0) without time zone NOT NULL,
-    updated_at timestamp(0) without time zone NOT NULL
-);
-
-
---
 -- Name: feeded_profiles; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -126,9 +115,9 @@ CREATE TABLE public.gender_preferences (
 CREATE TABLE public.liked_profiles (
     by_user_id uuid NOT NULL,
     user_id uuid NOT NULL,
-    inserted_at timestamp(0) without time zone NOT NULL,
     declined boolean,
-    seen boolean DEFAULT false NOT NULL
+    seen boolean DEFAULT false NOT NULL,
+    inserted_at timestamp(0) without time zone NOT NULL
 );
 
 
@@ -230,15 +219,15 @@ CREATE TABLE public.profiles (
     user_id uuid NOT NULL,
     name text,
     gender text,
+    birthdate date,
     location public.geography(Point,4326),
     "hidden?" boolean DEFAULT true NOT NULL,
     last_active timestamp(0) without time zone NOT NULL,
     story jsonb,
-    times_liked integer DEFAULT 0 NOT NULL,
-    birthdate date,
     min_age integer,
     max_age integer,
     distance integer,
+    times_liked integer DEFAULT 0 NOT NULL,
     times_shown integer DEFAULT 0 NOT NULL,
     like_ratio double precision DEFAULT 0 NOT NULL
 );
@@ -295,12 +284,12 @@ CREATE TABLE public.user_reports (
 CREATE TABLE public.users (
     id uuid NOT NULL,
     apple_id character varying(255),
+    email character varying(255),
     blocked_at timestamp(0) without time zone,
     onboarded_at timestamp(0) without time zone,
+    onboarded_with_story_at timestamp(0) without time zone,
     inserted_at timestamp(0) without time zone NOT NULL,
-    updated_at timestamp(0) without time zone NOT NULL,
-    email character varying(255),
-    onboarded_with_story_at timestamp(0) without time zone
+    updated_at timestamp(0) without time zone NOT NULL
 );
 
 
@@ -314,8 +303,8 @@ CREATE TABLE public.users_tokens (
     token bytea NOT NULL,
     context character varying(255) NOT NULL,
     sent_to character varying(255),
-    inserted_at timestamp(0) without time zone NOT NULL,
-    version character varying(255)
+    version character varying(255),
+    inserted_at timestamp(0) without time zone NOT NULL
 );
 
 
@@ -332,14 +321,6 @@ ALTER TABLE ONLY public.oban_jobs ALTER COLUMN id SET DEFAULT nextval('public.ob
 
 ALTER TABLE ONLY public.apns_devices
     ADD CONSTRAINT apns_devices_pkey PRIMARY KEY (user_id, token_id);
-
-
---
--- Name: checked_profiles checked_profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.checked_profiles
-    ADD CONSTRAINT checked_profiles_pkey PRIMARY KEY (user_id);
 
 
 --
@@ -603,14 +584,6 @@ ALTER TABLE ONLY public.apns_devices
 
 
 --
--- Name: checked_profiles checked_profiles_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.checked_profiles
-    ADD CONSTRAINT checked_profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(user_id) ON DELETE CASCADE;
-
-
---
 -- Name: feeded_profiles feeded_profiles_for_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -750,20 +723,8 @@ INSERT INTO public."schema_migrations" (version) VALUES (20201231002323);
 INSERT INTO public."schema_migrations" (version) VALUES (20210117175420);
 INSERT INTO public."schema_migrations" (version) VALUES (20210117182435);
 INSERT INTO public."schema_migrations" (version) VALUES (20210624195942);
-INSERT INTO public."schema_migrations" (version) VALUES (20210927151552);
-INSERT INTO public."schema_migrations" (version) VALUES (20210929122839);
-INSERT INTO public."schema_migrations" (version) VALUES (20210930090353);
 INSERT INTO public."schema_migrations" (version) VALUES (20211011135539);
-INSERT INTO public."schema_migrations" (version) VALUES (20211020063911);
 INSERT INTO public."schema_migrations" (version) VALUES (20211023090119);
 INSERT INTO public."schema_migrations" (version) VALUES (20211026203244);
-INSERT INTO public."schema_migrations" (version) VALUES (20211028121057);
-INSERT INTO public."schema_migrations" (version) VALUES (20211102131430);
-INSERT INTO public."schema_migrations" (version) VALUES (20211109083906);
-INSERT INTO public."schema_migrations" (version) VALUES (20211116102238);
-INSERT INTO public."schema_migrations" (version) VALUES (20211220142445);
 INSERT INTO public."schema_migrations" (version) VALUES (20220214160407);
-INSERT INTO public."schema_migrations" (version) VALUES (20220216202050);
-INSERT INTO public."schema_migrations" (version) VALUES (20220222103203);
 INSERT INTO public."schema_migrations" (version) VALUES (20220222114013);
-INSERT INTO public."schema_migrations" (version) VALUES (20220225093927);

@@ -64,6 +64,28 @@ defmodule TWeb.UserSocketTest do
       assert :error ==
                connect(UserSocket, %{"token" => Accounts.UserToken.encoded_token(token)}, %{})
     end
+
+    test "with location" do
+      user = onboarded_user()
+
+      token =
+        user
+        |> Accounts.generate_user_session_token("mobile")
+        |> Accounts.UserToken.encoded_token()
+
+      assert {:ok, socket} =
+               connect(
+                 UserSocket,
+                 %{"token" => token, "version" => "6.0.1", "location" => [55.755516, 37.615040]},
+                 %{}
+               )
+
+      assert socket.assigns.location == %Geo.Point{coordinates: {37.61504, 55.755516}, srid: 4326}
+
+      profile = Accounts.Profile |> where(user_id: ^user.id) |> Repo.one()
+
+      assert profile.location == %Geo.Point{coordinates: {37.61504, 55.755516}, srid: 4326}
+    end
   end
 
   test "disconnected on log out", %{user: user} do

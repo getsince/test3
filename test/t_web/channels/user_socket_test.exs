@@ -76,15 +76,15 @@ defmodule TWeb.UserSocketTest do
       assert {:ok, socket} =
                connect(
                  UserSocket,
-                 %{"token" => token, "version" => "6.0.1", "location" => [55.755516, 37.615040]},
+                 %{"token" => token, "version" => "6.0.1", "location" => [35.755516, 27.615040]},
                  %{}
                )
 
-      assert socket.assigns.location == %Geo.Point{coordinates: {37.61504, 55.755516}, srid: 4326}
+      assert socket.assigns.location == %Geo.Point{coordinates: {27.61504, 35.755516}, srid: 4326}
 
       profile = Accounts.Profile |> where(user_id: ^user.id) |> Repo.one()
 
-      assert profile.location == %Geo.Point{coordinates: {37.61504, 55.755516}, srid: 4326}
+      assert profile.location == %Geo.Point{coordinates: {27.61504, 35.755516}, srid: 4326}
     end
   end
 

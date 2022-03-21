@@ -176,7 +176,7 @@ defmodule TWeb.FeedChannelTest do
 
     test "with todos", %{socket: socket, me: me} do
       {:ok, _profile} =
-        Accounts.update_profile(me.profile, %{
+        Accounts.update_profile(me.id, %{
           "story" => [
             %{
               "background" => %{"s3_key" => "photo.jpg"},
@@ -894,9 +894,10 @@ defmodule TWeb.FeedChannelTest do
     test "is refetched when profile is updated", %{me: me, socket: socket} do
       %{feed_filter: initial_filter} = socket.assigns
       user_id = me.id
+
       Accounts.subscribe_for_user(user_id)
-      profile = Accounts.get_profile!(user_id)
-      Accounts.update_profile(profile, %{"min_age" => 31})
+      Accounts.update_profile(me.id, %{"min_age" => 31})
+
       new_filter = %T.Feeds.FeedFilter{initial_filter | min_age: 31}
       assert_receive {Accounts, :feed_filter_updated, ^new_filter}
     end

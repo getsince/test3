@@ -540,13 +540,12 @@ defmodule T.Accounts do
     %Profile{profile | gender_preference: gender_preference}
   end
 
-  def onboard_profile(profile, attrs) do
-    %Profile{user_id: user_id, gender_preference: genders} = profile
-    primary_rpc(__MODULE__, :local_onboard_profile, [user_id, genders, attrs])
+  def onboard_profile(user_id, attrs) do
+    primary_rpc(__MODULE__, :local_onboard_profile, [user_id, attrs])
   end
 
   @doc false
-  def local_onboard_profile(user_id, old_genders, attrs) do
+  def local_onboard_profile(user_id, attrs) do
     Multi.new()
     |> Multi.run(:user, fn repo, _changes ->
       user = repo.get!(User, user_id)
@@ -560,7 +559,7 @@ defmodule T.Accounts do
     |> Multi.update(:profile, fn %{user: %{profile: profile}} ->
       Profile.changeset(profile, attrs, validate_required?: true)
     end)
-    |> maybe_update_profile_gender_preferences(user_id, old_genders, attrs)
+    |> maybe_update_profile_gender_preferences(user_id, attrs)
     |> Multi.run(:mark_onboarded, fn repo, %{user: user} ->
       {1, nil} =
         User
@@ -605,17 +604,22 @@ defmodule T.Accounts do
   end
 
   # TODO can do changeset stuff before rpc
-  def update_profile(profile, attrs, opts \\ []) do
-    primary_rpc(__MODULE__, :local_update_profile, [profile, attrs, opts])
+  def update_profile(user_id, attrs) do
+    primary_rpc(__MODULE__, :local_update_profile, [user_id, attrs])
   end
 
   @doc false
-  def local_update_profile(profile, attrs, opts) do
-    Logger.warn("user #{profile.user_id} updates profile with #{inspect(attrs)}")
+  def local_update_profile(user_id, attrs) do
+    Logger.warn("user #{user_id} updates profile with #{inspect(attrs)}")
 
     Multi.new()
-    |> Multi.update(:profile, Profile.changeset(profile, attrs, opts), returning: true)
-    |> maybe_update_profile_gender_preferences(profile.user_id, profile.gender_preference, attrs)
+    |> Multi.run(:old_profile, fn _repo, _changes -> {:ok, Repo.get!(Profile, user_id)} end)
+    |> Multi.update(
+      :profile,
+      fn %{old_profile: profile} -> Profile.changeset(profile, attrs) end,
+      returning: true
+    )
+    |> maybe_update_profile_gender_preferences(user_id, attrs)
     |> Multi.run(:maybe_unhide, fn _repo, %{profile: profile} ->
       has_story? = !!profile.story
       hidden? = profile.hidden?
@@ -671,21 +675,25 @@ defmodule T.Accounts do
     end
   end
 
-  defp maybe_update_profile_gender_preferences(multi, user_id, old_genders, attrs)
+  defp maybe_update_profile_gender_preferences(multi, user_id, attrs)
        when is_map(attrs) do
     maybe_update_profile_gender_preferences(
       multi,
       user_id,
-      old_genders,
       attrs[:gender_preference] || attrs["gender_preference"]
     )
   end
 
   # TODO test
-  defp maybe_update_profile_gender_preferences(multi, user_id, old_genders, new_genders)
+  defp maybe_update_profile_gender_preferences(multi, user_id, new_genders)
        when is_list(new_genders) do
     Multi.run(multi, :gender_preferences, fn _repo, _changes ->
-      old_genders = old_genders || []
+      old_genders =
+        GenderPreference
+        |> where(user_id: ^user_id)
+        |> select([p], p.gender)
+        |> Repo.all()
+
       to_add = new_genders -- old_genders
       to_remove = old_genders -- new_genders
 
@@ -696,16 +704,23 @@ defmodule T.Accounts do
 
       Repo.insert_all(
         GenderPreference,
-        Enum.map(to_add, fn g -> %{user_id: user_id, gender: g} end),
-        returning: true
+        Enum.map(to_add, fn g -> %{user_id: user_id, gender: g} end)
       )
 
       {:ok, new_genders}
     end)
   end
 
-  defp maybe_update_profile_gender_preferences(multi, _user_id, genders, _attrs) do
-    Multi.run(multi, :gender_preferences, fn _repo, _changes -> {:ok, genders} end)
+  defp maybe_update_profile_gender_preferences(multi, user_id, _attrs) do
+    Multi.run(multi, :gender_preferences, fn _repo, _changes ->
+      genders =
+        GenderPreference
+        |> where(user_id: ^user_id)
+        |> select([p], p.gender)
+        |> Repo.all()
+
+      {:ok, genders}
+    end)
   end
 
   def get_location_and_gender!(user_id) do

@@ -1,7 +1,7 @@
 defmodule TWeb.ProfileChannel do
   use TWeb, :channel
   alias T.Accounts.Profile
-  alias T.Accounts
+  alias T.{Accounts, Media}
   alias TWeb.{ErrorView, ProfileView}
 
   @impl true
@@ -10,12 +10,13 @@ defmodule TWeb.ProfileChannel do
       %{screen_width: screen_width, version: version, current_user: current_user} = socket.assigns
       %Profile{} = profile = Accounts.get_profile!(current_user)
 
-      {:ok,
-       %{
-         profile: render_profile(profile, version, screen_width),
-         stickers: T.Media.known_stickers(),
-         min_version: 1
-       }, assign(socket, uploads: %{}, profile: profile)}
+      reply = %{
+        profile: render_profile(profile, version, screen_width),
+        stickers: T.Media.known_stickers(),
+        min_version: 1
+      }
+
+      {:ok, reply, socket}
     else
       {:error, %{"error" => "forbidden"}}
     end
@@ -33,48 +34,42 @@ defmodule TWeb.ProfileChannel do
     {:ok, %{"key" => key} = fields} = Accounts.photo_upload_form(content_type)
     url = Accounts.photo_s3_url()
 
-    uploads = socket.assigns.uploads
-    socket = assign(socket, uploads: Map.put(uploads, key, nil))
-
-    # TODO check key afterwards
     {:reply, {:ok, %{url: url, key: key, fields: fields}}, socket}
   end
 
   def handle_in("get-me", _params, socket) do
     %{screen_width: screen_width, version: version, current_user: current_user} = socket.assigns
     %Profile{} = profile = Accounts.get_profile!(current_user)
-
-    {:reply, {:ok, %{profile: render_profile(profile, version, screen_width)}},
-     assign(socket, profile: profile)}
+    reply = %{profile: render_profile(profile, version, screen_width)}
+    {:reply, {:ok, reply}, socket}
   end
 
   def handle_in("known-stickers", _params, socket) do
-    {:reply, {:ok, %{stickers: T.Media.known_stickers()}}, socket}
+    {:reply, {:ok, %{stickers: Media.known_stickers()}}, socket}
   end
 
   def handle_in("submit", %{"profile" => params}, socket) do
-    %{profile: profile, current_user: user, version: version, screen_width: screen_width} =
-      socket.assigns
-
-    params = params |> replace_story_photo_urls_with_s3keys()
+    %{current_user: %{id: user_id}, version: version, screen_width: screen_width} = socket.assigns
+    params = replace_story_photo_urls_with_s3keys(params)
 
     # TODO check photos exist in s3
     f =
-      if Accounts.user_onboarded?(user.id) do
-        fn -> Accounts.update_profile(profile, params) end
+      if Accounts.user_onboarded?(user_id) do
+        fn -> Accounts.update_profile(user_id, params) end
       else
-        fn -> Accounts.onboard_profile(profile, params) end
+        fn -> Accounts.onboard_profile(user_id, params) end
       end
 
-    case f.() do
-      {:ok, profile} ->
-        {:reply, {:ok, %{profile: render_profile(profile, version, screen_width)}},
-         assign(socket, profile: profile)}
+    reply =
+      case f.() do
+        {:ok, profile} ->
+          {:ok, %{profile: render_profile(profile, version, screen_width)}}
 
-      {:error, %Ecto.Changeset{} = changeset} ->
-        {:reply, {:error, %{profile: render(ErrorView, "changeset.json", changeset: changeset)}},
-         socket}
-    end
+        {:error, %Ecto.Changeset{} = changeset} ->
+          {:error, %{profile: render(ErrorView, "changeset.json", changeset: changeset)}}
+      end
+
+    {:reply, reply, socket}
   end
 
   # TODO remove
@@ -82,6 +77,7 @@ defmodule TWeb.ProfileChannel do
     {:reply, :ok, socket}
   end
 
+  # TODO remove
   def handle_in("profile-editor-tutorial", params, socket) do
     %{screen_width: screen_width, version: version} = socket.assigns
     id = params["id"] || "yabloko"

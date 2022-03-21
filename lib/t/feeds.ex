@@ -94,9 +94,8 @@ defmodule T.Feeds do
       |> maybe_apply_age_filters(min_age, max_age)
       |> maybe_apply_distance_filter(location, distance)
       |> limit(^most_liked_count)
-      |> select([p], {p, distance_km(^location, p.location)})
+      |> select([p], %{p | distance: distance_km(^location, p.location)})
       |> Repo.all()
-      |> with_distance()
 
     filter_out_ids = Enum.map(most_liked, fn p -> p.user_id end)
 
@@ -107,9 +106,8 @@ defmodule T.Feeds do
       |> maybe_apply_age_filters(min_age, max_age)
       |> maybe_apply_distance_filter(location, distance)
       |> limit(^most_recent_count)
-      |> select([p], {p, distance_km(^location, p.location)})
+      |> select([p], %{p | distance: distance_km(^location, p.location)})
       |> Repo.all()
-      |> with_distance()
 
     most_liked ++ most_recent
   end
@@ -156,17 +154,6 @@ defmodule T.Feeds do
     else
       query
     end
-  end
-
-  defp with_distance(profiles) do
-    profiles
-    |> Enum.map(fn {profile, distance} ->
-      if distance do
-        %FeedProfile{profile | distance: distance}
-      else
-        profile
-      end
-    end)
   end
 
   defp empty_feeded_profiles(user_id) do

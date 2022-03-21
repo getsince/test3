@@ -2,7 +2,7 @@ defmodule TWeb.FeedChannelTest do
   use TWeb.ChannelCase, async: true
 
   alias T.{Accounts, Matches, News}
-  alias Matches.{Match, MatchEvent}
+  alias Matches.Match
 
   setup do
     me = onboarded_user(location: moscow_location(), accept_genders: ["F", "N", "M"])
@@ -608,24 +608,19 @@ defmodule TWeb.FeedChannelTest do
                "private" => true
              } = private
 
-      now = DateTime.utc_now() |> DateTime.truncate(:second)
-
       # now it's our turn
       ref = push(socket, "like", %{"user_id" => mate.id})
 
       assert_reply(ref, :ok, %{
         "match_id" => match_id,
-        "expiration_date" => ed,
+        "expiration_date" => expiration_date,
         "profile" => %{story: [public, private]}
       })
 
-      refute is_nil(ed)
+      assert expiration_date
       assert is_binary(match_id)
 
       assert_push "matched", _payload
-
-      assert %MatchEvent{match_id: ^match_id, event: "created", timestamp: ^now} =
-               Repo.get_by!(MatchEvent, match_id: match_id)
 
       # when we are matched, we can see private pages of the liker (now mate)
       assert Map.keys(public) == ["background", "labels", "size"]
@@ -902,8 +897,6 @@ defmodule TWeb.FeedChannelTest do
       assert_receive {Accounts, :feed_filter_updated, ^new_filter}
     end
   end
-
-  # test doesn't make sense since "report-we-met" doesn't affect match expiration now, should be removed
 
   describe "send-voicemail" do
     setup :joined

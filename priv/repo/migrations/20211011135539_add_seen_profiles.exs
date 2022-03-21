@@ -10,6 +10,7 @@ defmodule T.Repo.Migrations.AddSeenProfiles do
       timestamps(updated_at: false)
     end
 
+    # TODO what is this index for? `seen` is most likely mutual
     create index(:seen_profiles, [:user_id, :by_user_id])
   end
 end

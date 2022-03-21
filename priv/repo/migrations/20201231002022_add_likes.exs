@@ -7,6 +7,8 @@ defmodule T.Repo.Migrations.AddLikes do
     create table(:liked_profiles, primary_key: false) do
       add :by_user_id, references(:users, @opts), primary_key: true
       add :user_id, references(:users, @opts), primary_key: true
+      add :declined, :boolean
+      add :seen, :boolean, default: false, null: false
       timestamps(updated_at: false)
     end
 

@@ -114,6 +114,17 @@ defmodule T.Accounts do
     |> Repo.update_all(set: [last_active: time])
   end
 
+  def update_location(user_id, location) do
+    primary_rpc(__MODULE__, :local_update_location, [user_id, location])
+  end
+
+  @doc false
+  def local_update_location(user_id, location) do
+    Profile
+    |> where(user_id: ^user_id)
+    |> Repo.update_all(set: [location: location])
+  end
+
   defp ensure_has_profile(%User{profile: %Profile{}} = user), do: user
 
   defp ensure_has_profile(%User{profile: nil} = user) do

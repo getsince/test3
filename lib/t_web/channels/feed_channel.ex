@@ -26,8 +26,8 @@ defmodule TWeb.FeedChannel do
 
   defp join_normal_mode(user_id, _params, socket) do
     feed_filter = Feeds.get_feed_filter(user_id)
-    {location, gender} = Accounts.get_location_and_gender!(user_id)
-
+    {old_location, gender} = Accounts.get_location_and_gender!(user_id)
+    location = socket.assigns.location || old_location
     %{screen_width: screen_width, version: version} = socket.assigns
 
     likes =

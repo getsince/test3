@@ -32,7 +32,7 @@ defmodule TWeb.FeedChannel do
 
     likes =
       user_id
-      |> Feeds.list_received_likes()
+      |> Feeds.list_received_likes(location)
       |> render_likes(version, screen_width)
 
     matches =

@@ -272,8 +272,10 @@ defmodule T.Feeds do
   ### Likes
 
   # TODO accept cursor
-  @spec list_received_likes(Ecto.UUID.t()) :: [%{profile: %FeedProfile{}, seen: boolean()}]
-  def list_received_likes(user_id) do
+  @spec list_received_likes(Ecto.UUID.t(), Geo.Point.t()) :: [
+          %{profile: %FeedProfile{}, seen: boolean()}
+        ]
+  def list_received_likes(user_id, location) do
     profiles_q = not_reported_profiles_q(user_id)
 
     Like
@@ -283,7 +285,10 @@ defmodule T.Feeds do
     |> not_match2_profiles_q(user_id)
     |> order_by(desc: :inserted_at)
     |> join(:inner, [l], p in subquery(profiles_q), on: p.user_id == l.by_user_id)
-    |> select([l, p], %{profile: p, seen: l.seen})
+    |> select([l, p], %{
+      profile: %{p | distance: distance_km(^location, p.location)},
+      seen: l.seen
+    })
     |> Repo.all()
   end
 

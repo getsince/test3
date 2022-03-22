@@ -108,7 +108,7 @@ defmodule TWeb.FeedChannelTest do
                      story: [],
                      user_id: mate1.id,
                      gender: "F",
-                     distance: nil
+                     distance: 9510
                    }
                  },
                  %{
@@ -117,7 +117,7 @@ defmodule TWeb.FeedChannelTest do
                      story: [],
                      user_id: mate2.id,
                      gender: "F",
-                     distance: nil
+                     distance: 9510
                    },
                    "seen" => true
                  }

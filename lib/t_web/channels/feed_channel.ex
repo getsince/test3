@@ -37,7 +37,7 @@ defmodule TWeb.FeedChannel do
 
     matches =
       user_id
-      |> Matches.list_matches()
+      |> Matches.list_matches(location)
       |> render_matches(version, screen_width)
 
     news =

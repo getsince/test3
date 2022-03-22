@@ -3,6 +3,7 @@ defmodule T.Matches do
 
   import Ecto.{Query, Changeset}
   alias Ecto.Multi
+  import Geo.PostGIS
 
   require Logger
 
@@ -234,8 +235,8 @@ defmodule T.Matches do
 
   # - Matches
 
-  @spec list_matches(uuid) :: [%Match{}]
-  def list_matches(user_id) do
+  @spec list_matches(uuid, Geo.Point.t()) :: [%Match{}]
+  def list_matches(user_id, location \\ %Geo.Point{coordinates: {0, 0}, srid: 4326}) do
     matches_with_undying_events_q()
     |> where([match: m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
     |> order_by(desc: :inserted_at)
@@ -254,7 +255,7 @@ defmodule T.Matches do
           seen: !!seen_match_id
       }
     end)
-    |> preload_match_profiles(user_id)
+    |> preload_match_profiles(user_id, location)
   end
 
   defp expiration_date(%Match{inserted_at: inserted_at}) do
@@ -440,8 +441,17 @@ defmodule T.Matches do
     end
   end
 
+  defmacrop distance_km(location1, location2) do
+    quote do
+      fragment(
+        "round(? / 1000)::int",
+        st_distance_in_meters(unquote(location1), unquote(location2))
+      )
+    end
+  end
+
   # TODO cleanup
-  defp preload_match_profiles(matches, user_id) do
+  defp preload_match_profiles(matches, user_id, location) do
     mate_matches =
       Map.new(matches, fn match ->
         [mate_id] = [match.user_id_1, match.user_id_2] -- [user_id]
@@ -453,6 +463,7 @@ defmodule T.Matches do
     profiles =
       FeedProfile
       |> where([p], p.user_id in ^mates)
+      |> select([p], %{p | distance: distance_km(^location, p.location)})
       |> Repo.all()
       |> Map.new(fn profile -> {profile.user_id, profile} end)
 

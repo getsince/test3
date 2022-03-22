@@ -138,14 +138,54 @@ defmodule T.News do
     ]
   end
 
+  defp update_required_story_page do
+    %{
+      "background" => %{"color" => "#111010"},
+      "labels" => [
+        %{
+          "value" => dgettext("news", "Твоя версия приложения\nне поддерживает\nновые функции 📟"),
+          "position" => [24.0, 230.0],
+          "background_fill" => "#F97EB9"
+        },
+        %{
+          "action" => "update_app",
+          "value" => dgettext("news", "Обновить"),
+          "position" => [24.0, 352.0],
+          "background_fill" => "#F97EB9"
+        }
+      ],
+      "size" => [375, 667]
+    }
+  end
+
   defp last_id do
     List.last(news()).id
   end
 
-  @spec list_news(Ecto.Bigflake.UUID.t()) :: [%{id: pos_integer(), story: [map]}]
-  def list_news(user_id) do
+  @spec list_news(Ecto.Bigflake.UUID.t(), Version.t()) :: [%{id: pos_integer(), story: [map]}]
+  def list_news(user_id, version, news \\ news()) do
     last_seen_id = last_seen_id(user_id) || 0
-    Enum.filter(news(), fn news_story -> news_story.id > last_seen_id end)
+
+    news
+    |> Enum.filter(fn news_story -> news_story.id > last_seen_id end)
+    |> Enum.map(fn news_story ->
+      if Map.has_key?(news_story, :version) do
+        news_version = Version.parse!(news_story.version)
+
+        case Version.compare(version, news_version) do
+          :lt ->
+            %{
+              id: news_story.id,
+              story: news_story.story ++ [update_required_story_page()]
+            }
+
+          _ ->
+            news_story
+        end
+      else
+        news_story
+      end
+    end)
   end
 
   def mark_seen(user_id, news_story_id \\ last_id()) do

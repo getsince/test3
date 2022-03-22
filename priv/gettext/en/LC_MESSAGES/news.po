@@ -12,76 +12,86 @@ msgstr ""
 "Plural-Forms: nplurals=2\n"
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:65
+#: lib/t/news.ex:66
 msgid "Вот наши, нажми 👇"
 msgstr "Here are ours, click 👇"
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:114
+#: lib/t/news.ex:115
 msgid "Выглядит вот так 👉"
 msgstr "It looks like this 👉"
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:61
+#: lib/t/news.ex:62
 msgid "Добавляй контакты\nв свою историю."
 msgstr "Add contacts\nto your story."
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:30
+#: lib/t/news.ex:31
 msgid "Мы убрали аудио-дэйты\nи голосовые сообщения."
 msgstr "We removed audio dates\nand voice messages."
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:106
+#: lib/t/news.ex:107
 msgid "На нее можно поместить\nсвой контакт и что-то\nболее личное про тебя."
 msgstr "You can place\nyour contact and something\nmore personal about you."
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:91
+#: lib/t/news.ex:92
 msgid "Новые\nприватные страницы 👀"
 msgstr "New\nprivate pages 👀"
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:41
+#: lib/t/news.ex:42
 msgid "Общайся с мэтчами,\nгде тебе удобно."
 msgstr "Talk to your matches\nwherever convenient."
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:46
+#: lib/t/news.ex:47
 msgid "Подробности 👉"
 msgstr "Details 👉"
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:130
+#: lib/t/news.ex:131
 msgid "Попробуй новый Since ✨"
 msgstr "Try new Since ✨"
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:57
+#: lib/t/news.ex:58
 msgid "Представляем\nстикеры-контакты 🔥"
 msgstr "Introducing\ncontact stickers 🔥"
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:20
+#: lib/t/news.ex:21
 msgid "Привет! 👋"
 msgstr "Hi! 👋"
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:97
+#: lib/t/news.ex:98
 msgid "Создай приватную страницу,\nона будет видна только\nтвоим мэтчам."
 msgstr "Create a private page,\nonly your matches\nwould see it."
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:36
+#: lib/t/news.ex:37
 msgid "Теперь контакты -\nединственный способ\nкоммуникации."
 msgstr "Now contacts\nare the only way\nto communicate."
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:25
+#: lib/t/news.ex:26
 msgid "У нас важные новости."
 msgstr "We have important news."
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:81
+#: lib/t/news.ex:82
 msgid "Это ещё не всё 👉"
 msgstr "That's not all 👉"
+
+#, elixir-autogen, elixir-format
+#: lib/t/news.ex:153
+msgid "Обновить"
+msgstr "Update"
+
+#, elixir-autogen, elixir-format
+#: lib/t/news.ex:147
+msgid "Твоя версия приложения\nне поддерживает\nновые функции 📟"
+msgstr "Your app version\ndoesn't support\nnew features 📟"

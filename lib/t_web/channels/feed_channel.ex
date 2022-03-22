@@ -170,12 +170,17 @@ defmodule TWeb.FeedChannel do
   end
 
   def handle_in("like", %{"user_id" => liked}, socket) do
-    %{current_user: %{id: liker}, screen_width: screen_width, version: version} = socket.assigns
+    %{
+      current_user: %{id: liker},
+      screen_width: screen_width,
+      version: version,
+      location: location
+    } = socket.assigns
 
     Events.save_like(liker, liked)
 
     reply =
-      case Matches.like_user(liker, liked) do
+      case Matches.like_user(liker, liked, location) do
         {:ok, %{match: _no_match = nil}} ->
           :ok
 

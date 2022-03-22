@@ -192,10 +192,11 @@ defmodule T.Feeds do
     %FeedFilter{genders: genders, min_age: min_age, max_age: max_age, distance: distance}
   end
 
-  @spec get_mate_feed_profile(Ecto.UUID.t()) :: %FeedProfile{} | nil
-  def get_mate_feed_profile(user_id) do
+  @spec get_mate_feed_profile(Ecto.UUID.t(), Geo.Point.t()) :: %FeedProfile{} | nil
+  def get_mate_feed_profile(user_id, location) do
     not_hidden_profiles_q()
     |> where(user_id: ^user_id)
+    |> select([p], %{p | distance: distance_km(^location, p.location)})
     |> Repo.one()
   end
 

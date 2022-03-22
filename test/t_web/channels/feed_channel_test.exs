@@ -610,7 +610,7 @@ defmodule TWeb.FeedChannelTest do
                  name: "Private Stacy",
                  story: story,
                  user_id: mate.id,
-                 distance: nil
+                 distance: 9510
                }
              }
 

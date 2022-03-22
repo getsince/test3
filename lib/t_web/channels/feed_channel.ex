@@ -337,10 +337,10 @@ defmodule TWeb.FeedChannel do
 
   @impl true
   def handle_info({Matches, :liked, like}, socket) do
-    %{screen_width: screen_width, version: version} = socket.assigns
+    %{screen_width: screen_width, version: version, location: location} = socket.assigns
     %{by_user_id: by_user_id} = like
 
-    if profile = Feeds.get_mate_feed_profile(by_user_id) do
+    if profile = Feeds.get_mate_feed_profile(by_user_id, location) do
       rendered = render_feed_item(profile, version, screen_width)
       push(socket, "invite", rendered)
     end
@@ -349,7 +349,7 @@ defmodule TWeb.FeedChannel do
   end
 
   def handle_info({Matches, :matched, match}, socket) do
-    %{screen_width: screen_width, version: version} = socket.assigns
+    %{screen_width: screen_width, version: version, location: location} = socket.assigns
 
     %{
       id: match_id,
@@ -358,7 +358,7 @@ defmodule TWeb.FeedChannel do
       mate: mate_id
     } = match
 
-    if profile = Feeds.get_mate_feed_profile(mate_id) do
+    if profile = Feeds.get_mate_feed_profile(mate_id, location) do
       push(socket, "matched", %{
         "match" =>
           render_match(%{

@@ -70,7 +70,13 @@ defmodule TWeb.FeedChannelTest do
       assert matches == [
                %{
                  "id" => m3.id,
-                 "profile" => %{name: "mate-3", story: [], user_id: p3.id, gender: "M"},
+                 "profile" => %{
+                   name: "mate-3",
+                   story: [],
+                   user_id: p3.id,
+                   gender: "M",
+                   distance: 9510
+                 },
                  "inserted_at" => ~U[2021-09-30 12:16:07Z],
                  "expiration_date" => ~U[2021-10-01 12:16:07Z]
                },
@@ -680,7 +686,8 @@ defmodule TWeb.FeedChannelTest do
                    name: "Private Stacy",
                    story: story,
                    user_id: mate.id,
-                   gender: "F"
+                   gender: "F",
+                   distance: 9510
                  },
                  "expiration_date" => expiration_date,
                  "inserted_at" => inserted_at

@@ -30,6 +30,20 @@ defmodule TWeb.FeedView do
     )
   end
 
+  def render("feed_profile_with_distance.json", %{
+        profile: profile,
+        version: version,
+        screen_width: screen_width
+      }) do
+    render_profile(
+      profile,
+      [:user_id, :name, :gender, :story, :distance],
+      version,
+      screen_width,
+      _env = :match
+    )
+  end
+
   defp render_profile(%FeedProfile{} = profile, fields, version, screen_width, env) do
     profile
     |> Map.take(fields)

@@ -439,8 +439,12 @@ defmodule TWeb.FeedChannel do
   end
 
   @compile inline: [render_match: 1]
-  defp render_match(assigns) do
+  defp render_match(%{seen: true} = assigns) do
     render(MatchView, "match.json", assigns)
+  end
+
+  defp render_match(assigns) do
+    render(MatchView, "match_with_distance.json", assigns)
   end
 
   defp render_news(news, version, screen_width) do

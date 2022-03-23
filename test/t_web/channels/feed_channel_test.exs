@@ -72,7 +72,13 @@ defmodule TWeb.FeedChannelTest do
       assert matches == [
                %{
                  "id" => m3.id,
-                 "profile" => %{name: "mate-3", story: [], user_id: p3.id, gender: "M"},
+                 "profile" => %{
+                   name: "mate-3",
+                   story: [],
+                   user_id: p3.id,
+                   gender: "M",
+                   distance: 9510
+                 },
                  "inserted_at" => ~U[2021-09-30 12:16:07Z],
                  "expiration_date" => ~U[2021-10-01 12:16:07Z]
                },
@@ -96,8 +102,12 @@ defmodule TWeb.FeedChannelTest do
       mate1 = onboarded_user(story: [], name: "mate-1", location: apple_location(), gender: "F")
       mate2 = onboarded_user(story: [], name: "mate-2", location: apple_location(), gender: "F")
 
-      assert {:ok, %{like: %Matches.Like{}}} = Matches.like_user(mate1.id, me.id)
-      assert {:ok, %{like: %Matches.Like{}}} = Matches.like_user(mate2.id, me.id)
+      assert {:ok, %{like: %Matches.Like{}}} =
+               Matches.like_user(mate1.id, me.id, default_location())
+
+      assert {:ok, %{like: %Matches.Like{}}} =
+               Matches.like_user(mate2.id, me.id, default_location())
+
       assert :ok = Matches.mark_like_seen(me.id, mate2.id)
 
       assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id, %{"mode" => "normal"})
@@ -110,7 +120,7 @@ defmodule TWeb.FeedChannelTest do
                      story: [],
                      user_id: mate1.id,
                      gender: "F",
-                     distance: nil
+                     distance: 9510
                    }
                  },
                  %{
@@ -119,7 +129,7 @@ defmodule TWeb.FeedChannelTest do
                      story: [],
                      user_id: mate2.id,
                      gender: "F",
-                     distance: nil
+                     distance: 9510
                    },
                    "seen" => true
                  }
@@ -667,7 +677,7 @@ defmodule TWeb.FeedChannelTest do
                  name: "Private Stacy",
                  story: story,
                  user_id: mate.id,
-                 distance: nil
+                 distance: 9510
                }
              }
 
@@ -737,7 +747,8 @@ defmodule TWeb.FeedChannelTest do
                    name: "Private Stacy",
                    story: story,
                    user_id: mate.id,
-                   gender: "F"
+                   gender: "F",
+                   distance: 9510
                  },
                  "expiration_date" => expiration_date,
                  "inserted_at" => inserted_at
@@ -756,7 +767,7 @@ defmodule TWeb.FeedChannelTest do
       %{me: me, socket: socket, mate: mate} = ctx
 
       # mate likes us
-      {:ok, _} = Matches.like_user(mate.id, me.id)
+      {:ok, _} = Matches.like_user(mate.id, me.id, default_location())
 
       # we see mate's like
       ref = push(socket, "seen-like", %{"user_id" => mate.id})
@@ -780,7 +791,7 @@ defmodule TWeb.FeedChannelTest do
       ref = push(socket, "seen-match", %{"match_id" => match.id})
       assert_reply ref, :ok, _reply
 
-      assert [%Match{seen: true}] = Matches.list_matches(me.id)
+      assert [%Match{seen: true}] = Matches.list_matches(me.id, default_location())
     end
   end
 
@@ -1053,8 +1064,8 @@ defmodule TWeb.FeedChannelTest do
     end
 
     test "matched: private story becomes visible", %{me: me, stacy: stacy} do
-      Matches.like_user(me.id, stacy.id)
-      Matches.like_user(stacy.id, me.id)
+      Matches.like_user(me.id, stacy.id, default_location())
+      Matches.like_user(stacy.id, me.id, default_location())
 
       assert_push "matched", %{"match" => %{"profile" => %{story: [public, private]}}}
       assert Map.keys(public) == ["background", "labels", "size"]

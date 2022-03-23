@@ -25,10 +25,11 @@ defmodule T.Accounts.BlockingTest do
       Matches.subscribe_for_user(reporter.id)
       Matches.subscribe_for_user(reported.id)
 
-      assert {:ok, %{match: nil}} = Matches.like_user(reporter.id, reported.id)
+      assert {:ok, %{match: nil}} =
+               Matches.like_user(reporter.id, reported.id, default_location())
 
       assert {:ok, %{match: %Match{id: match_id, inserted_at: inserted_at}}} =
-               Matches.like_user(reported.id, reporter.id)
+               Matches.like_user(reported.id, reporter.id, default_location())
 
       expiration_date =
         inserted_at
@@ -48,8 +49,8 @@ defmodule T.Accounts.BlockingTest do
       assert :ok == Accounts.report_user(reporter.id, reported.id, "he show dicky")
       assert_receive {Matches, :unmatched, ^match_id}
 
-      assert [] == Matches.list_matches(reported.id)
-      assert [] == Matches.list_matches(reporter.id)
+      assert [] == Matches.list_matches(reported.id, default_location())
+      assert [] == Matches.list_matches(reporter.id, default_location())
     end
 
     test "3 reports block the user", %{reporter: reporter1, reported: reported} do
@@ -84,8 +85,10 @@ defmodule T.Accounts.BlockingTest do
     test "unmatches if there is a match", %{user: user} do
       other = onboarded_user()
 
-      assert {:ok, %{match: nil}} = Matches.like_user(user.id, other.id)
-      assert {:ok, %{match: %Match{id: match_id}}} = Matches.like_user(other.id, user.id)
+      assert {:ok, %{match: nil}} = Matches.like_user(user.id, other.id, default_location())
+
+      assert {:ok, %{match: %Match{id: match_id}}} =
+               Matches.like_user(other.id, user.id, default_location())
 
       Matches.subscribe_for_user(user.id)
       Matches.subscribe_for_user(other.id)
@@ -94,8 +97,8 @@ defmodule T.Accounts.BlockingTest do
 
       assert_receive {Matches, :unmatched, ^match_id}
 
-      assert [] == Matches.list_matches(user.id)
-      assert [] == Matches.list_matches(other.id)
+      assert [] == Matches.list_matches(user.id, default_location())
+      assert [] == Matches.list_matches(other.id, default_location())
     end
 
     test "blocked user is hidden", %{user: user} do

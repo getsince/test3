@@ -98,6 +98,8 @@ defmodule T.Factory do
     [lat: 37.331647, lon: -122.029970]
   end
 
+  def default_location, do: %Geo.Point{coordinates: {0, 0}, srid: 4326}
+
   def onboarding_attrs(opts \\ []) do
     gender = opts[:gender] || "M"
     %{lat: lat, lon: lon} = Map.new(opts[:location] || [lat: 55.755833, lon: 37.617222])

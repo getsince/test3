@@ -32,12 +32,12 @@ defmodule TWeb.FeedChannel do
 
     likes =
       user_id
-      |> Feeds.list_received_likes()
+      |> Feeds.list_received_likes(location)
       |> render_likes(version, screen_width)
 
     matches =
       user_id
-      |> Matches.list_matches()
+      |> Matches.list_matches(location)
       |> render_matches(version, screen_width)
 
     news =
@@ -170,12 +170,17 @@ defmodule TWeb.FeedChannel do
   end
 
   def handle_in("like", %{"user_id" => liked}, socket) do
-    %{current_user: %{id: liker}, screen_width: screen_width, version: version} = socket.assigns
+    %{
+      current_user: %{id: liker},
+      screen_width: screen_width,
+      version: version,
+      location: location
+    } = socket.assigns
 
     Events.save_like(liker, liked)
 
     reply =
-      case Matches.like_user(liker, liked) do
+      case Matches.like_user(liker, liked, location) do
         {:ok, %{match: _no_match = nil}} ->
           :ok
 
@@ -337,10 +342,10 @@ defmodule TWeb.FeedChannel do
 
   @impl true
   def handle_info({Matches, :liked, like}, socket) do
-    %{screen_width: screen_width, version: version} = socket.assigns
+    %{screen_width: screen_width, version: version, location: location} = socket.assigns
     %{by_user_id: by_user_id} = like
 
-    if profile = Feeds.get_mate_feed_profile(by_user_id) do
+    if profile = Feeds.get_mate_feed_profile(by_user_id, location) do
       rendered = render_feed_item(profile, version, screen_width)
       push(socket, "invite", rendered)
     end
@@ -349,7 +354,7 @@ defmodule TWeb.FeedChannel do
   end
 
   def handle_info({Matches, :matched, match}, socket) do
-    %{screen_width: screen_width, version: version} = socket.assigns
+    %{screen_width: screen_width, version: version, location: location} = socket.assigns
 
     %{
       id: match_id,
@@ -358,7 +363,7 @@ defmodule TWeb.FeedChannel do
       mate: mate_id
     } = match
 
-    if profile = Feeds.get_mate_feed_profile(mate_id) do
+    if profile = Feeds.get_mate_feed_profile(mate_id, location) do
       push(socket, "matched", %{
         "match" =>
           render_match(%{
@@ -434,8 +439,12 @@ defmodule TWeb.FeedChannel do
   end
 
   @compile inline: [render_match: 1]
-  defp render_match(assigns) do
+  defp render_match(%{seen: true} = assigns) do
     render(MatchView, "match.json", assigns)
+  end
+
+  defp render_match(assigns) do
+    render(MatchView, "match_with_distance.json", assigns)
   end
 
   defp render_news(news, version, screen_width) do

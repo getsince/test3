@@ -78,7 +78,7 @@ defmodule T.Todos do
     end
   end
 
-  defp last_minor_version_update, do: Version.parse!("6.1.0")
+  defp last_minor_version_update, do: "6.1.0"
 
   defp has_contact?(user_id) do
     Accounts.Profile

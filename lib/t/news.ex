@@ -12,7 +12,7 @@ defmodule T.News do
     [
       %{
         id: 1,
-        timestamp: DateTime.new!(~D[2022-03-02], ~T[20:31:00.000], "Etc/UTC"),
+        timestamp: ~U[2022-03-02 20:31:00Z],
         story: [
           %{
             "background" => %{"color" => "#111010"},
@@ -138,7 +138,7 @@ defmodule T.News do
       },
       %{
         id: 2,
-        timestamp: DateTime.new!(~D[2022-03-23], ~T[08:16:00.000], "Etc/UTC"),
+        timestamp: ~U[2022-03-23 08:16:00Z],
         story: [
           %{
             "background" => %{"color" => "#111010"},
@@ -192,14 +192,10 @@ defmodule T.News do
   @spec list_news(Ecto.Bigflake.UUID.t()) :: [%{id: pos_integer(), story: [map]}]
   def list_news(user_id) do
     last_seen_id = last_seen_id(user_id) || 0
+    user_inserted_at = datetime(user_id)
 
     Enum.filter(news(), fn news_story -> news_story.id > last_seen_id end)
     |> Enum.filter(fn news_story ->
-      <<unix_binary::binary-size(8), _rest::binary>> = Ecto.Bigflake.UUID.dump!(user_id)
-      unix_int = :binary.decode_unsigned(unix_binary)
-
-      user_inserted_at = DateTime.from_unix!(unix_int, :millisecond)
-
       case DateTime.compare(news_story.timestamp, user_inserted_at) do
         :lt -> false
         _ -> true
@@ -228,5 +224,13 @@ defmodule T.News do
   @spec last_seen_id(Ecto.Bigflake.UUID.t()) :: pos_integer() | nil
   defp last_seen_id(user_id) do
     SeenNews |> where(user_id: ^user_id) |> select([n], n.last_id) |> Repo.one()
+  end
+
+  defp datetime(<<_::288>> = uuid) do
+    datetime(Ecto.Bigflake.UUID.dump!(uuid))
+  end
+
+  defp datetime(<<unix::64, _rest::64>>) do
+    unix |> DateTime.from_unix!(:millisecond) |> DateTime.truncate(:second)
   end
 end

@@ -97,11 +97,15 @@ defmodule T.Accounts.Profile do
     %Geo.Point{coordinates: {lon, lat}, srid: 4326}
   end
 
-  defp prepare_h3(%{location: location} = attrs) do
-    Map.put(attrs, :h3, :h3.from_geo(location.coordinates, 10))
+  defp prepare_h3(%{"latitude" => lat, "longitude" => lon} = attrs) do
+    Map.put(attrs, "h3", :h3.from_geo({lat, lon}, 10))
   end
 
-  defp prepare_h3(attrs), do: attrs
+  defp prepare_h3(%{latitude: lat, longitude: lon} = attrs) do
+    Map.put(attrs, :h3, :h3.from_geo({lat, lon}, 10))
+  end
+
+  defp prepare_h3(attrs), do: Map.delete(attrs, :h3)
 
   def story_changeset(profile, attrs) do
     profile

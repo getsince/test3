@@ -219,8 +219,8 @@ defmodule TWeb.ProfileChannelTest do
             "name" => "hey that's me CLARISA",
             "gender" => "F",
             "birthdate" => "1995-10-28",
-            "latitude" => 50,
-            "longitude" => 50,
+            "latitude" => 50.0,
+            "longitude" => 50.0,
             # TODO validate photos are on s3
             "story" => profile_story(),
             "gender_preference" => ["F", "M"],

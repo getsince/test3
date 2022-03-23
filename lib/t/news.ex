@@ -195,7 +195,12 @@ defmodule T.News do
 
     Enum.filter(news(), fn news_story -> news_story.id > last_seen_id end)
     |> Enum.filter(fn news_story ->
-      case DateTime.compare(news_story.timestamp, user_inserted_at(user_id)) do
+      <<unix_binary::binary-size(8), _rest::binary>> = Ecto.Bigflake.UUID.dump!(user_id)
+      unix_int = :binary.decode_unsigned(unix_binary)
+
+      user_inserted_at = DateTime.from_unix!(unix_int, :millisecond)
+
+      case DateTime.compare(news_story.timestamp, user_inserted_at) do
         :lt -> false
         _ -> true
       end
@@ -209,14 +214,13 @@ defmodule T.News do
   @doc false
   def local_mark_seen(user_id, news_story_id) do
     Repo.transaction(fn ->
-      last_seen_id = last_seen_id(user_id)
+      last_seen_id = last_seen_id(user_id) || 0
 
-      case last_seen_id do
-        nil ->
-          Repo.insert_all(SeenNews, [%{user_id: user_id, last_id: news_story_id}])
-
-        last_seen_id when last_seen_id < news_story_id ->
-          SeenNews |> where(user_id: ^user_id) |> Repo.update_all(set: [last_id: news_story_id])
+      if last_seen_id < news_story_id do
+        Repo.insert_all(SeenNews, [%{user_id: user_id, last_id: news_story_id}],
+          on_conflict: {:replace, [:last_id]},
+          conflict_target: [:user_id]
+        )
       end
     end)
   end
@@ -224,13 +228,5 @@ defmodule T.News do
   @spec last_seen_id(Ecto.Bigflake.UUID.t()) :: pos_integer() | nil
   defp last_seen_id(user_id) do
     SeenNews |> where(user_id: ^user_id) |> select([n], n.last_id) |> Repo.one()
-  end
-
-  defp user_inserted_at(user_id) do
-    T.Accounts.User
-    |> where(id: ^user_id)
-    |> select([u], u.inserted_at)
-    |> Repo.one!()
-    |> DateTime.from_naive!("Etc/UTC")
   end
 end

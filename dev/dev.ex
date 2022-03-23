@@ -47,5 +47,3 @@ defmodule Dev do
     end
   end
 end
-
-# force github actions eh

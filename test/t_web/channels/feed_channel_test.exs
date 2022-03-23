@@ -135,10 +135,15 @@ defmodule TWeb.FeedChannelTest do
 
       assert {:ok, %{"news" => news}, socket} = join(socket, "feed:" <> me.id)
 
-      assert [_first_news_item = %{id: 1, story: story}] = news
-      assert [p1, p2, p3, p4, p5] = story
+      assert [
+               _first_news_item = %{id: 1, story: story1},
+               _second_news_item = %{id: 2, story: story2}
+             ] = news
 
-      for page <- [p1, p2, p3, p5] do
+      assert [p1, p2, p3, p4, p5] = story1
+      assert [p6] = story2
+
+      for page <- [p1, p2, p3, p5, p6] do
         assert %{"background" => %{"color" => _}, "labels" => _, "size" => _} = page
       end
 
@@ -166,14 +171,16 @@ defmodule TWeb.FeedChannelTest do
       ref = push(socket, "seen", %{"news_story_id" => 1})
       assert_reply ref, :ok, _
 
-      # should be no-op since the user has already seen story with id=1
-      ref = push(socket, "seen", %{"news_story_id" => 0})
+      assert {:ok, %{"news" => news}, socket} = join(socket, "feed:" <> me.id)
+      assert length(news) == 1
+
+      ref = push(socket, "seen", %{"news_story_id" => 2})
       assert_reply ref, :ok, _
 
       assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id)
       refute reply["news"]
 
-      assert 1 == Repo.get!(News.SeenNews, me.id).last_id
+      assert 2 == Repo.get!(News.SeenNews, me.id).last_id
     end
 
     test "without todos", %{socket: socket, me: me} do

@@ -134,6 +134,51 @@ defmodule T.News do
             "size" => [375, 667]
           }
         ]
+      },
+      %{
+        id: 2,
+        story: [
+          %{
+            "background" => %{"color" => "#111010"},
+            "labels" => [
+              %{
+                "value" => dgettext("news", "Привет! 👋"),
+                "position" => [24.0, 80.0],
+                "background_fill" => "#F97EB9"
+              },
+              %{
+                "value" => dgettext("news", "Мы добавили\nактивную локацию."),
+                "position" => [24.0, 148.0],
+                "background_fill" => "#F97EB9"
+              },
+              %{
+                "value" =>
+                  dgettext(
+                    "news",
+                    "Теперь в ленте показывается\nпримерное расстояние\nдо пользователя."
+                  ),
+                "position" => [24.0, 238.0],
+                "background_fill" => "#F97EB9"
+              },
+              %{
+                "value" =>
+                  dgettext(
+                    "news",
+                    "Включи автоматическое\nопределение локации,\nчтобы она\nоставалась актуальной 👇"
+                  ),
+                "position" => [24.0, 356.0],
+                "background_fill" => "#F97EB9"
+              },
+              %{
+                "action" => "enable_auto_location",
+                "value" => dgettext("news", "Включить"),
+                "position" => [175.0, 502.0],
+                "background_fill" => "#F97EB9"
+              }
+            ],
+            "size" => [375, 667]
+          }
+        ]
       }
     ]
   end
@@ -155,10 +200,14 @@ defmodule T.News do
   @doc false
   def local_mark_seen(user_id, news_story_id) do
     Repo.transaction(fn ->
-      last_seen_id = last_seen_id(user_id) || 0
+      last_seen_id = last_seen_id(user_id)
 
-      if last_seen_id < news_story_id do
-        Repo.insert_all(SeenNews, [%{user_id: user_id, last_id: news_story_id}])
+      case last_seen_id do
+        nil ->
+          Repo.insert_all(SeenNews, [%{user_id: user_id, last_id: news_story_id}])
+
+        last_seen_id when last_seen_id < news_story_id ->
+          SeenNews |> where(user_id: ^user_id) |> Repo.update_all(set: [last_id: news_story_id])
       end
     end)
   end

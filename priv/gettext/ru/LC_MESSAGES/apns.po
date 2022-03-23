@@ -12,67 +12,67 @@ msgstr ""
 "Plural-Forms: nplurals=3\n"
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:55
+#: lib/t/push_notifications/apns.ex:53
 msgid "Скорее заходи!"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:54
-#: lib/t/push_notifications/apns.ex:63
+#: lib/t/push_notifications/apns.ex:52
+#: lib/t/push_notifications/apns.ex:61
 msgid "Это новый мэтч!"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:85
+#: lib/t/push_notifications/apns.ex:83
 msgid "%{name} invited you to connect"
 msgstr "%{name} хочет познакомиться"
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:76
+#: lib/t/push_notifications/apns.ex:74
 msgid "Match with %{name} is about to expire"
 msgstr "Мэтч c %{name} почти истек"
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:91
+#: lib/t/push_notifications/apns.ex:89
 msgid "Hey, create your own cool profile ✨"
 msgstr "Привет, создай свой классный профиль ✨"
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:92
+#: lib/t/push_notifications/apns.ex:90
 msgid "Meet interesting people ✌️"
 msgstr "Знакомься с интересными людьми ✌️"
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:101
+#: lib/t/push_notifications/apns.ex:99
 msgid "The current version is no longer supported 🙃"
 msgstr "Текущая версия больше не поддерживается 🙃"
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:100
+#: lib/t/push_notifications/apns.ex:98
 msgid "Update the app in the App Store ✨"
 msgstr "Обнови приложение в App Store ✨"
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:64
+#: lib/t/push_notifications/apns.ex:62
 msgid "Добавь контакт в свой профиль, чтобы с тобой могли связаться"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:77
+#: lib/t/push_notifications/apns.ex:75
 msgid "Contact %{pronoun} ✨"
 msgstr "Свяжись с %{pronoun} ✨"
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:107
+#: lib/t/push_notifications/apns.ex:105
 msgid "her"
 msgstr "ней"
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:108
+#: lib/t/push_notifications/apns.ex:106
 msgid "him"
 msgstr "ним"
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:109
+#: lib/t/push_notifications/apns.ex:107
 msgid "them"
 msgstr "ними"

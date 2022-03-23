@@ -8,8 +8,8 @@ defmodule T.Matches.ContactsTest do
 
     test "saves contact_click events", %{match: match} do
       assert {:ok, _event} = Matches.save_contact_click(match.id)
-      assert [%{expiration_date: nil}] = Matches.list_matches(match.user_id_1)
-      assert [%{expiration_date: nil}] = Matches.list_matches(match.user_id_2)
+      assert [%{expiration_date: nil}] = Matches.list_matches(match.user_id_1, default_location())
+      assert [%{expiration_date: nil}] = Matches.list_matches(match.user_id_2, default_location())
     end
   end
 

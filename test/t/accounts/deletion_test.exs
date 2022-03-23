@@ -31,10 +31,10 @@ defmodule T.Accounts.DeletionTest do
       Matches.subscribe_for_user(user.id)
       Matches.subscribe_for_user(p2.user_id)
 
-      assert {:ok, %{match: nil}} = Matches.like_user(p2.user_id, user.id)
+      assert {:ok, %{match: nil}} = Matches.like_user(p2.user_id, user.id, default_location())
 
       assert {:ok, %{match: %Match{id: match_id, inserted_at: inserted_at}}} =
-               Matches.like_user(user.id, p2.user_id)
+               Matches.like_user(user.id, p2.user_id, default_location())
 
       expiration_date =
         inserted_at
@@ -53,7 +53,7 @@ defmodule T.Accounts.DeletionTest do
 
       assert {:ok, %{delete_user: true, unmatch: [true]}} = Accounts.delete_user(user.id)
       assert_receive {Matches, :unmatched, ^match_id}
-      assert [] == Matches.list_matches(p2.user_id)
+      assert [] == Matches.list_matches(p2.user_id, default_location())
     end
   end
 end

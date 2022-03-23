@@ -52,14 +52,12 @@ defmodule T.Matches do
     end
   end
 
-  defp default_location, do: %Geo.Point{coordinates: {0, 0}, srid: 4326}
-
   # - Likes
   @spec like_user(Ecto.UUID.t(), Ecto.UUID.t(), Geo.Point.t()) ::
           {:ok, %{match: %Match{} | nil, mutual: %FeedProfile{} | nil}}
           | {:error, atom, term, map}
 
-  def like_user(by_user_id, user_id, location \\ default_location()) do
+  def like_user(by_user_id, user_id, location) do
     primary_rpc(__MODULE__, :local_like_user, [by_user_id, user_id, location])
   end
 
@@ -247,7 +245,7 @@ defmodule T.Matches do
   # - Matches
 
   @spec list_matches(uuid, Geo.Point.t()) :: [%Match{}]
-  def list_matches(user_id, location \\ default_location()) do
+  def list_matches(user_id, location) do
     matches_with_undying_events_q()
     |> where([match: m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
     |> order_by(desc: :inserted_at)

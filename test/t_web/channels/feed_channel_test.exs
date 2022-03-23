@@ -135,44 +135,11 @@ defmodule TWeb.FeedChannelTest do
 
       assert {:ok, %{"news" => news}, socket} = join(socket, "feed:" <> me.id)
 
-      assert [
-               _first_news_item = %{id: 1, story: story1},
-               _second_news_item = %{id: 2, story: story2}
-             ] = news
+      assert [_first_news_item = %{id: 2, story: story}] = news
 
-      assert [p1, p2, p3, p4, p5] = story1
-      assert [p6] = story2
+      assert [p] = story
 
-      for page <- [p1, p2, p3, p5, p6] do
-        assert %{"background" => %{"color" => _}, "labels" => _, "size" => _} = page
-      end
-
-      assert %{
-               "blurred" => %{
-                 "s3_key" => "5cfbe96c-e456-43bb-8d3a-98e849c00d5d",
-                 "proxy" => "https://d1234.cloudfront.net/" <> _
-               },
-               "private" => true
-             } = p4
-
-      tg_contact = Enum.find(p2["labels"], fn label -> label["question"] == "telegram" end)
-      ig_contact = Enum.find(p2["labels"], fn label -> label["question"] == "instagram" end)
-
-      assert Map.take(tg_contact, ["answer", "url"]) == %{
-               "answer" => "getsince",
-               "url" => "https://t.me/getsince"
-             }
-
-      assert Map.take(ig_contact, ["answer", "url"]) == %{
-               "answer" => "getsince.app",
-               "url" => "https://instagram.com/getsince.app"
-             }
-
-      ref = push(socket, "seen", %{"news_story_id" => 1})
-      assert_reply ref, :ok, _
-
-      assert {:ok, %{"news" => news}, socket} = join(socket, "feed:" <> me.id)
-      assert length(news) == 1
+      assert %{"background" => %{"color" => _}, "labels" => _, "size" => _} = p
 
       ref = push(socket, "seen", %{"news_story_id" => 2})
       assert_reply ref, :ok, _

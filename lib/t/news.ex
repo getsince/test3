@@ -12,6 +12,7 @@ defmodule T.News do
     [
       %{
         id: 1,
+        timestamp: DateTime.new!(~D[2022-03-02], ~T[20:31:00.000], "Etc/UTC"),
         story: [
           %{
             "background" => %{"color" => "#111010"},
@@ -147,7 +148,7 @@ defmodule T.News do
                 "background_fill" => "#F97EB9"
               },
               %{
-                "value" => dgettext("news", "Мы добавили\nактивную локацию."),
+                "value" => dgettext("news", "Мы добавили\nавтоматическую локацию."),
                 "position" => [24.0, 148.0],
                 "background_fill" => "#F97EB9"
               },
@@ -164,15 +165,15 @@ defmodule T.News do
                 "value" =>
                   dgettext(
                     "news",
-                    "Включи автоматическое\nопределение локации,\nчтобы она\nоставалась актуальной 👇"
+                    "Ты можешь включить\nавтоматическое определение\nлокации, чтобы она\nоставалась актуальной 👇"
                   ),
                 "position" => [24.0, 356.0],
                 "background_fill" => "#F97EB9"
               },
               %{
                 "action" => "enable_auto_location",
-                "value" => dgettext("news", "Включить"),
-                "position" => [175.0, 502.0],
+                "value" => dgettext("news", "Включить авто-локацию"),
+                "position" => [75.0, 502.0],
                 "background_fill" => "#F97EB9"
               }
             ],
@@ -190,7 +191,18 @@ defmodule T.News do
   @spec list_news(Ecto.Bigflake.UUID.t()) :: [%{id: pos_integer(), story: [map]}]
   def list_news(user_id) do
     last_seen_id = last_seen_id(user_id) || 0
+
     Enum.filter(news(), fn news_story -> news_story.id > last_seen_id end)
+    |> Enum.filter(fn news_story ->
+      if Map.has_key?(news_story, :timestamp) do
+        case DateTime.compare(news_story.timestamp, user_inserted_at(user_id)) do
+          :lt -> false
+          _ -> true
+        end
+      else
+        true
+      end
+    end)
   end
 
   def mark_seen(user_id, news_story_id \\ last_id()) do
@@ -215,5 +227,13 @@ defmodule T.News do
   @spec last_seen_id(Ecto.Bigflake.UUID.t()) :: pos_integer() | nil
   defp last_seen_id(user_id) do
     SeenNews |> where(user_id: ^user_id) |> select([n], n.last_id) |> Repo.one()
+  end
+
+  defp user_inserted_at(user_id) do
+    T.Accounts.User
+    |> where(id: ^user_id)
+    |> select([u], u.inserted_at)
+    |> Repo.one!()
+    |> DateTime.from_naive!("Etc/UTC")
   end
 end

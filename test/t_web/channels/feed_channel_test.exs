@@ -6,7 +6,9 @@ defmodule TWeb.FeedChannelTest do
 
   setup do
     me = onboarded_user(location: moscow_location(), accept_genders: ["F", "N", "M"])
-    {:ok, me: me, socket: connected_socket(me)}
+
+    {:ok,
+     me: me, socket: connected_socket(me), socket_with_old_version: connected_socket(me, "5.0.0")}
   end
 
   describe "join" do
@@ -181,7 +183,7 @@ defmodule TWeb.FeedChannelTest do
       refute reply["todos"]
     end
 
-    test "with todos", %{socket: socket, me: me} do
+    test "with contact todo", %{socket: socket, me: me} do
       {:ok, _profile} =
         Accounts.update_profile(me.id, %{
           "story" => [
@@ -197,7 +199,62 @@ defmodule TWeb.FeedChannelTest do
       assert [_first_todos_item = %{story: story}] = todos
       assert [p1] = story
 
-      assert %{"background" => %{"color" => _}, "labels" => _, "size" => _} = p1
+      assert %{"background" => %{"color" => _}, "labels" => labels, "size" => _} = p1
+
+      assert labels
+             |> Enum.any?(fn label ->
+               label["action"] == "add_contact"
+             end)
+    end
+
+    test "with update todo", %{socket_with_old_version: socket_with_old_version, me: me} do
+      assert {:ok, %{"todos" => todos}, _socket} = join(socket_with_old_version, "feed:" <> me.id)
+
+      assert [_first_todos_item = %{story: story}] = todos
+      assert [p1] = story
+
+      assert %{"background" => %{"color" => _}, "labels" => labels, "size" => _} = p1
+
+      assert labels
+             |> Enum.any?(fn label ->
+               label["action"] == "update_app"
+             end)
+    end
+
+    test "with update and contact todo", %{
+      socket_with_old_version: socket_with_old_version,
+      me: me
+    } do
+      {:ok, _profile} =
+        Accounts.update_profile(me.id, %{
+          "story" => [
+            %{
+              "background" => %{"s3_key" => "photo.jpg"},
+              "labels" => []
+            }
+          ]
+        })
+
+      assert {:ok, %{"todos" => todos}, _socket} = join(socket_with_old_version, "feed:" <> me.id)
+
+      assert [_first_todos_item = %{story: story1}, _second_todos_item = %{story: story2}] = todos
+      assert [p1] = story1
+
+      assert %{"background" => %{"color" => _}, "labels" => labels1, "size" => _} = p1
+
+      assert labels1
+             |> Enum.any?(fn label ->
+               label["action"] == "update_app"
+             end)
+
+      assert [p2] = story2
+
+      assert %{"background" => %{"color" => _}, "labels" => labels2, "size" => _} = p2
+
+      assert labels2
+             |> Enum.any?(fn label ->
+               label["action"] == "add_contact"
+             end)
     end
   end
 

@@ -47,7 +47,7 @@ defmodule TWeb.FeedChannel do
 
     todos =
       user_id
-      |> Todos.list_todos()
+      |> Todos.list_todos(version)
       |> render_news(version, screen_width)
 
     reply =

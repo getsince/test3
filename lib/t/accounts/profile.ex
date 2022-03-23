@@ -11,7 +11,7 @@ defmodule T.Accounts.Profile do
 
     field :story, {:array, :map}
     field :location, Geo.PostGIS.Geometry
-    field :h3, :decimal
+    field :h3, BigInt
 
     # filters
     field :gender_preference, {:array, :string}, virtual: true

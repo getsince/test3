@@ -8,7 +8,7 @@ defmodule BigInt do
   def cast(_), do: :error
 
   def load(data) do
-    {:ok, Decimal.to_integer(data) + 9_223_372_036_854_775_807}
+    {:ok, data + 9_223_372_036_854_775_807}
   end
 
   def dump(bigint) when is_integer(bigint), do: {:ok, bigint}

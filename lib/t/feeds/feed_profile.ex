@@ -11,6 +11,7 @@ defmodule T.Feeds.FeedProfile do
     field :last_active, :utc_datetime
     field :location, Geo.PostGIS.Geometry
     field :h3, BigInt
+    field :distance, :integer, virtual: true
     # F | M | N
     field :gender, :string
     field :birthdate, :date

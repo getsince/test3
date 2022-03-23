@@ -3,6 +3,7 @@ defmodule T.Matches do
 
   import Ecto.{Query, Changeset}
   alias Ecto.Multi
+  import Geo.PostGIS
 
   require Logger
 
@@ -42,26 +43,30 @@ defmodule T.Matches do
     Phoenix.PubSub.broadcast_from(@pubsub, self(), pubsub_user_topic(user_id), message)
   end
 
-  # - Likes
+  defmacrop distance_km(location1, location2) do
+    quote do
+      fragment(
+        "round(? / 1000)::int",
+        st_distance_in_meters(unquote(location1), unquote(location2))
+      )
+    end
+  end
 
-  @spec like_user(Ecto.UUID.t(), Ecto.UUID.t()) ::
-          {:ok,
-           %{
-             match: %Match{} | nil,
-             mutual: %FeedProfile{} | nil,
-             event: %MatchEvent{} | nil
-           }}
+  # - Likes
+  @spec like_user(Ecto.UUID.t(), Ecto.UUID.t(), Geo.Point.t()) ::
+          {:ok, %{match: %Match{} | nil, mutual: %FeedProfile{} | nil}}
           | {:error, atom, term, map}
-  def like_user(by_user_id, user_id) do
-    primary_rpc(__MODULE__, :local_like_user, [by_user_id, user_id])
+
+  def like_user(by_user_id, user_id, location) do
+    primary_rpc(__MODULE__, :local_like_user, [by_user_id, user_id, location])
   end
 
   @doc false
-  def local_like_user(by_user_id, user_id) do
+  def local_like_user(by_user_id, user_id, location) do
     Multi.new()
     |> mark_liked_m(by_user_id, user_id)
     |> bump_likes_count_m(user_id)
-    |> match_if_mutual_m(by_user_id, user_id)
+    |> match_if_mutual_m(by_user_id, user_id, location)
     |> Repo.transaction()
     |> case do
       {:ok, %{match: match}} = success ->
@@ -121,15 +126,14 @@ defmodule T.Matches do
     Oban.insert(job)
   end
 
-  defp match_if_mutual_m(multi, by_user_id, user_id) do
+  defp match_if_mutual_m(multi, by_user_id, user_id, location) do
     multi
-    |> with_mutual_liker_m(by_user_id, user_id)
+    |> with_mutual_liker_m(by_user_id, user_id, location)
     |> maybe_create_match_m([by_user_id, user_id])
-    |> maybe_create_match_event_m()
     |> maybe_schedule_match_push_m()
   end
 
-  defp with_mutual_liker_m(multi, by_user_id, user_id) do
+  defp with_mutual_liker_m(multi, by_user_id, user_id, location) do
     Multi.run(multi, :mutual, fn _repo, _changes ->
       maybe_liker =
         Like
@@ -140,7 +144,7 @@ defmodule T.Matches do
         # and who I liked is not hidden
         |> join(:inner, [pl], p in FeedProfile, on: p.user_id == pl.by_user_id and not p.hidden?)
         # then I have a mate
-        |> select([..., p], p)
+        |> select([..., p], %{p | distance: distance_km(^location, p.location)})
         |> Repo.one()
 
       {:ok, maybe_liker}
@@ -176,20 +180,6 @@ defmodule T.Matches do
       |> Repo.one()
 
     {name, number_of_matches}
-  end
-
-  defp maybe_create_match_event_m(multi) do
-    Multi.run(multi, :event, fn _repo, %{match: match} ->
-      if match do
-        Repo.insert(%MatchEvent{
-          timestamp: DateTime.utc_now() |> DateTime.truncate(:second),
-          match_id: match.id,
-          event: "created"
-        })
-      else
-        {:ok, nil}
-      end
-    end)
   end
 
   defp maybe_schedule_match_push_m(multi, now \\ DateTime.utc_now()) do
@@ -254,8 +244,8 @@ defmodule T.Matches do
 
   # - Matches
 
-  @spec list_matches(uuid) :: [%Match{}]
-  def list_matches(user_id) do
+  @spec list_matches(uuid, Geo.Point.t()) :: [%Match{}]
+  def list_matches(user_id, location) do
     matches_with_undying_events_q()
     |> where([match: m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
     |> order_by(desc: :inserted_at)
@@ -274,7 +264,7 @@ defmodule T.Matches do
           seen: !!seen_match_id
       }
     end)
-    |> preload_match_profiles(user_id)
+    |> preload_match_profiles(user_id, location)
   end
 
   defp expiration_date(%Match{inserted_at: inserted_at}) do
@@ -422,11 +412,8 @@ defmodule T.Matches do
     {name1, number_of_matches1} = user_info(user_id_1)
     {name2, number_of_matches2} = user_info(user_id_2)
 
-    number_of_events =
-      MatchEvent |> where(match_id: ^match_id) |> select([e], count(e.timestamp)) |> Repo.one!()
-
     m =
-      "match between #{name1} (#{user_id_1}, #{number_of_matches1} matches) and #{name2} (#{user_id_2}, #{number_of_matches2}) expired, there were #{number_of_events - 1} events between them"
+      "match between #{name1} (#{user_id_1}, #{number_of_matches1} matches) and #{name2} (#{user_id_2}, #{number_of_matches2}) expired"
 
     Logger.warn(m)
     Bot.async_post_message(m)
@@ -434,6 +421,7 @@ defmodule T.Matches do
     Multi.new()
     |> Multi.run(:unmatch, fn _repo, _changes ->
       Match
+      |> where(id: ^match_id)
       |> where(user_id_1: ^user_id_1)
       |> where(user_id_2: ^user_id_2)
       |> select([m], %{id: m.id, users: [m.user_id_1, m.user_id_2]})
@@ -463,7 +451,7 @@ defmodule T.Matches do
   end
 
   # TODO cleanup
-  defp preload_match_profiles(matches, user_id) do
+  defp preload_match_profiles(matches, user_id, location) do
     mate_matches =
       Map.new(matches, fn match ->
         [mate_id] = [match.user_id_1, match.user_id_2] -- [user_id]
@@ -475,13 +463,13 @@ defmodule T.Matches do
     profiles =
       FeedProfile
       |> where([p], p.user_id in ^mates)
+      |> select([p], %{p | distance: distance_km(^location, p.location)})
       |> Repo.all()
       |> Map.new(fn profile -> {profile.user_id, profile} end)
 
     Enum.map(matches, fn match ->
       [mate_id] = [match.user_id_1, match.user_id_2] -- [user_id]
-      profile = Map.fetch!(profiles, mate_id)
-      %Match{match | profile: profile}
+      %Match{match | profile: Map.fetch!(profiles, mate_id)}
     end)
   end
 

@@ -40,6 +40,7 @@ defmodule TWeb.Router do
     get "/ip-location", LocationController, :get
     post "/upload-preflight", MediaController, :create_upload_form
     post "/ios/device-token", DeviceController, :create_ios_token
+    # TODO remove
     post "/ios/push-token", DeviceController, :create_push_token
     delete "/mobile/account", MobileAccountController, :delete
     delete "/mobile/auth", MobileAuthController, :delete

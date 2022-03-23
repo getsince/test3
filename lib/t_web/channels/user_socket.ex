@@ -24,6 +24,9 @@ defmodule TWeb.UserSocket do
       Logger.warn("user online #{user.id}")
       Accounts.update_last_active(user.id)
 
+      location = maybe_location(params)
+      if location, do: Accounts.update_location(user.id, location)
+
       if check_version(version) do
         {:ok,
          assign(socket,
@@ -31,7 +34,8 @@ defmodule TWeb.UserSocket do
            token: token,
            screen_width: params["screen_width"] || 1000,
            locale: params["locale"],
-           version: version
+           version: version,
+           location: location
          )}
       else
         Accounts.schedule_upgrade_app_push(user.id)
@@ -46,6 +50,12 @@ defmodule TWeb.UserSocket do
   def connect(_params, _socket, _connect_info) do
     :error
   end
+
+  defp maybe_location(%{"location" => [lat, lon]} = _params) do
+    %Geo.Point{coordinates: {lon, lat}, srid: 4326}
+  end
+
+  defp maybe_location(_params), do: nil
 
   defp check_version(nil), do: false
   defp check_version(version), do: Version.match?(version, ">= 5.0.0")

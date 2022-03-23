@@ -36,6 +36,15 @@ defmodule T.Feeds do
     Phoenix.PubSub.broadcast(@pubsub, pubsub_user_topic(user_id), message)
   end
 
+  defmacrop distance_km(location1, location2) do
+    quote do
+      fragment(
+        "round(? / 1000)::int",
+        st_distance_in_meters(unquote(location1), unquote(location2))
+      )
+    end
+  end
+
   ### Feed
 
   # TODO refactor
@@ -85,6 +94,7 @@ defmodule T.Feeds do
       |> maybe_apply_age_filters(min_age, max_age)
       |> maybe_apply_distance_filter(location, distance)
       |> limit(^most_liked_count)
+      |> select([p], %{p | distance: distance_km(^location, p.location)})
       |> Repo.all()
 
     filter_out_ids = Enum.map(most_liked, fn p -> p.user_id end)
@@ -96,6 +106,7 @@ defmodule T.Feeds do
       |> maybe_apply_age_filters(min_age, max_age)
       |> maybe_apply_distance_filter(location, distance)
       |> limit(^most_recent_count)
+      |> select([p], %{p | distance: distance_km(^location, p.location)})
       |> Repo.all()
 
     most_liked ++ most_recent
@@ -181,10 +192,11 @@ defmodule T.Feeds do
     %FeedFilter{genders: genders, min_age: min_age, max_age: max_age, distance: distance}
   end
 
-  @spec get_mate_feed_profile(Ecto.UUID.t()) :: %FeedProfile{} | nil
-  def get_mate_feed_profile(user_id) do
+  @spec get_mate_feed_profile(Ecto.UUID.t(), Geo.Point.t()) :: %FeedProfile{} | nil
+  def get_mate_feed_profile(user_id, location) do
     not_hidden_profiles_q()
     |> where(user_id: ^user_id)
+    |> select([p], %{p | distance: distance_km(^location, p.location)})
     |> Repo.one()
   end
 
@@ -261,8 +273,10 @@ defmodule T.Feeds do
   ### Likes
 
   # TODO accept cursor
-  @spec list_received_likes(Ecto.UUID.t()) :: [%{profile: %FeedProfile{}, seen: boolean()}]
-  def list_received_likes(user_id) do
+  @spec list_received_likes(Ecto.UUID.t(), Geo.Point.t()) :: [
+          %{profile: %FeedProfile{}, seen: boolean()}
+        ]
+  def list_received_likes(user_id, location) do
     profiles_q = not_reported_profiles_q(user_id)
 
     Like
@@ -272,7 +286,10 @@ defmodule T.Feeds do
     |> not_match2_profiles_q(user_id)
     |> order_by(desc: :inserted_at)
     |> join(:inner, [l], p in subquery(profiles_q), on: p.user_id == l.by_user_id)
-    |> select([l, p], %{profile: p, seen: l.seen})
+    |> select([l, p], %{
+      profile: %{p | distance: distance_km(^location, p.location)},
+      seen: l.seen
+    })
     |> Repo.all()
   end
 

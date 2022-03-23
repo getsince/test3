@@ -3,12 +3,16 @@ defmodule TWeb.MatchView do
   alias TWeb.FeedView
 
   def render("match.json", %{id: id} = assigns) do
-    inserted_at = ensure_utc(assigns[:inserted_at])
-    expiration_date = ensure_utc(assigns[:expiration_date])
-
     %{"id" => id, "profile" => render(FeedView, "feed_profile.json", assigns)}
-    |> maybe_put("inserted_at", inserted_at)
-    |> maybe_put("expiration_date", expiration_date)
+    |> maybe_put("inserted_at", ensure_utc(assigns[:inserted_at]))
+    |> maybe_put("expiration_date", ensure_utc(assigns[:expiration_date]))
+    |> maybe_put("seen", assigns[:seen])
+  end
+
+  def render("match_with_distance.json", %{id: id} = assigns) do
+    %{"id" => id, "profile" => render(FeedView, "feed_profile_with_distance.json", assigns)}
+    |> maybe_put("inserted_at", ensure_utc(assigns[:inserted_at]))
+    |> maybe_put("expiration_date", ensure_utc(assigns[:expiration_date]))
     |> maybe_put("seen", assigns[:seen])
   end
 

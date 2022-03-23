@@ -98,6 +98,8 @@ defmodule T.Factory do
     [lat: 37.331647, lon: -122.029970]
   end
 
+  def default_location, do: %Geo.Point{coordinates: {0, 0}, srid: 4326}
+
   def onboarding_attrs(opts \\ []) do
     gender = opts[:gender] || "M"
     %{lat: lat, lon: lon} = Map.new(opts[:location] || [lat: 55.755833, lon: 37.617222])
@@ -135,7 +137,7 @@ defmodule T.Factory do
       registered_user(opts[:apple_id] || apple_id(), opts[:last_active] || DateTime.utc_now())
 
     News.mark_seen(user.id)
-    {:ok, profile} = Accounts.onboard_profile(user.profile, onboarding_attrs(opts))
+    {:ok, profile} = Accounts.onboard_profile(user.id, onboarding_attrs(opts))
     %Accounts.User{user | profile: profile}
   end
 

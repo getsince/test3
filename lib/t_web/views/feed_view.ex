@@ -7,7 +7,7 @@ defmodule TWeb.FeedView do
     profile =
       render_profile(
         profile,
-        [:user_id, :name, :gender, :story],
+        [:user_id, :name, :gender, :story, :distance],
         version,
         screen_width,
         _env = :feed
@@ -24,6 +24,20 @@ defmodule TWeb.FeedView do
     render_profile(
       profile,
       [:user_id, :name, :gender, :story],
+      version,
+      screen_width,
+      _env = :match
+    )
+  end
+
+  def render("feed_profile_with_distance.json", %{
+        profile: profile,
+        version: version,
+        screen_width: screen_width
+      }) do
+    render_profile(
+      profile,
+      [:user_id, :name, :gender, :story, :distance],
       version,
       screen_width,
       _env = :match

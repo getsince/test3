@@ -109,7 +109,7 @@ defmodule TWeb.ProfileChannelTest do
 
     test "with partially filled profile", %{socket: socket, user: user} do
       {:ok, _profile} =
-        Accounts.update_profile(user.profile, %{
+        Accounts.update_profile(user.id, %{
           "name" => "Jojaresum",
           "story" => [
             %{

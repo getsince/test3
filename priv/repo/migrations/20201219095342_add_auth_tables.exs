@@ -5,8 +5,10 @@ defmodule T.Repo.Migrations.AddAuthTables do
     create table(:users, primary_key: false) do
       add :id, :uuid, primary_key: true
       add :apple_id, :string
+      add :email, :string
       add :blocked_at, :utc_datetime
       add :onboarded_at, :utc_datetime
+      add :onboarded_with_story_at, :utc_datetime
       timestamps()
     end
 
@@ -19,6 +21,7 @@ defmodule T.Repo.Migrations.AddAuthTables do
       add :token, :binary, null: false
       add :context, :string, null: false
       add :sent_to, :string
+      add :version, :string
       timestamps(updated_at: false)
     end
 

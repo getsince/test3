@@ -28,8 +28,6 @@ defmodule T.PushNotifications.APNS do
   def apns_env("sandbox"), do: :dev
   def apns_env(nil), do: :dev
 
-  # alerts
-
   @spec base_alert_payload(String.t(), map, map) :: map
   defp base_alert_payload(type, alert, extra) do
     Map.merge(extra, %{
@@ -107,10 +105,4 @@ defmodule T.PushNotifications.APNS do
   defp pronoun("F"), do: dgettext("apns", "her")
   defp pronoun("M"), do: dgettext("apns", "him")
   defp pronoun(_), do: dgettext("apns", "them")
-
-  # backround notifications
-
-  def background_notification_payload(type, data) do
-    Map.merge(data, %{"type" => type, "aps" => %{"content-available" => "1"}})
-  end
 end

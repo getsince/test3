@@ -1,12 +1,14 @@
 defmodule TWeb.FeedChannelTest do
   use TWeb.ChannelCase, async: true
 
-  alias T.{Accounts, Matches, News}
-  alias Matches.{Match, MatchEvent}
+  alias T.{Accounts, Matches}
+  alias Matches.Match
 
   setup do
     me = onboarded_user(location: moscow_location(), accept_genders: ["F", "N", "M"])
-    {:ok, me: me, socket: connected_socket(me)}
+
+    {:ok,
+     me: me, socket: connected_socket(me), socket_with_old_version: connected_socket(me, "5.0.0")}
   end
 
   describe "join" do
@@ -70,7 +72,13 @@ defmodule TWeb.FeedChannelTest do
       assert matches == [
                %{
                  "id" => m3.id,
-                 "profile" => %{name: "mate-3", story: [], user_id: p3.id, gender: "M"},
+                 "profile" => %{
+                   name: "mate-3",
+                   story: [],
+                   user_id: p3.id,
+                   gender: "M",
+                   distance: 9510
+                 },
                  "inserted_at" => ~U[2021-09-30 12:16:07Z],
                  "expiration_date" => ~U[2021-10-01 12:16:07Z]
                },
@@ -94,8 +102,12 @@ defmodule TWeb.FeedChannelTest do
       mate1 = onboarded_user(story: [], name: "mate-1", location: apple_location(), gender: "F")
       mate2 = onboarded_user(story: [], name: "mate-2", location: apple_location(), gender: "F")
 
-      assert {:ok, %{like: %Matches.Like{}}} = Matches.like_user(mate1.id, me.id)
-      assert {:ok, %{like: %Matches.Like{}}} = Matches.like_user(mate2.id, me.id)
+      assert {:ok, %{like: %Matches.Like{}}} =
+               Matches.like_user(mate1.id, me.id, default_location())
+
+      assert {:ok, %{like: %Matches.Like{}}} =
+               Matches.like_user(mate2.id, me.id, default_location())
+
       assert :ok = Matches.mark_like_seen(me.id, mate2.id)
 
       assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id, %{"mode" => "normal"})
@@ -107,66 +119,27 @@ defmodule TWeb.FeedChannelTest do
                      name: "mate-1",
                      story: [],
                      user_id: mate1.id,
-                     gender: "F"
+                     gender: "F",
+                     distance: 9510
                    }
                  },
                  %{
-                   "profile" => %{name: "mate-2", story: [], user_id: mate2.id, gender: "F"},
+                   "profile" => %{
+                     name: "mate-2",
+                     story: [],
+                     user_id: mate2.id,
+                     gender: "F",
+                     distance: 9510
+                   },
                    "seen" => true
                  }
                ]
              }
     end
 
-    test "with news", %{socket: socket, me: me} do
-      import Ecto.Query
-
-      {1, _} =
-        News.SeenNews
-        |> where(user_id: ^me.id)
-        |> Repo.delete_all()
-
-      assert {:ok, %{"news" => news}, socket} = join(socket, "feed:" <> me.id)
-
-      assert [_first_news_item = %{id: 1, story: story}] = news
-      assert [p1, p2, p3, p4, p5] = story
-
-      for page <- [p1, p2, p3, p5] do
-        assert %{"background" => %{"color" => _}, "labels" => _, "size" => _} = page
-      end
-
-      assert %{
-               "blurred" => %{
-                 "s3_key" => "5cfbe96c-e456-43bb-8d3a-98e849c00d5d",
-                 "proxy" => "https://d1234.cloudfront.net/" <> _
-               },
-               "private" => true
-             } = p4
-
-      tg_contact = Enum.find(p2["labels"], fn label -> label["question"] == "telegram" end)
-      ig_contact = Enum.find(p2["labels"], fn label -> label["question"] == "instagram" end)
-
-      assert Map.take(tg_contact, ["answer", "url"]) == %{
-               "answer" => "getsince",
-               "url" => "https://t.me/getsince"
-             }
-
-      assert Map.take(ig_contact, ["answer", "url"]) == %{
-               "answer" => "getsince.app",
-               "url" => "https://instagram.com/getsince.app"
-             }
-
-      ref = push(socket, "seen", %{"news_story_id" => 1})
-      assert_reply ref, :ok, _
-
-      # should be no-op since the user has already seen story with id=1
-      ref = push(socket, "seen", %{"news_story_id" => 0})
-      assert_reply ref, :ok, _
-
+    test "with no news", %{socket: socket, me: me} do
       assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id)
       refute reply["news"]
-
-      assert 1 == Repo.get!(News.SeenNews, me.id).last_id
     end
 
     test "without todos", %{socket: socket, me: me} do
@@ -174,9 +147,9 @@ defmodule TWeb.FeedChannelTest do
       refute reply["todos"]
     end
 
-    test "with todos", %{socket: socket, me: me} do
+    test "with contact todo", %{socket: socket, me: me} do
       {:ok, _profile} =
-        Accounts.update_profile(me.profile, %{
+        Accounts.update_profile(me.id, %{
           "story" => [
             %{
               "background" => %{"s3_key" => "photo.jpg"},
@@ -190,7 +163,62 @@ defmodule TWeb.FeedChannelTest do
       assert [_first_todos_item = %{story: story}] = todos
       assert [p1] = story
 
-      assert %{"background" => %{"color" => _}, "labels" => _, "size" => _} = p1
+      assert %{"background" => %{"color" => _}, "labels" => labels, "size" => _} = p1
+
+      assert labels
+             |> Enum.any?(fn label ->
+               label["action"] == "add_contact"
+             end)
+    end
+
+    test "with update todo", %{socket_with_old_version: socket_with_old_version, me: me} do
+      assert {:ok, %{"todos" => todos}, _socket} = join(socket_with_old_version, "feed:" <> me.id)
+
+      assert [_first_todos_item = %{story: story}] = todos
+      assert [p1] = story
+
+      assert %{"background" => %{"color" => _}, "labels" => labels, "size" => _} = p1
+
+      assert labels
+             |> Enum.any?(fn label ->
+               label["action"] == "update_app"
+             end)
+    end
+
+    test "with update and contact todo", %{
+      socket_with_old_version: socket_with_old_version,
+      me: me
+    } do
+      {:ok, _profile} =
+        Accounts.update_profile(me.id, %{
+          "story" => [
+            %{
+              "background" => %{"s3_key" => "photo.jpg"},
+              "labels" => []
+            }
+          ]
+        })
+
+      assert {:ok, %{"todos" => todos}, _socket} = join(socket_with_old_version, "feed:" <> me.id)
+
+      assert [_first_todos_item = %{story: story1}, _second_todos_item = %{story: story2}] = todos
+      assert [p1] = story1
+
+      assert %{"background" => %{"color" => _}, "labels" => labels1, "size" => _} = p1
+
+      assert labels1
+             |> Enum.any?(fn label ->
+               label["action"] == "update_app"
+             end)
+
+      assert [p2] = story2
+
+      assert %{"background" => %{"color" => _}, "labels" => labels2, "size" => _} = p2
+
+      assert labels2
+             |> Enum.any?(fn label ->
+               label["action"] == "add_contact"
+             end)
     end
   end
 
@@ -271,7 +299,8 @@ defmodule TWeb.FeedChannelTest do
                        },
                        "labels" => []
                      }
-                   ]
+                   ],
+                   distance: 9510
                  }
                },
                %{
@@ -288,7 +317,8 @@ defmodule TWeb.FeedChannelTest do
                        },
                        "labels" => []
                      }
-                   ]
+                   ],
+                   distance: 9510
                  }
                }
              ]
@@ -315,7 +345,8 @@ defmodule TWeb.FeedChannelTest do
                        },
                        "labels" => []
                      }
-                   ]
+                   ],
+                   distance: 9510
                  }
                }
              ]
@@ -385,7 +416,8 @@ defmodule TWeb.FeedChannelTest do
                        },
                        "labels" => []
                      }
-                   ]
+                   ],
+                   distance: 9510
                  }
                }
              ]
@@ -442,7 +474,8 @@ defmodule TWeb.FeedChannelTest do
                        },
                        "labels" => []
                      }
-                   ]
+                   ],
+                   distance: 0
                  }
                }
              ]
@@ -477,7 +510,8 @@ defmodule TWeb.FeedChannelTest do
                        },
                        "labels" => []
                      }
-                   ]
+                   ],
+                   distance: 9510
                  }
                },
                %{
@@ -494,7 +528,8 @@ defmodule TWeb.FeedChannelTest do
                        },
                        "labels" => []
                      }
-                   ]
+                   ],
+                   distance: 0
                  }
                }
              ]
@@ -595,7 +630,8 @@ defmodule TWeb.FeedChannelTest do
                  gender: "F",
                  name: "Private Stacy",
                  story: story,
-                 user_id: mate.id
+                 user_id: mate.id,
+                 distance: 9510
                }
              }
 
@@ -608,24 +644,19 @@ defmodule TWeb.FeedChannelTest do
                "private" => true
              } = private
 
-      now = DateTime.utc_now() |> DateTime.truncate(:second)
-
       # now it's our turn
       ref = push(socket, "like", %{"user_id" => mate.id})
 
       assert_reply(ref, :ok, %{
         "match_id" => match_id,
-        "expiration_date" => ed,
+        "expiration_date" => expiration_date,
         "profile" => %{story: [public, private]}
       })
 
-      refute is_nil(ed)
+      assert expiration_date
       assert is_binary(match_id)
 
       assert_push "matched", _payload
-
-      assert %MatchEvent{match_id: ^match_id, event: "created", timestamp: ^now} =
-               Repo.get_by!(MatchEvent, match_id: match_id)
 
       # when we are matched, we can see private pages of the liker (now mate)
       assert Map.keys(public) == ["background", "labels", "size"]
@@ -670,7 +701,8 @@ defmodule TWeb.FeedChannelTest do
                    name: "Private Stacy",
                    story: story,
                    user_id: mate.id,
-                   gender: "F"
+                   gender: "F",
+                   distance: 9510
                  },
                  "expiration_date" => expiration_date,
                  "inserted_at" => inserted_at
@@ -689,7 +721,7 @@ defmodule TWeb.FeedChannelTest do
       %{me: me, socket: socket, mate: mate} = ctx
 
       # mate likes us
-      {:ok, _} = Matches.like_user(mate.id, me.id)
+      {:ok, _} = Matches.like_user(mate.id, me.id, default_location())
 
       # we see mate's like
       ref = push(socket, "seen-like", %{"user_id" => mate.id})
@@ -713,7 +745,7 @@ defmodule TWeb.FeedChannelTest do
       ref = push(socket, "seen-match", %{"match_id" => match.id})
       assert_reply ref, :ok, _reply
 
-      assert [%Match{seen: true}] = Matches.list_matches(me.id)
+      assert [%Match{seen: true}] = Matches.list_matches(me.id, default_location())
     end
   end
 
@@ -894,15 +926,14 @@ defmodule TWeb.FeedChannelTest do
     test "is refetched when profile is updated", %{me: me, socket: socket} do
       %{feed_filter: initial_filter} = socket.assigns
       user_id = me.id
+
       Accounts.subscribe_for_user(user_id)
-      profile = Accounts.get_profile!(user_id)
-      Accounts.update_profile(profile, %{"min_age" => 31})
+      Accounts.update_profile(me.id, %{"min_age" => 31})
+
       new_filter = %T.Feeds.FeedFilter{initial_filter | min_age: 31}
       assert_receive {Accounts, :feed_filter_updated, ^new_filter}
     end
   end
-
-  # test doesn't make sense since "report-we-met" doesn't affect match expiration now, should be removed
 
   describe "send-voicemail" do
     setup :joined
@@ -987,8 +1018,8 @@ defmodule TWeb.FeedChannelTest do
     end
 
     test "matched: private story becomes visible", %{me: me, stacy: stacy} do
-      Matches.like_user(me.id, stacy.id)
-      Matches.like_user(stacy.id, me.id)
+      Matches.like_user(me.id, stacy.id, default_location())
+      Matches.like_user(stacy.id, me.id, default_location())
 
       assert_push "matched", %{"match" => %{"profile" => %{story: [public, private]}}}
       assert Map.keys(public) == ["background", "labels", "size"]

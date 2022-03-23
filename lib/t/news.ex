@@ -12,6 +12,7 @@ defmodule T.News do
     [
       %{
         id: 1,
+        timestamp: ~U[2022-03-02 20:31:00Z],
         story: [
           %{
             "background" => %{"color" => "#111010"},
@@ -134,6 +135,52 @@ defmodule T.News do
             "size" => [375, 667]
           }
         ]
+      },
+      %{
+        id: 2,
+        timestamp: ~U[2022-03-23 08:16:00Z],
+        story: [
+          %{
+            "background" => %{"color" => "#111010"},
+            "labels" => [
+              %{
+                "value" => dgettext("news", "Привет! 👋"),
+                "position" => [24.0, 80.0],
+                "background_fill" => "#F97EB9"
+              },
+              %{
+                "value" => dgettext("news", "Мы добавили\nавтоматическую локацию."),
+                "position" => [24.0, 148.0],
+                "background_fill" => "#F97EB9"
+              },
+              %{
+                "value" =>
+                  dgettext(
+                    "news",
+                    "Теперь в ленте показывается\nпримерное расстояние\nдо пользователя."
+                  ),
+                "position" => [24.0, 238.0],
+                "background_fill" => "#F97EB9"
+              },
+              %{
+                "value" =>
+                  dgettext(
+                    "news",
+                    "Ты можешь включить\nавтоматическое определение\nлокации, чтобы она\nоставалась актуальной 👇"
+                  ),
+                "position" => [24.0, 356.0],
+                "background_fill" => "#F97EB9"
+              },
+              %{
+                "action" => "enable_auto_location",
+                "value" => dgettext("news", "Включить авто-локацию"),
+                "position" => [75.0, 502.0],
+                "background_fill" => "#F97EB9"
+              }
+            ],
+            "size" => [375, 667]
+          }
+        ]
       }
     ]
   end
@@ -145,7 +192,15 @@ defmodule T.News do
   @spec list_news(Ecto.Bigflake.UUID.t()) :: [%{id: pos_integer(), story: [map]}]
   def list_news(user_id) do
     last_seen_id = last_seen_id(user_id) || 0
+    user_inserted_at = datetime(user_id)
+
     Enum.filter(news(), fn news_story -> news_story.id > last_seen_id end)
+    |> Enum.filter(fn news_story ->
+      case DateTime.compare(news_story.timestamp, user_inserted_at) do
+        :lt -> false
+        _ -> true
+      end
+    end)
   end
 
   def mark_seen(user_id, news_story_id \\ last_id()) do
@@ -158,7 +213,10 @@ defmodule T.News do
       last_seen_id = last_seen_id(user_id) || 0
 
       if last_seen_id < news_story_id do
-        Repo.insert_all(SeenNews, [%{user_id: user_id, last_id: news_story_id}])
+        Repo.insert_all(SeenNews, [%{user_id: user_id, last_id: news_story_id}],
+          on_conflict: {:replace, [:last_id]},
+          conflict_target: [:user_id]
+        )
       end
     end)
   end
@@ -166,5 +224,13 @@ defmodule T.News do
   @spec last_seen_id(Ecto.Bigflake.UUID.t()) :: pos_integer() | nil
   defp last_seen_id(user_id) do
     SeenNews |> where(user_id: ^user_id) |> select([n], n.last_id) |> Repo.one()
+  end
+
+  defp datetime(<<_::288>> = uuid) do
+    datetime(Ecto.Bigflake.UUID.dump!(uuid))
+  end
+
+  defp datetime(<<unix::64, _rest::64>>) do
+    unix |> DateTime.from_unix!(:millisecond) |> DateTime.truncate(:second)
   end
 end

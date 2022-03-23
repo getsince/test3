@@ -12,13 +12,13 @@ defmodule T.AccountsTest do
   # TODO empty arrays pass changesets
   describe "onboard_profile/2" do
     test "in one step" do
-      profile = insert(:profile, hidden?: true)
-      profile = Profile |> Repo.get!(profile.user_id) |> Repo.preload(:user)
+      %{user_id: user_id} = insert(:profile, hidden?: true)
+      profile = Profile |> Repo.get!(user_id) |> Repo.preload(:user)
 
       assert profile.hidden? == true
       refute profile.user.onboarded_at
 
-      assert {:error, changeset} = Accounts.onboard_profile(profile, %{})
+      assert {:error, changeset} = Accounts.onboard_profile(user_id, %{})
 
       assert errors_on(changeset) == %{
                # TODO
@@ -29,8 +29,8 @@ defmodule T.AccountsTest do
                gender_preference: ["can't be blank"]
              }
 
-      assert {:ok, profile} =
-               Accounts.onboard_profile(profile, %{
+      assert {:ok, _profile} =
+               Accounts.onboard_profile(user_id, %{
                  gender: "M",
                  name: "that",
                  birthdate: "1998-10-28",
@@ -42,7 +42,7 @@ defmodule T.AccountsTest do
                  distance: 20000
                })
 
-      profile = Profile |> Repo.get!(profile.user_id) |> Repo.preload(:user)
+      profile = Profile |> Repo.get!(user_id) |> Repo.preload(:user)
 
       # no story, so still hidden
       assert profile.hidden?
@@ -55,12 +55,8 @@ defmodule T.AccountsTest do
                story: nil
              } = profile
 
-      assert {:ok, profile} =
-               Accounts.update_profile(profile, %{
-                 story: profile_story()
-               })
-
-      profile = Profile |> Repo.get!(profile.user_id) |> Repo.preload(:user)
+      assert {:ok, _profile} = Accounts.update_profile(user_id, %{story: profile_story()})
+      profile = Profile |> Repo.get!(user_id) |> Repo.preload(:user)
 
       assert profile.hidden? == false
       assert profile.user.onboarded_at
@@ -204,7 +200,7 @@ defmodule T.AccountsTest do
         ]
       }
 
-      {:ok, _} = Accounts.onboard_profile(user.profile, attrs)
+      {:ok, _} = Accounts.onboard_profile(user.id, attrs)
 
       assert %{failure: 0, snoozed: 0, success: 1} =
                Oban.drain_queue(queue: :apns, with_safety: false, with_recursion: true)

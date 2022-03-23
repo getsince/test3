@@ -138,6 +138,7 @@ defmodule T.News do
       },
       %{
         id: 2,
+        timestamp: DateTime.new!(~D[2022-03-23], ~T[08:16:00.000], "Etc/UTC"),
         story: [
           %{
             "background" => %{"color" => "#111010"},
@@ -194,13 +195,9 @@ defmodule T.News do
 
     Enum.filter(news(), fn news_story -> news_story.id > last_seen_id end)
     |> Enum.filter(fn news_story ->
-      if Map.has_key?(news_story, :timestamp) do
-        case DateTime.compare(news_story.timestamp, user_inserted_at(user_id)) do
-          :lt -> false
-          _ -> true
-        end
-      else
-        true
+      case DateTime.compare(news_story.timestamp, user_inserted_at(user_id)) do
+        :lt -> false
+        _ -> true
       end
     end)
   end

@@ -1,7 +1,7 @@
 defmodule TWeb.FeedChannelTest do
   use TWeb.ChannelCase, async: true
 
-  alias T.{Accounts, Matches, News}
+  alias T.{Accounts, Matches}
   alias Matches.Match
 
   setup do
@@ -125,29 +125,9 @@ defmodule TWeb.FeedChannelTest do
              }
     end
 
-    test "with news", %{socket: socket, me: me} do
-      import Ecto.Query
-
-      {1, _} =
-        News.SeenNews
-        |> where(user_id: ^me.id)
-        |> Repo.delete_all()
-
-      assert {:ok, %{"news" => news}, socket} = join(socket, "feed:" <> me.id)
-
-      assert [_first_news_item = %{id: 2, story: story}] = news
-
-      assert [p] = story
-
-      assert %{"background" => %{"color" => _}, "labels" => _, "size" => _} = p
-
-      ref = push(socket, "seen", %{"news_story_id" => 2})
-      assert_reply ref, :ok, _
-
+    test "with no news", %{socket: socket, me: me} do
       assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id)
       refute reply["news"]
-
-      assert 2 == Repo.get!(News.SeenNews, me.id).last_id
     end
 
     test "without todos", %{socket: socket, me: me} do

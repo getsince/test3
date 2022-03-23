@@ -11,7 +11,7 @@ defmodule T.Accounts.Profile do
 
     field :story, {:array, :map}
     field :location, Geo.PostGIS.Geometry
-    field :h3, BigInt
+    field :h3, H3CellId
 
     # filters
     field :gender_preference, {:array, :string}, virtual: true
@@ -105,7 +105,7 @@ defmodule T.Accounts.Profile do
     Map.put(attrs, :h3, :h3.from_geo({lat, lon}, 10))
   end
 
-  defp prepare_h3(attrs), do: Map.delete(attrs, :h3)
+  defp prepare_h3(attrs), do: Map.drop(attrs, [:h3, "h3"])
 
   def story_changeset(profile, attrs) do
     profile

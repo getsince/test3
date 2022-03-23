@@ -3,6 +3,9 @@ defmodule T.Repo.Migrations.AddhH3ToProfiles do
 
   import Ecto.Query
 
+  # round(:math.pow(2, 63)) - 1
+  @i64_max 9_223_372_036_854_775_807
+
   def change do
     alter table(:profiles) do
       add :h3, :bigint
@@ -19,7 +22,7 @@ defmodule T.Repo.Migrations.AddhH3ToProfiles do
       updates =
         Enum.map(chunk, fn {user_id, location} ->
           %{coordinates: {lon, lat}} = location
-          [user_id: user_id, h3: :h3.from_geo({lat, lon}, 10) - 9_223_372_036_854_775_807]
+          [user_id: user_id, h3: :h3.from_geo({lat, lon}, 10) - @i64_max]
         end)
 
       T.Repo.insert_all("profiles", updates,

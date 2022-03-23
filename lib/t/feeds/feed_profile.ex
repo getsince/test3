@@ -10,7 +10,7 @@ defmodule T.Feeds.FeedProfile do
     field :hidden?, :boolean
     field :last_active, :utc_datetime
     field :location, Geo.PostGIS.Geometry
-    field :h3, BigInt
+    field :h3, H3CellId
     field :distance, :integer, virtual: true
     # F | M | N
     field :gender, :string

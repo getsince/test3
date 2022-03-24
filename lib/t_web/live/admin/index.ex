@@ -3,7 +3,8 @@ defmodule TWeb.AdminLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, routes: routes(socket)), temporary_assigns: [routes: []]}
+    {:ok, assign(socket, routes: routes(socket), git_sha: T.Release.git_sha()),
+     temporary_assigns: [routes: []]}
   end
 
   defp routes(socket) do

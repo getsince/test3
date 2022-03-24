@@ -73,7 +73,8 @@ defmodule T.MixProject do
       {:jose, "~> 1.11"},
       {:nimble_csv, "~> 1.2"},
       {:libcluster, "~> 3.3"},
-      {:ex_aws_ec2, "~> 2.0"}
+      {:ex_aws_ec2, "~> 2.0"},
+      {:ecto_sqlite3, "~> 0.7.4"}
     ]
   end
 

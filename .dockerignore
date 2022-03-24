@@ -42,3 +42,5 @@ t-*.tar
 README.md
 
 Dockerfile
+
+events.sqlite*

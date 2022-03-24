@@ -41,11 +41,18 @@ defmodule T.Release do
   end
 
   # TODO
-  # {sha, 0} = System.cmd("git", ["rev-parse", "HEAD"])
+  sha =
+    case System.get_env("GIT_SHA") do
+      nil ->
+        {sha, 0} = System.cmd("git", ["rev-parse", "HEAD"])
+        sha
+
+      sha ->
+        sha
+    end
 
   def git_sha do
-    # unquote(String.trim(sha))
-    ""
+    unquote(String.trim(sha))
   end
 
   # {author, 0} = System.cmd("git", ~w[log -1 --pretty=format:'%an'])

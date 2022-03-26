@@ -41,7 +41,18 @@ defmodule T.Accounts.Profile do
   end
 
   @known_genders ["M", "F", "N"]
-  @contacts ["telegram", "instagram", "whatsapp", "phone", "email"]
+  @contacts [
+    "telegram",
+    "instagram",
+    "whatsapp",
+    "phone",
+    "email",
+    "imessage",
+    "snapchat",
+    "messenger",
+    "signal",
+    "twitter"
+  ]
 
   def contacts, do: @contacts
 
@@ -133,19 +144,6 @@ defmodule T.Accounts.Profile do
   end
 
   defp validate_page(page), do: {page, _no_labels_no_errors = []}
-
-  @contacts [
-    "telegram",
-    "instagram",
-    "whatsapp",
-    "phone",
-    "email",
-    "imessage",
-    "snapchat",
-    "messenger",
-    "signal",
-    "twitter"
-  ]
 
   @spec validate_labels([map], [map], [Ecto.Changeset.error()]) ::
           {[map], [Ecto.Changeset.error()]}

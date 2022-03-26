@@ -63,7 +63,7 @@ msgstr "Introducing\ncontact stickers 🔥"
 
 #, elixir-autogen, elixir-format
 #: lib/t/news.ex:21
-#: lib/t/news.ex:146
+#: lib/t/news.ex:147
 msgid "Привет! 👋"
 msgstr "Hi! 👋"
 
@@ -88,21 +88,21 @@ msgid "Это ещё не всё 👉"
 msgstr "That's not all 👉"
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:157
+#: lib/t/news.ex:158
 msgid "Теперь в ленте показывается\nпримерное расстояние\nдо пользователя."
 msgstr "Feed now shows\nthe approximate distance\nto the user."
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:175
+#: lib/t/news.ex:176
 msgid "Включить авто-локацию"
 msgstr "Enable auto location"
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:151
+#: lib/t/news.ex:152
 msgid "Мы добавили\nавтоматическую локацию."
 msgstr "We added\nauto location."
 
 #, elixir-autogen, elixir-format
-#: lib/t/news.ex:166
+#: lib/t/news.ex:167
 msgid "Ты можешь включить\nавтоматическое определение\nлокации, чтобы она\nоставалась актуальной 👇"
 msgstr "You can enable\nauto detection of location\nso that it\nstays up-to-date 👇"

@@ -110,6 +110,22 @@ defmodule TWeb.ViewHelpers do
     Map.put(label, "url", "https://wa.me/" <> handle)
   end
 
+  defp process_label(%{"question" => "snapchat", "answer" => handle} = label) do
+    Map.put(label, "url", "https://www.snapchat.com/add/" <> handle)
+  end
+
+  defp process_label(%{"question" => "messenger", "answer" => handle} = label) do
+    Map.put(label, "url", "https://m.me/" <> handle)
+  end
+
+  defp process_label(%{"question" => "signal", "answer" => handle} = label) do
+    Map.put(label, "url", "https://signal.me/#p/" <> handle)
+  end
+
+  defp process_label(%{"question" => "twitter", "answer" => handle} = label) do
+    Map.put(label, "url", "https://twitter.com/" <> handle)
+  end
+
   defp process_label(%{"question" => q} = label) when q in ["phone", "email"] do
     label
   end

@@ -353,6 +353,239 @@ defmodule T.Accounts.ProfileTest do
              }
     end
 
+    test "snapchat validation" do
+      attrs = fn label ->
+        %{
+          "story" => [
+            %{
+              "background" => %{"color" => "#FFFFFF"},
+              "labels" => [label],
+              "size" => [375, 667]
+            }
+          ]
+        }
+      end
+
+      # valid value
+
+      valid_value = %{"question" => "snapchat", "value" => " @PuTiN.123 "}
+      changeset = Profile.story_changeset(%Profile{}, attrs.(valid_value))
+      assert changeset.valid?
+
+      assert apply_changes(changeset).story == [
+               %{
+                 "background" => %{"color" => "#FFFFFF"},
+                 "labels" => [%{"question" => "snapchat", "answer" => "putin.123"}],
+                 "size" => [375, 667]
+               }
+             ]
+
+      # valid answer
+
+      valid_answer = %{"question" => "snapchat", "answer" => " @PuTiN____123 "}
+      changeset = Profile.story_changeset(%Profile{}, attrs.(valid_answer))
+      assert changeset.valid?
+
+      assert apply_changes(changeset).story == [
+               %{
+                 "background" => %{"color" => "#FFFFFF"},
+                 "labels" => [%{"question" => "snapchat", "answer" => "putin____123"}],
+                 "size" => [375, 667]
+               }
+             ]
+
+      # invalid formats
+
+      invalid_format = %{"question" => "snapchat", "answer" => " @PuTiN  123"}
+      changeset = Profile.story_changeset(%Profile{}, attrs.(invalid_format))
+
+      refute changeset.valid?
+      assert errors_on(changeset) == %{story: ["snapchat username has invalid format"]}
+
+      invalid_format = %{"question" => "snapchat", "answer" => " @PuTiN$$123"}
+      changeset = Profile.story_changeset(%Profile{}, attrs.(invalid_format))
+
+      refute changeset.valid?
+      assert errors_on(changeset) == %{story: ["snapchat username has invalid format"]}
+
+      # too short
+
+      too_short = %{"question" => "snapchat", "answer" => " @P"}
+      changeset = Profile.story_changeset(%Profile{}, attrs.(too_short))
+      refute changeset.valid?
+
+      assert errors_on(changeset) == %{
+               story: [
+                 "snapchat username should be at least 3 character(s)"
+               ]
+             }
+
+      # too long
+
+      too_long = %{
+        "question" => "snapchat",
+        "answer" => " PuTiPuTiPuTiPuTiPuTiPuTiPuTiPuTiPuTiPuTiPuTiPuTiPuTi"
+      }
+
+      changeset = Profile.story_changeset(%Profile{}, attrs.(too_long))
+      refute changeset.valid?
+
+      assert errors_on(changeset) == %{
+               story: ["snapchat username should be at most 15 character(s)"]
+             }
+    end
+
+    test "twitter validation" do
+      attrs = fn label ->
+        %{
+          "story" => [
+            %{
+              "background" => %{"color" => "#FFFFFF"},
+              "labels" => [label],
+              "size" => [375, 667]
+            }
+          ]
+        }
+      end
+
+      # valid value
+
+      valid_value = %{"question" => "twitter", "value" => " @PuTiN_123 "}
+      changeset = Profile.story_changeset(%Profile{}, attrs.(valid_value))
+      assert changeset.valid?
+
+      assert apply_changes(changeset).story == [
+               %{
+                 "background" => %{"color" => "#FFFFFF"},
+                 "labels" => [%{"question" => "twitter", "answer" => "putin_123"}],
+                 "size" => [375, 667]
+               }
+             ]
+
+      # valid answer
+
+      valid_answer = %{"question" => "twitter", "answer" => " @PuTiN____123 "}
+      changeset = Profile.story_changeset(%Profile{}, attrs.(valid_answer))
+      assert changeset.valid?
+
+      assert apply_changes(changeset).story == [
+               %{
+                 "background" => %{"color" => "#FFFFFF"},
+                 "labels" => [%{"question" => "twitter", "answer" => "putin____123"}],
+                 "size" => [375, 667]
+               }
+             ]
+
+      # invalid formats
+
+      invalid_format = %{"question" => "twitter", "answer" => " @PuTiN  123"}
+      changeset = Profile.story_changeset(%Profile{}, attrs.(invalid_format))
+
+      refute changeset.valid?
+      assert errors_on(changeset) == %{story: ["twitter username has invalid format"]}
+
+      invalid_format = %{"question" => "twitter", "answer" => " @PuTiN$$123"}
+      changeset = Profile.story_changeset(%Profile{}, attrs.(invalid_format))
+
+      refute changeset.valid?
+      assert errors_on(changeset) == %{story: ["twitter username has invalid format"]}
+
+      # too short
+
+      too_short = %{"question" => "twitter", "answer" => " @"}
+      changeset = Profile.story_changeset(%Profile{}, attrs.(too_short))
+      refute changeset.valid?
+
+      assert errors_on(changeset) == %{
+               story: [
+                 "twitter username should be at least 1 character(s)",
+                 "twitter username has invalid format"
+               ]
+             }
+
+      # too long
+
+      too_long = %{
+        "question" => "twitter",
+        "answer" => " PuTiPuTiPuTiPuTiPuTiPuTiPuTiPuTiPuTiPuTiPuTiPuTiPuTi"
+      }
+
+      changeset = Profile.story_changeset(%Profile{}, attrs.(too_long))
+      refute changeset.valid?
+
+      assert errors_on(changeset) == %{
+               story: ["twitter username should be at most 15 character(s)"]
+             }
+    end
+
+    test "messenger validation" do
+      attrs = fn label ->
+        %{
+          "story" => [
+            %{
+              "background" => %{"color" => "#FFFFFF"},
+              "labels" => [label],
+              "size" => [375, 667]
+            }
+          ]
+        }
+      end
+
+      # valid value
+
+      valid_value = %{"question" => "messenger", "value" => " @PuTiN_123 "}
+      changeset = Profile.story_changeset(%Profile{}, attrs.(valid_value))
+      assert changeset.valid?
+
+      assert apply_changes(changeset).story == [
+               %{
+                 "background" => %{"color" => "#FFFFFF"},
+                 "labels" => [%{"question" => "messenger", "answer" => "putin_123"}],
+                 "size" => [375, 667]
+               }
+             ]
+
+      # valid answer
+
+      valid_answer = %{"question" => "messenger", "answer" => " @PuTiN____123 "}
+      changeset = Profile.story_changeset(%Profile{}, attrs.(valid_answer))
+      assert changeset.valid?
+
+      assert apply_changes(changeset).story == [
+               %{
+                 "background" => %{"color" => "#FFFFFF"},
+                 "labels" => [%{"question" => "messenger", "answer" => "putin____123"}],
+                 "size" => [375, 667]
+               }
+             ]
+
+      # invalid formats
+
+      invalid_format = %{"question" => "messenger", "answer" => " @PuTiN  123"}
+      changeset = Profile.story_changeset(%Profile{}, attrs.(invalid_format))
+
+      refute changeset.valid?
+      assert errors_on(changeset) == %{story: ["messenger username has invalid format"]}
+
+      invalid_format = %{"question" => "messenger", "answer" => " @PuTiN$$123"}
+      changeset = Profile.story_changeset(%Profile{}, attrs.(invalid_format))
+
+      refute changeset.valid?
+      assert errors_on(changeset) == %{story: ["messenger username has invalid format"]}
+
+      # too short
+
+      too_short = %{"question" => "messenger", "answer" => " @Pup"}
+      changeset = Profile.story_changeset(%Profile{}, attrs.(too_short))
+      refute changeset.valid?
+
+      assert errors_on(changeset) == %{
+               story: [
+                 "messenger username should be at least 5 character(s)"
+               ]
+             }
+    end
+
     test "whatsapp validation" do
       attrs = fn label ->
         %{
@@ -424,6 +657,80 @@ defmodule T.Accounts.ProfileTest do
 
       assert errors_on(changeset) == %{
                story: ["whatsapp phone number should be at most 15 character(s)"]
+             }
+    end
+
+    test "signal validation" do
+      attrs = fn label ->
+        %{
+          "story" => [
+            %{
+              "background" => %{"color" => "#FFFFFF"},
+              "labels" => [label],
+              "size" => [375, 667]
+            }
+          ]
+        }
+      end
+
+      # valid value
+
+      valid_value = %{"question" => "signal", "value" => " +001-(555)1234567 "}
+      changeset = Profile.story_changeset(%Profile{}, attrs.(valid_value))
+      assert changeset.valid?
+
+      assert apply_changes(changeset).story == [
+               %{
+                 "background" => %{"color" => "#FFFFFF"},
+                 "labels" => [%{"question" => "signal", "answer" => "+15551234567"}],
+                 "size" => [375, 667]
+               }
+             ]
+
+      # valid answer
+
+      valid_answer = %{"question" => "signal", "answer" => " +7 (916) 911 23 23 "}
+      changeset = Profile.story_changeset(%Profile{}, attrs.(valid_answer))
+      assert changeset.valid?
+
+      assert apply_changes(changeset).story == [
+               %{
+                 "background" => %{"color" => "#FFFFFF"},
+                 "labels" => [%{"question" => "signal", "answer" => "+79169112323"}],
+                 "size" => [375, 667]
+               }
+             ]
+
+      # invalid format
+
+      invalid_format = %{"question" => "signal", "answer" => " @PuTiN  123"}
+      changeset = Profile.story_changeset(%Profile{}, attrs.(invalid_format))
+
+      refute changeset.valid?
+      assert errors_on(changeset) == %{story: ["signal phone number has invalid format"]}
+
+      # too short
+
+      too_short = %{"question" => "signal", "answer" => "+777"}
+      changeset = Profile.story_changeset(%Profile{}, attrs.(too_short))
+      refute changeset.valid?
+
+      assert errors_on(changeset) == %{
+               story: ["signal phone number should be at least 4 character(s)"]
+             }
+
+      # too long
+
+      too_long = %{
+        "question" => "signal",
+        "answer" => " +88888888888888888"
+      }
+
+      changeset = Profile.story_changeset(%Profile{}, attrs.(too_long))
+      refute changeset.valid?
+
+      assert errors_on(changeset) == %{
+               story: ["signal phone number should be at most 15 character(s)"]
              }
     end
 
@@ -499,6 +806,157 @@ defmodule T.Accounts.ProfileTest do
              }
     end
 
+    test "imessage phone validation" do
+      attrs = fn label ->
+        %{
+          "story" => [
+            %{
+              "background" => %{"color" => "#FFFFFF"},
+              "labels" => [label],
+              "size" => [375, 667]
+            }
+          ]
+        }
+      end
+
+      # valid value
+
+      valid_value = %{"question" => "imessage", "value" => " +001-(555)1234567 "}
+      changeset = Profile.story_changeset(%Profile{}, attrs.(valid_value))
+      assert changeset.valid?
+
+      assert apply_changes(changeset).story == [
+               %{
+                 "background" => %{"color" => "#FFFFFF"},
+                 "labels" => [%{"question" => "imessage", "answer" => "+15551234567"}],
+                 "size" => [375, 667]
+               }
+             ]
+
+      # valid answer
+
+      valid_answer = %{"question" => "imessage", "answer" => " +7 (916) 911 23 23 "}
+      changeset = Profile.story_changeset(%Profile{}, attrs.(valid_answer))
+      assert changeset.valid?
+
+      assert apply_changes(changeset).story == [
+               %{
+                 "background" => %{"color" => "#FFFFFF"},
+                 "labels" => [%{"question" => "imessage", "answer" => "+79169112323"}],
+                 "size" => [375, 667]
+               }
+             ]
+
+      # invalid format
+
+      invalid_format = %{"question" => "imessage", "answer" => " @PuTiN  123"}
+      changeset = Profile.story_changeset(%Profile{}, attrs.(invalid_format))
+
+      refute changeset.valid?
+      assert errors_on(changeset) == %{story: ["imessage email address has invalid format"]}
+
+      # too short
+
+      too_short = %{"question" => "imessage", "answer" => "+777"}
+      changeset = Profile.story_changeset(%Profile{}, attrs.(too_short))
+      refute changeset.valid?
+
+      assert errors_on(changeset) == %{
+               story: ["imessage phone number should be at least 4 character(s)"]
+             }
+
+      # too long
+
+      too_long = %{
+        "question" => "imessage",
+        "answer" => " +88888888888888888"
+      }
+
+      changeset = Profile.story_changeset(%Profile{}, attrs.(too_long))
+      refute changeset.valid?
+
+      assert errors_on(changeset) == %{
+               story: ["imessage phone number should be at most 15 character(s)"]
+             }
+    end
+
+    test "imessage email validation" do
+      attrs = fn label ->
+        %{
+          "story" => [
+            %{
+              "background" => %{"color" => "#FFFFFF"},
+              "labels" => [label],
+              "size" => [375, 667]
+            }
+          ]
+        }
+      end
+
+      # valid value
+
+      valid_value = %{"question" => "imessage", "value" => " PUTIN@gov.UK "}
+      changeset = Profile.story_changeset(%Profile{}, attrs.(valid_value))
+      assert changeset.valid?
+
+      assert apply_changes(changeset).story == [
+               %{
+                 "background" => %{"color" => "#FFFFFF"},
+                 "labels" => [%{"question" => "imessage", "answer" => "putin@gov.uk"}],
+                 "size" => [375, 667]
+               }
+             ]
+
+      # valid answer
+
+      valid_answer = %{"question" => "imessage", "answer" => " PUTIN@gov.UK "}
+      changeset = Profile.story_changeset(%Profile{}, attrs.(valid_answer))
+      assert changeset.valid?
+
+      assert apply_changes(changeset).story == [
+               %{
+                 "background" => %{"color" => "#FFFFFF"},
+                 "labels" => [%{"question" => "imessage", "answer" => "putin@gov.uk"}],
+                 "size" => [375, 667]
+               }
+             ]
+
+      # invalid format
+
+      invalid_format = %{"question" => "imessage", "answer" => " PuTiN  123"}
+      changeset = Profile.story_changeset(%Profile{}, attrs.(invalid_format))
+
+      refute changeset.valid?
+      assert errors_on(changeset) == %{story: ["imessage phone number has invalid format"]}
+
+      # too short
+
+      too_short = %{"question" => "imessage", "answer" => "a@a."}
+      changeset = Profile.story_changeset(%Profile{}, attrs.(too_short))
+      refute changeset.valid?
+
+      assert errors_on(changeset) == %{
+               story: [
+                 "imessage email address has invalid format",
+                 "imessage email address should be at least 5 character(s)"
+               ]
+             }
+
+      # too long
+
+      too_long = %{
+        "question" => "imessage",
+        "answer" => String.duplicate("putin-rules", 10) <> "@gmail.com"
+      }
+
+      changeset = Profile.story_changeset(%Profile{}, attrs.(too_long))
+      refute changeset.valid?
+
+      assert errors_on(changeset) == %{
+               story: ["imessage email address should be at most 60 character(s)"]
+             }
+    end
+
     test "email validation" do
       attrs = fn label ->
         %{
@@ -553,7 +1011,13 @@ defmodule T.Accounts.ProfileTest do
       too_short = %{"question" => "email", "answer" => "a@a."}
       changeset = Profile.story_changeset(%Profile{}, attrs.(too_short))
       refute changeset.valid?
-      assert errors_on(changeset) == %{story: ["email address should be at least 5 character(s)"]}
+
+      assert errors_on(changeset) == %{
+               story: [
+                 "email address has invalid format",
+                 "email address should be at least 5 character(s)"
+               ]
+             }
 
       # too long
 

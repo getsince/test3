@@ -14,7 +14,13 @@ defmodule TWeb.ViewHelpersTest do
           %{"question" => "telegram", "answer" => "putin"},
           %{"question" => "whatsapp", "answer" => "79169752435"},
           %{"question" => "instagram", "answer" => "putin"},
-          %{"question" => "email", "answer" => "putin@hotmail.com"}
+          %{"question" => "email", "answer" => "putin@hotmail.com"},
+          %{"question" => "snapchat", "answer" => "zelensky"},
+          %{"question" => "messenger", "answer" => "zelensky"},
+          %{"question" => "imessage", "answer" => "+79169752435"},
+          %{"question" => "imessage", "answer" => "zelensky@free.co"},
+          %{"question" => "signal", "answer" => "+79169752435"},
+          %{"question" => "twitter", "answer" => "zelensky"}
         ],
         "size" => [428, 926]
       },
@@ -62,7 +68,29 @@ defmodule TWeb.ViewHelpersTest do
                    "question" => "instagram",
                    "url" => "https://instagram.com/putin"
                  },
-                 %{"answer" => "putin@hotmail.com", "question" => "email"}
+                 %{"answer" => "putin@hotmail.com", "question" => "email"},
+                 %{
+                   "answer" => "zelensky",
+                   "question" => "snapchat",
+                   "url" => "https://www.snapchat.com/add/zelensky"
+                 },
+                 %{
+                   "answer" => "zelensky",
+                   "question" => "messenger",
+                   "url" => "https://m.me/zelensky"
+                 },
+                 %{"answer" => "+79169752435", "question" => "imessage"},
+                 %{"answer" => "zelensky@free.co", "question" => "imessage"},
+                 %{
+                   "answer" => "+79169752435",
+                   "question" => "signal",
+                   "url" => "https://signal.me/#p/+79169752435"
+                 },
+                 %{
+                   "answer" => "zelensky",
+                   "question" => "twitter",
+                   "url" => "https://twitter.com/zelensky"
+                 }
                ],
                "size" => [428, 926]
              },
@@ -85,36 +113,6 @@ defmodule TWeb.ViewHelpersTest do
              ViewHelpers.postprocess_story(
                story,
                _version = "6.0.0",
-               _screen_width = 1200,
-               _env = :feed
-             )
-  end
-
-  test "v5.2.3", %{story: story} do
-    assert [
-             %{
-               "background" => %{
-                 "s3_key" => "bg1.jpg",
-                 "proxy" => "https://d1234.cloudfront.net" <> _
-               },
-               "labels" => [
-                 %{"value" => "Пиши мне сразу в тг: @putin"}
-                 # note that contacts have been removed
-               ],
-               "size" => [428, 926]
-             },
-             %{
-               "background" => %{
-                 "s3_key" => "bg1.jpg",
-                 "proxy" => "https://d1234.cloudfront.net" <> _
-               },
-               "labels" => [%{"value" => "Или позвони: +79169752435"}],
-               "size" => [428, 926]
-             }
-           ] =
-             ViewHelpers.postprocess_story(
-               story,
-               _version = "5.2.3",
                _screen_width = 1200,
                _env = :feed
              )

@@ -134,7 +134,18 @@ defmodule T.Accounts.Profile do
 
   defp validate_page(page), do: {page, _no_labels_no_errors = []}
 
-  @contacts ["telegram", "instagram", "whatsapp", "phone", "email"]
+  @contacts [
+    "telegram",
+    "instagram",
+    "whatsapp",
+    "phone",
+    "email",
+    "imessage",
+    "snapchat",
+    "messenger",
+    "signal",
+    "twitter"
+  ]
 
   @spec validate_labels([map], [map], [Ecto.Changeset.error()]) ::
           {[map], [Ecto.Changeset.error()]}
@@ -189,6 +200,48 @@ defmodule T.Accounts.Profile do
     )
   end
 
+  defp validate_contact("snapchat", label) do
+    label_name = dgettext("errors", "snapchat username")
+
+    contact_label_changeset(label_name, label)
+    |> update_change(:answer, &trim_handle/1)
+    |> label_validate_length(:answer, label_name, min: 3, max: 15)
+    |> label_validate_format(
+      :answer,
+      label_name,
+      # based on https://github.com/lorey/social-media-profiles-regexs#snapchat
+      ~r/^[A-z0-9\.\_\-]+$/
+    )
+  end
+
+  defp validate_contact("messenger", label) do
+    label_name = dgettext("errors", "messenger username")
+
+    contact_label_changeset(label_name, label)
+    |> update_change(:answer, &trim_handle/1)
+    |> label_validate_length(:answer, label_name, min: 5)
+    |> label_validate_format(
+      :answer,
+      label_name,
+      # based on https://github.com/lorey/social-media-profiles-regexs#facebook
+      ~r/^[A-z0-9_\-\.]+$/
+    )
+  end
+
+  defp validate_contact("twitter", label) do
+    label_name = dgettext("errors", "twitter username")
+
+    contact_label_changeset(label_name, label)
+    |> update_change(:answer, &trim_handle/1)
+    |> label_validate_length(:answer, label_name, min: 1, max: 15)
+    |> label_validate_format(
+      :answer,
+      label_name,
+      # based on https://github.com/lorey/social-media-profiles-regexs#twitter
+      ~r/^[A-z0-9_]+$/
+    )
+  end
+
   # TODO use libphonenumber
   defp validate_contact("whatsapp", label) do
     label_name = dgettext("errors", "whatsapp phone number")
@@ -197,6 +250,41 @@ defmodule T.Accounts.Profile do
     |> update_change(:answer, &trim_phone/1)
     |> label_validate_length(:answer, label_name, min: 4, max: 15)
     |> label_validate_format(:answer, label_name, ~r/^[0-9]*$/)
+  end
+
+  # TODO use libphonenumber
+  defp validate_contact("signal", label) do
+    label_name = dgettext("errors", "signal phone number")
+
+    contact_label_changeset(label_name, label)
+    |> update_change(:answer, &trim_phone/1)
+    |> label_validate_length(:answer, label_name, min: 4, max: 15)
+    |> label_validate_format(:answer, label_name, ~r/^[0-9]*$/)
+    |> update_change(:answer, fn phone -> "+" <> phone end)
+  end
+
+  # TODO use libphonenumber
+  defp validate_contact("imessage", label) do
+    if String.contains?(label["answer"] || label["value"], "@") do
+      label_name = dgettext("errors", "imessage email address")
+
+      contact_label_changeset(label_name, label)
+      |> update_change(:answer, fn address -> address |> String.downcase() |> String.trim() end)
+      |> label_validate_format(
+        :answer,
+        label_name,
+        Regex.compile!("^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$")
+      )
+      |> label_validate_length(:answer, label_name, min: 5, max: 60)
+    else
+      label_name = dgettext("errors", "imessage phone number")
+
+      contact_label_changeset(label_name, label)
+      |> update_change(:answer, &trim_phone/1)
+      |> label_validate_length(:answer, label_name, min: 4, max: 15)
+      |> label_validate_format(:answer, label_name, ~r/^[0-9]*$/)
+      |> update_change(:answer, fn phone -> "+" <> phone end)
+    end
   end
 
   # TODO use libphonenumber
@@ -215,7 +303,11 @@ defmodule T.Accounts.Profile do
 
     contact_label_changeset(label_name, label)
     |> update_change(:answer, fn address -> address |> String.downcase() |> String.trim() end)
-    |> label_validate_format(:answer, label_name, ~r/@/)
+    |> label_validate_format(
+      :answer,
+      label_name,
+      Regex.compile!("^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$")
+    )
     |> label_validate_length(:answer, label_name, min: 5, max: 60)
   end
 

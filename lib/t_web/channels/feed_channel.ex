@@ -42,7 +42,7 @@ defmodule TWeb.FeedChannel do
 
     news =
       user_id
-      |> News.list_news()
+      |> News.list_news(version)
       |> render_news(version, screen_width)
 
     todos =

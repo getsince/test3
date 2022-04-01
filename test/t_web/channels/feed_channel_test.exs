@@ -253,7 +253,7 @@ defmodule TWeb.FeedChannelTest do
       [m1, m2, m3] = [
         onboarded_user(
           name: "mate-1",
-          location: apple_location(),
+          location: moscow_location(),
           story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
           gender: "F",
           accept_genders: ["M"],
@@ -277,10 +277,6 @@ defmodule TWeb.FeedChannelTest do
         )
       ]
 
-      set_like_ratio(m1, 1.0)
-      set_like_ratio(m2, 0.5)
-      set_like_ratio(m3, 0)
-
       ref = push(socket, "more", %{"count" => 2})
       assert_reply(ref, :ok, %{"cursor" => cursor, "feed" => feed})
 
@@ -300,7 +296,7 @@ defmodule TWeb.FeedChannelTest do
                        "labels" => []
                      }
                    ],
-                   distance: 9510
+                   distance: 0
                  }
                },
                %{
@@ -498,24 +494,6 @@ defmodule TWeb.FeedChannelTest do
       assert feed == [
                %{
                  "profile" => %{
-                   user_id: m1.id,
-                   name: "mate-1",
-                   gender: "F",
-                   story: [
-                     %{
-                       "background" => %{
-                         "proxy" =>
-                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
-                         "s3_key" => "test"
-                       },
-                       "labels" => []
-                     }
-                   ],
-                   distance: 9510
-                 }
-               },
-               %{
-                 "profile" => %{
                    user_id: m2.id,
                    name: "mate-2",
                    gender: "F",
@@ -530,6 +508,24 @@ defmodule TWeb.FeedChannelTest do
                      }
                    ],
                    distance: 0
+                 }
+               },
+               %{
+                 "profile" => %{
+                   user_id: m1.id,
+                   name: "mate-1",
+                   gender: "F",
+                   story: [
+                     %{
+                       "background" => %{
+                         "proxy" =>
+                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
+                         "s3_key" => "test"
+                       },
+                       "labels" => []
+                     }
+                   ],
+                   distance: 9510
                  }
                }
              ]

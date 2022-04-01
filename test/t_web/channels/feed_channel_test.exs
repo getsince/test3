@@ -253,7 +253,7 @@ defmodule TWeb.FeedChannelTest do
       [m1, m2, m3] = [
         onboarded_user(
           name: "mate-1",
-          location: apple_location(),
+          location: moscow_location(),
           story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
           gender: "F",
           accept_genders: ["M"],
@@ -277,10 +277,6 @@ defmodule TWeb.FeedChannelTest do
         )
       ]
 
-      set_like_ratio(m1, 1.0)
-      set_like_ratio(m2, 0.5)
-      set_like_ratio(m3, 0)
-
       ref = push(socket, "more", %{"count" => 2})
       assert_reply(ref, :ok, %{"cursor" => cursor, "feed" => feed})
 
@@ -300,7 +296,7 @@ defmodule TWeb.FeedChannelTest do
                        "labels" => []
                      }
                    ],
-                   distance: 9510
+                   distance: 0
                  }
                },
                %{

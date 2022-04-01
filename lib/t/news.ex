@@ -13,6 +13,7 @@ defmodule T.News do
       %{
         id: 1,
         timestamp: ~U[2022-03-02 20:31:00Z],
+        version: "6.0.0",
         story: [
           %{
             "background" => %{"color" => "#111010"},
@@ -139,6 +140,7 @@ defmodule T.News do
       %{
         id: 2,
         timestamp: ~U[2022-03-23 08:16:00Z],
+        version: "6.1.0",
         story: [
           %{
             "background" => %{"color" => "#111010"},
@@ -181,6 +183,59 @@ defmodule T.News do
             "size" => [375, 667]
           }
         ]
+      },
+      %{
+        id: 3,
+        timestamp: ~U[2022-03-31 10:00:00Z],
+        version: "6.1.1",
+        story: [
+          %{
+            "background" => %{"color" => "#111010"},
+            "labels" => [
+              %{
+                "value" => dgettext("news", "Привет! 👋"),
+                "position" => [24.0, 80.0],
+                "background_fill" => "#F97EB9"
+              },
+              %{
+                "value" => dgettext("news", "Мы добавили\nновые контакты:"),
+                "position" => [24.0, 148.0],
+                "background_fill" => "#F97EB9"
+              },
+              %{
+                "position" => [24.0, 238.0],
+                "answer" => "getsinceapp",
+                "question" => "messenger"
+              },
+              %{
+                "position" => [24.0, 306.0],
+                "answer" => "kindly@getsince.app",
+                "question" => "imessage"
+              },
+              %{
+                "position" => [24.0, 374.0],
+                "answer" => "since_app",
+                "question" => "twitter"
+              },
+              %{
+                "position" => [24.0, 442.0],
+                "answer" => "getsince",
+                "question" => "snapchat"
+              },
+              %{
+                "position" => [24.0, 510.0],
+                "answer" => "+541176148981",
+                "question" => "signal"
+              },
+              %{
+                "value" => dgettext("news", "Общайтесь там, где удобно ✌️"),
+                "position" => [24.0, 578.0],
+                "background_fill" => "#F97EB9"
+              }
+            ],
+            "size" => [375, 667]
+          }
+        ]
       }
     ]
   end
@@ -189,17 +244,17 @@ defmodule T.News do
     List.last(news()).id
   end
 
-  @spec list_news(Ecto.Bigflake.UUID.t()) :: [%{id: pos_integer(), story: [map]}]
-  def list_news(user_id) do
+  @spec list_news(Ecto.Bigflake.UUID.t(), Version.t()) :: [%{id: pos_integer(), story: [map]}]
+  def list_news(user_id, version) do
     last_seen_id = last_seen_id(user_id) || 0
     user_inserted_at = datetime(user_id)
 
     Enum.filter(news(), fn news_story -> news_story.id > last_seen_id end)
     |> Enum.filter(fn news_story ->
-      case DateTime.compare(news_story.timestamp, user_inserted_at) do
-        :lt -> false
-        _ -> true
-      end
+      DateTime.compare(user_inserted_at, news_story.timestamp) == :lt
+    end)
+    |> Enum.filter(fn news_story ->
+      Version.compare(version, news_story.version) in [:eq, :gt]
     end)
   end
 

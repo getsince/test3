@@ -224,7 +224,7 @@ defmodule T.News do
               },
               %{
                 "position" => [24.0, 510.0],
-                "answer" => "+11234567890",
+                "answer" => "+541176148981",
                 "question" => "signal"
               },
               %{
@@ -251,16 +251,10 @@ defmodule T.News do
 
     Enum.filter(news(), fn news_story -> news_story.id > last_seen_id end)
     |> Enum.filter(fn news_story ->
-      case DateTime.compare(news_story.timestamp, user_inserted_at) do
-        :lt -> false
-        _ -> true
-      end
+      DateTime.compare(user_inserted_at, news_story.timestamp) == :lt
     end)
     |> Enum.filter(fn news_story ->
-      case Version.compare(news_story.version, version) do
-        :gt -> false
-        _ -> true
-      end
+      Version.compare(version, news_story.version) in [:eq, :gt]
     end)
   end
 

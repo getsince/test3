@@ -87,42 +87,14 @@ defmodule T.Feeds do
 
     feeded = FeededProfile |> where(for_user_id: ^user_id) |> select([s], s.user_id)
 
-    most_liked_count = count - div(count, 2)
-
-    most_liked =
-      most_liked_q(user_id, gender, gender_preferences, feeded)
-      |> maybe_apply_age_filters(min_age, max_age)
-      |> maybe_apply_distance_filter(location, distance)
-      |> limit(^most_liked_count)
-      |> select([p], %{p | distance: distance_km(^location, p.location)})
-      |> Repo.all()
-
-    filter_out_ids = Enum.map(most_liked, fn p -> p.user_id end)
-
-    most_recent_count = count - length(most_liked)
-
-    most_recent =
-      most_recent_q(user_id, gender, gender_preferences, feeded, filter_out_ids)
-      |> maybe_apply_age_filters(min_age, max_age)
-      |> maybe_apply_distance_filter(location, distance)
-      |> limit(^most_recent_count)
-      |> select([p], %{p | distance: distance_km(^location, p.location)})
-      |> Repo.all()
-
-    most_liked ++ most_recent
-  end
-
-  defp most_liked_q(user_id, gender, gender_preferences, feeded) do
     feed_profiles_q(user_id, gender, gender_preferences)
     |> where([p], p.user_id not in subquery(feeded))
-    |> order_by(desc: :like_ratio)
-  end
-
-  defp most_recent_q(user_id, gender, gender_preferences, feeded, filter_out_ids) do
-    feed_profiles_q(user_id, gender, gender_preferences)
-    |> where([p], p.user_id not in subquery(feeded))
-    |> where([p], p.user_id not in ^filter_out_ids)
-    |> order_by(desc: :last_active)
+    |> order_by(fragment("location <-> ?::geometry", ^location))
+    |> maybe_apply_age_filters(min_age, max_age)
+    |> maybe_apply_distance_filter(location, distance)
+    |> limit(^count)
+    |> select([p], %{p | distance: distance_km(^location, p.location)})
+    |> Repo.all()
   end
 
   defp maybe_apply_age_filters(query, min_age, max_age) do

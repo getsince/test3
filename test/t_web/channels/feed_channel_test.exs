@@ -498,24 +498,6 @@ defmodule TWeb.FeedChannelTest do
       assert feed == [
                %{
                  "profile" => %{
-                   user_id: m1.id,
-                   name: "mate-1",
-                   gender: "F",
-                   story: [
-                     %{
-                       "background" => %{
-                         "proxy" =>
-                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
-                         "s3_key" => "test"
-                       },
-                       "labels" => []
-                     }
-                   ],
-                   distance: 9510
-                 }
-               },
-               %{
-                 "profile" => %{
                    user_id: m2.id,
                    name: "mate-2",
                    gender: "F",
@@ -530,6 +512,24 @@ defmodule TWeb.FeedChannelTest do
                      }
                    ],
                    distance: 0
+                 }
+               },
+               %{
+                 "profile" => %{
+                   user_id: m1.id,
+                   name: "mate-1",
+                   gender: "F",
+                   story: [
+                     %{
+                       "background" => %{
+                         "proxy" =>
+                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
+                         "s3_key" => "test"
+                       },
+                       "labels" => []
+                     }
+                   ],
+                   distance: 9510
                  }
                }
              ]

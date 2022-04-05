@@ -5,25 +5,25 @@ defmodule T.Application do
 
   use Application
   require Logger
+  alias T.Release
 
   def start(_type, _args) do
     children =
       [
-        {Task.Supervisor, name: T.TaskSupervisor},
-        maybe_events(),
+        {Task.Supervisor, name: T.task_sup()},
+        # maybe_events(),
         APNS.Token,
         maybe_finch(),
-        maybe_cluster(),
+        # maybe_cluster(),
         {Phoenix.PubSub, name: T.PubSub},
-        unless_disabled(T.Media.Static),
+        # unless_disabled(T.Media.Static),
         TWeb.UserSocket.Monitor,
-        maybe_repo(),
-        maybe_migrator(),
-        maybe_oban(),
-        maybe_periodics(),
+        # maybe_repo(),
+        # maybe_migrator(),
+        # maybe_oban(),
+        # maybe_periodics(),
         maybe_endpoint(),
-        TWeb.Telemetry,
-        Supervisor.child_spec({Task, &T.Release.mark_ready/0}, id: :readiness_notifier)
+        TWeb.Telemetry
       ]
       |> Enum.reject(&is_nil/1)
 
@@ -43,7 +43,12 @@ defmodule T.Application do
     end
 
     opts = [strategy: :one_for_one, name: T.Supervisor]
-    Supervisor.start_link(children, opts)
+
+    with {:ok, _pid} = result <- Supervisor.start_link(children, opts) do
+      Release.mark_ready()
+      Release.register_with_load_balancer()
+      result
+    end
   end
 
   # Tell Phoenix to update the endpoint configuration
@@ -96,7 +101,8 @@ defmodule T.Application do
   end
 
   defp maybe_finch do
-    # TODO add apple keys endpoint (possibly aws as well)
+    # TODO add apple keys endpoint
+    # TODO add aws endpoint
     unless_disabled(
       {Finch,
        name: T.Finch,

@@ -52,9 +52,6 @@ defmodule T.MixProject do
       {:gettext, "~> 0.11"},
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.5"},
-      {:ex_aws, "~> 2.2.4"},
-      {:ex_aws_s3, "~> 2.3.0"},
-      {:sweet_xml, "~> 0.7"},
       {:oban, "~> 2.3"},
       {:remote_ip, "~> 1.0.0"},
       {:mox, "~> 1.0", only: :test},
@@ -67,13 +64,14 @@ defmodule T.MixProject do
       {:geo_postgis, "~> 3.4"},
       {:finch, "~> 0.10.1"},
       {:locus, "~> 2.2"},
+      # TODO
       {:cloud_watch, github: "getsince/cloud_watch", branch: "drop-httpoison"},
       {:benchee, "~> 1.0", only: :bench},
       {:dialyxir, "~> 1.1", only: :dev, runtime: false},
       {:jose, "~> 1.11"},
       {:nimble_csv, "~> 1.2"},
       {:libcluster, "~> 3.3"},
-      {:ex_aws_ec2, "~> 2.0"}
+      {:aws, "~> 0.10.1"}
     ]
   end
 

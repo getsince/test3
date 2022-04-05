@@ -3,33 +3,50 @@ defmodule T.Cluster do
 
   # 10.0.0.0/16 -> eu-north-1 (primary)
   # 10.1.0.0/16 -> us-east-2 (replica)
+  # 10.2.0.0/16 -> us-west-1 (replica)
+  # 10.3.0.0/16 -> ap-southeast-2 (replica)
+  # 10.4.0.0/16 -> sa-east-1 (replica)
 
   @spec poll_ec2(String.t(), [String.t()]) :: [ip_address :: String.t()]
   def poll_ec2(name, regions) do
-    # maybe use vpc-id per region as well?
+    client = T.aws_client()
 
-    request =
-      ExAws.EC2.describe_instances(
-        filters: [
-          {"tag:Name", [name]},
-          {"instance-state-name", ["running"]}
-        ]
-      )
-
-    xpath = private_ip_address_xpath()
-
-    regions
-    |> Enum.map(fn region ->
-      {:ok, %{body: body}} = ExAws.request(request, region: region)
-      body |> SweetXml.xpath(xpath) |> Enum.uniq()
+    T.async_stream(
+      regions,
+      fn region ->
+        client = %AWS.Client{client | region: region}
+        list_private_ips(client, name)
+      end,
+      ordered: false
+    )
+    |> Enum.reduce([], fn
+      {:ok, ips}, acc -> ips ++ acc
+      _other, acc -> acc
     end)
-    |> List.flatten()
   end
 
-  defp private_ip_address_xpath do
-    import SweetXml, only: [sigil_x: 2]
+  # TODO maybe list ips (network intfaces), need to tag them
+  defp list_private_ips(client, name) do
+    # TODO retry?
+    {:ok, %{"DescribeInstancesResponse" => %{"reservationSet" => reservation_set}}, _resp} =
+      AWS.EC2.describe_instances(client, %{
+        "Filter.1.Name" => "tag:Name",
+        "Filter.1.Value.1" => name,
+        "Filter.2.Name" => "instance-state-name",
+        "Filter.2.Value.1" => "running"
+      })
 
-    ~x"//DescribeInstancesResponse/reservationSet/item/instancesSet/item/privateIpAddress/text()"ls
+    case reservation_set do
+      %{"item" => instances} ->
+        if is_list(instances) do
+          get_in(instances, [Access.all(), "instancesSet", "item", "privateIpAddress"])
+        else
+          [get_in(instances, ["instancesSet", "item", "privateIpAddress"])]
+        end
+
+      :none ->
+        []
+    end
   end
 
   @doc """

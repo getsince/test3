@@ -32,11 +32,6 @@ config :t, Oban,
   ],
   queues: [default: 10, apns: 100]
 
-config :ex_aws,
-  json_codec: Jason,
-  # TODO switch to US
-  region: "eu-north-1"
-
 smoke? = !!System.get_env("SMOKE")
 
 if config_env() == :prod and smoke? do
@@ -258,10 +253,6 @@ if config_env() == :test do
     user_bucket: "pretend-this-is-real",
     static_bucket: "pretend-this-is-static",
     static_cdn: "https://d4321.cloudfront.net"
-
-  config :ex_aws,
-    access_key_id: "AWS_ACCESS_KEY_ID",
-    secret_access_key: "AWS_SECRET_ACCESS_KEY"
 
   config :imgproxy,
     prefix: "https://d1234.cloudfront.net",

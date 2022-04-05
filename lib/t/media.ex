@@ -3,6 +3,7 @@ defmodule T.Media do
   alias __MODULE__.{Static, Client}
 
   # TODO use mox in test env
+  # TODO use presigned urls for all media
 
   @doc """
   Bucket for user-generated content. Like photos.
@@ -16,27 +17,13 @@ defmodule T.Media do
 
   defp static_cdn_endpoint, do: cdn_endpoint(:static_cdn)
 
+  # TODO
   defp cdn_endpoint(name) do
     Application.fetch_env!(:t, __MODULE__)[name]
   end
 
   defp bucket(name) do
     Application.fetch_env!(:t, __MODULE__)[name]
-  end
-
-  # TODO use presigned urls for photos as well
-  @doc "Returns a pre-signed URL for an object"
-  def user_presigned_url(method \\ :get, key) do
-    presigned_url(method, user_bucket(), key)
-  end
-
-  # def static_presigned_url(method \\ :get, key) do
-  #   presigned_url(method, static_bucket(), key)
-  # end
-
-  defp presigned_url(method, bucket, key) do
-    {:ok, url} = ExAws.S3.presigned_url(ExAws.Config.new(:s3), method, bucket, key)
-    url
   end
 
   @doc """
@@ -76,26 +63,6 @@ defmodule T.Media do
 
   defp s3_url(bucket) do
     "https://#{bucket}.s3.amazonaws.com"
-  end
-
-  def user_file_exists?(key) do
-    user_bucket()
-    |> ExAws.S3.head_object(key)
-    |> ExAws.request()
-    |> case do
-      {:ok, %{status_code: 200}} -> true
-      {:error, {:http_error, 404, %{status_code: 404}}} -> false
-    end
-  end
-
-  def presign_config do
-    env = Application.get_all_env(:ex_aws)
-
-    %{
-      region: Application.fetch_env!(:ex_aws, :region),
-      access_key_id: env[:access_key_id] || System.fetch_env!("AWS_ACCESS_KEY_ID"),
-      secret_access_key: env[:secret_access_key] || System.fetch_env!("AWS_SECRET_ACCESS_KEY")
-    }
   end
 
   # https://gist.github.com/chrismccord/37862f1f8b1f5148644b75d20d1cb073
@@ -141,7 +108,7 @@ defmodule T.Media do
         )
 
   """
-  def sign_form_upload(config \\ presign_config(), bucket \\ user_bucket(), opts) do
+  def sign_form_upload(config \\ T.aws_client(), bucket \\ user_bucket(), opts) do
     key = Keyword.fetch!(opts, :key)
     max_file_size = Keyword.fetch!(opts, :max_file_size)
     content_type = Keyword.fetch!(opts, :content_type)
@@ -246,39 +213,23 @@ defmodule T.Media do
   end
 
   def list_static_files do
-    Client.list_objects(static_bucket())
+    client = T.aws_client("eu-north-1")
+
+    {:ok, %{"ListBucketResult" => %{"Contents" => contents}}, _} =
+      AWS.S3.list_objects_v2(client, static_bucket())
+
+    contents
   end
 
   def delete_sticker_by_key(key) do
-    result =
-      static_bucket()
-      |> ExAws.S3.delete_object(key)
-      |> ExAws.request!(region: "eu-north-1")
+    client = T.aws_client("eu-north-1")
+    result = AWS.S3.delete_object(client, static_bucket(), key, _input = %{})
 
-    Static.notify_s3_updated()
-
-    result
-  end
-
-  def rename_static_file(from_key, to_key) do
-    bucket = static_bucket()
-    opts = [region: "eu-north-1"]
-
-    # TODO copied object is not public
-    %{status_code: 200} =
-      copy_result =
-      bucket
-      |> ExAws.S3.put_object_copy(to_key, bucket, from_key)
-      |> ExAws.request!(opts)
-
-    %{status_code: 204} =
-      delete_result =
-      bucket
-      |> ExAws.S3.delete_object(from_key)
-      |> ExAws.request!(opts)
-
-    Static.notify_s3_updated()
-    [copy_result, delete_result]
+    with {:ok, _, _} <- result do
+      nodes = [node() | Node.list()]
+      _todo = :erpc.multicall(nodes, Static, :remove_sticker, [key])
+      result
+    end
   end
 
   @doc """

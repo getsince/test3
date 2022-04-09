@@ -345,50 +345,6 @@ defmodule T.News do
                   "labels" => [
                     %{
                       "zoom" => 1,
-                      "value" => "• new text editor ✍️",
-                      "position" => [20.33334859212256, 129.9573384195963],
-                      "rotation" => 0,
-                      "alignment" => 1,
-                      "text_color" => "#111010",
-                      "corner_radius" => 1,
-                      "background_fill" => "#FFFFFF"
-                    },
-                    %{
-                      "zoom" => 1,
-                      "value" => "• layout grids 👇",
-                      "position" => [156.6666564941405, 197.83334350585938],
-                      "rotation" => 0,
-                      "alignment" => 1,
-                      "text_color" => "#111010",
-                      "corner_radius" => 1,
-                      "background_fill" => "#FFFFFF"
-                    },
-                    %{
-                      "zoom" => 1,
-                      "action" => "edit_story",
-                      "value" => "TRY",
-                      "position" => [161.0000050862629, 701.1666717529297],
-                      "rotation" => 0,
-                      "alignment" => 1,
-                      "text_color" => "#111010",
-                      "corner_radius" => 1,
-                      "background_fill" => "#FFFFFF"
-                    }
-                  ],
-                  "background" => %{
-                    "zoom" => 1.187483248072997,
-                    "color" => "#2A261E",
-                    "proxy" =>
-                      "https://d3r9yicn85nax9.cloudfront.net/bhHPU_xsZ_LlYgicsvCzjJB6Ks3zUO_qSm6oKKHQYaU/fit/1200/0/sm/0/aHR0cHM6Ly9zaW5jZS13aGVuLWFyZS15b3UtaGFwcHkuczMuYW1hem9uYXdzLmNvbS9iMGIxZTRlYi1iMzQyLTQwOTItYTE3Zi00ODMwMTc4NGEwMWI",
-                    "position" => [-219.35540024540654, -474.7075841208285],
-                    "rotation" => 0
-                  }
-                },
-                %{
-                  "size" => [390, 844],
-                  "labels" => [
-                    %{
-                      "zoom" => 1,
                       "value" => "• added new category of \nstickers: worldview 🌎",
                       "position" => [61.66666666666663, 239.33333333333334],
                       "rotation" => 0,
@@ -431,6 +387,50 @@ defmodule T.News do
                     }
                   ],
                   "background" => %{"color" => "#5E50FC"}
+                },
+                %{
+                  "size" => [390, 844],
+                  "labels" => [
+                    %{
+                      "zoom" => 1,
+                      "value" => "• new text editor ✍️",
+                      "position" => [20.33334859212256, 129.9573384195963],
+                      "rotation" => 0,
+                      "alignment" => 1,
+                      "text_color" => "#111010",
+                      "corner_radius" => 1,
+                      "background_fill" => "#FFFFFF"
+                    },
+                    %{
+                      "zoom" => 1,
+                      "value" => "• layout grids 👇",
+                      "position" => [156.6666564941405, 197.83334350585938],
+                      "rotation" => 0,
+                      "alignment" => 1,
+                      "text_color" => "#111010",
+                      "corner_radius" => 1,
+                      "background_fill" => "#FFFFFF"
+                    },
+                    %{
+                      "zoom" => 1,
+                      "action" => "edit_story",
+                      "value" => "TRY",
+                      "position" => [161.0000050862629, 701.1666717529297],
+                      "rotation" => 0,
+                      "alignment" => 1,
+                      "text_color" => "#111010",
+                      "corner_radius" => 1,
+                      "background_fill" => "#FFFFFF"
+                    }
+                  ],
+                  "background" => %{
+                    "zoom" => 1.187483248072997,
+                    "color" => "#2A261E",
+                    "proxy" =>
+                      "https://d3r9yicn85nax9.cloudfront.net/bhHPU_xsZ_LlYgicsvCzjJB6Ks3zUO_qSm6oKKHQYaU/fit/1200/0/sm/0/aHR0cHM6Ly9zaW5jZS13aGVuLWFyZS15b3UtaGFwcHkuczMuYW1hem9uYXdzLmNvbS9iMGIxZTRlYi1iMzQyLTQwOTItYTE3Zi00ODMwMTc4NGEwMWI",
+                    "position" => [-219.35540024540654, -474.7075841208285],
+                    "rotation" => 0
+                  }
                 },
                 %{
                   "size" => [390, 844],

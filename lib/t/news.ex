@@ -175,8 +175,7 @@ defmodule T.News do
                   "background" => %{
                     "zoom" => 1.1315270791341807,
                     "color" => "#6B4D32",
-                    "proxy" =>
-                      "https://d3r9yicn85nax9.cloudfront.net/cp17Xq0v0LFbrhGLfkq9YJ_VlAP9T22kq-of4ctP3DQ/fit/1200/0/sm/0/aHR0cHM6Ly9zaW5jZS13aGVuLWFyZS15b3UtaGFwcHkuczMuYW1hem9uYXdzLmNvbS8yODI5NWZkNS1lYjc4LTRlODctOTdjNy02MWI4NTdiYjVmMjQ",
+                    "s3_key" => "28295fd5-eb78-4e87-97c7-61b857bb5f24",
                     "position" => [-205.18224344932196, -444.03541915699407],
                     "rotation" => 0
                   }
@@ -234,7 +233,7 @@ defmodule T.News do
                   "labels" => [
                     %{
                       "zoom" => 0.8227475861552165,
-                      "value" => "•новый редактор текста ✍️",
+                      "value" => "• новый редактор текста ✍️",
                       "position" => [23.262899318002084, 141.54110603171702],
                       "rotation" => 0,
                       "alignment" => 1,
@@ -267,8 +266,7 @@ defmodule T.News do
                   "background" => %{
                     "zoom" => 1.1458749645399164,
                     "color" => "#2A261E",
-                    "proxy" =>
-                      "https://d3r9yicn85nax9.cloudfront.net/_5KL6jlMLg75WxlTIp5PmUrXVXbrXNrPgpFao6dyjvQ/fit/1200/0/sm/0/aHR0cHM6Ly9zaW5jZS13aGVuLWFyZS15b3UtaGFwcHkuczMuYW1hem9uYXdzLmNvbS9iMzE4Yzk1My02ZmMyLTRkMjEtYWViYS01M2IxYzY0ZmY5MzE",
+                    "s3_key" => "b318c953-6fc2-4d21-aeba-53b1c64ff931",
                     "position" => [-199.11932659698599, -430.91464525091305],
                     "rotation" => 0
                   }
@@ -334,8 +332,7 @@ defmodule T.News do
                   "background" => %{
                     "zoom" => 1.134265138646841,
                     "color" => "#6B4D32",
-                    "proxy" =>
-                      "https://d3r9yicn85nax9.cloudfront.net/u7sIlEoJTb_fdpUxPe-1Dk5Uxb1yW5Lh13VuQYsxivE/fit/1200/0/sm/0/aHR0cHM6Ly9zaW5jZS13aGVuLWFyZS15b3UtaGFwcHkuczMuYW1hem9uYXdzLmNvbS9hMzk4NTY2Ni02Y2QxLTRiZjUtODkyOS1lYzMzZjcxZmMyOTk",
+                    "s3_key" => "a3985666-6cd1-4bf5-8929-ec33f71fc299",
                     "position" => [-157.090212216804, -339.9593310538014],
                     "rotation" => 0
                   }
@@ -426,8 +423,7 @@ defmodule T.News do
                   "background" => %{
                     "zoom" => 1.187483248072997,
                     "color" => "#2A261E",
-                    "proxy" =>
-                      "https://d3r9yicn85nax9.cloudfront.net/bhHPU_xsZ_LlYgicsvCzjJB6Ks3zUO_qSm6oKKHQYaU/fit/1200/0/sm/0/aHR0cHM6Ly9zaW5jZS13aGVuLWFyZS15b3UtaGFwcHkuczMuYW1hem9uYXdzLmNvbS9iMGIxZTRlYi1iMzQyLTQwOTItYTE3Zi00ODMwMTc4NGEwMWI",
+                    "s3_key" => "b0b1e4eb-b342-4092-a17f-48301784a01b",
                     "position" => [-219.35540024540654, -474.7075841208285],
                     "rotation" => 0
                   }

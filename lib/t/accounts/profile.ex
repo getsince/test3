@@ -3,6 +3,7 @@ defmodule T.Accounts.Profile do
   import Ecto.Changeset
   import T.Gettext
   alias T.Stickers
+  alias T.StoryBackground
 
   @primary_key false
   @foreign_key_type Ecto.Bigflake.UUID
@@ -109,7 +110,9 @@ defmodule T.Accounts.Profile do
   def story_changeset(profile, attrs) do
     profile
     |> cast(attrs, [:story])
-    |> update_change(:story, fn story -> Stickers.fix_story(story) end)
+    |> update_change(:story, fn story ->
+      story |> Stickers.fix_story() |> StoryBackground.fix_story()
+    end)
     |> validate_story()
   end
 

@@ -1,1 +1,1 @@
-alias Dev.Stickers
+alias Dev.StoryBackground

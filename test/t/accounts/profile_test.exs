@@ -195,6 +195,41 @@ defmodule T.Accounts.ProfileTest do
              ]
     end
 
+    test "background with proxy but no s3 key is corrected" do
+      story_with_proxied_bg = [
+        %{
+          "background" => %{
+            "zoom" => 1.1315270791341807,
+            "color" => "#6B4D32",
+            "proxy" =>
+              "https://d3r9yicn85nax9.cloudfront.net/cp17Xq0v0LFbrhGLfkq9YJ_VlAP9T22kq-of4ctP3DQ/fit/1200/0/sm/0/aHR0cHM6Ly9zaW5jZS13aGVuLWFyZS15b3UtaGFwcHkuczMuYW1hem9uYXdzLmNvbS8yODI5NWZkNS1lYjc4LTRlODctOTdjNy02MWI4NTdiYjVmMjQ",
+            "position" => [-205.18224344932196, -444.03541915699407],
+            "rotation" => 0
+          },
+          "size" => [400, 100]
+        }
+      ]
+
+      assert %Ecto.Changeset{valid?: true} =
+               changeset =
+               Profile.story_changeset(%Profile{}, %{"story" => story_with_proxied_bg})
+
+      %Profile{story: story} = apply_changes(changeset)
+
+      assert story == [
+               %{
+                 "background" => %{
+                   "zoom" => 1.1315270791341807,
+                   "color" => "#6B4D32",
+                   "s3_key" => "28295fd5-eb78-4e87-97c7-61b857bb5f24",
+                   "position" => [-205.18224344932196, -444.03541915699407],
+                   "rotation" => 0
+                 },
+                 "size" => [400, 100]
+               }
+             ]
+    end
+
     test "telegram validation" do
       attrs = fn label ->
         %{

@@ -6,7 +6,7 @@ defmodule Dev.StoryBackground do
     %Postgrex.Result{columns: ["user_id"], rows: rows} =
       Repo.query!("""
       SELECT DISTINCT user_id
-      FROM (SELECT user_id, jsonb_array_elements(jsonb_array_elements(story) -> 'background') AS background FROM profiles) AS b
+      FROM (SELECT user_id, jsonb_array_elements(story) -> 'background' AS background FROM profiles) AS b
       WHERE (b.background ->> 'proxy') is not null
       """)
 

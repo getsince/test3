@@ -107,11 +107,14 @@ defmodule TWeb.ProfileChannel do
   end
 
   defp replace_photo_url_with_s3key(%{"s3_key" => _} = background), do: background
-  defp replace_photo_url_with_s3key(%{"color" => _} = bg), do: bg
 
-  defp replace_photo_url_with_s3key(%{"proxy" => proxy_url}) do
-    %{"s3_key" => s3_key_from_proxy_url(proxy_url)}
+  defp replace_photo_url_with_s3key(%{"proxy" => proxy_url} = background) do
+    background
+    |> Map.put("s3_key", s3_key_from_proxy_url(proxy_url))
+    |> Map.delete("proxy")
   end
+
+  defp replace_photo_url_with_s3key(%{"color" => _} = bg), do: bg
 
   # TODO fix, client shouldn't be sending urls
   defp s3_key_from_proxy_url("https://d3r9yicn85nax9.cloudfront.net/" <> path) do

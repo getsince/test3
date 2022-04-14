@@ -208,30 +208,18 @@ defmodule TWeb.ViewHelpersTest do
              )
 
     # audio url looks like:
-    #  "https://s3.eu-north-1.amazonaws.com/pretend-this-is-real/" <>
-    #  "038fbd69-ba44-42c2-8086-5213ff093ad5?X-Amz-Algorithm=AWS4-HMAC-SHA256&" <>
-    #  "X-Amz-Credential=AWS_ACCESS_KEY_ID%2F20220414%2Feu-north-1%2Fs3%2Faws4_request&" <>
-    #  "X-Amz-Date=20220414T005604Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&" <>
-    #  "X-Amz-Signature=ba7b862afdded85fc8f4c647d59f375d90a71d4f1faa9b872214b869556cd4de"
+    #  "https://pretend-this-is-real.s3.amazonaws.com/"<>
+    #  "038fbd69-ba44-42c2-8086-5213ff093ad5"
 
     assert %URI{
-             authority: "s3.eu-north-1.amazonaws.com",
+             authority: "pretend-this-is-real.s3.amazonaws.com",
              fragment: nil,
-             host: "s3.eu-north-1.amazonaws.com",
-             path: "/pretend-this-is-real/038fbd69-ba44-42c2-8086-5213ff093ad5",
+             host: "pretend-this-is-real.s3.amazonaws.com",
+             path: "/038fbd69-ba44-42c2-8086-5213ff093ad5",
              port: 443,
-             query: query,
+             query: _query,
              scheme: "https",
              userinfo: nil
            } = URI.parse(audio_url)
-
-    assert %{
-             "X-Amz-Algorithm" => "AWS4-HMAC-SHA256",
-             "X-Amz-Credential" => _creds,
-             "X-Amz-Date" => _date,
-             "X-Amz-Expires" => "3600" = _one_hour,
-             "X-Amz-Signature" => _signature,
-             "X-Amz-SignedHeaders" => "host"
-           } = URI.decode_query(query)
   end
 end

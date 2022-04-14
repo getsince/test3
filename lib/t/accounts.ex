@@ -539,7 +539,7 @@ defmodule T.Accounts do
       # 50 MB
       max_file_size: 50_000_000,
       expires_in: :timer.hours(1),
-      acl: "private"
+      acl: "public-read"
     )
   end
 
@@ -548,7 +548,7 @@ defmodule T.Accounts do
   end
 
   def voice_url(s3_key) do
-    Media.user_presigned_url(s3_key)
+    Media.user_s3_url(s3_key)
   end
 
   def get_profile!(%User{id: user_id}) do

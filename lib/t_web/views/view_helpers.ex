@@ -12,8 +12,7 @@ defmodule TWeb.ViewHelpers do
       page
       |> blur(screen_width, env)
       |> add_bg_url(screen_width)
-      |> process_labels_v6()
-      |> maybe_add_url_to_labels(version)
+      |> process_labels_v6(version)
     end)
   end
 
@@ -36,7 +35,7 @@ defmodule TWeb.ViewHelpers do
   end
 
   defp blur(%{"blurred" => %{"s3_key" => s3_key} = bg}, screen_width, :feed) do
-    bg = Map.merge(bg, s3_key_image_url(s3_key, screen_width))
+    bg = Map.merge(bg, s3_key_image_urls(s3_key, screen_width))
     %{"blurred" => bg, "private" => true}
   end
 
@@ -45,7 +44,7 @@ defmodule TWeb.ViewHelpers do
   end
 
   defp blur(%{"blurred" => %{"s3_key" => s3_key} = bg} = page, screen_width, :profile) do
-    bg = Map.merge(bg, s3_key_image_url(s3_key, screen_width))
+    bg = Map.merge(bg, s3_key_image_urls(s3_key, screen_width))
     page |> Map.put("blurred", bg) |> Map.put("private", true)
   end
 
@@ -54,7 +53,7 @@ defmodule TWeb.ViewHelpers do
   defp add_bg_url(page, screen_width) do
     case page do
       %{"background" => %{"s3_key" => key} = bg} = page when not is_nil(key) ->
-        bg = Map.merge(bg, s3_key_image_url(key, screen_width))
+        bg = Map.merge(bg, s3_key_image_urls(key, screen_width))
         %{page | "background" => bg}
 
       _ ->
@@ -62,7 +61,7 @@ defmodule TWeb.ViewHelpers do
     end
   end
 
-  defp process_labels_v6(%{"labels" => labels} = page) do
+  defp process_labels_v6(%{"labels" => labels} = page, version) do
     labels =
       labels
       |> Enum.reduce([], fn label, acc ->
@@ -71,7 +70,21 @@ defmodule TWeb.ViewHelpers do
         if Map.has_key?(label, "text-contact") do
           acc
         else
-          [process_label(label) | acc]
+          case label do
+            %{"s3_key" => key, "question" => "audio"} ->
+              # we do not add url for versions prior to 6.2.0 because they will be rendered incorrectly
+              case Version.compare(version, "6.2.0") do
+                :lt ->
+                  acc
+
+                _ ->
+                  label = Map.put(label, "url", Accounts.voice_url(key))
+                  [label | acc]
+              end
+
+            label ->
+              [process_label(label) | acc]
+          end
         end
       end)
       |> :lists.reverse()
@@ -79,7 +92,7 @@ defmodule TWeb.ViewHelpers do
     %{page | "labels" => labels}
   end
 
-  defp process_labels_v6(page), do: page
+  defp process_labels_v6(page, _version), do: page
 
   defp process_labels_pre_v6(%{"labels" => labels} = page) do
     labels =
@@ -142,33 +155,7 @@ defmodule TWeb.ViewHelpers do
 
   defp process_label(label), do: label
 
-  defp s3_key_image_url(key, width) when is_binary(key) do
+  defp s3_key_image_urls(key, width) when is_binary(key) do
     %{"proxy" => Media.user_imgproxy_cdn_url(key, width)}
   end
-
-  # TODO move to process_label when 6.2.0+ is adopted
-  defp maybe_add_url_to_labels(%{"labels" => labels} = page, version) do
-    labels =
-      labels
-      |> Enum.reduce([], fn
-        %{"s3_key" => key, "waveform" => _w} = label, acc ->
-          # we do not add url for versions prior to 6.2.0 because they will be rendered incorrectly
-          case Version.compare(version, "6.2.0") do
-            :lt ->
-              acc
-
-            _ ->
-              label = Map.put(label, "url", Accounts.voice_url(key))
-              [label | acc]
-          end
-
-        label, acc ->
-          [label | acc]
-      end)
-      |> :lists.reverse()
-
-    %{page | "labels" => labels}
-  end
-
-  defp maybe_add_url_to_labels(page, _version), do: page
 end

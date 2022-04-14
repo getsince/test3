@@ -23,12 +23,9 @@ defmodule TWeb.ViewHelpersTest do
           %{"question" => "twitter", "answer" => "zelensky"},
           # would be rendered in v6.2.0 and removed in lower versions
           %{
-            "zoom" => 0.8602239521779895,
             "s3_key" => "038fbd69-ba44-42c2-8086-5213ff093ad5",
             "duration" => 4.952947845804989,
-            "position" => [198.2197547425851, 245.97877035142636],
             "question" => "audio",
-            "rotation" => -24.53081036751783,
             "waveform" =>
               "B7UZsWtPLtbgYg1SRenEdP154VNLVXTQMaQUQkoh55hSCimnEGIIIcSUUkwhhJBSjDGGHINOOqYUckophJQC"
           }
@@ -178,14 +175,11 @@ defmodule TWeb.ViewHelpersTest do
                  },
                  %{
                    "duration" => 4.952947845804989,
-                   "position" => [198.2197547425851, 245.97877035142636],
                    "question" => "audio",
-                   "rotation" => -24.53081036751783,
                    "s3_key" => "038fbd69-ba44-42c2-8086-5213ff093ad5",
                    "url" => audio_url,
                    "waveform" =>
-                     "B7UZsWtPLtbgYg1SRenEdP154VNLVXTQMaQUQkoh55hSCimnEGIIIcSUUkwhhJBSjDGGHINOOqYUckophJQC",
-                   "zoom" => 0.8602239521779895
+                     "B7UZsWtPLtbgYg1SRenEdP154VNLVXTQMaQUQkoh55hSCimnEGIIIcSUUkwhhJBSjDGGHINOOqYUckophJQC"
                  }
                ],
                "size" => [428, 926]

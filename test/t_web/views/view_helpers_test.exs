@@ -20,7 +20,18 @@ defmodule TWeb.ViewHelpersTest do
           %{"question" => "imessage", "answer" => "+79169752435"},
           %{"question" => "imessage", "answer" => "zelensky@free.co"},
           %{"question" => "signal", "answer" => "+79169752435"},
-          %{"question" => "twitter", "answer" => "zelensky"}
+          %{"question" => "twitter", "answer" => "zelensky"},
+          # would be rendered in v6.2.0 and removed in lower versions
+          %{
+            "zoom" => 0.8602239521779895,
+            "s3_key" => "038fbd69-ba44-42c2-8086-5213ff093ad5",
+            "duration" => 4.952947845804989,
+            "position" => [198.2197547425851, 245.97877035142636],
+            "question" => "audio",
+            "rotation" => -24.53081036751783,
+            "waveform" =>
+              "B7UZsWtPLtbgYg1SRenEdP154VNLVXTQMaQUQkoh55hSCimnEGIIIcSUUkwhhJBSjDGGHINOOqYUckophJQC"
+          }
         ],
         "size" => [428, 926]
       },
@@ -116,5 +127,117 @@ defmodule TWeb.ViewHelpersTest do
                _screen_width = 1200,
                _env = :feed
              )
+  end
+
+  test "v6.2.0", %{story: story} do
+    assert [
+             %{
+               "background" => %{
+                 "s3_key" => "bg1.jpg",
+                 "proxy" => "https://d1234.cloudfront.net" <> _
+               },
+               "labels" => [
+                 # note that "Пиши мне сразу в тг: @putin" has been removed
+                 %{
+                   "answer" => "putin",
+                   "question" => "telegram",
+                   "url" => "https://t.me/putin"
+                 },
+                 %{
+                   "answer" => "79169752435",
+                   "question" => "whatsapp",
+                   "url" => "https://wa.me/79169752435"
+                 },
+                 %{
+                   "answer" => "putin",
+                   "question" => "instagram",
+                   "url" => "https://instagram.com/putin"
+                 },
+                 %{"answer" => "putin@hotmail.com", "question" => "email"},
+                 %{
+                   "answer" => "zelensky",
+                   "question" => "snapchat",
+                   "url" => "https://www.snapchat.com/add/zelensky"
+                 },
+                 %{
+                   "answer" => "zelensky",
+                   "question" => "messenger",
+                   "url" => "https://m.me/zelensky"
+                 },
+                 %{"answer" => "+79169752435", "question" => "imessage"},
+                 %{"answer" => "zelensky@free.co", "question" => "imessage"},
+                 %{
+                   "answer" => "+79169752435",
+                   "question" => "signal",
+                   "url" => "https://signal.me/#p/+79169752435"
+                 },
+                 %{
+                   "answer" => "zelensky",
+                   "question" => "twitter",
+                   "url" => "https://twitter.com/zelensky"
+                 },
+                 %{
+                   "duration" => 4.952947845804989,
+                   "position" => [198.2197547425851, 245.97877035142636],
+                   "question" => "audio",
+                   "rotation" => -24.53081036751783,
+                   "s3_key" => "038fbd69-ba44-42c2-8086-5213ff093ad5",
+                   "url" => audio_url,
+                   "waveform" =>
+                     "B7UZsWtPLtbgYg1SRenEdP154VNLVXTQMaQUQkoh55hSCimnEGIIIcSUUkwhhJBSjDGGHINOOqYUckophJQC",
+                   "zoom" => 0.8602239521779895
+                 }
+               ],
+               "size" => [428, 926]
+             },
+             %{
+               "background" => %{
+                 "s3_key" => "bg1.jpg",
+                 "proxy" => "https://d1234.cloudfront.net" <> _
+               },
+               "labels" => [%{"answer" => "+79169752435", "question" => "phone"}],
+               "size" => [428, 926]
+             },
+             %{
+               "blurred" => %{
+                 "s3_key" => "naked-blurred.jpg",
+                 "proxy" => "https://d1234.cloudfront.net" <> _
+               },
+               "private" => true
+             }
+           ] =
+             ViewHelpers.postprocess_story(
+               story,
+               _version = "6.2.0",
+               _screen_width = 1200,
+               _env = :feed
+             )
+
+    # audio url looks like:
+    #  "https://s3.eu-north-1.amazonaws.com/pretend-this-is-real/" <>
+    #  "038fbd69-ba44-42c2-8086-5213ff093ad5?X-Amz-Algorithm=AWS4-HMAC-SHA256&" <>
+    #  "X-Amz-Credential=AWS_ACCESS_KEY_ID%2F20220414%2Feu-north-1%2Fs3%2Faws4_request&" <>
+    #  "X-Amz-Date=20220414T005604Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&" <>
+    #  "X-Amz-Signature=ba7b862afdded85fc8f4c647d59f375d90a71d4f1faa9b872214b869556cd4de"
+
+    assert %URI{
+             authority: "s3.eu-north-1.amazonaws.com",
+             fragment: nil,
+             host: "s3.eu-north-1.amazonaws.com",
+             path: "/pretend-this-is-real/038fbd69-ba44-42c2-8086-5213ff093ad5",
+             port: 443,
+             query: query,
+             scheme: "https",
+             userinfo: nil
+           } = URI.parse(audio_url)
+
+    assert %{
+             "X-Amz-Algorithm" => "AWS4-HMAC-SHA256",
+             "X-Amz-Credential" => _creds,
+             "X-Amz-Date" => _date,
+             "X-Amz-Expires" => "3600" = _one_hour,
+             "X-Amz-Signature" => _signature,
+             "X-Amz-SignedHeaders" => "host"
+           } = URI.decode_query(query)
   end
 end

@@ -17,4 +17,10 @@ defmodule TWeb.MediaController do
     {:ok, %{"key" => key} = fields} = Accounts.photo_upload_form(content_type)
     %{url: Accounts.photo_s3_url(), key: key, fields: fields}
   end
+
+  # if it's an audio/aac -> it's for profile story voice sticker
+  defp upload_form("audio/aac" = content_type) do
+    {:ok, %{"key" => key} = fields} = Accounts.voice_upload_form(content_type)
+    %{url: Accounts.voice_s3_url(), key: key, fields: fields}
+  end
 end

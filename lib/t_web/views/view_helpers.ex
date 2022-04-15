@@ -1,17 +1,18 @@
 defmodule TWeb.ViewHelpers do
   @moduledoc false
   alias T.Media
+  alias T.Accounts
   alias T.Accounts.Profile
 
   @type env :: :feed | :match | :profile
 
   @spec postprocess_story([map], String.t(), pos_integer(), env) :: [map]
-  def postprocess_story(story, "6." <> _rest, screen_width, env) when is_list(story) do
+  def postprocess_story(story, "6." <> _rest = version, screen_width, env) when is_list(story) do
     Enum.map(story, fn page ->
       page
       |> blur(screen_width, env)
       |> add_bg_url(screen_width)
-      |> process_labels_v6()
+      |> process_labels_v6(version)
     end)
   end
 
@@ -34,7 +35,7 @@ defmodule TWeb.ViewHelpers do
   end
 
   defp blur(%{"blurred" => %{"s3_key" => s3_key} = bg}, screen_width, :feed) do
-    bg = Map.merge(bg, s3_key_urls(s3_key, screen_width))
+    bg = Map.merge(bg, s3_key_image_urls(s3_key, screen_width))
     %{"blurred" => bg, "private" => true}
   end
 
@@ -43,7 +44,7 @@ defmodule TWeb.ViewHelpers do
   end
 
   defp blur(%{"blurred" => %{"s3_key" => s3_key} = bg} = page, screen_width, :profile) do
-    bg = Map.merge(bg, s3_key_urls(s3_key, screen_width))
+    bg = Map.merge(bg, s3_key_image_urls(s3_key, screen_width))
     page |> Map.put("blurred", bg) |> Map.put("private", true)
   end
 
@@ -52,7 +53,7 @@ defmodule TWeb.ViewHelpers do
   defp add_bg_url(page, screen_width) do
     case page do
       %{"background" => %{"s3_key" => key} = bg} = page when not is_nil(key) ->
-        bg = Map.merge(bg, s3_key_urls(key, screen_width))
+        bg = Map.merge(bg, s3_key_image_urls(key, screen_width))
         %{page | "background" => bg}
 
       _ ->
@@ -60,24 +61,50 @@ defmodule TWeb.ViewHelpers do
     end
   end
 
-  defp process_labels_v6(%{"labels" => labels} = page) do
+  defp process_labels_v6(%{"labels" => labels} = page, version) do
+    # we do not add url for versions prior to 6.2.0 because they will be rendered incorrectly
     labels =
-      labels
-      |> Enum.reduce([], fn label, acc ->
-        # if the label is a text contact, it's removed from page
-        # since it has been replaced with contact stickers
-        if Map.has_key?(label, "text-contact") do
-          acc
-        else
-          [process_label(label) | acc]
-        end
-      end)
+      case Version.compare(version, "6.2.0") do
+        :lt ->
+          labels
+          |> Enum.reduce([], fn label, acc ->
+            # if the label is a text contact, it's removed from page
+            # since it has been replaced with contact stickers
+            if Map.has_key?(label, "text-contact") do
+              acc
+            else
+              case label do
+                %{"s3_key" => _key, "question" => "audio"} -> acc
+                label -> [process_label(label) | acc]
+              end
+            end
+          end)
+
+        _ ->
+          labels
+          |> Enum.reduce([], fn label, acc ->
+            # if the label is a text contact, it's removed from page
+            # since it has been replaced with contact stickers
+            if Map.has_key?(label, "text-contact") do
+              acc
+            else
+              case label do
+                %{"s3_key" => key, "question" => "audio"} ->
+                  label = Map.put(label, "url", Accounts.voice_url(key))
+                  [label | acc]
+
+                label ->
+                  [process_label(label) | acc]
+              end
+            end
+          end)
+      end
       |> :lists.reverse()
 
     %{page | "labels" => labels}
   end
 
-  defp process_labels_v6(page), do: page
+  defp process_labels_v6(page, _version), do: page
 
   defp process_labels_pre_v6(%{"labels" => labels} = page) do
     labels =
@@ -140,7 +167,7 @@ defmodule TWeb.ViewHelpers do
 
   defp process_label(label), do: label
 
-  defp s3_key_urls(key, width) when is_binary(key) do
+  defp s3_key_image_urls(key, width) when is_binary(key) do
     %{"proxy" => Media.user_imgproxy_cdn_url(key, width)}
   end
 end

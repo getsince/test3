@@ -532,6 +532,27 @@ defmodule T.Accounts do
     Media.user_s3_url()
   end
 
+  def voice_upload_form(content_type) do
+    Media.sign_form_upload(
+      Media.presign_config(),
+      Media.media_bucket(),
+      key: Ecto.UUID.generate(),
+      content_type: content_type,
+      # 50 MB
+      max_file_size: 50_000_000,
+      expires_in: :timer.hours(1),
+      acl: "public-read"
+    )
+  end
+
+  def voice_s3_url do
+    Media.media_s3_url()
+  end
+
+  def voice_url(s3_key) do
+    Media.media_cdn_url(s3_key)
+  end
+
   def get_profile!(%User{id: user_id}) do
     get_profile!(user_id)
   end

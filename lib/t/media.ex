@@ -16,6 +16,13 @@ defmodule T.Media do
 
   defp static_cdn_endpoint, do: cdn_endpoint(:static_cdn)
 
+  @doc """
+  Bucket for media content, like audio and video.
+  """
+  def media_bucket, do: bucket(:media_bucket)
+
+  defp media_cdn_endpoint, do: cdn_endpoint(:media_cdn)
+
   defp cdn_endpoint(name) do
     Application.fetch_env!(:t, __MODULE__)[name]
   end
@@ -66,8 +73,13 @@ defmodule T.Media do
     Path.join([static_cdn_endpoint(), URI.encode(s3_key)])
   end
 
+  def media_cdn_url(s3_key) do
+    Path.join([media_cdn_endpoint(), URI.encode(s3_key)])
+  end
+
   def static_s3_url, do: s3_url(static_bucket())
   def user_s3_url, do: s3_url(user_bucket())
+  def media_s3_url, do: s3_url(media_bucket())
 
   # TODO make private
   def user_s3_url(s3_key) do

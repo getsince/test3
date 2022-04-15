@@ -125,7 +125,9 @@ if config_env() == :prod and not smoke? do
   config :t, T.Media,
     user_bucket: System.fetch_env!("AWS_S3_BUCKET"),
     static_bucket: System.fetch_env!("AWS_S3_BUCKET_STATIC"),
-    static_cdn: System.fetch_env!("STATIC_CDN")
+    static_cdn: System.fetch_env!("STATIC_CDN"),
+    media_bucket: System.fetch_env!("AWS_S3_BUCKET_MEDIA"),
+    media_cdn: System.fetch_env!("MEDIA_CDN")
 
   config :t, T.Events,
     buffers: [:seen_buffer, :like_buffer, :contact_buffer],
@@ -221,7 +223,9 @@ if config_env() == :dev do
   config :t, T.Media,
     user_bucket: System.fetch_env!("AWS_S3_BUCKET"),
     static_bucket: System.fetch_env!("AWS_S3_BUCKET_STATIC"),
-    static_cdn: System.fetch_env!("STATIC_CDN")
+    static_cdn: System.fetch_env!("STATIC_CDN"),
+    media_bucket: System.fetch_env!("AWS_S3_BUCKET_MEDIA"),
+    media_cdn: System.fetch_env!("MEDIA_CDN")
 
   config :t, T.Events, buffers: false, bucket: System.get_env("AWS_S3_BUCKET_EVENTS")
   config :t, T.Media.Static, disabled?: !!System.get_env("DISABLE_MEDIA")
@@ -257,7 +261,9 @@ if config_env() == :test do
   config :t, T.Media,
     user_bucket: "pretend-this-is-real",
     static_bucket: "pretend-this-is-static",
-    static_cdn: "https://d4321.cloudfront.net"
+    media_bucket: "pretend-this-is-media",
+    static_cdn: "https://d4321.cloudfront.net",
+    media_cdn: "https://d6666.cloudfront.net"
 
   config :ex_aws,
     access_key_id: "AWS_ACCESS_KEY_ID",

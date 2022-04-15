@@ -125,8 +125,8 @@ if config_env() == :prod and not smoke? do
   config :t, T.Media,
     user_bucket: System.fetch_env!("AWS_S3_BUCKET"),
     static_bucket: System.fetch_env!("AWS_S3_BUCKET_STATIC"),
-    media_bucket: System.fetch_env!("AWS_S3_BUCKET_MEDIA"),
     static_cdn: System.fetch_env!("STATIC_CDN"),
+    media_bucket: System.fetch_env!("AWS_S3_BUCKET_MEDIA"),
     media_cdn: System.fetch_env!("MEDIA_CDN")
 
   config :t, T.Events,
@@ -223,8 +223,8 @@ if config_env() == :dev do
   config :t, T.Media,
     user_bucket: System.fetch_env!("AWS_S3_BUCKET"),
     static_bucket: System.fetch_env!("AWS_S3_BUCKET_STATIC"),
-    media_bucket: System.fetch_env!("AWS_S3_BUCKET_MEDIA"),
     static_cdn: System.fetch_env!("STATIC_CDN"),
+    media_bucket: System.fetch_env!("AWS_S3_BUCKET_MEDIA"),
     media_cdn: System.fetch_env!("MEDIA_CDN")
 
   config :t, T.Events, buffers: false, bucket: System.get_env("AWS_S3_BUCKET_EVENTS")

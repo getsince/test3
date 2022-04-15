@@ -69,12 +69,6 @@ defmodule T.Media do
     user_imgproxy_cdn_url(user_s3_url(s3_key), requested_width, opts)
   end
 
-  def user_cdn_url(s3_key) do
-    url = user_s3_url(s3_key)
-    IO.puts(url)
-    Path.join([static_cdn_endpoint(), Base.url_encode64(url, padding: false)])
-  end
-
   defp static_cdn_url(s3_key) do
     Path.join([static_cdn_endpoint(), URI.encode(s3_key)])
   end

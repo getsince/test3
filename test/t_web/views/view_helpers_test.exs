@@ -207,19 +207,6 @@ defmodule TWeb.ViewHelpersTest do
                _env = :feed
              )
 
-    # audio url looks like:
-    #  "https://pretend-this-is-real.s3.amazonaws.com/"<>
-    #  "038fbd69-ba44-42c2-8086-5213ff093ad5"
-
-    assert %URI{
-             authority: "pretend-this-is-real.s3.amazonaws.com",
-             fragment: nil,
-             host: "pretend-this-is-real.s3.amazonaws.com",
-             path: "/038fbd69-ba44-42c2-8086-5213ff093ad5",
-             port: 443,
-             query: _query,
-             scheme: "https",
-             userinfo: nil
-           } = URI.parse(audio_url)
+    assert audio_url == "https://d6666.cloudfront.net/038fbd69-ba44-42c2-8086-5213ff093ad5"
   end
 end

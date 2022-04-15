@@ -62,31 +62,43 @@ defmodule TWeb.ViewHelpers do
   end
 
   defp process_labels_v6(%{"labels" => labels} = page, version) do
+    # we do not add url for versions prior to 6.2.0 because they will be rendered incorrectly
     labels =
-      labels
-      |> Enum.reduce([], fn label, acc ->
-        # if the label is a text contact, it's removed from page
-        # since it has been replaced with contact stickers
-        if Map.has_key?(label, "text-contact") do
-          acc
-        else
-          case label do
-            %{"s3_key" => key, "question" => "audio"} ->
-              # we do not add url for versions prior to 6.2.0 because they will be rendered incorrectly
-              case Version.compare(version, "6.2.0") do
-                :lt ->
-                  acc
+      case Version.compare(version, "6.2.0") do
+        :lt ->
+          labels
+          |> Enum.reduce([], fn label, acc ->
+            # if the label is a text contact, it's removed from page
+            # since it has been replaced with contact stickers
+            if Map.has_key?(label, "text-contact") do
+              acc
+            else
+              case label do
+                %{"s3_key" => _key, "question" => "audio"} -> acc
+                label -> [process_label(label) | acc]
+              end
+            end
+          end)
 
-                _ ->
+        _ ->
+          labels
+          |> Enum.reduce([], fn label, acc ->
+            # if the label is a text contact, it's removed from page
+            # since it has been replaced with contact stickers
+            if Map.has_key?(label, "text-contact") do
+              acc
+            else
+              case label do
+                %{"s3_key" => key, "question" => "audio"} ->
                   label = Map.put(label, "url", Accounts.voice_url(key))
                   [label | acc]
-              end
 
-            label ->
-              [process_label(label) | acc]
-          end
-        end
-      end)
+                label ->
+                  [process_label(label) | acc]
+              end
+            end
+          end)
+      end
       |> :lists.reverse()
 
     %{page | "labels" => labels}

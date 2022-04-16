@@ -187,7 +187,7 @@ defmodule TWeb.ProfileLive.Index do
 
       ~H"""
       <div class="absolute font-medium text-white" style={@style}>
-        <.text_label text={@label["value"] || @label["answer"]} alignment={@alignment} bg={@label["background_fill"]} />
+        <.text_label text={@label["value"] || @label["answer"] || @label["question"]} alignment={@alignment} bg={@label["background_fill"]} />
       </div>
       """
     end

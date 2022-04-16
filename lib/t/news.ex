@@ -295,6 +295,62 @@ defmodule T.News do
                   "background" => %{"color" => "#F97EB9"}
                 }
               ]
+            },
+            %{
+              id: 5,
+              timestamp: ~U[2022-04-17 10:00:00Z],
+              version: "6.2.0",
+              story: [
+                %{
+                  "size" => [390, 844],
+                  "labels" => [
+                    %{
+                      "zoom" => 1.457105408422635,
+                      "s3_key" => "6173e9c3-b6ae-4509-a272-b6d603d2b23f",
+                      "duration" => 9.91764172335601,
+                      "position" => [68.4744178219179, 353.3155172684568],
+                      "question" => "audio",
+                      "rotation" => 0,
+                      "waveform" =>
+                        "AAAAAFKkkHEYOkbGVZhpTA1Q5lwHJbWUMqmkldglbCGkFP0MnVUSK4OEEUIgzUFZmjvtuQOVWyqpNAIIAYQA",
+                      "icon_color" => "#111010",
+                      "background_color" => "#FFFFFF"
+                    },
+                    %{
+                      "zoom" => 1,
+                      "value" => "ПРИВЕТ, ЭТО КЛАССНОЕ \nОБНОВЛЕНИЕ ✨",
+                      "position" => [59, 191.99998982747397],
+                      "rotation" => 0,
+                      "alignment" => 1,
+                      "text_color" => "#111010",
+                      "corner_radius" => 0,
+                      "background_fill" => "#FFFFFF"
+                    },
+                    %{
+                      "action" => "add_voice_sticker",
+                      "zoom" => 1,
+                      "value" => "ПОПРОБОВАТЬ",
+                      "position" => [106.33333333333331, 659.7709461331171],
+                      "rotation" => 0,
+                      "alignment" => 1,
+                      "text_color" => "#111010",
+                      "corner_radius" => 1,
+                      "background_fill" => "#FFFFFF"
+                    },
+                    %{
+                      "zoom" => 1,
+                      "value" => "ПОПРОБУЙ НОВЫЕ \nГОЛОСОВЫЕ СТИКЕРЫ \nИ ДОБАВЬ ИХ В ПРОФИЛЬ \n🎙",
+                      "position" => [55.1666615804036, 488.0000050862629],
+                      "rotation" => 0,
+                      "alignment" => 1,
+                      "text_color" => "#111010",
+                      "corner_radius" => 0,
+                      "background_fill" => "#FFFFFF"
+                    }
+                  ],
+                  "background" => %{"color" => "#F97EB9"}
+                }
+              ]
             }
           ]
 
@@ -447,6 +503,62 @@ defmodule T.News do
                       "text_color" => "#111010",
                       "corner_radius" => 1,
                       "background_fill" => "#FFFFFF"
+                    }
+                  ],
+                  "background" => %{"color" => "#F97EB9"}
+                }
+              ]
+            },
+            %{
+              id: 5,
+              timestamp: ~U[2022-04-17 10:00:00Z],
+              version: "6.2.0",
+              story: [
+                %{
+                  "size" => [390, 844],
+                  "labels" => [
+                    %{
+                      "zoom" => 1,
+                      "value" => "TRY & ADD NEW VOICE\nSTICKERS TO YOUR PROFILE \n🎙",
+                      "position" => [47.5, 527.0000050862631],
+                      "rotation" => 0,
+                      "alignment" => 1,
+                      "text_color" => "#111010",
+                      "corner_radius" => 0,
+                      "background_fill" => "#FFFFFF"
+                    },
+                    %{
+                      "action" => "add_voice_sticker",
+                      "zoom" => 1,
+                      "value" => "TRY",
+                      "position" => [155.1666615804036, 662.4376077135208],
+                      "rotation" => 0,
+                      "alignment" => 1,
+                      "text_color" => "#111010",
+                      "corner_radius" => 1,
+                      "background_fill" => "#FFFFFF"
+                    },
+                    %{
+                      "zoom" => 1,
+                      "value" => "HEY, IT’S A COOL UPDATE!",
+                      "position" => [60.33333333333334, 184.5],
+                      "rotation" => 0,
+                      "alignment" => 1,
+                      "text_color" => "#111010",
+                      "corner_radius" => 0,
+                      "background_fill" => "#FFFFFF"
+                    },
+                    %{
+                      "zoom" => 1.4161878705011162,
+                      "s3_key" => "1832dd14-a795-460b-acb2-75dd0421cedd",
+                      "duration" => 7.473945578231293,
+                      "position" => [72.02059935551983, 347.77512939180696],
+                      "question" => "audio",
+                      "rotation" => 0,
+                      "waveform" =>
+                        "AAAAABg0vujEQo01hhpDSAwxQgDRWa42xtS1Rqk6Vs0nGWHme/hurq059OJj6tVII5GyrNtKcyaIEEIIIYQA",
+                      "icon_color" => "#111010",
+                      "background_color" => "#FFFFFF"
                     }
                   ],
                   "background" => %{"color" => "#F97EB9"}

@@ -2,36 +2,17 @@ defmodule TWeb.ViewHelpers do
   @moduledoc false
   alias T.Media
   alias T.Accounts
-  alias T.Accounts.Profile
 
   @type env :: :feed | :match | :profile
 
   @spec postprocess_story([map], String.t(), pos_integer(), env) :: [map]
-  def postprocess_story(story, "6." <> _rest = version, screen_width, env) when is_list(story) do
+  def postprocess_story(story, version, screen_width, env) when is_list(story) do
     Enum.map(story, fn page ->
       page
       |> blur(screen_width, env)
       |> add_bg_url(screen_width)
-      |> process_labels_v6(version)
+      |> process_labels(version)
     end)
-  end
-
-  def postprocess_story(story, _version, screen_width, _env) when is_list(story) do
-    story
-    |> Enum.reduce([], fn
-      # users on version < 6.0.0 don't support private pages
-      %{"blurred" => _} = _private_page, acc ->
-        acc
-
-      page, acc ->
-        rendered =
-          page
-          |> add_bg_url(screen_width)
-          |> process_labels_pre_v6()
-
-        [rendered | acc]
-    end)
-    |> :lists.reverse()
   end
 
   defp blur(%{"blurred" => %{"s3_key" => s3_key} = bg}, screen_width, :feed) do
@@ -61,41 +42,29 @@ defmodule TWeb.ViewHelpers do
     end
   end
 
-  defp process_labels_v6(%{"labels" => labels} = page, version) do
+  defp process_labels(%{"labels" => labels} = page, version) do
     # we do not add url for versions prior to 6.2.0 because they will be rendered incorrectly
     labels =
       case Version.compare(version, "6.2.0") do
         :lt ->
           labels
           |> Enum.reduce([], fn label, acc ->
-            # if the label is a text contact, it's removed from page
-            # since it has been replaced with contact stickers
-            if Map.has_key?(label, "text-contact") do
-              acc
-            else
-              case label do
-                %{"s3_key" => _key, "question" => "audio"} -> acc
-                label -> [process_label(label) | acc]
-              end
+            case label do
+              %{"s3_key" => _key, "question" => "audio"} -> acc
+              label -> [process_label(label) | acc]
             end
           end)
 
         _ ->
           labels
           |> Enum.reduce([], fn label, acc ->
-            # if the label is a text contact, it's removed from page
-            # since it has been replaced with contact stickers
-            if Map.has_key?(label, "text-contact") do
-              acc
-            else
-              case label do
-                %{"s3_key" => key, "question" => "audio"} ->
-                  label = Map.put(label, "url", Accounts.voice_url(key))
-                  [label | acc]
+            case label do
+              %{"s3_key" => key, "question" => "audio"} ->
+                label = Map.put(label, "url", Accounts.voice_url(key))
+                [label | acc]
 
-                label ->
-                  [process_label(label) | acc]
-              end
+              label ->
+                [process_label(label) | acc]
             end
           end)
       end
@@ -104,26 +73,7 @@ defmodule TWeb.ViewHelpers do
     %{page | "labels" => labels}
   end
 
-  defp process_labels_v6(page, _version), do: page
-
-  defp process_labels_pre_v6(%{"labels" => labels} = page) do
-    labels =
-      labels
-      |> Enum.reduce([], fn label, acc ->
-        # users on version < 6.0.0 don't support contact stickers, so they are removed
-        if Map.get(label, "question") in Profile.contacts() or Map.get(label, "text-change") do
-          acc
-        else
-          label = label |> process_label() |> Map.delete("text-contact")
-          [label | acc]
-        end
-      end)
-      |> :lists.reverse()
-
-    %{page | "labels" => labels}
-  end
-
-  defp process_labels_pre_v6(page), do: page
+  defp process_labels(page, _version), do: page
 
   defp process_label(%{"question" => "telegram", "answer" => handle} = label) do
     Map.put(label, "url", "https://t.me/" <> handle)

@@ -7,10 +7,6 @@ defmodule TWeb.ViewHelpersTest do
       %{
         "background" => %{"s3_key" => "bg1.jpg"},
         "labels" => [
-          # would be rendered in v5.2.3 and removed in v6.0.0
-          %{"value" => "Пиши мне сразу в тг: @putin", "text-contact" => true},
-          # text contact above has been manually replaced with a contact sticker
-          # they would be rendered in v6.0.0 and removed in v5.2.3
           %{"question" => "telegram", "answer" => "putin"},
           %{"question" => "whatsapp", "answer" => "79169752435"},
           %{"question" => "instagram", "answer" => "putin"},
@@ -35,12 +31,10 @@ defmodule TWeb.ViewHelpersTest do
       %{
         "background" => %{"s3_key" => "bg1.jpg"},
         "labels" => [
-          %{"value" => "Или позвони: +79169752435", "text-contact" => true},
           %{"question" => "phone", "answer" => "+79169752435"}
         ],
         "size" => [428, 926]
       },
-      # private stories are rendered in v6.0.0 and removed in v5.2.3
       %{
         "background" => %{"s3_key" => "naked.jpg"},
         "labels" => [],

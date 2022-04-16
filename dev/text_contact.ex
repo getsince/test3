@@ -1,13 +1,13 @@
-defmodule Dev.StoryBackground do
+defmodule Dev.TextContact do
   import Ecto.Query
-  alias T.{Repo, StoryBackground, Accounts.Profile}
+  alias T.{Repo, Accounts.Profile}
 
   def impacted_user_ids do
     %Postgrex.Result{columns: ["user_id"], rows: rows} =
       Repo.query!("""
       SELECT DISTINCT user_id
-      FROM (SELECT user_id, jsonb_array_elements(story) -> 'background' AS background FROM profiles) AS b
-      WHERE (b.background ->> 'proxy') is not null
+      FROM (SELECT user_id, jsonb_array_elements(jsonb_array_elements(story) -> 'labels') AS label FROM profiles) AS l
+      WHERE (l.label ->> 'text-contact') = 'true'
       """)
 
     Enum.map(rows, fn [user_id] -> Ecto.UUID.cast!(user_id) end)
@@ -22,7 +22,29 @@ defmodule Dev.StoryBackground do
 
   defp fix_profiles(profiles) do
     Enum.map(profiles, fn %{story: story} = profile ->
-      %{profile | story: StoryBackground.fix_story(story)}
+      %{profile | story: fix_story(story)}
+    end)
+  end
+
+  def fix_story(nil), do: nil
+
+  def fix_story(story) when is_list(story) do
+    Enum.map(story, fn
+      %{"labels" => labels} = page ->
+        labels =
+          labels
+          |> Enum.reduce([], fn label, acc ->
+            case label do
+              %{"text-contact" => _} -> acc
+              label -> [label | acc]
+            end
+          end)
+          |> :lists.reverse()
+
+        %{page | "labels" => labels}
+
+      page ->
+        page
     end)
   end
 

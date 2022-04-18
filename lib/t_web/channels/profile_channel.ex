@@ -1,7 +1,7 @@
 defmodule TWeb.ProfileChannel do
   use TWeb, :channel
   alias T.Accounts.Profile
-  alias T.{Accounts, Media}
+  alias T.{Accounts, Media, Spotify}
   alias TWeb.{ErrorView, ProfileView}
 
   @impl true
@@ -69,6 +69,13 @@ defmodule TWeb.ProfileChannel do
       end
 
     {:reply, reply, socket}
+  end
+
+  # TODO refresh after two hours
+  def handle_in("get-spotify-token", _params, socket) do
+    token = socket.assigns[:spotify_token] || Spotify.token()
+    socket = assign(socket, spotify_token: token)
+    {:reply, {:ok, %{token: token}}, socket}
   end
 
   # TODO remove

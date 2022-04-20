@@ -20,7 +20,13 @@ defmodule TWeb.MediaController do
 
   # if it's an audio/aac -> it's for profile story voice sticker
   defp upload_form("audio/aac" = content_type) do
-    {:ok, %{"key" => key} = fields} = Accounts.voice_upload_form(content_type)
-    %{url: Accounts.voice_s3_url(), key: key, fields: fields}
+    {:ok, %{"key" => key} = fields} = Accounts.media_upload_form(content_type)
+    %{url: Accounts.media_s3_url(), key: key, fields: fields}
+  end
+
+  # if it's an video/mp4 -> it's for profile story video background
+  defp upload_form("video/mp4" = content_type) do
+    {:ok, %{"key" => key} = fields} = Accounts.media_upload_form(content_type)
+    %{url: Accounts.media_s3_url(), key: key, fields: fields}
   end
 end

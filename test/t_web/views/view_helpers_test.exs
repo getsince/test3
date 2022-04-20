@@ -29,7 +29,7 @@ defmodule TWeb.ViewHelpersTest do
         "size" => [428, 926]
       },
       %{
-        "background" => %{"s3_key" => "bg1.jpg"},
+        "background" => %{"s3_key" => "thumbnail.jpg", "video_s3_key" => "video.mp4"},
         "labels" => [
           %{"question" => "phone", "answer" => "+79169752435"}
         ],
@@ -98,7 +98,7 @@ defmodule TWeb.ViewHelpersTest do
              },
              %{
                "background" => %{
-                 "s3_key" => "bg1.jpg",
+                 "s3_key" => "thumbnail.jpg",
                  "proxy" => "https://d1234.cloudfront.net" <> _
                },
                "labels" => [%{"answer" => "+79169752435", "question" => "phone"}],
@@ -180,7 +180,7 @@ defmodule TWeb.ViewHelpersTest do
              },
              %{
                "background" => %{
-                 "s3_key" => "bg1.jpg",
+                 "s3_key" => "thumbnail.jpg",
                  "proxy" => "https://d1234.cloudfront.net" <> _
                },
                "labels" => [%{"answer" => "+79169752435", "question" => "phone"}],

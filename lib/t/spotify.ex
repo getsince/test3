@@ -13,9 +13,14 @@ defmodule T.Spotify do
   def current_token do
     token = lookup_token() || refresh_token()
 
-    case token do
-      {token, _expiration_time} -> {:ok, token}
-      _ -> :error
+    if token do
+      {token, expiration_time} = token
+
+      expires_in = expiration_time - :os.system_time(:second)
+
+      {:ok, %{token: token, expires_in: expires_in}}
+    else
+      :error
     end
   end
 
@@ -35,7 +40,7 @@ defmodule T.Spotify do
     %{client_id: client_id, client_secret: client_secret}
   end
 
-  @spec refresh_token :: String.t()
+  @spec refresh_token :: String.t() | nil
   defp refresh_token do
     key = find_spotify_key()
     GenServer.call(__MODULE__, {:refresh_token, key})
@@ -61,7 +66,7 @@ defmodule T.Spotify do
   end
 
   defp token_still_valid({_token, expiration_time}, now \\ :os.system_time(:second)) do
-    expiration_time > now
+    expiration_time > now + 60
   end
 
   @spec request_token(String.t(), String.t(), integer) :: {String.t(), integer()} | nil

@@ -12,7 +12,7 @@ defmodule T.Application do
         {Task.Supervisor, name: T.TaskSupervisor},
         maybe_events(),
         APNS.Token,
-        unless_disabled(T.Spotify),
+        T.Spotify,
         maybe_finch(),
         maybe_cluster(),
         {Phoenix.PubSub, name: T.PubSub},

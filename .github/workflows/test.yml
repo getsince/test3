@@ -51,5 +51,6 @@ jobs:
 
       - name: Run tests
         env:
-          test: ${{ secrets.test }}
+          SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
+          SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
         run: mix test

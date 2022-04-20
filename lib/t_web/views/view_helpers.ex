@@ -60,7 +60,7 @@ defmodule TWeb.ViewHelpers do
           |> Enum.reduce([], fn label, acc ->
             case label do
               %{"s3_key" => key, "question" => "audio"} ->
-                label = Map.put(label, "url", Accounts.voice_url(key))
+                label = Map.put(label, "url", Accounts.media_url(key))
                 [label | acc]
 
               label ->

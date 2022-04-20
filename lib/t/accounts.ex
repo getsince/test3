@@ -532,7 +532,7 @@ defmodule T.Accounts do
     Media.user_s3_url()
   end
 
-  def voice_upload_form(content_type) do
+  def media_upload_form(content_type) do
     Media.sign_form_upload(
       Media.presign_config(),
       Media.media_bucket(),
@@ -545,11 +545,11 @@ defmodule T.Accounts do
     )
   end
 
-  def voice_s3_url do
+  def media_s3_url do
     Media.media_s3_url()
   end
 
-  def voice_url(s3_key) do
+  def media_url(s3_key) do
     Media.media_cdn_url(s3_key)
   end
 

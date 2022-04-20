@@ -1,22 +1,75 @@
 defmodule T.Spotify do
   @moduledoc "spotify api client"
 
+  use GenServer
+
   @spotify_token_url "https://accounts.spotify.com/api/token"
 
-  def token do
-    config = Application.get_env(:t, __MODULE__)
-    token(config)
+  def start_link(opts) do
+    GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
-  # TODO cache?
-  def token(config) do
+  @spec current_token :: {:ok, String.t()} | :error
+  def current_token do
+    token = lookup_token() || refresh_token()
+
+    case token do
+      {token, _expiration_time} -> {:ok, token}
+      _ -> :error
+    end
+  end
+
+  @spec lookup_token :: {String.t(), integer()} | nil
+  defp lookup_token do
+    case :ets.lookup(__MODULE__, :token) do
+      [{_, token}] -> if token_still_valid(token), do: token
+      [] -> nil
+    end
+  end
+
+  defp find_spotify_key do
+    config = Application.fetch_env!(:t, T.Spotify)
     client_id = Keyword.fetch!(config, :client_id)
     client_secret = Keyword.fetch!(config, :client_secret)
 
+    %{client_id: client_id, client_secret: client_secret}
+  end
+
+  @spec refresh_token :: String.t()
+  defp refresh_token do
+    key = find_spotify_key()
+    GenServer.call(__MODULE__, {:refresh_token, key})
+  end
+
+  @impl true
+  def init(_opts) do
+    __MODULE__ = :ets.new(__MODULE__, [:named_table])
+    {:ok, nil}
+  end
+
+  @impl true
+  def handle_call({:refresh_token, key}, _from, state) do
+    %{client_id: client_id, client_secret: client_secret} = key
+
+    if token = lookup_token() do
+      {:reply, token, state}
+    else
+      token = request_token(client_id, client_secret)
+      :ets.insert(__MODULE__, {:token, token})
+      {:reply, token, state}
+    end
+  end
+
+  defp token_still_valid({_token, expiration_time}, now \\ :os.system_time(:second)) do
+    expiration_time > now
+  end
+
+  @spec request_token(String.t(), String.t(), integer) :: {String.t(), integer()} | nil
+  defp request_token(client_id, client_secret, now \\ :os.system_time(:second)) do
     auth_key = Base.encode64(client_id <> ":" <> client_secret)
 
     headers = [
-      {"authorization", "basic " <> auth_key},
+      {"authorization", "Basic " <> auth_key},
       {"content-type", "application/x-www-form-urlencoded"}
     ]
 
@@ -27,14 +80,17 @@ defmodule T.Spotify do
     case Finch.request(req, T.Finch, receive_timeout: 5000) do
       {:ok, %Finch.Response{status: _status, body: body, headers: _headers}} ->
         case Jason.decode(body) do
-          {:ok, %{"access_token" => token}} -> {:ok, %{token: token}}
-          {:ok, %{"error" => error}} -> {:error, %{reason: error}}
-          {:ok, body} -> {:error, %{reason: body}}
-          {:error, error} -> {:error, %{reason: error}}
+          {:ok, %{"access_token" => token, "expires_in" => expires_in}} ->
+            {token, now + expires_in}
+
+          json ->
+            Sentry.capture_message("failed to decode spotify token", extra: json)
+            nil
         end
 
-      {:error, reason} ->
-        {:error, %{reason: reason}}
+      reply ->
+        Sentry.capture_message("failed to receive spotify token", extra: reply)
+        nil
     end
   end
 end

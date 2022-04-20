@@ -73,9 +73,7 @@ defmodule TWeb.ProfileChannel do
 
   # TODO refresh after one hour
   def handle_in("get-spotify-token", _params, socket) do
-    token = socket.assigns[:spotify_token] || Spotify.token()
-    socket = assign(socket, spotify_token: token)
-    {:reply, {:ok, %{token: token}}, socket}
+    {:reply, Spotify.current_token(), socket}
   end
 
   # TODO remove

@@ -274,8 +274,8 @@ if config_env() == :test do
     media_cdn: "https://d6666.cloudfront.net"
 
   config :t, T.Spotify,
-    client_id: "1234",
-    client_secret: "5678"
+    client_id: System.fetch_env!("SPOTIFY_CLIENT_ID"),
+    client_secret: System.fetch_env!("SPOTIFY_CLIENT_SECRET")
 
   config :ex_aws,
     access_key_id: "AWS_ACCESS_KEY_ID",
@@ -292,7 +292,7 @@ if config_env() == :test do
 
   config :t, T.PushNotifications.APNS, default_topic: "app.topic"
   config :t, T.Periodics, disabled?: true
-  config :t, Finch, disabled?: true
+  config :t, Finch, disabled?: false
 
   # TODO
   config :t, primary_prefix: "nohost"

@@ -50,4 +50,6 @@ jobs:
         run: MIX_ENV=test mix compile --warnings-as-errors
 
       - name: Run tests
+        env:
+          test: ${{ secrets.test }}
         run: mix test

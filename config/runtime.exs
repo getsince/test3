@@ -129,6 +129,10 @@ if config_env() == :prod and not smoke? do
     media_bucket: System.fetch_env!("AWS_S3_BUCKET_MEDIA"),
     media_cdn: System.fetch_env!("MEDIA_CDN")
 
+  config :t, T.Spotify,
+    client_id: System.fetch_env!("SPOTIFY_CLIENT_ID"),
+    client_secret: System.fetch_env!("SPOTIFY_CLIENT_SECRET")
+
   config :t, T.Events,
     buffers: [:seen_buffer, :like_buffer, :contact_buffer],
     bucket: System.fetch_env!("AWS_S3_BUCKET_EVENTS")
@@ -227,6 +231,10 @@ if config_env() == :dev do
     media_bucket: System.fetch_env!("AWS_S3_BUCKET_MEDIA"),
     media_cdn: System.fetch_env!("MEDIA_CDN")
 
+  config :t, T.Spotify,
+    client_id: System.fetch_env!("SPOTIFY_CLIENT_ID"),
+    client_secret: System.fetch_env!("SPOTIFY_CLIENT_SECRET")
+
   config :t, T.Events, buffers: false, bucket: System.get_env("AWS_S3_BUCKET_EVENTS")
   config :t, T.Media.Static, disabled?: !!System.get_env("DISABLE_MEDIA")
   config :t, T.Periodics, disabled?: !!System.get_env("DISABLE_PERIODICS")
@@ -265,6 +273,10 @@ if config_env() == :test do
     static_cdn: "https://d4321.cloudfront.net",
     media_cdn: "https://d6666.cloudfront.net"
 
+  config :t, T.Spotify,
+    client_id: System.fetch_env!("SPOTIFY_CLIENT_ID"),
+    client_secret: System.fetch_env!("SPOTIFY_CLIENT_SECRET")
+
   config :ex_aws,
     access_key_id: "AWS_ACCESS_KEY_ID",
     secret_access_key: "AWS_SECRET_ACCESS_KEY"
@@ -280,7 +292,7 @@ if config_env() == :test do
 
   config :t, T.PushNotifications.APNS, default_topic: "app.topic"
   config :t, T.Periodics, disabled?: true
-  config :t, Finch, disabled?: true
+  config :t, Finch, disabled?: false
 
   # TODO
   config :t, primary_prefix: "nohost"

@@ -50,4 +50,7 @@ jobs:
         run: MIX_ENV=test mix compile --warnings-as-errors
 
       - name: Run tests
-        run: mix test
+        env:
+          SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
+          SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
+        run: mix test --include integration

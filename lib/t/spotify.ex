@@ -83,12 +83,16 @@ defmodule T.Spotify do
           {:ok, %{"access_token" => token, "expires_in" => expires_in}} ->
             {token, now + expires_in}
 
-          json ->
-            Sentry.capture_message("failed to decode spotify token", extra: json)
+          {:ok, extra} ->
+            Sentry.capture_message("failed to decode spotify token", extra: extra)
+            nil
+
+          {:error, extra} ->
+            Sentry.capture_message("failed to decode spotify token", extra: extra)
             nil
         end
 
-      reply ->
+      {:error, reply} ->
         Sentry.capture_message("failed to receive spotify token", extra: reply)
         nil
     end

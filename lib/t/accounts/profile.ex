@@ -192,7 +192,7 @@ defmodule T.Accounts.Profile do
 
     contact_label_changeset(label_name, label)
     |> update_change(:answer, &trim_handle/1)
-    |> label_validate_length(:answer, label_name, min: 2, max: 30)
+    |> label_validate_length(:answer, label_name, min: 1, max: 30)
     |> label_validate_format(
       :answer,
       label_name,

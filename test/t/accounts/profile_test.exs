@@ -360,19 +360,6 @@ defmodule T.Accounts.ProfileTest do
       refute changeset.valid?
       assert errors_on(changeset) == %{story: ["instagram username has invalid format"]}
 
-      # too short
-
-      too_short = %{"question" => "instagram", "answer" => " @P"}
-      changeset = Profile.story_changeset(%Profile{}, attrs.(too_short))
-      refute changeset.valid?
-
-      assert errors_on(changeset) == %{
-               story: [
-                 "instagram username should be at least 2 character(s)",
-                 "instagram username has invalid format"
-               ]
-             }
-
       # too long
 
       too_long = %{

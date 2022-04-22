@@ -401,8 +401,7 @@ defmodule T.News do
                       "artist" => "Sia",
                       "preview" =>
                         "https://p.scdn.co/mp3-preview/1c33af1033d742b3a11e1ee64a31038aab708683?cid=bb46df9e00484884abf679b374964d43",
-                      "spotify" =>
-                        "https:Elixir.ArgumentError//open.spotify.com/track/6MowG7MRVgPfGlCMsXKMJ2",
+                      "spotify" => "https://open.spotify.com/track/6MowG7MRVgPfGlCMsXKMJ2",
                       "position" => [58.516026862753876, 436.0599892685336],
                       "question" => "spotify",
                       "rotation" => -10.823884344665968,

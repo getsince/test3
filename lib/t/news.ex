@@ -351,6 +351,67 @@ defmodule T.News do
                   "background" => %{"color" => "#F97EB9"}
                 }
               ]
+            },
+            %{
+              id: 6,
+              timestamp: ~U[2022-04-23 10:00:00Z],
+              version: "6.2.1",
+              story: [
+                %{
+                  "size" => [390, 844],
+                  "labels" => [
+                    %{
+                      "action" => "add_spotify_sticker",
+                      "zoom" => 1,
+                      "value" => "ПОПРОБОВАТЬ",
+                      "position" => [106.5, 672.1042642076615],
+                      "rotation" => 0,
+                      "alignment" => 1,
+                      "text_color" => "#111010",
+                      "corner_radius" => 1,
+                      "background_fill" => "#FFFFFF"
+                    },
+                    %{
+                      "zoom" => 1,
+                      "value" => "ПРИВЕТ, ЭТО НОВЫЙ \nАПДЕЙТ 🎵",
+                      "position" => [77.33333333333333, 128.33333333333334],
+                      "rotation" => 0,
+                      "alignment" => 1,
+                      "text_color" => "#111010",
+                      "corner_radius" => 0,
+                      "background_fill" => "#FFFFFF"
+                    },
+                    %{
+                      "zoom" => 1,
+                      "value" =>
+                        "МУЗЫКАЛЬНЫЕ СТИКЕРЫ \n— ДОБАВЛЯЙ СВОИ \nЛЮБИМЫЕ ТРЕКИ \nВ ПРОФИЛЬ",
+                      "position" => [52.83333333333337, 221.16668192545575],
+                      "rotation" => 0,
+                      "alignment" => 1,
+                      "text_color" => "#111010",
+                      "corner_radius" => 0,
+                      "background_fill" => "#FFFFFF"
+                    },
+                    %{
+                      "id" => "6MowG7MRVgPfGlCMsXKMJ2",
+                      "name" => "Bird Set Free",
+                      "zoom" => 1.2880375414542946,
+                      "image" =>
+                        "https://i.scdn.co/image/ab67616d0000b273754b2fddebe7039fdb912837",
+                      "artist" => "Sia",
+                      "preview" =>
+                        "https://p.scdn.co/mp3-preview/1c33af1033d742b3a11e1ee64a31038aab708683?cid=bb46df9e00484884abf679b374964d43",
+                      "spotify" =>
+                        "https:Elixir.ArgumentError//open.spotify.com/track/6MowG7MRVgPfGlCMsXKMJ2",
+                      "position" => [58.516026862753876, 436.0599892685336],
+                      "question" => "spotify",
+                      "rotation" => -10.823884344665968,
+                      "background_color" => "#FFFFFF"
+                    }
+                  ],
+                  "background" => %{"color" => "#F97EB9"}
+                }
+              ]
             }
           ]
 
@@ -558,6 +619,65 @@ defmodule T.News do
                       "waveform" =>
                         "AAAAABg0vujEQo01hhpDSAwxQgDRWa42xtS1Rqk6Vs0nGWHme/hurq059OJj6tVII5GyrNtKcyaIEEIIIYQA",
                       "icon_color" => "#111010",
+                      "background_color" => "#FFFFFF"
+                    }
+                  ],
+                  "background" => %{"color" => "#F97EB9"}
+                }
+              ]
+            },
+            %{
+              id: 6,
+              timestamp: ~U[2022-04-23 10:00:00Z],
+              version: "6.2.1",
+              story: [
+                %{
+                  "size" => [390, 844],
+                  "labels" => [
+                    %{
+                      "zoom" => 1,
+                      "value" => "NEW UPDATE 🎵",
+                      "position" => [103.8333435058592, 147.49998474121094],
+                      "rotation" => 0,
+                      "alignment" => 1,
+                      "text_color" => "#111010",
+                      "corner_radius" => 0,
+                      "background_fill" => "#FFFFFF"
+                    },
+                    %{
+                      "zoom" => 1,
+                      "value" => "TRY MUSIC STICKERS AND \nADD YOUR FAVOURITE \nMUSIC TRACKS",
+                      "position" => [55.16666666666666, 211.00000508626303],
+                      "rotation" => 0,
+                      "alignment" => 1,
+                      "text_color" => "#111010",
+                      "corner_radius" => 0,
+                      "background_fill" => "#FFFFFF"
+                    },
+                    %{
+                      "action" => "add_spotify_sticker",
+                      "zoom" => 1,
+                      "value" => "TRY",
+                      "position" => [161.16666666666666, 680.5],
+                      "rotation" => 0,
+                      "alignment" => 1,
+                      "text_color" => "#111010",
+                      "corner_radius" => 1,
+                      "background_fill" => "#FFFFFF"
+                    },
+                    %{
+                      "id" => "6MowG7MRVgPfGlCMsXKMJ2",
+                      "name" => "Bird Set Free",
+                      "zoom" => 1.3601382489707192,
+                      "image" =>
+                        "https://i.scdn.co/image/ab67616d0000b273754b2fddebe7039fdb912837",
+                      "artist" => "Sia",
+                      "preview" =>
+                        "https://p.scdn.co/mp3-preview/1c33af1033d742b3a11e1ee64a31038aab708683?cid=bb46df9e00484884abf679b374964d43",
+                      "spotify" => "https://open.spotify.com/track/6MowG7MRVgPfGlCMsXKMJ2",
+                      "position" => [50.885368650598934, 437.0191935944803],
+                      "question" => "spotify",
+                      "rotation" => -11.373607793676973,
                       "background_color" => "#FFFFFF"
                     }
                   ],

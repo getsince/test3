@@ -232,8 +232,8 @@ if config_env() == :dev do
     media_cdn: System.fetch_env!("MEDIA_CDN")
 
   config :t, T.Spotify,
-    client_id: System.fetch_env!("SPOTIFY_CLIENT_ID"),
-    client_secret: System.fetch_env!("SPOTIFY_CLIENT_SECRET")
+    client_id: System.get_env("SPOTIFY_CLIENT_ID"),
+    client_secret: System.get_env("SPOTIFY_CLIENT_SECRET")
 
   config :t, T.Events, buffers: false, bucket: System.get_env("AWS_S3_BUCKET_EVENTS")
   config :t, T.Media.Static, disabled?: !!System.get_env("DISABLE_MEDIA")

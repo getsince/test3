@@ -274,8 +274,8 @@ if config_env() == :test do
     media_cdn: "https://d6666.cloudfront.net"
 
   config :t, T.Spotify,
-    client_id: System.fetch_env!("SPOTIFY_CLIENT_ID"),
-    client_secret: System.fetch_env!("SPOTIFY_CLIENT_SECRET")
+    client_id: System.get_env("SPOTIFY_CLIENT_ID") || "SPOTIFY_CLIENT_ID",
+    client_secret: System.get_env("SPOTIFY_CLIENT_SECRET") || "SPOTIFY_CLIENT_SECRET"
 
   config :ex_aws,
     access_key_id: "AWS_ACCESS_KEY_ID",

@@ -99,7 +99,9 @@ defmodule TWeb.ViewHelpersTest do
              %{
                "background" => %{
                  "s3_key" => "thumbnail.jpg",
-                 "proxy" => "https://d1234.cloudfront.net" <> _
+                 "proxy" => "https://d1234.cloudfront.net" <> _,
+                 "video_s3_key" => "video.mp4",
+                 "video_url" => "https://d6666.cloudfront.net/video.mp4"
                },
                "labels" => [%{"answer" => "+79169752435", "question" => "phone"}],
                "size" => [428, 926]
@@ -181,7 +183,9 @@ defmodule TWeb.ViewHelpersTest do
              %{
                "background" => %{
                  "s3_key" => "thumbnail.jpg",
-                 "proxy" => "https://d1234.cloudfront.net" <> _
+                 "proxy" => "https://d1234.cloudfront.net" <> _,
+                 "video_s3_key" => "video.mp4",
+                 "video_url" => "https://d6666.cloudfront.net/video.mp4"
                },
                "labels" => [%{"answer" => "+79169752435", "question" => "phone"}],
                "size" => [428, 926]

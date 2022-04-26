@@ -10,13 +10,13 @@ defmodule TWeb.ViewHelpers do
     Enum.map(story, fn page ->
       page
       |> blur(screen_width, env)
-      |> add_bg_url(screen_width)
+      |> add_bg_urls(screen_width)
       |> process_labels(version)
     end)
   end
 
   defp blur(%{"blurred" => %{"s3_key" => s3_key} = bg}, screen_width, :feed) do
-    bg = Map.merge(bg, s3_key_image_urls(s3_key, screen_width))
+    bg = maybe_put(bg, "proxy", image_cdn_url(s3_key, screen_width))
     %{"blurred" => bg, "private" => true}
   end
 
@@ -25,16 +25,25 @@ defmodule TWeb.ViewHelpers do
   end
 
   defp blur(%{"blurred" => %{"s3_key" => s3_key} = bg} = page, screen_width, :profile) do
-    bg = Map.merge(bg, s3_key_image_urls(s3_key, screen_width))
+    bg = maybe_put(bg, "proxy", image_cdn_url(s3_key, screen_width))
     page |> Map.put("blurred", bg) |> Map.put("private", true)
   end
 
   defp blur(page, _screen_width, _env), do: page
 
-  defp add_bg_url(page, screen_width) do
+  defp add_bg_urls(page, screen_width) do
     case page do
+      %{"background" => %{"video_s3_key" => video_key, "s3_key" => placeholder_key} = bg} = page
+      when not is_nil(video_key) ->
+        bg =
+          bg
+          |> maybe_put("proxy", image_cdn_url(placeholder_key, screen_width))
+          |> maybe_put("video_url", media_cdn_url(video_key))
+
+        %{page | "background" => bg}
+
       %{"background" => %{"s3_key" => key} = bg} = page when not is_nil(key) ->
-        bg = Map.merge(bg, s3_key_image_urls(key, screen_width))
+        bg = maybe_put(bg, "proxy", image_cdn_url(key, screen_width))
         %{page | "background" => bg}
 
       _ ->
@@ -117,7 +126,16 @@ defmodule TWeb.ViewHelpers do
 
   defp process_label(label), do: label
 
-  defp s3_key_image_urls(key, width) when is_binary(key) do
-    %{"proxy" => Media.user_imgproxy_cdn_url(key, width)}
+  defp image_cdn_url(key, width) when is_binary(key) do
+    Media.user_imgproxy_cdn_url(key, width)
   end
+
+  defp image_cdn_url(nil, _width), do: nil
+
+  defp media_cdn_url(key) when is_binary(key) do
+    Media.media_cdn_url(key)
+  end
+
+  defp maybe_put(map, _k, nil), do: map
+  defp maybe_put(map, k, v), do: Map.put(map, k, v)
 end

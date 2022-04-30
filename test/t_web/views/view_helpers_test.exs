@@ -27,7 +27,7 @@ defmodule TWeb.ViewHelpersTest do
           },
           %{
             "s3_key" => "038fbd69-ba44-42c2-8086-5213ff093ad5",
-            "placeholder_s3_key" => "038fbd69-ba44-42c2-8086-5213ff093ad5",
+            "video_s3_key" => "038fbd69",
             "duration" => 4.952947845804989,
             "question" => "video"
           }
@@ -186,9 +186,9 @@ defmodule TWeb.ViewHelpersTest do
                  %{
                    "duration" => 4.952947845804989,
                    "question" => "video",
-                   "s3_key" => "038fbd69-ba44-42c2-8086-5213ff093ad5",
+                   "video_s3_key" => "038fbd69",
                    "url" => "https://d6666.cloudfront.net" <> _,
-                   "placeholder_s3_key" => "038fbd69-ba44-42c2-8086-5213ff093ad5",
+                   "s3_key" => "038fbd69-ba44-42c2-8086-5213ff093ad5",
                    "proxy" => "https://d1234.cloudfront.net" <> _
                  }
                ],

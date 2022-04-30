@@ -74,13 +74,13 @@ defmodule TWeb.ViewHelpers do
 
               %{
                 "s3_key" => key,
-                "placeholder_s3_key" => placeholder_s3_key,
+                "video_s3_key" => video_s3_key,
                 "question" => "video"
               } ->
                 label =
                   label
-                  |> Map.put("url", media_cdn_url(key))
-                  |> Map.put("proxy", image_cdn_url(placeholder_s3_key, screen_width))
+                  |> Map.put("url", media_cdn_url(video_s3_key))
+                  |> Map.put("proxy", image_cdn_url(key, screen_width))
 
                 [label | acc]
 

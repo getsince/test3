@@ -24,6 +24,12 @@ defmodule TWeb.ViewHelpersTest do
             "question" => "audio",
             "waveform" =>
               "B7UZsWtPLtbgYg1SRenEdP154VNLVXTQMaQUQkoh55hSCimnEGIIIcSUUkwhhJBSjDGGHINOOqYUckophJQC"
+          },
+          %{
+            "s3_key" => "038fbd69-ba44-42c2-8086-5213ff093ad5",
+            "video_s3_key" => "038fbd69",
+            "duration" => 4.952947845804989,
+            "question" => "video"
           }
         ],
         "size" => [428, 926]
@@ -176,6 +182,14 @@ defmodule TWeb.ViewHelpersTest do
                    "url" => audio_url,
                    "waveform" =>
                      "B7UZsWtPLtbgYg1SRenEdP154VNLVXTQMaQUQkoh55hSCimnEGIIIcSUUkwhhJBSjDGGHINOOqYUckophJQC"
+                 },
+                 %{
+                   "duration" => 4.952947845804989,
+                   "question" => "video",
+                   "video_s3_key" => "038fbd69",
+                   "url" => "https://d6666.cloudfront.net" <> _,
+                   "s3_key" => "038fbd69-ba44-42c2-8086-5213ff093ad5",
+                   "proxy" => "https://d1234.cloudfront.net" <> _
                  }
                ],
                "size" => [428, 926]

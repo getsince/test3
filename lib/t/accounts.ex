@@ -549,10 +549,6 @@ defmodule T.Accounts do
     Media.media_s3_url()
   end
 
-  def media_url(s3_key) do
-    Media.media_cdn_url(s3_key)
-  end
-
   def get_profile!(%User{id: user_id}) do
     get_profile!(user_id)
   end

@@ -411,6 +411,57 @@ defmodule T.News do
                   "background" => %{"color" => "#F97EB9"}
                 }
               ]
+            },
+            %{
+              id: 7,
+              timestamp: ~U[2022-05-01 10:00:00Z],
+              version: "6.3.0",
+              story: [
+                %{
+                  "size" => [390, 844],
+                  "labels" => [
+                    %{
+                      "zoom" => 0.7900495540705151,
+                      "value" => "ПРИВЕТ, ЭТО НОВЫЙ \nАПДЕЙТ 📹",
+                      "position" => [102.03750247103605, 28.79068192545573],
+                      "rotation" => 0,
+                      "alignment" => 1,
+                      "text_color" => "#111010",
+                      "corner_radius" => 0,
+                      "background_fill" => "#FFFFFF"
+                    },
+                    %{
+                      "zoom" => 0.7691950904818243,
+                      "value" => "ТЕПЕРЬ МОЖНО ДОБАВИТЬ \nВИДЕО В СВОЙ ПРОФИЛЬ",
+                      "position" => [80.90272824519602, 96.59111808177315],
+                      "rotation" => 0,
+                      "alignment" => 1,
+                      "text_color" => "#111010",
+                      "corner_radius" => 0,
+                      "background_fill" => "#FFFFFF"
+                    },
+                    %{
+                      "action" => "pick_background",
+                      "zoom" => 1,
+                      "value" => "ПОПРОБОВАТЬ",
+                      "position" => [106.33333333333331, 727.3127977092473],
+                      "rotation" => 0,
+                      "alignment" => 1,
+                      "text_color" => "#111010",
+                      "corner_radius" => 1,
+                      "background_fill" => "#FFFFFF"
+                    }
+                  ],
+                  "background" => %{
+                    "zoom" => 0.6882104232606352,
+                    "color" => "#D0F85F",
+                    "s3_key" => "50197722-a674-4bf0-a96a-f9108de097a7",
+                    "position" => [60.798967464176144, 131.57520138401196],
+                    "rotation" => -0.04575294846351457,
+                    "video_s3_key" => "3ee97c73-5869-413d-a8f3-871af488c87e"
+                  }
+                }
+              ]
             }
           ]
 
@@ -681,6 +732,57 @@ defmodule T.News do
                     }
                   ],
                   "background" => %{"color" => "#F97EB9"}
+                }
+              ]
+            },
+            %{
+              id: 7,
+              timestamp: ~U[2022-05-01 10:00:00Z],
+              version: "6.3.0",
+              story: [
+                %{
+                  "size" => [390, 844],
+                  "labels" => [
+                    %{
+                      "action" => "pick_background",
+                      "zoom" => 1,
+                      "value" => "TRY",
+                      "position" => [160.99999999999997, 700.8333282470703],
+                      "rotation" => 0,
+                      "alignment" => 1,
+                      "text_color" => "#111010",
+                      "corner_radius" => 1,
+                      "background_fill" => "#FFFFFF"
+                    },
+                    %{
+                      "zoom" => 1,
+                      "value" => "NEW UPDATE 📹",
+                      "position" => [103.8333435058592, 28.95731807454428],
+                      "rotation" => 0,
+                      "alignment" => 1,
+                      "text_color" => "#111010",
+                      "corner_radius" => 0,
+                      "background_fill" => "#FFFFFF"
+                    },
+                    %{
+                      "zoom" => 0.8795544139202892,
+                      "value" => "NOW YOU CAN ADD A VIDEO \nTO YOUR PROFILE",
+                      "position" => [65.81195011360731, 82.65721915588944],
+                      "rotation" => 0.0000000000000004520122108317562,
+                      "alignment" => 1,
+                      "text_color" => "#111010",
+                      "corner_radius" => 0,
+                      "background_fill" => "#FFFFFF"
+                    }
+                  ],
+                  "background" => %{
+                    "zoom" => 0.6394023869722604,
+                    "color" => "#D0F85F",
+                    "s3_key" => "437edee1-f4a3-4175-b854-45a2b17d7a4b",
+                    "position" => [70.31653454040922, 152.17219269770612],
+                    "rotation" => -0.1767680149137344,
+                    "video_s3_key" => "9781d5a7-653c-45a0-84bc-eab48f8e8d93"
+                  }
                 }
               ]
             }

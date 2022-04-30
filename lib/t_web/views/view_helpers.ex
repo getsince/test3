@@ -1,7 +1,6 @@
 defmodule TWeb.ViewHelpers do
   @moduledoc false
   alias T.Media
-  alias T.Accounts
 
   @type env :: :feed | :match | :profile
 
@@ -11,7 +10,7 @@ defmodule TWeb.ViewHelpers do
       page
       |> blur(screen_width, env)
       |> add_bg_urls(screen_width)
-      |> process_labels(version)
+      |> process_labels(version, screen_width)
     end)
   end
 
@@ -51,7 +50,7 @@ defmodule TWeb.ViewHelpers do
     end
   end
 
-  defp process_labels(%{"labels" => labels} = page, version) do
+  defp process_labels(%{"labels" => labels} = page, version, screen_width) do
     # we do not add url for versions prior to 6.2.0 because they will be rendered incorrectly
     labels =
       case Version.compare(version, "6.2.0") do
@@ -60,6 +59,7 @@ defmodule TWeb.ViewHelpers do
           |> Enum.reduce([], fn label, acc ->
             case label do
               %{"s3_key" => _key, "question" => "audio"} -> acc
+              %{"s3_key" => _key, "question" => "video"} -> acc
               label -> [process_label(label) | acc]
             end
           end)
@@ -69,7 +69,19 @@ defmodule TWeb.ViewHelpers do
           |> Enum.reduce([], fn label, acc ->
             case label do
               %{"s3_key" => key, "question" => "audio"} ->
-                label = Map.put(label, "url", Accounts.media_url(key))
+                label = Map.put(label, "url", media_cdn_url(key))
+                [label | acc]
+
+              %{
+                "s3_key" => key,
+                "placeholder_s3_key" => placeholder_s3_key,
+                "question" => "video"
+              } ->
+                label =
+                  label
+                  |> Map.put("url", media_cdn_url(key))
+                  |> Map.put("proxy", image_cdn_url(placeholder_s3_key, screen_width))
+
                 [label | acc]
 
               label ->
@@ -82,7 +94,7 @@ defmodule TWeb.ViewHelpers do
     %{page | "labels" => labels}
   end
 
-  defp process_labels(page, _version), do: page
+  defp process_labels(page, _version, _screen_width), do: page
 
   defp process_label(%{"question" => "telegram", "answer" => handle} = label) do
     Map.put(label, "url", "https://t.me/" <> handle)

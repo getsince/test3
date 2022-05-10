@@ -462,6 +462,78 @@ defmodule T.News do
                   }
                 }
               ]
+            },
+            %{
+              id: 8,
+              timestamp: ~U[2022-05-10 22:00:00Z],
+              version: "6.3.2",
+              story: [
+                %{
+                  "size" => [390, 844],
+                  "labels" => [
+                    %{
+                      "zoom" => 1,
+                      "action" => "add_video_sticker",
+                      "value" => "ПОПРОБОВАТЬ",
+                      "position" => [106.37444825329857, 659.5],
+                      "rotation" => 0,
+                      "alignment" => 1,
+                      "text_color" => "#111010",
+                      "corner_radius" => 1,
+                      "background_fill" => "#FFFFFF"
+                    },
+                    %{
+                      "zoom" => 1,
+                      "value" => "НОВЫЙ АПДЕЙТ: ВИДЕО-\nСТИКЕРЫ ✨",
+                      "position" => [59.83424939948725, 149.6666463216146],
+                      "rotation" => 0,
+                      "alignment" => 1,
+                      "text_color" => "#111010",
+                      "corner_radius" => 0,
+                      "background_fill" => "#FFFFFF"
+                    },
+                    %{
+                      "zoom" => 1.4884624543018328,
+                      "s3_key" => "a786c371-b346-4d1f-a032-4d7ee35a2217",
+                      "duration" => 1.6,
+                      "position" => [92.85716214058026, 383.715866692624],
+                      "question" => "video",
+                      "rotation" => 0,
+                      "video_s3_key" => "c9674b14-d5de-4e64-963f-d2b578397af1"
+                    },
+                    %{
+                      "zoom" => 1,
+                      "value" => "ПОПРОБУЙ И ДОБАВЬ \nВ СВОЙ ПРОФИЛЬ👇",
+                      "position" => [72.39217465079425, 247.00000508626303],
+                      "rotation" => 0,
+                      "alignment" => 1,
+                      "text_color" => "#111010",
+                      "corner_radius" => 0,
+                      "background_fill" => "#FFFFFF"
+                    }
+                  ],
+                  "background" => %{"color" => "#5E50FC"}
+                }
+              ]
+            },
+            %{
+              id: 9,
+              timestamp: ~U[2022-05-10 22:00:00Z],
+              version: "6.3.2",
+              story: [
+                %{
+                  "size" => [428, 926],
+                  "labels" => [],
+                  "background" => %{
+                    "zoom" => 1,
+                    "color" => "#B2688C",
+                    "s3_key" => "69ad75a3-fcb6-4d7c-96fb-9b0c33e913ad",
+                    "position" => [0, 0],
+                    "rotation" => 0,
+                    "video_s3_key" => "1c517358-7691-4c91-8778-81eac664231b"
+                  }
+                }
+              ]
             }
           ]
 
@@ -782,6 +854,78 @@ defmodule T.News do
                     "position" => [70.31653454040922, 152.17219269770612],
                     "rotation" => -0.1767680149137344,
                     "video_s3_key" => "9781d5a7-653c-45a0-84bc-eab48f8e8d93"
+                  }
+                }
+              ]
+            },
+            %{
+              id: 8,
+              timestamp: ~U[2022-05-10 22:00:00Z],
+              version: "6.3.2",
+              story: [
+                %{
+                  "size" => [390, 844],
+                  "labels" => [
+                    %{
+                      "zoom" => 1,
+                      "value" => "NEW UPDATE: VIDEO \nSTICKERS ✨",
+                      "position" => [82.07597805605457, 149.66667683919272],
+                      "rotation" => 0,
+                      "alignment" => 1,
+                      "text_color" => "#111010",
+                      "corner_radius" => 0,
+                      "background_fill" => "#FFFFFF"
+                    },
+                    %{
+                      "zoom" => 1,
+                      "action" => "add_video_sticker",
+                      "value" => "TRY",
+                      "position" => [161.26061894440966, 658.1414639833736],
+                      "rotation" => 0,
+                      "alignment" => 1,
+                      "text_color" => "#111010",
+                      "corner_radius" => 1,
+                      "background_fill" => "#FFFFFF"
+                    },
+                    %{
+                      "zoom" => 1,
+                      "value" => "TRY AND ADD TO YOUR \nPROFILE 👇",
+                      "position" => [71.49872149667277, 242.66666158040366],
+                      "rotation" => 0,
+                      "alignment" => 1,
+                      "text_color" => "#111010",
+                      "corner_radius" => 0,
+                      "background_fill" => "#FFFFFF"
+                    },
+                    %{
+                      "zoom" => 1.4968963309343162,
+                      "s3_key" => "9cdc2947-dbe0-458b-8a1b-726ae634b645",
+                      "duration" => 1.5316666666666667,
+                      "position" => [92.27943650499229, 375.3048051805708],
+                      "question" => "video",
+                      "rotation" => 0,
+                      "video_s3_key" => "028059bf-9703-40ab-ac0f-4e431832f203"
+                    }
+                  ],
+                  "background" => %{"color" => "#5E50FC"}
+                }
+              ]
+            },
+            %{
+              id: 9,
+              timestamp: ~U[2022-05-10 22:00:00Z],
+              version: "6.3.2",
+              story: [
+                %{
+                  "size" => [428, 926],
+                  "labels" => [],
+                  "background" => %{
+                    "zoom" => 1,
+                    "color" => "#B1698C",
+                    "s3_key" => "f640677c-9a5a-4a30-b095-85ed7d111171",
+                    "position" => [0, 0],
+                    "rotation" => 0,
+                    "video_s3_key" => "f958297d-9b59-49a1-9286-eaaae4884305"
                   }
                 }
               ]

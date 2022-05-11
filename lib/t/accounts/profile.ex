@@ -12,6 +12,7 @@ defmodule T.Accounts.Profile do
 
     field :story, {:array, :map}
     field :location, Geo.PostGIS.Geometry
+    field :address, :map
 
     # filters
     field :gender_preference, {:array, :string}, virtual: true
@@ -65,6 +66,7 @@ defmodule T.Accounts.Profile do
       :name,
       :gender,
       :location,
+      :address,
       :birthdate,
       :min_age,
       :max_age,

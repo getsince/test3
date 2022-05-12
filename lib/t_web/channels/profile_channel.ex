@@ -71,8 +71,13 @@ defmodule TWeb.ProfileChannel do
     {:reply, reply, socket}
   end
 
-  def handle_in("get-spotify-token", _params, socket) do
+  def handle_in("get-spotify-token", _params, %{} = socket) do
     {:reply, Spotify.current_token(), socket}
+  end
+
+  def handle_in("update-address", address, socket) do
+    %{current_user: %{id: user_id}} = socket.assigns
+    {:reply, Accounts.update_address(user_id, address), socket}
   end
 
   # TODO remove

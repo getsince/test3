@@ -77,7 +77,15 @@ defmodule TWeb.FeedChannelTest do
                    story: [],
                    user_id: p3.id,
                    gender: "M",
-                   distance: 9510
+                   distance: 9510,
+                   address: %{
+                     "en_US" => %{
+                       "city" => "Buenos Aires",
+                       "state" => "Autonomous City of Buenos Aires",
+                       "country" => "Argentina",
+                       "iso_country_code" => "AR"
+                     }
+                   }
                  },
                  "inserted_at" => ~U[2021-09-30 12:16:07Z],
                  "expiration_date" => ~U[2021-10-01 12:16:07Z]
@@ -120,7 +128,15 @@ defmodule TWeb.FeedChannelTest do
                      story: [],
                      user_id: mate1.id,
                      gender: "F",
-                     distance: 9510
+                     distance: 9510,
+                     address: %{
+                       "en_US" => %{
+                         "city" => "Buenos Aires",
+                         "state" => "Autonomous City of Buenos Aires",
+                         "country" => "Argentina",
+                         "iso_country_code" => "AR"
+                       }
+                     }
                    }
                  },
                  %{
@@ -129,7 +145,15 @@ defmodule TWeb.FeedChannelTest do
                      story: [],
                      user_id: mate2.id,
                      gender: "F",
-                     distance: 9510
+                     distance: 9510,
+                     address: %{
+                       "en_US" => %{
+                         "city" => "Buenos Aires",
+                         "state" => "Autonomous City of Buenos Aires",
+                         "country" => "Argentina",
+                         "iso_country_code" => "AR"
+                       }
+                     }
                    },
                    "seen" => true
                  }
@@ -296,7 +320,15 @@ defmodule TWeb.FeedChannelTest do
                        "labels" => []
                      }
                    ],
-                   distance: 0
+                   distance: 0,
+                   address: %{
+                     "en_US" => %{
+                       "city" => "Buenos Aires",
+                       "state" => "Autonomous City of Buenos Aires",
+                       "country" => "Argentina",
+                       "iso_country_code" => "AR"
+                     }
+                   }
                  }
                },
                %{
@@ -314,7 +346,15 @@ defmodule TWeb.FeedChannelTest do
                        "labels" => []
                      }
                    ],
-                   distance: 9510
+                   distance: 9510,
+                   address: %{
+                     "en_US" => %{
+                       "city" => "Buenos Aires",
+                       "state" => "Autonomous City of Buenos Aires",
+                       "country" => "Argentina",
+                       "iso_country_code" => "AR"
+                     }
+                   }
                  }
                }
              ]
@@ -342,7 +382,15 @@ defmodule TWeb.FeedChannelTest do
                        "labels" => []
                      }
                    ],
-                   distance: 9510
+                   distance: 9510,
+                   address: %{
+                     "en_US" => %{
+                       "city" => "Buenos Aires",
+                       "state" => "Autonomous City of Buenos Aires",
+                       "country" => "Argentina",
+                       "iso_country_code" => "AR"
+                     }
+                   }
                  }
                }
              ]
@@ -413,7 +461,15 @@ defmodule TWeb.FeedChannelTest do
                        "labels" => []
                      }
                    ],
-                   distance: 9510
+                   distance: 9510,
+                   address: %{
+                     "en_US" => %{
+                       "city" => "Buenos Aires",
+                       "state" => "Autonomous City of Buenos Aires",
+                       "country" => "Argentina",
+                       "iso_country_code" => "AR"
+                     }
+                   }
                  }
                }
              ]
@@ -471,7 +527,15 @@ defmodule TWeb.FeedChannelTest do
                        "labels" => []
                      }
                    ],
-                   distance: 0
+                   distance: 0,
+                   address: %{
+                     "en_US" => %{
+                       "city" => "Buenos Aires",
+                       "state" => "Autonomous City of Buenos Aires",
+                       "country" => "Argentina",
+                       "iso_country_code" => "AR"
+                     }
+                   }
                  }
                }
              ]
@@ -507,7 +571,15 @@ defmodule TWeb.FeedChannelTest do
                        "labels" => []
                      }
                    ],
-                   distance: 0
+                   distance: 0,
+                   address: %{
+                     "en_US" => %{
+                       "city" => "Buenos Aires",
+                       "state" => "Autonomous City of Buenos Aires",
+                       "country" => "Argentina",
+                       "iso_country_code" => "AR"
+                     }
+                   }
                  }
                },
                %{
@@ -525,7 +597,15 @@ defmodule TWeb.FeedChannelTest do
                        "labels" => []
                      }
                    ],
-                   distance: 9510
+                   distance: 9510,
+                   address: %{
+                     "en_US" => %{
+                       "city" => "Buenos Aires",
+                       "state" => "Autonomous City of Buenos Aires",
+                       "country" => "Argentina",
+                       "iso_country_code" => "AR"
+                     }
+                   }
                  }
                }
              ]
@@ -627,7 +707,15 @@ defmodule TWeb.FeedChannelTest do
                  name: "Private Stacy",
                  story: story,
                  user_id: mate.id,
-                 distance: 9510
+                 distance: 9510,
+                 address: %{
+                   "en_US" => %{
+                     "city" => "Buenos Aires",
+                     "state" => "Autonomous City of Buenos Aires",
+                     "country" => "Argentina",
+                     "iso_country_code" => "AR"
+                   }
+                 }
                }
              }
 
@@ -698,7 +786,15 @@ defmodule TWeb.FeedChannelTest do
                    story: story,
                    user_id: mate.id,
                    gender: "F",
-                   distance: 9510
+                   distance: 9510,
+                   address: %{
+                     "en_US" => %{
+                       "city" => "Buenos Aires",
+                       "state" => "Autonomous City of Buenos Aires",
+                       "country" => "Argentina",
+                       "iso_country_code" => "AR"
+                     }
+                   }
                  },
                  "expiration_date" => expiration_date,
                  "inserted_at" => inserted_at

@@ -25,7 +25,8 @@ defmodule TWeb.ProfileChannelTest do
                story: [],
                gender: nil,
                name: nil,
-               birthdate: nil
+               birthdate: nil,
+               address: nil
              }
     end
   end
@@ -176,7 +177,15 @@ defmodule TWeb.ProfileChannelTest do
                latitude: 55.755833,
                longitude: 37.617222,
                birthdate: ~D[1998-10-28],
-               user_id: user.id
+               user_id: user.id,
+               address: %{
+                 "en_US" => %{
+                   "city" => "Buenos Aires",
+                   "state" => "Autonomous City of Buenos Aires",
+                   "country" => "Argentina",
+                   "iso_country_code" => "AR"
+                 }
+               }
              }
     end
   end
@@ -226,7 +235,15 @@ defmodule TWeb.ProfileChannelTest do
             "gender_preference" => ["F", "M"],
             "distance" => 10,
             "min_age" => 18,
-            "max_age" => 40
+            "max_age" => 40,
+            "address" => %{
+              "en_US" => %{
+                "city" => "Buenos Aires",
+                "state" => "Autonomous City of Buenos Aires",
+                "country" => "Argentina",
+                "iso_country_code" => "AR"
+              }
+            }
           }
         })
 
@@ -268,7 +285,15 @@ defmodule TWeb.ProfileChannelTest do
                  ],
                  gender: "F",
                  name: "hey that's me CLARISA",
-                 birthdate: ~D[1995-10-28]
+                 birthdate: ~D[1995-10-28],
+                 address: %{
+                   "en_US" => %{
+                     "city" => "Buenos Aires",
+                     "state" => "Autonomous City of Buenos Aires",
+                     "country" => "Argentina",
+                     "iso_country_code" => "AR"
+                   }
+                 }
                }
              }
 

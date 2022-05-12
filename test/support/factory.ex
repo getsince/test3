@@ -120,6 +120,16 @@ defmodule T.Factory do
       name: opts[:name] || "that",
       gender_preference: opts[:accept_genders] || ["F"],
       distance: opts[:distance],
+      address:
+        opts[:address] ||
+          %{
+            "en_US" => %{
+              "city" => "Buenos Aires",
+              "state" => "Autonomous City of Buenos Aires",
+              "country" => "Argentina",
+              "iso_country_code" => "AR"
+            }
+          },
       max_age: opts[:max_age],
       min_age: opts[:min_age]
     }

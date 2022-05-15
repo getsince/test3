@@ -534,6 +534,69 @@ defmodule T.News do
                   }
                 }
               ]
+            },
+            %{
+              id: 10,
+              timestamp: ~U[2022-05-15 18:00:00Z],
+              version: "6.3.3",
+              story: [
+                %{
+                  "size" => [390, 844],
+                  "labels" => [
+                    %{
+                      "zoom" => 0.9817104354487304,
+                      "value" =>
+                        "У НАС НОВОСТИ: МЫ \nОБНОВИЛИ ЛЭЙАУТ \nИ ДОБАВИЛИ ЛОКАЦИЮ \nВ ИСТОРИИ",
+                      "position" => [63.76156683115224, 88.61791246243587],
+                      "rotation" => 0,
+                      "alignment" => 1,
+                      "text_color" => "#111010",
+                      "corner_radius" => 0,
+                      "background_fill" => "#FFFFFF"
+                    },
+                    %{
+                      "zoom" => 1,
+                      "value" => "👆",
+                      "position" => [63.464621936855806, 698.97480240297],
+                      "rotation" => 0,
+                      "alignment" => 1,
+                      "text_color" => "#111010",
+                      "corner_radius" => 0,
+                      "background_fill" => "#FFFFFF"
+                    },
+                    %{
+                      "zoom" => 1,
+                      "action" => "view_own_profile",
+                      "value" => "МОЙ ПРОФИЛЬ",
+                      "position" => [143.464621936855806, 698.97480240297],
+                      "rotation" => 0,
+                      "alignment" => 1,
+                      "text_color" => "#111010",
+                      "corner_radius" => 0,
+                      "background_fill" => "#FFFFFF"
+                    }
+                  ],
+                  "background" => %{
+                    "zoom" => 0.6459271262799298,
+                    "color" => "#646260",
+                    "s3_key" => "f93996b9-df1e-4f8a-85a3-ec6fd34779b4",
+                    "position" => [207.13263112624105, 448.2562581296089],
+                    "rotation" => 0
+                  }
+                },
+                %{
+                  "size" => [428, 926],
+                  "labels" => [],
+                  "background" => %{
+                    "zoom" => 1,
+                    "color" => "#000000",
+                    "s3_key" => "f1db77db-8173-4459-a5c8-3ee46f003682",
+                    "position" => [0, 0],
+                    "rotation" => 0,
+                    "video_s3_key" => "b3058393-738e-49b9-a796-ce1764e29757"
+                  }
+                }
+              ]
             }
           ]
 
@@ -926,6 +989,68 @@ defmodule T.News do
                     "position" => [0, 0],
                     "rotation" => 0,
                     "video_s3_key" => "f958297d-9b59-49a1-9286-eaaae4884305"
+                  }
+                }
+              ]
+            },
+            %{
+              id: 10,
+              timestamp: ~U[2022-05-15 18:00:00Z],
+              version: "6.3.3",
+              story: [
+                %{
+                  "size" => [390, 844],
+                  "labels" => [
+                    %{
+                      "zoom" => 1,
+                      "value" => "SOME NEWS: NEW LAYOUT \nAND LOCATION IN THE \nPROFILE ",
+                      "position" => [53.00552941671188, 114.08133841959636],
+                      "rotation" => 0,
+                      "alignment" => 1,
+                      "text_color" => "#111010",
+                      "corner_radius" => 0,
+                      "background_fill" => "#FFFFFF"
+                    },
+                    %{
+                      "zoom" => 1,
+                      "value" => "👆",
+                      "position" => [58.163362965788295, 714.5],
+                      "rotation" => 0,
+                      "alignment" => 1,
+                      "text_color" => "#111010",
+                      "corner_radius" => 0,
+                      "background_fill" => "#FFFFFF"
+                    },
+                    %{
+                      "zoom" => 1,
+                      "action" => "view_own_profile",
+                      "value" => "MY PROFILE",
+                      "position" => [138.163362965788295, 714.5],
+                      "rotation" => 0,
+                      "alignment" => 1,
+                      "text_color" => "#111010",
+                      "corner_radius" => 0,
+                      "background_fill" => "#FFFFFF"
+                    }
+                  ],
+                  "background" => %{
+                    "zoom" => 0.6891007091647834,
+                    "color" => "#64625F",
+                    "s3_key" => "d9e74b98-3d83-4272-b4ac-acecaa801ab9",
+                    "position" => [60.62536171286723, 131.1995007324614],
+                    "rotation" => 0
+                  }
+                },
+                %{
+                  "size" => [428, 926],
+                  "labels" => [],
+                  "background" => %{
+                    "zoom" => 1,
+                    "color" => "#000000",
+                    "s3_key" => "b25cb723-0a19-4e56-9095-cb8c0204bfca",
+                    "position" => [0, 0],
+                    "rotation" => 0,
+                    "video_s3_key" => "f0ecbff5-e5f6-47b2-be32-8ca2263326b4"
                   }
                 }
               ]

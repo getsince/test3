@@ -1114,7 +1114,7 @@ defmodule T.News do
             },
             %{
               id: 12,
-              timestamp: ~U[2022-05-29 00:00:00Z],
+              timestamp: ~U[2022-05-30 00:00:00Z],
               version: "6.3.5",
               story: [
                 %{

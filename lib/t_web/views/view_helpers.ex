@@ -10,6 +10,7 @@ defmodule TWeb.ViewHelpers do
       page
       |> blur(screen_width, env)
       |> add_bg_urls(screen_width)
+      |> add_drawing_urls(screen_width)
       |> process_labels(version, screen_width)
     end)
   end
@@ -44,6 +45,18 @@ defmodule TWeb.ViewHelpers do
       %{"background" => %{"s3_key" => key} = bg} = page when not is_nil(key) ->
         bg = maybe_put(bg, "proxy", image_cdn_url(key, screen_width))
         %{page | "background" => bg}
+
+      _ ->
+        page
+    end
+  end
+
+  defp add_drawing_urls(page, screen_width) do
+    case page do
+      %{"drawing" => %{"s3_key" => s3_key} = drawing} ->
+        drawing = maybe_put(drawing, "proxy", image_cdn_url(s3_key, screen_width))
+
+        %{page | "drawing" => drawing}
 
       _ ->
         page

@@ -635,6 +635,25 @@ defmodule T.News do
                   }
                 }
               ]
+            },
+            %{
+              id: 13,
+              timestamp: ~U[2022-06-06 00:00:00Z],
+              version: "6.3.6",
+              story: [
+                %{
+                  "size" => [390, 844],
+                  "labels" => [],
+                  "background" => %{
+                    "zoom" => 1,
+                    "color" => "#000000",
+                    "s3_key" => "bd54d02f-a7f5-4c77-95bf-577da3b1b277",
+                    "position" => [0, 0],
+                    "rotation" => 0,
+                    "video_s3_key" => "bf37544a-41d8-46ce-8ef5-1562caeb54a6"
+                  }
+                }
+              ]
             }
           ]
 
@@ -1127,6 +1146,25 @@ defmodule T.News do
                     "position" => [0, 0],
                     "rotation" => 0,
                     "video_s3_key" => "4025cf0d-8863-46a5-ac7a-a26fff194e56"
+                  }
+                }
+              ]
+            },
+            %{
+              id: 13,
+              timestamp: ~U[2022-06-06 00:00:00Z],
+              version: "6.3.6",
+              story: [
+                %{
+                  "size" => [390, 844],
+                  "labels" => [],
+                  "background" => %{
+                    "zoom" => 1,
+                    "color" => "#000000",
+                    "s3_key" => "54c66190-47da-48b3-8a5d-e84569ecdb7c",
+                    "position" => [0, 0],
+                    "rotation" => 0,
+                    "video_s3_key" => "f0f408b8-9d0d-4d07-86cc-6d7074cba7c6"
                   }
                 }
               ]

@@ -8,7 +8,7 @@ defmodule TWeb.FeedChannelTest do
     me = onboarded_user(location: moscow_location(), accept_genders: ["F", "N", "M"])
 
     {:ok,
-     me: me, socket: connected_socket(me), socket_with_old_version: connected_socket(me, "6.1.0")}
+     me: me, socket: connected_socket(me), socket_with_old_version: connected_socket(me, "6.2.0")}
   end
 
   describe "join" do

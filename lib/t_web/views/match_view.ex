@@ -1,6 +1,6 @@
 defmodule TWeb.MatchView do
   use TWeb, :view
-  alias TWeb.FeedView
+  alias TWeb.{FeedView, ViewHelpers}
   alias T.Matches.Interaction
 
   def render("match.json", %{id: id} = assigns) do
@@ -18,12 +18,19 @@ defmodule TWeb.MatchView do
   end
 
   def render("interaction.json", %{interaction: interaction}) do
-    %Interaction{id: id, from_user_id: from_user_id, data: data} = interaction
+    %Interaction{
+      id: id,
+      from_user_id: from_user_id,
+      data: %{"sticker" => sticker, "size" => [width, _height] = size}
+    } = interaction
 
     %{
       "id" => id,
       # TODO process sticker s3_keys
-      "interaction" => data,
+      "interaction" => %{
+        "sticker" => ViewHelpers.process_sticker(sticker, width),
+        "size" => size
+      },
       "inserted_at" => datetime(id),
       "from_user_id" => from_user_id
     }

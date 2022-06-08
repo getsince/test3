@@ -1088,7 +1088,10 @@ defmodule TWeb.FeedChannelTest do
       # add some interactions (just enough to test all MatchView clauses)
 
       # - send text
-      Matches.save_interaction(match.id, me.id, %{"text" => "hello darkness"})
+      Matches.save_interaction(match.id, me.id, %{
+        "size" => [375, 667],
+        "sticker" => %{"value" => "Hello darkness"}
+      })
 
       # now we have all possible interactions
       ref = push(socket, "list-interactions", %{"match_id" => match.id})
@@ -1100,7 +1103,10 @@ defmodule TWeb.FeedChannelTest do
                # - send text
                %{
                  "id" => _,
-                 "interaction" => %{"text" => "hello darkness"},
+                 "interaction" => %{
+                   "size" => [375, 667],
+                   "sticker" => %{"value" => "Hello darkness"}
+                 },
                  "from_user_id" => ^me_id,
                  "inserted_at" => %DateTime{}
                }

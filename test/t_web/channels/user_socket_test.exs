@@ -42,12 +42,12 @@ defmodule TWeb.UserSocketTest do
         |> Accounts.generate_user_session_token("mobile")
         |> Accounts.UserToken.encoded_token()
 
-      assert {:ok, _socket} = connect(UserSocket, %{"token" => token, "version" => "6.0.0"}, %{})
+      assert {:ok, _socket} = connect(UserSocket, %{"token" => token, "version" => "6.2.0"}, %{})
 
       %Accounts.UserToken{version: version} =
         Accounts.UserToken |> where(user_id: ^user.id) |> Repo.one()
 
-      assert version == "ios/6.0.0"
+      assert version == "ios/6.2.0"
     end
 
     test "without token" do
@@ -76,7 +76,7 @@ defmodule TWeb.UserSocketTest do
       assert {:ok, socket} =
                connect(
                  UserSocket,
-                 %{"token" => token, "version" => "6.0.1", "location" => [35.755516, 27.615040]},
+                 %{"token" => token, "version" => "6.2.0", "location" => [35.755516, 27.615040]},
                  %{}
                )
 
@@ -99,8 +99,8 @@ defmodule TWeb.UserSocketTest do
       |> Accounts.generate_user_session_token("mobile")
       |> Accounts.UserToken.encoded_token()
 
-    {:ok, socket1} = connect(UserSocket, %{"token" => token1, "version" => "6.0.0"}, %{})
-    {:ok, socket2} = connect(UserSocket, %{"token" => token2, "version" => "6.0.0"}, %{})
+    {:ok, socket1} = connect(UserSocket, %{"token" => token1, "version" => "6.2.0"}, %{})
+    {:ok, socket2} = connect(UserSocket, %{"token" => token2, "version" => "6.2.0"}, %{})
 
     socket_id1 = UserSocket.id(socket1)
     socket_id2 = UserSocket.id(socket2)

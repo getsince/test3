@@ -50,45 +50,31 @@ defmodule TWeb.ViewHelpers do
     end
   end
 
-  defp process_labels(%{"labels" => labels} = page, version, screen_width) do
-    # we do not add url for versions prior to 6.2.0 because they will be rendered incorrectly
+  defp process_labels(%{"labels" => labels} = page, _version, screen_width) do
     labels =
-      case Version.compare(version, "6.2.0") do
-        :lt ->
-          labels
-          |> Enum.reduce([], fn label, acc ->
-            case label do
-              %{"s3_key" => _key, "question" => "audio"} -> acc
-              %{"s3_key" => _key, "question" => "video"} -> acc
-              label -> [process_label(label) | acc]
-            end
-          end)
+      labels
+      |> Enum.reduce([], fn label, acc ->
+        case label do
+          %{"s3_key" => key, "question" => "audio"} ->
+            label = Map.put(label, "url", media_cdn_url(key))
+            [label | acc]
 
-        _ ->
-          labels
-          |> Enum.reduce([], fn label, acc ->
-            case label do
-              %{"s3_key" => key, "question" => "audio"} ->
-                label = Map.put(label, "url", media_cdn_url(key))
-                [label | acc]
+          %{
+            "s3_key" => key,
+            "video_s3_key" => video_s3_key,
+            "question" => "video"
+          } ->
+            label =
+              label
+              |> Map.put("url", media_cdn_url(video_s3_key))
+              |> Map.put("proxy", image_cdn_url(key, screen_width))
 
-              %{
-                "s3_key" => key,
-                "video_s3_key" => video_s3_key,
-                "question" => "video"
-              } ->
-                label =
-                  label
-                  |> Map.put("url", media_cdn_url(video_s3_key))
-                  |> Map.put("proxy", image_cdn_url(key, screen_width))
+            [label | acc]
 
-                [label | acc]
-
-              label ->
-                [process_label(label) | acc]
-            end
-          end)
-      end
+          label ->
+            [process_label(label) | acc]
+        end
+      end)
       |> :lists.reverse()
 
     %{page | "labels" => labels}

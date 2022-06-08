@@ -58,7 +58,7 @@ defmodule TWeb.UserSocket do
   defp maybe_location(_params), do: nil
 
   defp check_version(nil), do: false
-  defp check_version(version), do: Version.match?(version, ">= 6.0.0")
+  defp check_version(version), do: Version.match?(version, ">= 6.2.0")
 
   def handle_error(conn, :unsupported_version),
     do: Plug.Conn.send_resp(conn, 418, "")

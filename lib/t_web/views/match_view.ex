@@ -1,6 +1,7 @@
 defmodule TWeb.MatchView do
   use TWeb, :view
   alias TWeb.FeedView
+  alias T.Matches.Interaction
 
   def render("match.json", %{id: id} = assigns) do
     %{"id" => id, "profile" => render(FeedView, "feed_profile.json", assigns)}
@@ -14,6 +15,26 @@ defmodule TWeb.MatchView do
     |> maybe_put("inserted_at", ensure_utc(assigns[:inserted_at]))
     |> maybe_put("expiration_date", ensure_utc(assigns[:expiration_date]))
     |> maybe_put("seen", assigns[:seen])
+  end
+
+  def render("interaction.json", %{interaction: interaction}) do
+    %Interaction{id: id, from_user_id: from_user_id, data: data} = interaction
+
+    %{
+      "id" => id,
+      # TODO process sticker s3_keys
+      "data" => data,
+      "inserted_at" => datetime(id),
+      "by_user_id" => from_user_id
+    }
+  end
+
+  defp datetime(<<_::288>> = uuid) do
+    datetime(Ecto.Bigflake.UUID.dump!(uuid))
+  end
+
+  defp datetime(<<unix::64, _rest::64>>) do
+    unix |> DateTime.from_unix!(:millisecond) |> DateTime.truncate(:second)
   end
 
   defp maybe_put(map, _k, nil), do: map

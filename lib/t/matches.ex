@@ -10,7 +10,7 @@ defmodule T.Matches do
   import T.Cluster, only: [primary_rpc: 3]
 
   alias T.Repo
-  alias T.Matches.{Match, Like, MatchEvent, Seen}
+  alias T.Matches.{Match, Like, MatchEvent, Seen, Interaction}
   alias T.Feeds.{FeedProfile, SeenProfile}
   alias T.PushNotifications.DispatchJob
   alias T.Bot
@@ -605,5 +605,23 @@ defmodule T.Matches do
       e.event == "call_start" or e.event == "contact_offer" or e.event == "contact_click"
     )
     |> Repo.exists?()
+  end
+
+  # History
+
+  @spec history_list_interactions(uuid) :: [%Interaction{}]
+  def history_list_interactions(match_id) do
+    Interaction
+    |> where(match_id: ^match_id)
+    |> order_by(asc: :id)
+    |> Repo.all()
+  end
+
+  @spec broadcast_interaction(%Interaction{}) :: :ok
+  def broadcast_interaction(%Interaction{from_user_id: from, to_user_id: to} = interaction) do
+    message = {__MODULE__, :interaction, interaction}
+    broadcast_for_user(from, message)
+    broadcast_for_user(to, message)
+    :ok
   end
 end

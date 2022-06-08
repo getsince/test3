@@ -336,8 +336,9 @@ defmodule TWeb.FeedChannel do
 
   # history
 
-  def handle_in("list-interactions", _params, socket) do
-    {:reply, {:ok, %{"interactions" => []}}, socket}
+  def handle_in("list-interactions", %{"match_id" => match_id}, socket) do
+    interactions = Matches.history_list_interactions(match_id)
+    {:reply, {:ok, %{"interactions" => render_interactions(interactions)}}, socket}
   end
 
   @impl true
@@ -395,6 +396,17 @@ defmodule TWeb.FeedChannel do
     {:noreply, socket}
   end
 
+  def handle_info({Matches, :interaction, interaction}, socket) do
+    %Matches.Interaction{match_id: match_id} = interaction
+
+    push(socket, "interaction", %{
+      "match_id" => match_id,
+      "interaction" => render_interaction(interaction)
+    })
+
+    {:noreply, socket}
+  end
+
   def handle_info({Accounts, :feed_filter_updated, feed_filter}, socket) do
     {:noreply, assign(socket, :feed_filter, feed_filter)}
   end
@@ -445,6 +457,14 @@ defmodule TWeb.FeedChannel do
 
   defp render_match(assigns) do
     render(MatchView, "match_with_distance.json", assigns)
+  end
+
+  defp render_interactions(interactions) do
+    Enum.map(interactions, &render_interaction/1)
+  end
+
+  defp render_interaction(interaction) do
+    render(MatchView, "interaction.json", interaction: interaction)
   end
 
   defp render_news(news, version, screen_width) do

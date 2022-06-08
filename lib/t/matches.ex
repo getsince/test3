@@ -543,6 +543,13 @@ defmodule T.Matches do
     |> Repo.one()
   end
 
+  defp get_match_for_user!(match_id, user_id) do
+    Match
+    |> where(id: ^match_id)
+    |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
+    |> Repo.one!()
+  end
+
   def notify_match_expiration_reset(match_id, user_ids) do
     message = {__MODULE__, :expiration_reset, match_id}
 
@@ -607,7 +614,49 @@ defmodule T.Matches do
     |> Repo.exists?()
   end
 
-  # History
+  # Interactions
+
+  @spec save_interaction(uuid, uuid, map) :: :ok
+  def save_interaction(match_id, from_user_id, interaction) do
+    %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} =
+      get_match_for_user!(match_id, from_user_id)
+
+    [to_user_id] = [uid1, uid2] -- [from_user_id]
+
+    primary_rpc(__MODULE__, :local_save_interaction, [
+      match_id,
+      from_user_id,
+      to_user_id,
+      interaction
+    ])
+  end
+
+  @spec local_save_interaction(uuid, uuid, uuid, map) :: :ok
+  def local_save_interaction(match_id, from_user_id, to_user_id, interaction) do
+    {from_name, _number_of_matches1} = user_info(from_user_id)
+    {to_name, _number_of_matches2} = user_info(to_user_id)
+
+    m = "interaction from #{from_name} (#{from_user_id}) to #{to_name} (#{to_user_id})"
+
+    Logger.warn(m)
+    Bot.async_post_message(m)
+
+    interaction = %Interaction{
+      data: interaction,
+      match_id: match_id,
+      from_user_id: from_user_id,
+      to_user_id: to_user_id
+    }
+
+    case Repo.insert(interaction) do
+      {:ok, interaction} ->
+        broadcast_interaction(interaction)
+        :ok
+
+      {:error, _changeset} ->
+        :error
+    end
+  end
 
   @spec history_list_interactions(uuid) :: [%Interaction{}]
   def history_list_interactions(match_id) do

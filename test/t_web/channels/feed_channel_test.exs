@@ -1059,8 +1059,22 @@ defmodule TWeb.FeedChannelTest do
     end
   end
 
-  describe "list-interactions" do
+  describe "interactions" do
     setup :joined
+
+    test "send-interaction", %{me: me, socket: socket} do
+      mate = onboarded_user()
+      match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
+
+      # save normal interaction
+      ref =
+        push(socket, "send-interaction", %{
+          "match_id" => match.id,
+          "interaction" => %{"text" => "hello moto"}
+        })
+
+      assert_reply ref, :ok, _reply
+    end
 
     test "success: lists all interactions for a match", %{me: me, socket: socket} do
       mate = onboarded_user()
@@ -1073,25 +1087,24 @@ defmodule TWeb.FeedChannelTest do
 
       # add some interactions (just enough to test all MatchView clauses)
 
-      # - offer contacts
-      # Matches.save_contacts_offer_for_match(me.id, match.id, %{"telegram" => "@asdfasdfasf"})
-      # assert_push "interaction", %{"interaction" => %{"type" => "contact_offer"}}
+      # - send text
+      Matches.save_interaction(match.id, me.id, %{"text" => "hello darkness"})
+      assert_push "interaction", %{"interaction" => _i}
 
       # now we have all possible interactions
       ref = push(socket, "list-interactions", %{"match_id" => match.id})
       assert_reply ref, :ok, %{"interactions" => interactions}
 
-      # me_id = me.id
+      me_id = me.id
 
       assert [
-               # - offer contacts
-               #  %{
-               #    "id" => _,
-               #    "type" => "contact_offer",
-               #    "contacts" => %{"telegram" => "@asdfasdfasf"},
-               #    "by_user_id" => ^me_id,
-               #    "inserted_at" => %DateTime{}
-               #  }
+               # - send text
+               %{
+                 "id" => _,
+                 "interaction" => %{"text" => "hello darkness"},
+                 "from_user_id" => ^me_id,
+                 "inserted_at" => %DateTime{}
+               }
              ] = interactions
     end
   end

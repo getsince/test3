@@ -23,9 +23,9 @@ defmodule TWeb.MatchView do
     %{
       "id" => id,
       # TODO process sticker s3_keys
-      "data" => data,
+      "interaction" => data,
       "inserted_at" => datetime(id),
-      "by_user_id" => from_user_id
+      "from_user_id" => from_user_id
     }
   end
 

@@ -667,9 +667,8 @@ defmodule T.Matches do
   end
 
   @spec broadcast_interaction(%Interaction{}) :: :ok
-  def broadcast_interaction(%Interaction{from_user_id: from, to_user_id: to} = interaction) do
+  def broadcast_interaction(%Interaction{to_user_id: to} = interaction) do
     message = {__MODULE__, :interaction, interaction}
-    broadcast_for_user(from, message)
     broadcast_for_user(to, message)
     :ok
   end

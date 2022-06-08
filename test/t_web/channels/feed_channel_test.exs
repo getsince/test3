@@ -1089,7 +1089,6 @@ defmodule TWeb.FeedChannelTest do
 
       # - send text
       Matches.save_interaction(match.id, me.id, %{"text" => "hello darkness"})
-      assert_push "interaction", %{"interaction" => _i}
 
       # now we have all possible interactions
       ref = push(socket, "list-interactions", %{"match_id" => match.id})

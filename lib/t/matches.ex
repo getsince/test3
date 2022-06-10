@@ -265,6 +265,7 @@ defmodule T.Matches do
       }
     end)
     |> preload_match_profiles(user_id, location)
+    |> preload_interactions()
   end
 
   defp expiration_date(%Match{inserted_at: inserted_at}) do
@@ -470,6 +471,19 @@ defmodule T.Matches do
     Enum.map(matches, fn match ->
       [mate_id] = [match.user_id_1, match.user_id_2] -- [user_id]
       %Match{match | profile: Map.fetch!(profiles, mate_id)}
+    end)
+  end
+
+  defp preload_interactions(matches) do
+    match_ids = matches |> Enum.map(fn match -> match.id end)
+
+    interactions =
+      Interaction
+      |> where([i], i.match_id in ^match_ids)
+      |> Repo.all()
+
+    Enum.map(matches, fn match ->
+      %Match{match | interactions: Enum.filter(interactions, fn i -> i.match_id == match.id end)}
     end)
   end
 

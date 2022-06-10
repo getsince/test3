@@ -11,6 +11,8 @@ defmodule T.Matches.Match do
     # TODO
     field :profile, :map, virtual: true
 
+    field :interactions, {:array, :map}, virtual: true
+
     field :expiration_date, :utc_datetime, virtual: true
     field :seen, :boolean, virtual: true
 

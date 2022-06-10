@@ -446,7 +446,8 @@ defmodule TWeb.FeedChannel do
         inserted_at: inserted_at,
         profile: profile,
         expiration_date: expiration_date,
-        seen: seen
+        seen: seen,
+        interactions: interactions
       } = match
 
       render_match(%{
@@ -456,7 +457,8 @@ defmodule TWeb.FeedChannel do
         screen_width: screen_width,
         version: version,
         expiration_date: expiration_date,
-        seen: seen
+        seen: seen,
+        interactions: interactions
       })
     end)
   end

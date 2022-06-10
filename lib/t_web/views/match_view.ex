@@ -8,6 +8,7 @@ defmodule TWeb.MatchView do
     |> maybe_put("inserted_at", ensure_utc(assigns[:inserted_at]))
     |> maybe_put("expiration_date", ensure_utc(assigns[:expiration_date]))
     |> maybe_put("seen", assigns[:seen])
+    |> render_interactions(assigns[:interactions])
   end
 
   def render("match_with_distance.json", %{id: id} = assigns) do
@@ -15,6 +16,7 @@ defmodule TWeb.MatchView do
     |> maybe_put("inserted_at", ensure_utc(assigns[:inserted_at]))
     |> maybe_put("expiration_date", ensure_utc(assigns[:expiration_date]))
     |> maybe_put("seen", assigns[:seen])
+    |> render_interactions(assigns[:interactions])
   end
 
   def render("interaction.json", %{interaction: interaction}) do
@@ -35,6 +37,17 @@ defmodule TWeb.MatchView do
       "from_user_id" => from_user_id
     }
   end
+
+  defp render_interactions(map, interactions) when is_list(interactions) do
+    Map.put(
+      map,
+      "interactions",
+      interactions
+      |> Enum.map(fn interaction -> render("interaction.json", %{interaction: interaction}) end)
+    )
+  end
+
+  defp render_interactions(map, _interactions), do: map
 
   defp datetime(<<_::288>> = uuid) do
     datetime(Ecto.Bigflake.UUID.dump!(uuid))

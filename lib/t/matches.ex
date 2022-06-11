@@ -630,7 +630,7 @@ defmodule T.Matches do
 
   # Interactions
 
-  @spec save_interaction(uuid, uuid, map) :: :ok
+  @spec save_interaction(uuid, uuid, map) :: {:ok, map}
   def save_interaction(match_id, from_user_id, interaction) do
     %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} =
       get_match_for_user!(match_id, from_user_id)
@@ -645,7 +645,7 @@ defmodule T.Matches do
     ])
   end
 
-  @spec local_save_interaction(uuid, uuid, uuid, map) :: :ok
+  @spec local_save_interaction(uuid, uuid, uuid, map) :: {:ok, map}
   def local_save_interaction(match_id, from_user_id, to_user_id, interaction) do
     {from_name, _number_of_matches1} = user_info(from_user_id)
     {to_name, _number_of_matches2} = user_info(to_user_id)
@@ -665,7 +665,7 @@ defmodule T.Matches do
     case Repo.insert(interaction) do
       {:ok, interaction} ->
         broadcast_interaction(interaction)
-        :ok
+        {:ok, interaction}
 
       {:error, _changeset} ->
         :error

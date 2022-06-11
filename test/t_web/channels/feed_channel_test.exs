@@ -88,20 +88,23 @@ defmodule TWeb.FeedChannelTest do
                    }
                  },
                  "inserted_at" => ~U[2021-09-30 12:16:07Z],
-                 "expiration_date" => ~U[2021-10-01 12:16:07Z]
+                 "expiration_date" => ~U[2021-10-01 12:16:07Z],
+                 "interactions" => []
                },
                %{
                  "id" => m2.id,
                  "profile" => %{name: "mate-2", story: [], user_id: p2.id, gender: "N"},
                  "inserted_at" => ~U[2021-09-30 12:16:06Z],
                  "expiration_date" => ~U[2021-10-01 12:16:06Z],
-                 "seen" => true
+                 "seen" => true,
+                 "interactions" => []
                },
                %{
                  "id" => m1.id,
                  "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
                  "inserted_at" => ~U[2021-09-30 12:16:05Z],
-                 "seen" => true
+                 "seen" => true,
+                 "interactions" => []
                }
              ]
     end
@@ -1070,7 +1073,7 @@ defmodule TWeb.FeedChannelTest do
       ref =
         push(socket, "send-interaction", %{
           "match_id" => match.id,
-          "interaction" => %{"text" => "hello moto"}
+          "interaction" => %{"size" => [375, 667], "sticker" => %{"value" => "hello moto"}}
         })
 
       assert_reply ref, :ok, _reply

@@ -343,8 +343,13 @@ defmodule TWeb.FeedChannel do
       ) do
     %{current_user: %{id: from_user_id}} = socket.assigns
 
-    reply = Matches.save_interaction(match_id, from_user_id, interaction)
-    {:reply, reply, socket}
+    case Matches.save_interaction(match_id, from_user_id, interaction) do
+      {:ok, interaction} ->
+        {:reply, {:ok, %{"interaction" => render_interaction(interaction)}}, socket}
+
+      :error ->
+        {:reply, :error, socket}
+    end
   end
 
   def handle_in("list-interactions", %{"match_id" => match_id}, socket) do

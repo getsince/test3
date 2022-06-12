@@ -631,7 +631,7 @@ defmodule T.Matches do
   # Interactions
 
   @spec save_interaction(uuid, uuid, map) :: {:ok, map}
-  def save_interaction(match_id, from_user_id, interaction) do
+  def save_interaction(match_id, from_user_id, interaction_data) do
     %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} =
       get_match_for_user!(match_id, from_user_id)
 
@@ -641,12 +641,12 @@ defmodule T.Matches do
       match_id,
       from_user_id,
       to_user_id,
-      interaction
+      interaction_data
     ])
   end
 
   @spec local_save_interaction(uuid, uuid, uuid, map) :: {:ok, map}
-  def local_save_interaction(match_id, from_user_id, to_user_id, interaction) do
+  def local_save_interaction(match_id, from_user_id, to_user_id, interaction_data) do
     {from_name, _number_of_matches1} = user_info(from_user_id)
     {to_name, _number_of_matches2} = user_info(to_user_id)
 
@@ -655,15 +655,36 @@ defmodule T.Matches do
     Logger.warn(m)
     Bot.async_post_message(m)
 
+    interaction_type =
+      case interaction_data do
+        %{"sticker" => %{"question" => question}} -> question
+        _ -> "message"
+      end
+
     interaction = %Interaction{
-      data: interaction,
+      data: interaction_data,
       match_id: match_id,
       from_user_id: from_user_id,
       to_user_id: to_user_id
     }
 
-    case Repo.insert(interaction) do
-      {:ok, interaction} ->
+    Multi.new()
+    |> Multi.insert(:interaction, interaction)
+    |> Multi.run(:push, fn _repo, %{interaction: %Interaction{id: interaction_id}} ->
+      push_job =
+        DispatchJob.new(%{
+          "type" => interaction_type,
+          "match_id" => match_id,
+          "from_user_id" => from_user_id,
+          "to_user_id" => to_user_id,
+          "interaction_id" => interaction_id
+        })
+
+      Oban.insert(push_job)
+    end)
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{interaction: %Interaction{} = interaction}} ->
         broadcast_interaction(interaction)
         {:ok, interaction}
 

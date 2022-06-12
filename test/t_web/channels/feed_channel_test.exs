@@ -93,7 +93,21 @@ defmodule TWeb.FeedChannelTest do
                },
                %{
                  "id" => m2.id,
-                 "profile" => %{name: "mate-2", story: [], user_id: p2.id, gender: "N"},
+                 "profile" => %{
+                   name: "mate-2",
+                   story: [],
+                   user_id: p2.id,
+                   gender: "N",
+                   distance: 9510,
+                   address: %{
+                     "en_US" => %{
+                       "city" => "Buenos Aires",
+                       "state" => "Autonomous City of Buenos Aires",
+                       "country" => "Argentina",
+                       "iso_country_code" => "AR"
+                     }
+                   }
+                 },
                  "inserted_at" => ~U[2021-09-30 12:16:06Z],
                  "expiration_date" => ~U[2021-10-01 12:16:06Z],
                  "seen" => true,
@@ -101,7 +115,21 @@ defmodule TWeb.FeedChannelTest do
                },
                %{
                  "id" => m1.id,
-                 "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
+                 "profile" => %{
+                   name: "mate-1",
+                   story: [],
+                   user_id: p1.id,
+                   gender: "F",
+                   distance: 9510,
+                   address: %{
+                     "en_US" => %{
+                       "city" => "Buenos Aires",
+                       "state" => "Autonomous City of Buenos Aires",
+                       "country" => "Argentina",
+                       "iso_country_code" => "AR"
+                     }
+                   }
+                 },
                  "inserted_at" => ~U[2021-09-30 12:16:05Z],
                  "seen" => true,
                  "interactions" => []

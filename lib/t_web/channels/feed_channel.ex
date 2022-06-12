@@ -347,7 +347,7 @@ defmodule TWeb.FeedChannel do
       {:ok, interaction} ->
         {:reply, {:ok, %{"interaction" => render_interaction(interaction)}}, socket}
 
-      :error ->
+      {:error, _changeset} ->
         {:reply, :error, socket}
     end
   end

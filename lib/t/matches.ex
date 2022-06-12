@@ -595,7 +595,7 @@ defmodule T.Matches do
   end
 
   defp named_match_q do
-    from m in Match, as: :match
+    from(m in Match, as: :match)
   end
 
   defp expiring_matches_q(query \\ named_match_q()) do
@@ -630,7 +630,7 @@ defmodule T.Matches do
 
   # Interactions
 
-  @spec save_interaction(uuid, uuid, map) :: {:ok, map}
+  @spec save_interaction(uuid, uuid, map) :: {:ok, map} | {:error, map}
   def save_interaction(match_id, from_user_id, interaction_data) do
     %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} =
       get_match_for_user!(match_id, from_user_id)
@@ -645,7 +645,7 @@ defmodule T.Matches do
     ])
   end
 
-  @spec local_save_interaction(uuid, uuid, uuid, map) :: {:ok, map}
+  @spec local_save_interaction(uuid, uuid, uuid, map) :: {:ok, map} | {:error, map}
   def local_save_interaction(match_id, from_user_id, to_user_id, interaction_data) do
     {from_name, _number_of_matches1} = user_info(from_user_id)
     {to_name, _number_of_matches2} = user_info(to_user_id)
@@ -661,15 +661,16 @@ defmodule T.Matches do
         _ -> "message"
       end
 
-    interaction = %Interaction{
-      data: interaction_data,
-      match_id: match_id,
-      from_user_id: from_user_id,
-      to_user_id: to_user_id
-    }
+    changeset =
+      interaction_changeset(%{
+        data: interaction_data,
+        match_id: match_id,
+        from_user_id: from_user_id,
+        to_user_id: to_user_id
+      })
 
     Multi.new()
-    |> Multi.insert(:interaction, interaction)
+    |> Multi.insert(:interaction, changeset)
     |> Multi.run(:push, fn _repo, %{interaction: %Interaction{id: interaction_id}} ->
       push_job =
         DispatchJob.new(%{
@@ -688,9 +689,36 @@ defmodule T.Matches do
         broadcast_interaction(interaction)
         {:ok, interaction}
 
-      {:error, _changeset} ->
-        :error
+      {:error, :interaction, %Ecto.Changeset{} = changeset, _changes} ->
+        {:error, changeset}
     end
+  end
+
+  defp interaction_changeset(attrs) do
+    %Interaction{}
+    |> cast(attrs, [:data, :match_id, :from_user_id, :to_user_id])
+    |> validate_required([:data, :match_id, :from_user_id, :to_user_id])
+    |> validate_change(:data, fn :data, interaction_data ->
+      case interaction_data do
+        %{"sticker" => %{"question" => question}} ->
+          case question in ["message", "drawing", "video", "audio", "spotify", "contact"] do
+            true -> []
+            false -> [interaction: "unsupported interaction type"]
+          end
+
+        %{"sticker" => %{"value" => value}} ->
+          case is_binary(value) do
+            true -> []
+            false -> [interaction: "unrecognized interaction type"]
+          end
+
+        nil ->
+          [interaction: "unrecognized interaction type"]
+
+        _ ->
+          [interaction: "unrecognized interaction type"]
+      end
+    end)
   end
 
   @spec history_list_interactions(uuid) :: [%Interaction{}]

@@ -3,7 +3,7 @@ defmodule T.Matches.InteractionsTest do
   use Oban.Testing, repo: T.Repo
 
   alias T.Matches
-  alias T.Matches.Interaction
+  alias T.Matches.{Interaction, MatchEvent}
 
   describe "save_interaction/3 for invalid match" do
     setup [:with_profiles]
@@ -26,9 +26,7 @@ defmodule T.Matches.InteractionsTest do
         Matches.save_interaction(match.id, p3.user_id, @interaction)
       end
 
-      match_event = Matches.MatchEvent |> T.Repo.all()
-
-      assert length(match_event) == 0
+      assert MatchEvent |> T.Repo.all() == []
     end
   end
 
@@ -52,11 +50,11 @@ defmodule T.Matches.InteractionsTest do
       assert errors_on(changeset) == %{interaction: ["unsupported interaction type"]}
     end
 
-    test "interaction types", %{profiles: [p1, p2], match: match} do
+    test "interaction exchange", %{profiles: [p1, p2], match: match} do
       Matches.subscribe_for_user(p1.user_id)
       Matches.subscribe_for_user(p2.user_id)
 
-      # text interaction
+      # text interaction from p1 to p2
       assert {:ok, %Interaction{} = interaction} =
                Matches.save_interaction(match.id, p1.user_id, %{
                  "size" => [375, 667],
@@ -81,9 +79,11 @@ defmodule T.Matches.InteractionsTest do
       assert_received {Matches, :interaction, ^i1}
       assert_received {Matches, :interaction, ^i1}
 
-      # drawing interaction
+      assert MatchEvent |> T.Repo.all() == []
+
+      # drawing interaction from p2 to p1
       assert {:ok, %Interaction{} = interaction} =
-               Matches.save_interaction(match.id, p1.user_id, %{
+               Matches.save_interaction(match.id, p2.user_id, %{
                  "size" => [428, 926],
                  "sticker" => %{"lines" => "W3sicG9pbnRzIfV0=", "question" => "drawing"}
                })
@@ -93,12 +93,12 @@ defmodule T.Matches.InteractionsTest do
                  "size" => [428, 926],
                  "sticker" => %{"lines" => "W3sicG9pbnRzIfV0=", "question" => "drawing"}
                },
-               from_user_id: ^from_user_id
+               from_user_id: ^to_user_id
              } = interaction
 
       assert [^i1, i2] = Matches.history_list_interactions(match.id)
-      assert i2.from_user_id == p1.user_id
-      assert i2.to_user_id == p2.user_id
+      assert i2.from_user_id == p2.user_id
+      assert i2.to_user_id == p1.user_id
       assert i2.match_id == match.id
 
       assert i2.data == %{
@@ -106,25 +106,37 @@ defmodule T.Matches.InteractionsTest do
                "sticker" => %{"lines" => "W3sicG9pbnRzIfV0=", "question" => "drawing"}
              }
 
+      assert_received {Matches, :expiration_reset, _m}
+      assert_received {Matches, :expiration_reset, _m}
       assert_received {Matches, :interaction, ^i2}
       assert_received {Matches, :interaction, ^i2}
+
+      assert [%{event: "interaction_exchange"}] = MatchEvent |> T.Repo.all()
     end
   end
 
-  describe "save_contact_offer/3 side-effects" do
+  describe "save_interaction/3 side-effects" do
     setup [:with_profiles]
 
     setup %{profiles: [_p1, p2]} do
       Matches.subscribe_for_user(p2.user_id)
     end
 
-    setup [:with_match, :with_interaction]
+    setup [:with_match, :with_text_interaction, :with_contact_interaction]
 
     test "push notification is scheduled for mate", %{
       profiles: [%{user_id: from_user_id}, %{user_id: to_user_id}],
       match: %{id: match_id}
     } do
       assert [
+               %Oban.Job{
+                 args: %{
+                   "match_id" => ^match_id,
+                   "from_user_id" => ^from_user_id,
+                   "to_user_id" => ^to_user_id,
+                   "type" => "contact"
+                 }
+               },
                %Oban.Job{
                  args: %{
                    "match_id" => ^match_id,
@@ -153,8 +165,21 @@ defmodule T.Matches.InteractionsTest do
     {:ok, match: insert(:match, user_id_1: p1.user_id, user_id_2: p2.user_id)}
   end
 
-  defp with_interaction(%{profiles: [p1, _p2], match: match}) do
+  defp with_text_interaction(%{profiles: [p1, _p2], match: match}) do
     interaction = %{"size" => [375, 667], "sticker" => %{"value" => "helloy"}}
+
+    assert {:ok, %Interaction{} = interaction} =
+             Matches.save_interaction(
+               match.id,
+               p1.user_id,
+               interaction
+             )
+
+    {:ok, interaction: interaction}
+  end
+
+  defp with_contact_interaction(%{profiles: [p1, _p2], match: match}) do
+    interaction = %{"size" => [375, 667], "sticker" => %{"question" => "telegram"}}
 
     assert {:ok, %Interaction{} = interaction} =
              Matches.save_interaction(

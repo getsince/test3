@@ -604,14 +604,13 @@ defmodule T.Matches do
     |> where([undying_event: e], is_nil(e.timestamp))
   end
 
+  @undying_events ["call_start", "contact_offer", "contact_click", "interaction_exchange"]
+
   def matches_with_undying_events_q(query \\ named_match_q()) do
     undying_events_q =
       MatchEvent
       |> where(match_id: parent_as(:match).id)
-      |> where(
-        [e],
-        e.event == "call_start" or e.event == "contact_offer" or e.event == "contact_click"
-      )
+      |> where([e], e.event in @undying_events)
       |> select([e], e.timestamp)
       |> limit(1)
 
@@ -621,17 +620,14 @@ defmodule T.Matches do
   def has_undying_events?(match_id) do
     MatchEvent
     |> where(match_id: ^match_id)
-    |> where(
-      [e],
-      e.event == "call_start" or e.event == "contact_offer" or e.event == "contact_click"
-    )
+    |> where([e], e.event in @undying_events)
     |> Repo.exists?()
   end
 
   # Interactions
 
-  @spec save_interaction(uuid, uuid, map) :: {:ok, map} | {:error, map}
-  def save_interaction(match_id, from_user_id, interaction_data) do
+  @spec save_interaction(uuid, uuid, map, DateTime.t()) :: {:ok, map} | {:error, map}
+  def save_interaction(match_id, from_user_id, interaction_data, now \\ DateTime.utc_now()) do
     %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} =
       get_match_for_user!(match_id, from_user_id)
 
@@ -641,14 +637,17 @@ defmodule T.Matches do
       match_id,
       from_user_id,
       to_user_id,
-      interaction_data
+      interaction_data,
+      now
     ])
   end
 
-  @spec local_save_interaction(uuid, uuid, uuid, map) :: {:ok, map} | {:error, map}
-  def local_save_interaction(match_id, from_user_id, to_user_id, interaction_data) do
+  @spec local_save_interaction(uuid, uuid, uuid, map, DateTime.t()) ::
+          {:ok, map} | {:error, map}
+  def local_save_interaction(match_id, from_user_id, to_user_id, interaction_data, now) do
     {from_name, _number_of_matches1} = user_info(from_user_id)
     {to_name, _number_of_matches2} = user_info(to_user_id)
+    now = DateTime.truncate(now, :second)
 
     m = "interaction from #{from_name} (#{from_user_id}) to #{to_name} (#{to_user_id})"
 
@@ -657,8 +656,14 @@ defmodule T.Matches do
 
     interaction_type =
       case interaction_data do
-        %{"sticker" => %{"question" => question}} -> question
-        _ -> "message"
+        %{"sticker" => %{"question" => question}} ->
+          case question in T.Accounts.Profile.contacts() do
+            true -> "contact"
+            false -> question
+          end
+
+        _ ->
+          "message"
       end
 
     changeset =
@@ -683,9 +688,41 @@ defmodule T.Matches do
 
       Oban.insert(push_job)
     end)
+    |> Multi.run(:maybe_undying_event, fn _repo, _changes ->
+      MatchEvent
+      |> where(match_id: ^match_id)
+      |> where(event: "interaction_exchange")
+      |> Repo.exists?()
+      |> case do
+        true ->
+          {:ok, nil}
+
+        false ->
+          Interaction
+          |> where(match_id: ^match_id)
+          |> where(from_user_id: ^to_user_id)
+          |> Repo.exists?()
+          |> case do
+            true ->
+              Repo.insert(%MatchEvent{
+                timestamp: now,
+                match_id: match_id,
+                event: "interaction_exchange"
+              })
+
+            false ->
+              {:ok, nil}
+          end
+      end
+    end)
     |> Repo.transaction()
     |> case do
-      {:ok, %{interaction: %Interaction{} = interaction}} ->
+      {:ok, %{interaction: %Interaction{} = interaction, maybe_undying_event: %MatchEvent{}}} ->
+        broadcast_interaction(interaction)
+        notify_match_expiration_reset(match_id, [from_user_id, to_user_id])
+        {:ok, interaction}
+
+      {:ok, %{interaction: %Interaction{} = interaction, maybe_undying_event: nil}} ->
         broadcast_interaction(interaction)
         {:ok, interaction}
 
@@ -701,7 +738,8 @@ defmodule T.Matches do
     |> validate_change(:data, fn :data, interaction_data ->
       case interaction_data do
         %{"sticker" => %{"question" => question}} ->
-          case question in ["message", "drawing", "video", "audio", "spotify", "contact"] do
+          case question in (["message", "drawing", "video", "audio", "spotify"] ++
+                              T.Accounts.Profile.contacts()) do
             true -> []
             false -> [interaction: "unsupported interaction type"]
           end

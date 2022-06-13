@@ -334,10 +334,22 @@ defmodule TWeb.FeedChannel do
     {:reply, {:error, %{alert: alert}}, socket}
   end
 
-  # history
+  # interactions
 
-  def handle_in("list-interactions", _params, socket) do
-    {:reply, {:ok, %{"interactions" => []}}, socket}
+  def handle_in(
+        "send-interaction",
+        %{"match_id" => match_id, "interaction" => interaction},
+        socket
+      ) do
+    %{current_user: %{id: from_user_id}} = socket.assigns
+
+    case Matches.save_interaction(match_id, from_user_id, interaction) do
+      {:ok, interaction} ->
+        {:reply, {:ok, %{"interaction" => render_interaction(interaction)}}, socket}
+
+      {:error, _changeset} ->
+        {:reply, :error, socket}
+    end
   end
 
   @impl true
@@ -395,6 +407,17 @@ defmodule TWeb.FeedChannel do
     {:noreply, socket}
   end
 
+  def handle_info({Matches, :interaction, interaction}, socket) do
+    %Matches.Interaction{match_id: match_id} = interaction
+
+    push(socket, "interaction", %{
+      "match_id" => match_id,
+      "interaction" => render_interaction(interaction)
+    })
+
+    {:noreply, socket}
+  end
+
   def handle_info({Accounts, :feed_filter_updated, feed_filter}, socket) do
     {:noreply, assign(socket, :feed_filter, feed_filter)}
   end
@@ -423,7 +446,8 @@ defmodule TWeb.FeedChannel do
         inserted_at: inserted_at,
         profile: profile,
         expiration_date: expiration_date,
-        seen: seen
+        seen: seen,
+        interactions: interactions
       } = match
 
       render_match(%{
@@ -433,18 +457,18 @@ defmodule TWeb.FeedChannel do
         screen_width: screen_width,
         version: version,
         expiration_date: expiration_date,
-        seen: seen
+        seen: seen,
+        interactions: interactions
       })
     end)
   end
 
-  @compile inline: [render_match: 1]
-  defp render_match(%{seen: true} = assigns) do
+  defp render_match(assigns) do
     render(MatchView, "match.json", assigns)
   end
 
-  defp render_match(assigns) do
-    render(MatchView, "match_with_distance.json", assigns)
+  defp render_interaction(interaction) do
+    render(MatchView, "interaction.json", interaction: interaction)
   end
 
   defp render_news(news, version, screen_width) do

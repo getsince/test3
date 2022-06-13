@@ -52,6 +52,19 @@ defmodule T.PushNotifications.DispatchJob do
     :ok
   end
 
+  defp handle_type(type, %{"from_user_id" => from_user_id, "to_user_id" => to_user_id} = args)
+       when type in ["message", "drawing", "video", "audio", "spotify", "contact"] do
+    profile_from = profile_info(from_user_id)
+
+    if profile_from do
+      {name_from, gender_from} = profile_from
+      data = args |> Map.merge(%{"name_from" => name_from, "gender_from" => gender_from})
+      to_user_id |> Accounts.list_apns_devices() |> schedule_apns(type, data)
+    end
+
+    :ok
+  end
+
   defp handle_type("invite" = type, args) do
     %{"by_user_id" => by_user_id, "user_id" => user_id} = args
 

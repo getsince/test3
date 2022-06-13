@@ -2,7 +2,7 @@ defmodule TWeb.FeedChannelTest do
   use TWeb.ChannelCase, async: true
 
   alias T.{Accounts, Matches}
-  alias Matches.Match
+  alias Matches.{Match, Interaction}
 
   setup do
     me = onboarded_user(location: moscow_location(), accept_genders: ["F", "N", "M"])
@@ -65,7 +65,38 @@ defmodule TWeb.FeedChannelTest do
       # first and second matches are seen
       :ok = Matches.mark_match_seen(me.id, m1.id)
       :ok = Matches.mark_match_seen(me.id, m2.id)
-      Matches.save_contact_click(m1.id)
+
+      # second match has one interaction
+      {:ok, %Interaction{id: interaction_id_1}} =
+        Matches.save_interaction(
+          m2.id,
+          me.id,
+          %{
+            "size" => [100, 100],
+            "sticker" => %{"value" => "hey mama"}
+          }
+        )
+
+      # third match had interaction exchanged
+      {:ok, %Interaction{id: interaction_id_2}} =
+        Matches.save_interaction(
+          m3.id,
+          me.id,
+          %{
+            "size" => [100, 100],
+            "sticker" => %{"question" => "telegram", "answer" => "durov"}
+          }
+        )
+
+      {:ok, %Interaction{id: interaction_id_3}} =
+        Matches.save_interaction(
+          m3.id,
+          p3.id,
+          %{
+            "size" => [100, 100],
+            "sticker" => %{"question" => "audio", "s3_key" => "abcd"}
+          }
+        )
 
       assert {:ok, %{"matches" => matches}, _socket} = join(socket, "feed:" <> me.id)
 
@@ -88,20 +119,88 @@ defmodule TWeb.FeedChannelTest do
                    }
                  },
                  "inserted_at" => ~U[2021-09-30 12:16:07Z],
-                 "expiration_date" => ~U[2021-10-01 12:16:07Z]
+                 "interactions" => [
+                   %{
+                     "from_user_id" => me.id,
+                     "id" => interaction_id_2,
+                     "inserted_at" => datetime(interaction_id_2),
+                     "interaction" => %{
+                       "size" => [100, 100],
+                       "sticker" => %{
+                         "answer" => "durov",
+                         "question" => "telegram",
+                         "url" => "https://t.me/durov"
+                       }
+                     }
+                   },
+                   %{
+                     "from_user_id" => p3.id,
+                     "id" => interaction_id_3,
+                     "inserted_at" => datetime(interaction_id_3),
+                     "interaction" => %{
+                       "size" => [100, 100],
+                       "sticker" => %{
+                         "question" => "audio",
+                         "s3_key" => "abcd",
+                         "url" => "https://d6666.cloudfront.net/abcd"
+                       }
+                     }
+                   }
+                 ]
                },
                %{
                  "id" => m2.id,
-                 "profile" => %{name: "mate-2", story: [], user_id: p2.id, gender: "N"},
+                 "profile" => %{
+                   name: "mate-2",
+                   story: [],
+                   user_id: p2.id,
+                   gender: "N",
+                   distance: 9510,
+                   address: %{
+                     "en_US" => %{
+                       "city" => "Buenos Aires",
+                       "state" => "Autonomous City of Buenos Aires",
+                       "country" => "Argentina",
+                       "iso_country_code" => "AR"
+                     }
+                   }
+                 },
                  "inserted_at" => ~U[2021-09-30 12:16:06Z],
                  "expiration_date" => ~U[2021-10-01 12:16:06Z],
-                 "seen" => true
+                 "seen" => true,
+                 "interactions" => [
+                   %{
+                     "from_user_id" => me.id,
+                     "id" => interaction_id_1,
+                     "inserted_at" => datetime(interaction_id_1),
+                     "interaction" => %{
+                       "size" => [100, 100],
+                       "sticker" => %{"value" => "hey mama"}
+                     }
+                   }
+                 ]
                },
                %{
                  "id" => m1.id,
-                 "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
+                 "profile" => %{
+                   name: "mate-1",
+                   story: [],
+                   user_id: p1.id,
+                   gender: "F",
+                   distance: 9510,
+                   address: %{
+                     "en_US" => %{
+                       "city" => "Buenos Aires",
+                       "state" => "Autonomous City of Buenos Aires",
+                       "country" => "Argentina",
+                       "iso_country_code" => "AR"
+                     }
+                   }
+                 },
                  "inserted_at" => ~U[2021-09-30 12:16:05Z],
-                 "seen" => true
+                 "expiration_date" => ~U[2021-10-01 12:16:05Z],
+                 "seen" => true,
+                 "interactions" => []
                }
              ]
     end
@@ -1059,6 +1158,24 @@ defmodule TWeb.FeedChannelTest do
     end
   end
 
+  describe "interactions" do
+    setup :joined
+
+    test "send-interaction", %{me: me, socket: socket} do
+      mate = onboarded_user()
+      match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
+
+      # save normal interaction
+      ref =
+        push(socket, "send-interaction", %{
+          "match_id" => match.id,
+          "interaction" => %{"size" => [375, 667], "sticker" => %{"value" => "hello moto"}}
+        })
+
+      assert_reply ref, :ok, _reply
+    end
+  end
+
   describe "private stories" do
     setup :joined
 
@@ -1131,5 +1248,13 @@ defmodule TWeb.FeedChannelTest do
     socket = connected_socket(mate)
     {:ok, _reply, socket} = join(socket, "feed:" <> mate.id, %{"mode" => "normal"})
     {:ok, mate_socket: socket}
+  end
+
+  defp datetime(<<_::288>> = uuid) do
+    datetime(Ecto.Bigflake.UUID.dump!(uuid))
+  end
+
+  defp datetime(<<unix::64, _rest::64>>) do
+    unix |> DateTime.from_unix!(:millisecond) |> DateTime.truncate(:second)
   end
 end

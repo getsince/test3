@@ -99,6 +99,24 @@ defmodule T.Matches.ExpirationTest do
       matches_after = Matches.Match |> T.Repo.all()
       assert length(matches_after) == 1
     end
+
+    test "match with interaction_exchange is not expired" do
+      me = insert(:user)
+      not_me = insert(:user)
+      long_ago = DateTime.add(DateTime.utc_now(), -3 * 24 * 60 * 60)
+
+      m = insert(:match, user_id_1: me.id, user_id_2: not_me.id, inserted_at: long_ago)
+      insert(:match_event, match_id: m.id, event: "created", timestamp: long_ago)
+      insert(:match_event, match_id: m.id, event: "interaction_exchange", timestamp: long_ago)
+
+      matches = Matches.Match |> T.Repo.all()
+      assert length(matches) == 1
+
+      Matches.expiration_prune()
+
+      matches_after = Matches.Match |> T.Repo.all()
+      assert length(matches_after) == 1
+    end
   end
 
   defp match(opts) do

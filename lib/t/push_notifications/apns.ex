@@ -78,6 +78,58 @@ defmodule T.PushNotifications.APNS do
     base_alert_payload(type, alert)
   end
 
+  def build_alert_payload(type, %{"name_from" => name_from, "gender_from" => gender_from} = data)
+      when type in ["message", "drawing", "video", "audio", "spotify", "contact"] do
+    verb_ending_ru =
+      case gender_from do
+        "F" -> "а"
+        "N" -> "и"
+        "M" -> ""
+      end
+
+    title =
+      case type do
+        "message" ->
+          dgettext("apns", "%{name} sent%{verb_ending_ru} a message",
+            name: name_from,
+            verb_ending_ru: verb_ending_ru
+          )
+
+        "drawing" ->
+          dgettext("apns", "%{name} sent%{verb_ending_ru} a drawing",
+            name: name_from,
+            verb_ending_ru: verb_ending_ru
+          )
+
+        "video" ->
+          dgettext("apns", "%{name} sent%{verb_ending_ru} a video message",
+            name: name_from,
+            verb_ending_ru: verb_ending_ru
+          )
+
+        "audio" ->
+          dgettext("apns", "%{name} sent%{verb_ending_ru} a voice message",
+            name: name_from,
+            verb_ending_ru: verb_ending_ru
+          )
+
+        "spotify" ->
+          dgettext("apns", "%{name} sent%{verb_ending_ru} a music track",
+            name: name_from,
+            verb_ending_ru: verb_ending_ru
+          )
+
+        "contact" ->
+          dgettext("apns", "%{name} sent%{verb_ending_ru} a contact",
+            name: name_from,
+            verb_ending_ru: verb_ending_ru
+          )
+      end
+
+    alert = %{"title" => title}
+    base_alert_payload(type, alert, data)
+  end
+
   def build_alert_payload("invite" = type, data) do
     %{"user_id" => user_id, "name" => name} = data
     alert = %{"title" => dgettext("apns", "%{name} invited you to connect", name: name)}

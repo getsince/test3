@@ -23,7 +23,7 @@ msgid "Это новый мэтч!"
 msgstr "That's a match!"
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:83
+#: lib/t/push_notifications/apns.ex:135
 msgid "%{name} invited you to connect"
 msgstr ""
 
@@ -33,22 +33,22 @@ msgid "Match with %{name} is about to expire"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:89
+#: lib/t/push_notifications/apns.ex:141
 msgid "Hey, create your own cool profile ✨"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:90
+#: lib/t/push_notifications/apns.ex:142
 msgid "Meet interesting people ✌️"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:99
+#: lib/t/push_notifications/apns.ex:151
 msgid "The current version is no longer supported 🙃"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:98
+#: lib/t/push_notifications/apns.ex:150
 msgid "Update the app in the App Store ✨"
 msgstr ""
 
@@ -63,16 +63,46 @@ msgid "Contact %{pronoun} ✨"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:105
+#: lib/t/push_notifications/apns.ex:157
 msgid "her"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:106
+#: lib/t/push_notifications/apns.ex:158
 msgid "him"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:107
+#: lib/t/push_notifications/apns.ex:159
 msgid "them"
 msgstr ""
+
+#, elixir-autogen, elixir-format
+#: lib/t/push_notifications/apns.ex:99
+msgid "%{name} sent%{verb_ending_ru} a drawing"
+msgstr "%{name} sent a drawing"
+
+#, elixir-autogen, elixir-format
+#: lib/t/push_notifications/apns.ex:93
+msgid "%{name} sent%{verb_ending_ru} a message"
+msgstr "%{name} sent a message"
+
+#, elixir-autogen, elixir-format
+#: lib/t/push_notifications/apns.ex:117
+msgid "%{name} sent%{verb_ending_ru} a music track"
+msgstr "%{name} sent a music track"
+
+#, elixir-autogen, elixir-format
+#: lib/t/push_notifications/apns.ex:111
+msgid "%{name} sent%{verb_ending_ru} a voice message"
+msgstr "%{name} sent a voice message"
+
+#, elixir-autogen, elixir-format
+#: lib/t/push_notifications/apns.ex:105
+msgid "%{name} sent%{verb_ending_ru} a video message"
+msgstr "%{name} sent a video message"
+
+#, elixir-autogen, elixir-format
+#: lib/t/push_notifications/apns.ex:123
+msgid "%{name} sent%{verb_ending_ru} a contact"
+msgstr "%{name} sent a contact"

@@ -10,7 +10,7 @@ defmodule T.Matches do
   import T.Cluster, only: [primary_rpc: 3]
 
   alias T.Repo
-  alias T.Matches.{Match, Like, MatchEvent, Seen}
+  alias T.Matches.{Match, Like, MatchEvent, Seen, Interaction}
   alias T.Feeds.{FeedProfile, SeenProfile}
   alias T.PushNotifications.DispatchJob
   alias T.Bot
@@ -265,6 +265,7 @@ defmodule T.Matches do
       }
     end)
     |> preload_match_profiles(user_id, location)
+    |> preload_interactions()
   end
 
   defp expiration_date(%Match{inserted_at: inserted_at}) do
@@ -473,6 +474,19 @@ defmodule T.Matches do
     end)
   end
 
+  defp preload_interactions(matches) do
+    match_ids = matches |> Enum.map(fn match -> match.id end)
+
+    interactions =
+      Interaction
+      |> where([i], i.match_id in ^match_ids)
+      |> Repo.all()
+
+    Enum.map(matches, fn match ->
+      %Match{match | interactions: Enum.filter(interactions, fn i -> i.match_id == match.id end)}
+    end)
+  end
+
   defp delete_likes_m(multi) do
     Multi.run(multi, :delete_likes, fn _repo, %{unmatch: unmatch} ->
       [uid1, uid2] =
@@ -543,6 +557,13 @@ defmodule T.Matches do
     |> Repo.one()
   end
 
+  defp get_match_for_user!(match_id, user_id) do
+    Match
+    |> where(id: ^match_id)
+    |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
+    |> Repo.one!()
+  end
+
   def notify_match_expiration_reset(match_id, user_ids) do
     message = {__MODULE__, :expiration_reset, match_id}
 
@@ -574,7 +595,7 @@ defmodule T.Matches do
   end
 
   defp named_match_q do
-    from m in Match, as: :match
+    from(m in Match, as: :match)
   end
 
   defp expiring_matches_q(query \\ named_match_q()) do
@@ -583,14 +604,13 @@ defmodule T.Matches do
     |> where([undying_event: e], is_nil(e.timestamp))
   end
 
+  @undying_events ["call_start", "contact_offer", "contact_click", "interaction_exchange"]
+
   def matches_with_undying_events_q(query \\ named_match_q()) do
     undying_events_q =
       MatchEvent
       |> where(match_id: parent_as(:match).id)
-      |> where(
-        [e],
-        e.event == "call_start" or e.event == "contact_offer" or e.event == "contact_click"
-      )
+      |> where([e], e.event in @undying_events)
       |> select([e], e.timestamp)
       |> limit(1)
 
@@ -600,10 +620,151 @@ defmodule T.Matches do
   def has_undying_events?(match_id) do
     MatchEvent
     |> where(match_id: ^match_id)
-    |> where(
-      [e],
-      e.event == "call_start" or e.event == "contact_offer" or e.event == "contact_click"
-    )
+    |> where([e], e.event in @undying_events)
     |> Repo.exists?()
+  end
+
+  # Interactions
+
+  @spec save_interaction(uuid, uuid, map, DateTime.t()) :: {:ok, map} | {:error, map}
+  def save_interaction(match_id, from_user_id, interaction_data, now \\ DateTime.utc_now()) do
+    %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} =
+      get_match_for_user!(match_id, from_user_id)
+
+    [to_user_id] = [uid1, uid2] -- [from_user_id]
+
+    primary_rpc(__MODULE__, :local_save_interaction, [
+      match_id,
+      from_user_id,
+      to_user_id,
+      interaction_data,
+      now
+    ])
+  end
+
+  @spec local_save_interaction(uuid, uuid, uuid, map, DateTime.t()) ::
+          {:ok, map} | {:error, map}
+  def local_save_interaction(match_id, from_user_id, to_user_id, interaction_data, now) do
+    {from_name, _number_of_matches1} = user_info(from_user_id)
+    {to_name, _number_of_matches2} = user_info(to_user_id)
+    now = DateTime.truncate(now, :second)
+
+    interaction_type =
+      case interaction_data do
+        %{"sticker" => %{"question" => question}} ->
+          case question in T.Accounts.Profile.contacts() do
+            true -> "contact"
+            false -> question
+          end
+
+        _ ->
+          "message"
+      end
+
+    m =
+      "interaction #{interaction_type} from #{from_name} (#{from_user_id}) to #{to_name} (#{to_user_id})"
+
+    Logger.warn(m)
+    Bot.async_post_message(m)
+
+    changeset =
+      interaction_changeset(%{
+        data: interaction_data,
+        match_id: match_id,
+        from_user_id: from_user_id,
+        to_user_id: to_user_id
+      })
+
+    Multi.new()
+    |> Multi.insert(:interaction, changeset)
+    |> Multi.run(:push, fn _repo, %{interaction: %Interaction{id: interaction_id}} ->
+      push_job =
+        DispatchJob.new(%{
+          "type" => interaction_type,
+          "match_id" => match_id,
+          "from_user_id" => from_user_id,
+          "to_user_id" => to_user_id,
+          "interaction_id" => interaction_id
+        })
+
+      Oban.insert(push_job)
+    end)
+    |> Multi.run(:maybe_undying_event, fn _repo, _changes ->
+      MatchEvent
+      |> where(match_id: ^match_id)
+      |> where(event: "interaction_exchange")
+      |> Repo.exists?()
+      |> case do
+        true ->
+          {:ok, nil}
+
+        false ->
+          Interaction
+          |> where(match_id: ^match_id)
+          |> where(from_user_id: ^to_user_id)
+          |> Repo.exists?()
+          |> case do
+            true ->
+              Repo.insert(%MatchEvent{
+                timestamp: now,
+                match_id: match_id,
+                event: "interaction_exchange"
+              })
+
+            false ->
+              {:ok, nil}
+          end
+      end
+    end)
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{interaction: %Interaction{} = interaction, maybe_undying_event: %MatchEvent{}}} ->
+        broadcast_interaction(interaction)
+        notify_match_expiration_reset(match_id, [from_user_id, to_user_id])
+        {:ok, interaction}
+
+      {:ok, %{interaction: %Interaction{} = interaction, maybe_undying_event: nil}} ->
+        broadcast_interaction(interaction)
+        {:ok, interaction}
+
+      {:error, :interaction, %Ecto.Changeset{} = changeset, _changes} ->
+        {:error, changeset}
+    end
+  end
+
+  defp interaction_changeset(attrs) do
+    %Interaction{}
+    |> cast(attrs, [:data, :match_id, :from_user_id, :to_user_id])
+    |> validate_required([:data, :match_id, :from_user_id, :to_user_id])
+    |> validate_change(:data, fn :data, interaction_data ->
+      case interaction_data do
+        %{"sticker" => %{"question" => question}} ->
+          case question in (["message", "drawing", "video", "audio", "spotify"] ++
+                              T.Accounts.Profile.contacts()) do
+            true -> []
+            false -> [interaction: "unsupported interaction type"]
+          end
+
+        %{"sticker" => %{"value" => value}} ->
+          case is_binary(value) do
+            true -> []
+            false -> [interaction: "unrecognized interaction type"]
+          end
+
+        nil ->
+          [interaction: "unrecognized interaction type"]
+
+        _ ->
+          [interaction: "unrecognized interaction type"]
+      end
+    end)
+  end
+
+  @spec broadcast_interaction(%Interaction{}) :: :ok
+  def broadcast_interaction(%Interaction{from_user_id: from, to_user_id: to} = interaction) do
+    message = {__MODULE__, :interaction, interaction}
+    broadcast_for_user(from, message)
+    broadcast_for_user(to, message)
+    :ok
   end
 end

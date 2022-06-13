@@ -20,7 +20,6 @@ defmodule TWeb.MatchView do
 
     %{
       "id" => id,
-      # TODO process sticker s3_keys
       "interaction" => %{
         "sticker" => ViewHelpers.process_sticker(sticker, width),
         "size" => size

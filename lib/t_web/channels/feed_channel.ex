@@ -352,11 +352,6 @@ defmodule TWeb.FeedChannel do
     end
   end
 
-  def handle_in("list-interactions", %{"match_id" => match_id}, socket) do
-    interactions = Matches.history_list_interactions(match_id)
-    {:reply, {:ok, %{"interactions" => render_interactions(interactions)}}, socket}
-  end
-
   @impl true
   def handle_info({Matches, :liked, like}, socket) do
     %{screen_width: screen_width, version: version, location: location} = socket.assigns

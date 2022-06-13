@@ -649,11 +649,6 @@ defmodule T.Matches do
     {to_name, _number_of_matches2} = user_info(to_user_id)
     now = DateTime.truncate(now, :second)
 
-    m = "interaction from #{from_name} (#{from_user_id}) to #{to_name} (#{to_user_id})"
-
-    Logger.warn(m)
-    Bot.async_post_message(m)
-
     interaction_type =
       case interaction_data do
         %{"sticker" => %{"question" => question}} ->
@@ -665,6 +660,12 @@ defmodule T.Matches do
         _ ->
           "message"
       end
+
+    m =
+      "interaction #{interaction_type} from #{from_name} (#{from_user_id}) to #{to_name} (#{to_user_id})"
+
+    Logger.warn(m)
+    Bot.async_post_message(m)
 
     changeset =
       interaction_changeset(%{
@@ -757,14 +758,6 @@ defmodule T.Matches do
           [interaction: "unrecognized interaction type"]
       end
     end)
-  end
-
-  @spec history_list_interactions(uuid) :: [%Interaction{}]
-  def history_list_interactions(match_id) do
-    Interaction
-    |> where(match_id: ^match_id)
-    |> order_by(asc: :id)
-    |> Repo.all()
   end
 
   @spec broadcast_interaction(%Interaction{}) :: :ok

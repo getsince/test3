@@ -51,6 +51,8 @@ defmodule T.Matches.InteractionsTest do
     end
 
     test "interaction exchange", %{profiles: [p1, p2], match: match} do
+      match_id = match.id
+
       Matches.subscribe_for_user(p1.user_id)
       Matches.subscribe_for_user(p2.user_id)
 
@@ -70,7 +72,7 @@ defmodule T.Matches.InteractionsTest do
                to_user_id: ^to_user_id
              } = interaction
 
-      assert [i1] = Matches.history_list_interactions(match.id)
+      assert [i1] = Interaction |> where(match_id: ^match_id) |> T.Repo.all()
       assert i1.from_user_id == p1.user_id
       assert i1.to_user_id == p2.user_id
       assert i1.match_id == match.id
@@ -96,7 +98,7 @@ defmodule T.Matches.InteractionsTest do
                from_user_id: ^to_user_id
              } = interaction
 
-      assert [^i1, i2] = Matches.history_list_interactions(match.id)
+      assert [^i1, i2] = Interaction |> where(match_id: ^match_id) |> T.Repo.all()
       assert i2.from_user_id == p2.user_id
       assert i2.to_user_id == p1.user_id
       assert i2.match_id == match.id
@@ -112,13 +114,27 @@ defmodule T.Matches.InteractionsTest do
       assert_received {Matches, :interaction, ^i2}
 
       assert [%{event: "interaction_exchange"}] = MatchEvent |> T.Repo.all()
+
+      # spotify interaction from p2 to p1
+      assert {:ok, %Interaction{}} =
+               Matches.save_interaction(match.id, p2.user_id, %{
+                 "size" => [428, 926],
+                 "sticker" => %{"question" => "spotify"}
+               })
+
+      # no match_expiration reset
+      refute_received {Matches, :expiration_reset, _m}
+
+      # no additional MatchEvent was added
+      assert [%{event: "interaction_exchange"}] = MatchEvent |> T.Repo.all()
     end
   end
 
   describe "save_interaction/3 side-effects" do
     setup [:with_profiles]
 
-    setup %{profiles: [_p1, p2]} do
+    setup %{profiles: [p1, p2]} do
+      Matches.subscribe_for_user(p1.user_id)
       Matches.subscribe_for_user(p2.user_id)
     end
 
@@ -148,12 +164,25 @@ defmodule T.Matches.InteractionsTest do
              ] = all_enqueued(worker: T.PushNotifications.DispatchJob)
     end
 
-    test "offer is broadcast via pubsub to mate", %{profiles: [_p1, %{user_id: to_user_id}]} do
-      assert_receive {Matches, :interaction, %Interaction{} = interaction}
+    test "interaction is broadcast via pubsub to us & mate", %{
+      profiles: [_p1, %{user_id: to_user_id}]
+    } do
+      assert_receive {Matches, :interaction, %Interaction{} = interaction_0}
+      assert_receive {Matches, :interaction, %Interaction{} = interaction_1}
+      assert interaction_0 == interaction_1
+      assert interaction_0.data == %{"size" => [375, 667], "sticker" => %{"value" => "helloy"}}
+      assert interaction_0.to_user_id == to_user_id
 
-      assert interaction.data == %{"size" => [375, 667], "sticker" => %{"value" => "helloy"}}
+      assert_receive {Matches, :interaction, %Interaction{} = interaction_2}
+      assert_receive {Matches, :interaction, %Interaction{} = interaction_3}
+      assert interaction_2 == interaction_3
 
-      assert interaction.to_user_id == to_user_id
+      assert interaction_2.data == %{
+               "size" => [375, 667],
+               "sticker" => %{"question" => "telegram"}
+             }
+
+      assert interaction_2.to_user_id == to_user_id
     end
   end
 

@@ -467,10 +467,6 @@ defmodule TWeb.FeedChannel do
     render(MatchView, "match.json", assigns)
   end
 
-  defp render_interactions(interactions) do
-    Enum.map(interactions, &render_interaction/1)
-  end
-
   defp render_interaction(interaction) do
     render(MatchView, "interaction.json", interaction: interaction)
   end

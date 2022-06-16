@@ -771,10 +771,7 @@ defmodule T.Matches do
 
   @spec mark_interaction_seen(uuid, uuid) :: :ok | :error
   def mark_interaction_seen(by_user_id, interaction_id) do
-    primary_rpc(__MODULE__, :local_mark_interaction_seen, [
-      by_user_id,
-      interaction_id
-    ])
+    primary_rpc(__MODULE__, :local_mark_interaction_seen, [by_user_id, interaction_id])
   end
 
   @spec local_mark_interaction_seen(uuid, uuid) :: :ok | :error

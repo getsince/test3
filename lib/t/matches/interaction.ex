@@ -11,5 +11,6 @@ defmodule T.Matches.Interaction do
     belongs_to :to_user, User
     belongs_to :match, Match
     field :data, :map
+    field :seen, :boolean
   end
 end

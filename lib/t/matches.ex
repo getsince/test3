@@ -672,7 +672,8 @@ defmodule T.Matches do
         data: interaction_data,
         match_id: match_id,
         from_user_id: from_user_id,
-        to_user_id: to_user_id
+        to_user_id: to_user_id,
+        seen: false
       })
 
     Multi.new()
@@ -734,8 +735,8 @@ defmodule T.Matches do
 
   defp interaction_changeset(attrs) do
     %Interaction{}
-    |> cast(attrs, [:data, :match_id, :from_user_id, :to_user_id])
-    |> validate_required([:data, :match_id, :from_user_id, :to_user_id])
+    |> cast(attrs, [:data, :match_id, :from_user_id, :to_user_id, :seen])
+    |> validate_required([:data, :match_id, :from_user_id, :to_user_id, :seen])
     |> validate_change(:data, fn :data, interaction_data ->
       case interaction_data do
         %{"sticker" => %{"question" => question}} ->
@@ -761,10 +762,36 @@ defmodule T.Matches do
   end
 
   @spec broadcast_interaction(%Interaction{}) :: :ok
-  def broadcast_interaction(%Interaction{from_user_id: from, to_user_id: to} = interaction) do
+  defp broadcast_interaction(%Interaction{from_user_id: from, to_user_id: to} = interaction) do
     message = {__MODULE__, :interaction, interaction}
     broadcast_for_user(from, message)
     broadcast_for_user(to, message)
     :ok
+  end
+
+  @spec mark_interaction_seen(uuid, uuid) :: :ok | :error
+  def mark_interaction_seen(by_user_id, interaction_id) do
+    primary_rpc(__MODULE__, :local_mark_interaction_seen, [by_user_id, interaction_id])
+  end
+
+  @spec local_mark_interaction_seen(uuid, uuid) :: :ok | :error
+  def local_mark_interaction_seen(by_user_id, interaction_id) do
+    Interaction
+    |> where(id: ^interaction_id)
+    |> where(to_user_id: ^by_user_id)
+    |> Repo.one()
+    |> case do
+      nil ->
+        :error
+
+      interaction ->
+        interaction
+        |> cast(%{seen: true}, [:seen])
+        |> Repo.update()
+        |> case do
+          {:ok, _} -> :ok
+          {:error, _} -> :error
+        end
+    end
   end
 end

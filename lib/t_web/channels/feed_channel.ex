@@ -352,6 +352,13 @@ defmodule TWeb.FeedChannel do
     end
   end
 
+  def handle_in("seen-interaction", %{"interaction_id" => interaction_id}, socket) do
+    %{current_user: %{id: by_user_id}} = socket.assigns
+
+    reply = Matches.mark_interaction_seen(by_user_id, interaction_id)
+    {:reply, reply, socket}
+  end
+
   @impl true
   def handle_info({Matches, :liked, like}, socket) do
     %{screen_width: screen_width, version: version, location: location} = socket.assigns

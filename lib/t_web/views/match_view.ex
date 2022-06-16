@@ -15,7 +15,8 @@ defmodule TWeb.MatchView do
     %Interaction{
       id: id,
       from_user_id: from_user_id,
-      data: %{"sticker" => sticker, "size" => [width, _height] = size}
+      data: %{"sticker" => sticker, "size" => [width, _height] = size},
+      seen: seen
     } = interaction
 
     %{
@@ -25,7 +26,8 @@ defmodule TWeb.MatchView do
         "size" => size
       },
       "inserted_at" => datetime(id),
-      "from_user_id" => from_user_id
+      "from_user_id" => from_user_id,
+      "seen" => seen
     }
   end
 

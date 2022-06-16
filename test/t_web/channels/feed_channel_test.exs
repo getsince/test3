@@ -131,7 +131,8 @@ defmodule TWeb.FeedChannelTest do
                          "question" => "telegram",
                          "url" => "https://t.me/durov"
                        }
-                     }
+                     },
+                     "seen" => false
                    },
                    %{
                      "from_user_id" => p3.id,
@@ -144,7 +145,8 @@ defmodule TWeb.FeedChannelTest do
                          "s3_key" => "abcd",
                          "url" => "https://d6666.cloudfront.net/abcd"
                        }
-                     }
+                     },
+                     "seen" => false
                    }
                  ]
                },
@@ -176,7 +178,8 @@ defmodule TWeb.FeedChannelTest do
                      "interaction" => %{
                        "size" => [100, 100],
                        "sticker" => %{"value" => "hey mama"}
-                     }
+                     },
+                     "seen" => false
                    }
                  ]
                },

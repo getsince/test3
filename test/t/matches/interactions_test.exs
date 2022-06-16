@@ -186,6 +186,32 @@ defmodule T.Matches.InteractionsTest do
     end
   end
 
+  describe "mark_interaction_seen/2" do
+    setup [:with_profiles, :with_match, :with_text_interaction]
+
+    test "marked seen", %{
+      profiles: [%{user_id: _from_user_id}, %{user_id: to_user_id}],
+      interaction: %{id: interaction_id, seen: seen}
+    } do
+      assert seen == false
+      assert Matches.mark_interaction_seen(to_user_id, interaction_id) == :ok
+
+      [i] = Interaction |> where(id: ^interaction_id) |> T.Repo.all()
+      assert i.seen == true
+    end
+
+    test "from sender", %{
+      profiles: [%{user_id: from_user_id}, %{user_id: _to_user_id}],
+      interaction: %{id: interaction_id, seen: seen}
+    } do
+      assert seen == false
+      assert Matches.mark_interaction_seen(from_user_id, interaction_id) == :error
+
+      [i] = Interaction |> where(id: ^interaction_id) |> T.Repo.all()
+      assert i.seen == false
+    end
+  end
+
   defp with_profiles(_context) do
     {:ok, profiles: insert_list(2, :profile, hidden?: false)}
   end

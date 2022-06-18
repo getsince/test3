@@ -47,22 +47,13 @@ defmodule T.PushNotifications.APNS do
   @spec build_alert_payload(String.t(), map) :: map
   def build_alert_payload(template, data)
 
-  def build_alert_payload("match" = type, _data) do
+  def build_alert_payload("match" = type, data) do
     alert = %{
       "title" => dgettext("apns", "Это новый мэтч!"),
       "body" => dgettext("apns", "Скорее заходи!")
     }
 
-    base_alert_payload(type, alert)
-  end
-
-  def build_alert_payload("match_no_contact" = type, _data) do
-    alert = %{
-      "title" => dgettext("apns", "Это новый мэтч!"),
-      "body" => dgettext("apns", "Добавь контакт в свой профиль, чтобы с тобой могли связаться")
-    }
-
-    base_alert_payload(type, alert)
+    base_alert_payload(type, alert, data)
   end
 
   def build_alert_payload(

@@ -43,8 +43,30 @@ defmodule T.PushNotifications.DispatchJob do
           {name2, gender2} = profile2
           data1 = %{"match_id" => match_id, "name" => name2, "gender" => gender2}
           data2 = %{"match_id" => match_id, "name" => name1, "gender" => gender1}
-          uid1 |> Accounts.list_apns_devices() |> schedule_apns("match_about_to_expire", data1)
-          uid2 |> Accounts.list_apns_devices() |> schedule_apns("match_about_to_expire", data2)
+
+          case Matches.has_interaction?(match_id) do
+            nil ->
+              uid1
+              |> Accounts.list_apns_devices()
+              |> schedule_apns("match_about_to_expire", data1)
+
+              uid2
+              |> Accounts.list_apns_devices()
+              |> schedule_apns("match_about_to_expire", data2)
+
+            %Matches.Interaction{to_user_id: to_user_id} ->
+              case to_user_id do
+                ^uid1 ->
+                  uid1
+                  |> Accounts.list_apns_devices()
+                  |> schedule_apns("match_about_to_expire_please_reply", data1)
+
+                ^uid2 ->
+                  uid2
+                  |> Accounts.list_apns_devices()
+                  |> schedule_apns("match_about_to_expire_please_reply", data2)
+              end
+          end
         end
       end
     end

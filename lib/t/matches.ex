@@ -794,4 +794,10 @@ defmodule T.Matches do
         end
     end
   end
+
+  def has_interaction?(match_id) do
+    Interaction
+    |> where(match_id: ^match_id)
+    |> Repo.one()
+  end
 end

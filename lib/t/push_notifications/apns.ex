@@ -65,17 +65,34 @@ defmodule T.PushNotifications.APNS do
     base_alert_payload(type, alert)
   end
 
-  def build_alert_payload("match_about_to_expire" = type, data) do
-    %{"name" => name} = data
-    # TODO proper in the next release
-    gender = data["gender"]
-
+  def build_alert_payload(
+        "match_about_to_expire" = type,
+        %{"name" => name, "gender" => gender} = data
+      ) do
     alert = %{
       "title" => dgettext("apns", "Match with %{name} is about to expire", name: name),
-      "body" => dgettext("apns", "Contact %{pronoun} ✨", pronoun: pronoun(gender))
+      "body" =>
+        dgettext("apns", "Last chance to send %{pronoun_to} a message ✨",
+          pronoun: pronoun_to(gender)
+        )
     }
 
-    base_alert_payload(type, alert)
+    base_alert_payload(type, alert, data)
+  end
+
+  def build_alert_payload(
+        "match_about_to_expire_please_reply" = type,
+        %{"name" => name, "gender" => gender} = data
+      ) do
+    alert = %{
+      "title" => dgettext("apns", "Match with %{name} is about to expire", name: name),
+      "body" =>
+        dgettext("apns", "Last chance to reply to %{pronoun_belonging_to} message ✨",
+          pronoun_belonging_to: pronoun_belonging_to(gender)
+        )
+    }
+
+    base_alert_payload(type, alert, data)
   end
 
   def build_alert_payload(type, %{"name_from" => name_from, "gender_from" => gender_from} = data)
@@ -136,7 +153,11 @@ defmodule T.PushNotifications.APNS do
     base_alert_payload(type, alert)
   end
 
-  defp pronoun("F"), do: dgettext("apns", "her")
-  defp pronoun("M"), do: dgettext("apns", "him")
-  defp pronoun(_), do: dgettext("apns", "them")
+  defp pronoun_to("F"), do: dgettext("apns", "her TO")
+  defp pronoun_to("M"), do: dgettext("apns", "him TO")
+  defp pronoun_to(_), do: dgettext("apns", "them TO")
+
+  defp pronoun_belonging_to("F"), do: dgettext("apns", "her BELONGING TO")
+  defp pronoun_belonging_to("M"), do: dgettext("apns", "his BELONGING TO")
+  defp pronoun_belonging_to(_), do: dgettext("apns", "their BELONGING TO")
 end

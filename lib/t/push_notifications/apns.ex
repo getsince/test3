@@ -87,46 +87,28 @@ defmodule T.PushNotifications.APNS do
         "M" -> ""
       end
 
-    title =
+    body =
       case type do
         "message" ->
-          dgettext("apns", "%{name} sent%{verb_ending_ru} a message",
-            name: name_from,
-            verb_ending_ru: verb_ending_ru
-          )
+          dgettext("apns", "sent%{verb_ending_ru} a message", verb_ending_ru: verb_ending_ru)
 
         "drawing" ->
-          dgettext("apns", "%{name} sent%{verb_ending_ru} a drawing",
-            name: name_from,
-            verb_ending_ru: verb_ending_ru
-          )
+          dgettext("apns", "sent%{verb_ending_ru} a drawing", verb_ending_ru: verb_ending_ru)
 
         "video" ->
-          dgettext("apns", "%{name} sent%{verb_ending_ru} a video message",
-            name: name_from,
-            verb_ending_ru: verb_ending_ru
-          )
+          dgettext("apns", "sent%{verb_ending_ru} a video message", verb_ending_ru: verb_ending_ru)
 
         "audio" ->
-          dgettext("apns", "%{name} sent%{verb_ending_ru} a voice message",
-            name: name_from,
-            verb_ending_ru: verb_ending_ru
-          )
+          dgettext("apns", "sent%{verb_ending_ru} a voice message", verb_ending_ru: verb_ending_ru)
 
         "spotify" ->
-          dgettext("apns", "%{name} sent%{verb_ending_ru} a music track",
-            name: name_from,
-            verb_ending_ru: verb_ending_ru
-          )
+          dgettext("apns", "sent%{verb_ending_ru} a music track", verb_ending_ru: verb_ending_ru)
 
         "contact" ->
-          dgettext("apns", "%{name} sent%{verb_ending_ru} a contact",
-            name: name_from,
-            verb_ending_ru: verb_ending_ru
-          )
+          dgettext("apns", "sent%{verb_ending_ru} a contact", verb_ending_ru: verb_ending_ru)
       end
 
-    alert = %{"title" => title}
+    alert = %{"title" => name_from, "body" => body}
     base_alert_payload(type, alert, data)
   end
 

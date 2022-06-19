@@ -138,7 +138,7 @@ defmodule TWeb.ViewHelpersTest do
            ] =
              ViewHelpers.postprocess_story(
                story,
-               _version = "6.2.0",
+               _version = "7.0.0",
                _screen_width = 1200,
                _env = :feed
              )

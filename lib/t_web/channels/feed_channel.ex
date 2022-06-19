@@ -90,6 +90,18 @@ defmodule TWeb.FeedChannel do
      socket}
   end
 
+  def handle_in("onboarding-feed", _params, socket) do
+    %{
+      remote_ip: remote_ip,
+      screen_width: screen_width,
+      version: version
+    } = socket.assigns
+
+    feed = Feeds.fetch_onboarding_feed(remote_ip)
+
+    {:reply, {:ok, %{"feed" => render_feed(feed, version, screen_width)}}, socket}
+  end
+
   # TODO remove
   def handle_in("archived-matches", _params, socket) do
     {:reply, {:ok, %{"archived_matches" => []}}, socket}

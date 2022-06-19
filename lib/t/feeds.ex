@@ -242,6 +242,51 @@ defmodule T.Feeds do
     |> maybe_gender_preferenced_q(gender_preference)
   end
 
+  ### Onboarding Feed
+
+  def fetch_onboarding_feed(remote_ip) do
+    location =
+      case remote_ip do
+        nil ->
+          nil
+
+        _ ->
+          case T.Location.location_from_ip(remote_ip) do
+            [lat, lon] -> %Geo.Point{coordinates: {lon, lat}, srid: 4326}
+            _ -> nil
+          end
+      end
+
+    people_nearby =
+      not_hidden_profiles_q()
+      |> where([p], st_dwithin_in_meters(^location, p.location, ^1_000_000))
+      |> order_by(desc: :like_ratio)
+      |> limit(4)
+      |> Repo.all()
+
+    feeded_ids = people_nearby |> Enum.map(fn %FeedProfile{user_id: user_id} -> user_id end)
+
+    most_popular_females =
+      not_hidden_profiles_q()
+      |> where([p], p.user_id not in ^feeded_ids)
+      |> where([p], p.times_liked > 50)
+      |> where([p], p.gender == "F")
+      |> order_by(desc: :like_ratio)
+      |> limit(3)
+      |> Repo.all()
+
+    most_popular_non_females =
+      not_hidden_profiles_q()
+      |> where([p], p.user_id not in ^feeded_ids)
+      |> where([p], p.times_liked > 50)
+      |> where([p], p.gender != "F")
+      |> order_by(desc: :like_ratio)
+      |> limit(3)
+      |> Repo.all()
+
+    people_nearby ++ most_popular_females ++ most_popular_non_females
+  end
+
   ### Likes
 
   # TODO accept cursor

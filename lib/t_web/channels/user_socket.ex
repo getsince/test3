@@ -30,6 +30,7 @@ defmodule TWeb.UserSocket do
       if check_version(version) do
         {:ok,
          assign(socket,
+           remote_ip: remote_ip,
            current_user: user,
            token: token,
            screen_width: params["screen_width"] || 1000,

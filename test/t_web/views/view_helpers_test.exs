@@ -17,7 +17,6 @@ defmodule TWeb.ViewHelpersTest do
           %{"question" => "imessage", "answer" => "zelensky@free.co"},
           %{"question" => "signal", "answer" => "+79169752435"},
           %{"question" => "twitter", "answer" => "zelensky"},
-          # would be rendered in v6.2.0 and removed in lower versions
           %{
             "s3_key" => "038fbd69-ba44-42c2-8086-5213ff093ad5",
             "duration" => 4.952947845804989,
@@ -138,7 +137,7 @@ defmodule TWeb.ViewHelpersTest do
            ] =
              ViewHelpers.postprocess_story(
                story,
-               _version = "7.0.0",
+               _version = "6.2.0",
                _screen_width = 1200,
                _env = :feed
              )

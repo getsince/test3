@@ -131,4 +131,17 @@ defmodule T.FeedsTest do
                {0, 0.0}
     end
   end
+
+  describe "fetch_onboarding_feed/2" do
+    test "with no data in db" do
+      assert [] == Feeds.fetch_onboarding_feed(nil, 0)
+    end
+
+    test "with no ip" do
+      mate = onboarded_user()
+
+      assert [%FeedProfile{user_id: user_id}] = Feeds.fetch_onboarding_feed(nil, 0)
+      assert user_id == mate.id
+    end
+  end
 end

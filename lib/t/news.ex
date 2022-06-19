@@ -299,7 +299,7 @@ defmodule T.News do
             %{
               id: 5,
               timestamp: ~U[2022-04-17 10:00:00Z],
-              version: "7.0.0",
+              version: "6.2.0",
               story: [
                 %{
                   "size" => [390, 844],
@@ -415,7 +415,7 @@ defmodule T.News do
             %{
               id: 7,
               timestamp: ~U[2022-05-01 10:00:00Z],
-              version: "7.0.0",
+              version: "6.3.0",
               story: [
                 %{
                   "size" => [390, 844],
@@ -815,7 +815,7 @@ defmodule T.News do
             %{
               id: 5,
               timestamp: ~U[2022-04-17 10:00:00Z],
-              version: "7.0.0",
+              version: "6.2.0",
               story: [
                 %{
                   "size" => [390, 844],
@@ -930,7 +930,7 @@ defmodule T.News do
             %{
               id: 7,
               timestamp: ~U[2022-05-01 10:00:00Z],
-              version: "7.0.0",
+              version: "6.3.0",
               story: [
                 %{
                   "size" => [390, 844],

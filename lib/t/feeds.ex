@@ -244,7 +244,7 @@ defmodule T.Feeds do
 
   ### Onboarding Feed
 
-  def fetch_onboarding_feed(remote_ip) do
+  def fetch_onboarding_feed(remote_ip, likes_count_treshold \\ 50) do
     location =
       case remote_ip do
         nil ->
@@ -257,34 +257,34 @@ defmodule T.Feeds do
           end
       end
 
-    people_nearby =
-      not_hidden_profiles_q()
-      |> where([p], st_dwithin_in_meters(^location, p.location, ^1_000_000))
-      |> order_by(desc: :like_ratio)
-      |> limit(4)
-      |> Repo.all()
-
+    people_nearby = profiles_near_location(location, 4)
     feeded_ids = people_nearby |> Enum.map(fn %FeedProfile{user_id: user_id} -> user_id end)
 
     most_popular_females =
-      not_hidden_profiles_q()
-      |> where([p], p.user_id not in ^feeded_ids)
-      |> where([p], p.times_liked > 50)
-      |> where([p], p.gender == "F")
-      |> order_by(desc: :like_ratio)
-      |> limit(3)
-      |> Repo.all()
+      most_popular_profiles_with_genders(["F"], likes_count_treshold, feeded_ids, 3)
 
     most_popular_non_females =
-      not_hidden_profiles_q()
-      |> where([p], p.user_id not in ^feeded_ids)
-      |> where([p], p.times_liked > 50)
-      |> where([p], p.gender != "F")
-      |> order_by(desc: :like_ratio)
-      |> limit(3)
-      |> Repo.all()
+      most_popular_profiles_with_genders(["M", "N"], likes_count_treshold, feeded_ids, 3)
 
     people_nearby ++ most_popular_females ++ most_popular_non_females
+  end
+
+  defp profiles_near_location(location, limit) do
+    not_hidden_profiles_q()
+    |> where([p], st_dwithin_in_meters(^location, p.location, ^1_000_000))
+    |> order_by(desc: :like_ratio)
+    |> limit(^limit)
+    |> Repo.all()
+  end
+
+  defp most_popular_profiles_with_genders(genders, likes_count_treshold, feeded_ids, limit) do
+    not_hidden_profiles_q()
+    |> where([p], p.user_id not in ^feeded_ids)
+    |> where([p], p.times_liked >= ^likes_count_treshold)
+    |> where([p], p.gender in ^genders)
+    |> order_by(desc: :like_ratio)
+    |> limit(^limit)
+    |> Repo.all()
   end
 
   ### Likes

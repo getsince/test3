@@ -91,11 +91,7 @@ defmodule TWeb.FeedChannel do
   end
 
   def handle_in("onboarding-feed", _params, socket) do
-    %{
-      remote_ip: remote_ip,
-      screen_width: screen_width,
-      version: version
-    } = socket.assigns
+    %{remote_ip: remote_ip, screen_width: screen_width, version: version} = socket.assigns
 
     feed = Feeds.fetch_onboarding_feed(remote_ip)
 

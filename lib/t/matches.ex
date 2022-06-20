@@ -794,4 +794,15 @@ defmodule T.Matches do
         end
     end
   end
+
+  def has_interaction?(match_id) do
+    Interaction
+    |> where(match_id: ^match_id)
+    |> limit(1)
+    |> Repo.all()
+    |> case do
+      [] -> nil
+      [%Interaction{} = interaction] -> interaction
+    end
+  end
 end

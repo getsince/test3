@@ -87,7 +87,7 @@ defmodule T.PushNotifications.APNS do
   end
 
   def build_alert_payload(type, %{"name_from" => name_from, "gender_from" => gender_from} = data)
-      when type in ["message", "drawing", "video", "audio", "spotify", "contact"] do
+      when type in ["message", "drawing", "video", "audio", "spotify", "contact", "photo"] do
     verb_ending_ru =
       case gender_from do
         "F" -> "а"

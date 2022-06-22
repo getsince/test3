@@ -17,112 +17,111 @@ msgstr ""
 
 #, elixir-autogen, elixir-format
 #: lib/t/push_notifications/apns.ex:52
-#: lib/t/push_notifications/apns.ex:61
 msgid "Это новый мэтч!"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:134
+#: lib/t/push_notifications/apns.ex:128
 msgid "%{name} invited you to connect"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:73
-#: lib/t/push_notifications/apns.ex:88
+#: lib/t/push_notifications/apns.ex:64
+#: lib/t/push_notifications/apns.ex:79
 msgid "Match with %{name} is about to expire"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:140
+#: lib/t/push_notifications/apns.ex:134
 msgid "Hey, create your own cool profile ✨"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:141
+#: lib/t/push_notifications/apns.ex:135
 msgid "Meet interesting people ✌️"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:150
+#: lib/t/push_notifications/apns.ex:144
 msgid "The current version is no longer supported 🙃"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:149
+#: lib/t/push_notifications/apns.ex:143
 msgid "Update the app in the App Store ✨"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:62
-msgid "Добавь контакт в свой профиль, чтобы с тобой могли связаться"
-msgstr ""
-
-#, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:125
+#: lib/t/push_notifications/apns.ex:116
 msgid "sent%{verb_ending_ru} a contact"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:113
+#: lib/t/push_notifications/apns.ex:104
 msgid "sent%{verb_ending_ru} a drawing"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:110
+#: lib/t/push_notifications/apns.ex:101
 msgid "sent%{verb_ending_ru} a message"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:122
+#: lib/t/push_notifications/apns.ex:113
 msgid "sent%{verb_ending_ru} a music track"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:116
+#: lib/t/push_notifications/apns.ex:107
 msgid "sent%{verb_ending_ru} a video message"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:119
+#: lib/t/push_notifications/apns.ex:110
 msgid "sent%{verb_ending_ru} a voice message"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:156
+#: lib/t/push_notifications/apns.ex:150
 msgid "her TO"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:90
+#: lib/t/push_notifications/apns.ex:81
 msgid "Last chance to reply to %{pronoun_belonging_to} message ✨"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:75
+#: lib/t/push_notifications/apns.ex:66
 msgid "Last chance to send %{pronoun_to} a message ✨"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:160
+#: lib/t/push_notifications/apns.ex:154
 msgid "her BELONGING TO"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:157
+#: lib/t/push_notifications/apns.ex:151
 msgid "him TO"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:161
+#: lib/t/push_notifications/apns.ex:155
 msgid "his BELONGING TO"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:162
+#: lib/t/push_notifications/apns.ex:156
 msgid "their BELONGING TO"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:158
+#: lib/t/push_notifications/apns.ex:152
 msgid "them TO"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+#: lib/t/push_notifications/apns.ex:119
+msgid "sent%{verb_ending_ru} a photo"
 msgstr ""

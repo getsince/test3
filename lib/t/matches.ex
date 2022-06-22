@@ -740,7 +740,7 @@ defmodule T.Matches do
     |> validate_change(:data, fn :data, interaction_data ->
       case interaction_data do
         %{"sticker" => %{"question" => question}} ->
-          case question in (["message", "drawing", "video", "audio", "spotify"] ++
+          case question in (["message", "drawing", "video", "audio", "spotify", "photo"] ++
                               T.Accounts.Profile.contacts()) do
             true -> []
             false -> [interaction: "unsupported interaction type"]

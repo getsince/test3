@@ -114,6 +114,9 @@ defmodule T.PushNotifications.APNS do
 
         "contact" ->
           dgettext("apns", "sent%{verb_ending_ru} a contact", verb_ending_ru: verb_ending_ru)
+
+        "photo" ->
+          dgettext("apns", "sent%{verb_ending_ru} a photo", verb_ending_ru: verb_ending_ru)
       end
 
     alert = %{"title" => name_from, "body" => body}

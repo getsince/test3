@@ -72,6 +72,10 @@ defmodule TWeb.ViewHelpers do
     |> Map.put("proxy", image_cdn_url(key, screen_width))
   end
 
+  defp process_label(%{"question" => "photo", "s3_key" => key} = label, screen_width) do
+    Map.put(label, "proxy", image_cdn_url(key, screen_width))
+  end
+
   defp process_label(%{"question" => "audio", "s3_key" => key} = label, _screen_width) do
     Map.put(label, "url", media_cdn_url(key))
   end

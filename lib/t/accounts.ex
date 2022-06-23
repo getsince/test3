@@ -36,10 +36,6 @@ defmodule T.Accounts do
     Phoenix.PubSub.subscribe(@pubsub, pubsub_user_topic(user_id))
   end
 
-  defp broadcast_for_user(user_id, message) do
-    Phoenix.PubSub.broadcast(@pubsub, pubsub_user_topic(user_id), message)
-  end
-
   # def subscribe_to_new_users do
   #   Phoenix.PubSub.subscribe(T.PubSub, "new_users")
   # end

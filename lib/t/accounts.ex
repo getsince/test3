@@ -36,10 +36,6 @@ defmodule T.Accounts do
     Phoenix.PubSub.subscribe(@pubsub, pubsub_user_topic(user_id))
   end
 
-  defp broadcast_for_user(user_id, message) do
-    Phoenix.PubSub.broadcast(@pubsub, pubsub_user_topic(user_id), message)
-  end
-
   # def subscribe_to_new_users do
   #   Phoenix.PubSub.subscribe(T.PubSub, "new_users")
   # end
@@ -700,17 +696,6 @@ defmodule T.Accounts do
           Bot.async_post_message(m)
         end
 
-        broadcast_for_user(
-          profile.user_id,
-          {__MODULE__, :feed_filter_updated,
-           %T.Feeds.FeedFilter{
-             genders: genders,
-             min_age: profile.min_age,
-             max_age: profile.max_age,
-             distance: profile.distance
-           }}
-        )
-
         {:ok, %Profile{profile | gender_preference: genders}}
 
       {:error, :profile, %Ecto.Changeset{} = changeset, _changes} ->
@@ -771,13 +756,6 @@ defmodule T.Accounts do
     |> where(user_id: ^user_id)
     |> select([p], {p.location, p.gender})
     |> Repo.one!()
-  end
-
-  def list_gender_preferences(user_id) do
-    GenderPreference
-    |> where(user_id: ^user_id)
-    |> select([p], p.gender)
-    |> Repo.all()
   end
 
   defp maybe_unhide_profile_with_story(user_id) when is_binary(user_id) do

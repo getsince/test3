@@ -25,8 +25,7 @@ defmodule TWeb.FeedChannel do
   end
 
   defp join_normal_mode(user_id, _params, socket) do
-    feed_filter = Feeds.get_feed_filter(user_id)
-    {old_location, gender} = Accounts.get_location_and_gender!(user_id)
+    {old_location, _gender} = Accounts.get_location_and_gender!(user_id)
     location = socket.assigns.location || old_location
     %{screen_width: screen_width, version: version} = socket.assigns
 
@@ -57,12 +56,7 @@ defmodule TWeb.FeedChannel do
       |> maybe_put("likes", likes)
       |> maybe_put("matches", matches)
 
-    {:ok, reply,
-     assign(socket,
-       feed_filter: feed_filter,
-       location: location,
-       gender: gender
-     )}
+    {:ok, reply, assign(socket, location: location)}
   end
 
   @impl true
@@ -71,8 +65,6 @@ defmodule TWeb.FeedChannel do
       current_user: user,
       screen_width: screen_width,
       version: version,
-      feed_filter: feed_filter,
-      gender: gender,
       location: location
     } = socket.assigns
 
@@ -80,8 +72,6 @@ defmodule TWeb.FeedChannel do
       Feeds.fetch_feed(
         user.id,
         location,
-        gender,
-        feed_filter,
         params["count"] || 10,
         params["cursor"]
       )
@@ -431,10 +421,6 @@ defmodule TWeb.FeedChannel do
     })
 
     {:noreply, socket}
-  end
-
-  def handle_info({Accounts, :feed_filter_updated, feed_filter}, socket) do
-    {:noreply, assign(socket, :feed_filter, feed_filter)}
   end
 
   defp render_feed_item(profile, version, screen_width) do

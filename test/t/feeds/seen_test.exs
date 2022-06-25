@@ -3,7 +3,7 @@ defmodule T.Feeds.SeenTest do
   use Oban.Testing, repo: T.Repo
 
   alias T.Feeds
-  alias T.Feeds.{FeedFilter, SeenProfile}
+  alias T.Feeds.SeenProfile
 
   describe "feed" do
     setup do
@@ -16,13 +16,6 @@ defmodule T.Feeds.SeenTest do
                Feeds.fetch_feed(
                  me.id,
                  me.profile.location,
-                 _gender = "M",
-                 _feed_filter = %FeedFilter{
-                   genders: ["F"],
-                   min_age: nil,
-                   max_age: nil,
-                   distance: nil
-                 },
                  _count = 10,
                  _cursor = nil
                )
@@ -45,13 +38,6 @@ defmodule T.Feeds.SeenTest do
                Feeds.fetch_feed(
                  me.id,
                  me.profile.location,
-                 _gender = "M",
-                 _feed_filter = %FeedFilter{
-                   genders: ["F"],
-                   min_age: nil,
-                   max_age: nil,
-                   distance: nil
-                 },
                  _count = 10,
                  _cursor = nil
                )
@@ -71,13 +57,6 @@ defmodule T.Feeds.SeenTest do
                Feeds.fetch_feed(
                  me.id,
                  me.profile.location,
-                 _gender = "M",
-                 _feed_filter = %FeedFilter{
-                   genders: ["F"],
-                   min_age: nil,
-                   max_age: nil,
-                   distance: nil
-                 },
                  _count = 10,
                  _cursor = nil
                )

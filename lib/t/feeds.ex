@@ -1,8 +1,8 @@
 defmodule T.Feeds do
   @moduledoc "Profile feeds for the app."
 
-  import Ecto.Query
-  import Ecto.Changeset
+  import Ecto.{Query, Changeset}
+  alias Ecto.Multi
   import Geo.PostGIS
 
   require Logger
@@ -13,7 +13,9 @@ defmodule T.Feeds do
 
   alias T.Accounts.{Profile, UserReport, GenderPreference}
   alias T.Matches.{Match, Like}
-  alias T.Feeds.{FeedProfile, SeenProfile, FeededProfile, FeedFilter}
+  alias T.Feeds.{FeedProfile, SeenProfile, FeededProfile, FeedFilter, FeedLimit}
+  alias T.PushNotifications.DispatchJob
+  alias T.Bot
 
   ### PubSub
 
@@ -47,6 +49,10 @@ defmodule T.Feeds do
 
   ### Feed
 
+  @feed_daily_limit 15
+  # @feed_limit_recovery_period 24 * 60 * 60
+  @feed_limit_recovery_period 2 * 60
+
   # TODO refactor
   @spec fetch_feed(
           Ecto.UUID.t(),
@@ -55,29 +61,58 @@ defmodule T.Feeds do
           %FeedFilter{},
           pos_integer,
           String.t() | nil
-        ) ::
-          {[%FeedProfile{}], String.t()}
+        ) :: [%FeedProfile{}] | DateTime.t()
   # TODO remove writes
-  def fetch_feed(user_id, location, gender, feed_filter, count, feed_cursor) do
-    if feed_cursor == nil do
-      empty_feeded_profiles(user_id)
-    end
-
-    feed_profiles = continue_feed(user_id, location, gender, feed_filter, count)
-
-    mark_profiles_feeded(user_id, feed_profiles)
-
-    feed_cursor =
-      if length(feed_profiles) > 0 do
-        "non-nil"
-      else
+  def fetch_feed(
+        user_id,
+        location,
+        gender,
+        feed_filter,
+        feed_count,
         feed_cursor
-      end
+      ) do
+    feed_limit = FeedLimit |> where(user_id: ^user_id) |> Repo.one()
 
-    {feed_profiles, feed_cursor}
+    case feed_limit do
+      nil ->
+        feeded_count = feeded_profiles_count(user_id)
+
+        cond do
+          feeded_count >= @feed_daily_limit ->
+            {:ok, %FeedLimit{timestamp: timestamp}} = insert_feed_limit(user_id)
+            timestamp |> DateTime.add(@feed_limit_recovery_period)
+
+          true ->
+            count = min(feed_count, @feed_daily_limit - feeded_count)
+
+            {profiles, cursor} =
+              continue_feed(user_id, location, gender, feed_filter, count, feed_cursor)
+
+            mark_profiles_feeded(user_id, profiles)
+
+            {profiles, cursor}
+        end
+
+      %FeedLimit{timestamp: timestamp} ->
+        timestamp |> DateTime.add(@feed_limit_recovery_period)
+    end
   end
 
-  defp continue_feed(user_id, location, gender, feed_filter, count) do
+  defp feeded_profiles_count(user_id) do
+    FeededProfile
+    |> where(for_user_id: ^user_id)
+    |> select([s], count(s.user_id))
+    |> Repo.all()
+  end
+
+  defp insert_feed_limit(user_id) do
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+    # TODO multi?
+    empty_feeded_profiles(user_id)
+    %FeedLimit{user_id: user_id, timestamp: now} |> Repo.insert()
+  end
+
+  defp construct_feed(user_id, location, gender, feed_filter, count, cursor) do
     %FeedFilter{
       genders: gender_preferences,
       min_age: min_age,
@@ -85,10 +120,7 @@ defmodule T.Feeds do
       distance: distance
     } = feed_filter
 
-    feeded = FeededProfile |> where(for_user_id: ^user_id) |> select([s], s.user_id)
-
     feed_profiles_q(user_id, gender, gender_preferences)
-    |> where([p], p.user_id not in subquery(feeded))
     |> order_by(fragment("location <-> ?::geometry", ^location))
     |> maybe_apply_age_filters(min_age, max_age)
     |> maybe_apply_distance_filter(location, distance)
@@ -367,5 +399,45 @@ defmodule T.Feeds do
     SeenProfile
     |> where([s], s.inserted_at < fragment("now() - ? * interval '1 day'", ^ttl_days))
     |> Repo.delete_all()
+  end
+
+  ### Feed limits
+
+  def feed_limits_prune(reference \\ DateTime.utc_now()) do
+    reference
+    |> list_recovered_feed_limits()
+    |> Enum.each(fn user_id -> local_reset_feed_limit(user_id) end)
+  end
+
+  defp list_recovered_feed_limits(reference) do
+    recovery_date = DateTime.add(reference, -@feed_limit_recovery_period)
+
+    FeedLimit
+    |> where([l], l.timestamp < ^recovery_date)
+    |> select([l], l.user_id)
+    |> Repo.all()
+  end
+
+  @spec local_reset_feed_limit(Ecto.UUID.t()) :: :ok
+  def local_reset_feed_limit(user_id) do
+    m = "feed limit of #{user_id} was reset"
+
+    Logger.warn(m)
+    Bot.async_post_message(m)
+
+    Multi.new()
+    |> Multi.delete_all(:reset_feed_limit, FeedLimit |> where(user_id: ^user_id))
+    |> Multi.run(:push, fn _repo, _changes ->
+      push_job = DispatchJob.new(%{"type" => "feed_limit_reset", "user_id" => user_id})
+
+      Oban.insert(push_job)
+    end)
+    |> Repo.transaction()
+    |> case do
+      {:ok, _result} -> broadcast_for_user(user_id, {__MODULE__, :feed_limit_reset})
+      {:error, _error} -> nil
+    end
+
+    :ok
   end
 end

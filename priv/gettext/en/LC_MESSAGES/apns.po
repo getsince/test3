@@ -22,7 +22,7 @@ msgid "Это новый мэтч!"
 msgstr "That's a match!"
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:128
+#: lib/t/push_notifications/apns.ex:137
 msgid "%{name} invited you to connect"
 msgstr ""
 
@@ -33,22 +33,22 @@ msgid "Match with %{name} is about to expire"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:134
+#: lib/t/push_notifications/apns.ex:143
 msgid "Hey, create your own cool profile ✨"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:135
+#: lib/t/push_notifications/apns.ex:144
 msgid "Meet interesting people ✌️"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:144
+#: lib/t/push_notifications/apns.ex:153
 msgid "The current version is no longer supported 🙃"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:143
+#: lib/t/push_notifications/apns.ex:152
 msgid "Update the app in the App Store ✨"
 msgstr ""
 
@@ -83,7 +83,7 @@ msgid "sent%{verb_ending_ru} a voice message"
 msgstr "sent a voice message"
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:150
+#: lib/t/push_notifications/apns.ex:159
 msgid "her TO"
 msgstr "her"
 
@@ -98,27 +98,27 @@ msgid "Last chance to send %{pronoun_to} a message ✨"
 msgstr "Last chance to send %{pronoun_to} a message ✨"
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:154
+#: lib/t/push_notifications/apns.ex:163
 msgid "her BELONGING TO"
 msgstr "her"
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:151
+#: lib/t/push_notifications/apns.ex:160
 msgid "him TO"
 msgstr "him"
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:155
+#: lib/t/push_notifications/apns.ex:164
 msgid "his BELONGING TO"
 msgstr "his"
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:156
+#: lib/t/push_notifications/apns.ex:165
 msgid "their BELONGING TO"
 msgstr "their"
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:152
+#: lib/t/push_notifications/apns.ex:161
 msgid "them TO"
 msgstr "them"
 
@@ -126,3 +126,13 @@ msgstr "them"
 #: lib/t/push_notifications/apns.ex:119
 msgid "sent%{verb_ending_ru} a photo"
 msgstr "sent a photo"
+
+#, elixir-autogen, elixir-format
+#: lib/t/push_notifications/apns.ex:129
+msgid "Come and meet new people"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+#: lib/t/push_notifications/apns.ex:128
+msgid "Your daily feed is ready"
+msgstr ""

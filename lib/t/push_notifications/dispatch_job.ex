@@ -99,9 +99,12 @@ defmodule T.PushNotifications.DispatchJob do
     :ok
   end
 
-  defp handle_type("complete_onboarding" = type, args) do
-    %{"user_id" => user_id} = args
+  defp handle_type("feed_limit_reset" = type, %{"user_id" => user_id} = args) do
+    user_id |> Accounts.list_apns_devices() |> schedule_apns(type, args)
+    :ok
+  end
 
+  defp handle_type("complete_onboarding" = type, %{"user_id" => user_id} = args) do
     unless has_story?(user_id) do
       user_id |> Accounts.list_apns_devices() |> schedule_apns(type, args)
     end

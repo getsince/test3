@@ -24,7 +24,7 @@ defmodule TWeb.FeedChannel do
     end
   end
 
-  defp join_normal_mode(user_id, _params, socket) do
+  defp join_normal_mode(user_id, params, socket) do
     feed_filter = Feeds.get_feed_filter(user_id)
     {old_location, gender} = Accounts.get_location_and_gender!(user_id)
     location = socket.assigns.location || old_location
@@ -50,12 +50,19 @@ defmodule TWeb.FeedChannel do
       |> Todos.list_todos(version)
       |> render_news(version, screen_width)
 
+    feed =
+      case params["need_feed"] do
+        true -> fetch_feed(user_id, location, gender, feed_filter, version, screen_width)
+        _ -> nil
+      end
+
     reply =
       %{}
       |> maybe_put("news", news)
       |> maybe_put("todos", todos)
       |> maybe_put("likes", likes)
       |> maybe_put("matches", matches)
+      |> maybe_put("feed", feed)
 
     {:ok, reply,
      assign(socket,
@@ -76,18 +83,9 @@ defmodule TWeb.FeedChannel do
       location: location
     } = socket.assigns
 
-    {feed, cursor} =
-      Feeds.fetch_feed(
-        user.id,
-        location,
-        gender,
-        feed_filter,
-        params["count"] || 10,
-        params["cursor"]
-      )
+    feed = fetch_feed(user.id, location, gender, feed_filter, version, screen_width, params)
 
-    {:reply, {:ok, %{"feed" => render_feed(feed, version, screen_width), "cursor" => cursor}},
-     socket}
+    {:reply, {:ok, %{"feed" => feed}}, socket}
   end
 
   def handle_in("onboarding-feed", _params, socket) do
@@ -433,8 +431,58 @@ defmodule TWeb.FeedChannel do
     {:noreply, socket}
   end
 
+  def handle_info({Feeds, :feed_limit_reset}, socket) do
+    %{
+      current_user: user,
+      screen_width: screen_width,
+      version: version,
+      feed_filter: feed_filter,
+      gender: gender,
+      location: location
+    } = socket.assigns
+
+    feed =
+      Feeds.fetch_feed(
+        user.id,
+        location,
+        gender,
+        feed_filter,
+        10,
+        false
+      )
+
+    push(socket, "feed_limit_reset", %{"feed" => render_feed(feed, version, screen_width)})
+
+    {:noreply, socket}
+  end
+
   def handle_info({Accounts, :feed_filter_updated, feed_filter}, socket) do
     {:noreply, assign(socket, :feed_filter, feed_filter)}
+  end
+
+  defp fetch_feed(
+         user_id,
+         location,
+         gender,
+         feed_filter,
+         version,
+         screen_width,
+         params \\ nil
+       ) do
+    fetch_feed =
+      Feeds.fetch_feed(
+        user_id,
+        location,
+        gender,
+        feed_filter,
+        params["count"] || 10,
+        params["cursor"] || nil
+      )
+
+    case fetch_feed do
+      feed when is_list(feed) -> render_feed(feed, version, screen_width)
+      %DateTime{} = timestamp -> %{"feed_limit_expiration" => timestamp}
+    end
   end
 
   defp render_feed_item(profile, version, screen_width) do

@@ -294,7 +294,7 @@ defmodule TWeb.FeedChannelTest do
     test "with no data in db", %{socket: socket} do
       ref = push(socket, "more")
       assert_reply(ref, :ok, reply)
-      assert reply == %{"cursor" => nil, "feed" => []}
+      assert reply == %{"feed" => []}
     end
 
     test "with users who haven't been online for a while", %{socket: socket} do
@@ -310,135 +310,7 @@ defmodule TWeb.FeedChannelTest do
 
       ref = push(socket, "more")
       assert_reply(ref, :ok, reply)
-      assert reply == %{"cursor" => nil, "feed" => []}
-    end
-
-    test "with active users more than count", %{socket: socket} do
-      now = DateTime.utc_now()
-
-      [m1, m2, m3] = [
-        onboarded_user(
-          name: "mate-1",
-          location: moscow_location(),
-          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
-          gender: "F",
-          accept_genders: ["M"],
-          last_active: DateTime.add(now, -1)
-        ),
-        onboarded_user(
-          name: "mate-2",
-          location: apple_location(),
-          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
-          gender: "N",
-          accept_genders: ["M"],
-          last_active: DateTime.add(now, -2)
-        ),
-        onboarded_user(
-          name: "mate-3",
-          location: apple_location(),
-          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
-          gender: "M",
-          accept_genders: ["M"],
-          last_active: DateTime.add(now, -3)
-        )
-      ]
-
-      ref = push(socket, "more", %{"count" => 2})
-      assert_reply(ref, :ok, %{"cursor" => cursor, "feed" => feed})
-
-      assert feed == [
-               %{
-                 "profile" => %{
-                   user_id: m1.id,
-                   name: "mate-1",
-                   gender: "F",
-                   story: [
-                     %{
-                       "background" => %{
-                         "proxy" =>
-                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
-                         "s3_key" => "test"
-                       },
-                       "labels" => []
-                     }
-                   ],
-                   distance: 0,
-                   address: %{
-                     "en_US" => %{
-                       "city" => "Buenos Aires",
-                       "state" => "Autonomous City of Buenos Aires",
-                       "country" => "Argentina",
-                       "iso_country_code" => "AR"
-                     }
-                   }
-                 }
-               },
-               %{
-                 "profile" => %{
-                   user_id: m2.id,
-                   name: "mate-2",
-                   gender: "N",
-                   story: [
-                     %{
-                       "background" => %{
-                         "proxy" =>
-                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
-                         "s3_key" => "test"
-                       },
-                       "labels" => []
-                     }
-                   ],
-                   distance: 9510,
-                   address: %{
-                     "en_US" => %{
-                       "city" => "Buenos Aires",
-                       "state" => "Autonomous City of Buenos Aires",
-                       "country" => "Argentina",
-                       "iso_country_code" => "AR"
-                     }
-                   }
-                 }
-               }
-             ]
-
-      ref = push(socket, "more", %{"cursor" => cursor})
-
-      assert_reply(ref, :ok, %{
-        "cursor" => cursor,
-        "feed" => feed
-      })
-
-      assert feed == [
-               %{
-                 "profile" => %{
-                   user_id: m3.id,
-                   name: "mate-3",
-                   gender: "M",
-                   story: [
-                     %{
-                       "background" => %{
-                         "proxy" =>
-                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
-                         "s3_key" => "test"
-                       },
-                       "labels" => []
-                     }
-                   ],
-                   distance: 9510,
-                   address: %{
-                     "en_US" => %{
-                       "city" => "Buenos Aires",
-                       "state" => "Autonomous City of Buenos Aires",
-                       "country" => "Argentina",
-                       "iso_country_code" => "AR"
-                     }
-                   }
-                 }
-               }
-             ]
-
-      ref = push(socket, "more", %{"cursor" => cursor})
-      assert_reply(ref, :ok, %{"cursor" => ^cursor, "feed" => []})
+      assert reply == %{"feed" => []}
     end
 
     test "previously returned profiles are not returned, feed can be reset", %{socket: socket} do
@@ -456,27 +328,20 @@ defmodule TWeb.FeedChannelTest do
       end
 
       ref = push(socket, "more", %{"count" => 3})
-      assert_reply(ref, :ok, %{"cursor" => cursor, "feed" => feed0})
+      assert_reply(ref, :ok, %{"feed" => feed0})
 
       initial_feed_ids =
         Enum.map(feed0, fn %{"profile" => profile} ->
           profile.user_id
         end)
 
-      # non-nil cursor
-      ref = push(socket, "more", %{"cursor" => cursor})
+      ref = push(socket, "more")
 
-      assert_reply(ref, :ok, %{"cursor" => _cursor, "feed" => feed1})
+      assert_reply(ref, :ok, %{"feed" => feed1})
 
       for {p, _} <- feed1 do
         assert p.user_id not in initial_feed_ids
       end
-
-      # nil cursor
-      ref = push(socket, "more", %{"cursor" => nil, "count" => 3})
-      assert_reply(ref, :ok, %{"cursor" => _cursor, "feed" => feed2})
-
-      assert feed0 == feed2
     end
   end
 

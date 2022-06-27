@@ -2,7 +2,7 @@ defmodule TWeb.FeedChannel do
   use TWeb, :channel
   import TWeb.ChannelHelpers
 
-  alias TWeb.{FeedView, MatchView}
+  alias TWeb.{FeedView, MatchView, ViewHelpers}
   alias T.{Feeds, Matches, Accounts, Events, News, Todos}
 
   @impl true
@@ -51,7 +51,7 @@ defmodule TWeb.FeedChannel do
 
     feed =
       case params["need_feed"] do
-        true -> fetch_feed(user_id, location, gender, feed_filter, version, screen_width)
+        true -> fetch_feed(user_id, location, version, screen_width, true)
         _ -> nil
       end
 
@@ -67,7 +67,7 @@ defmodule TWeb.FeedChannel do
   end
 
   @impl true
-  def handle_in("more", params, socket) do
+  def handle_in("more", _params, socket) do
     %{
       current_user: user,
       screen_width: screen_width,
@@ -75,7 +75,7 @@ defmodule TWeb.FeedChannel do
       location: location
     } = socket.assigns
 
-    feed = fetch_feed(user.id, location, gender, feed_filter, version, screen_width, params)
+    feed = fetch_feed(user.id, location, version, screen_width, false)
 
     {:reply, {:ok, %{"feed" => feed}}, socket}
   end
@@ -154,6 +154,13 @@ defmodule TWeb.FeedChannel do
     end
 
     Matches.mark_like_seen(me, by_user_id)
+    {:reply, :ok, socket}
+  end
+
+  def handle_in("reached-limit", %{"timestamp" => timestamp} = _params, socket) do
+    me = me_id(socket)
+
+    Feeds.reached_limit(me, timestamp)
     {:reply, :ok, socket}
   end
 
@@ -428,22 +435,24 @@ defmodule TWeb.FeedChannel do
       current_user: user,
       screen_width: screen_width,
       version: version,
-      feed_filter: feed_filter,
-      gender: gender,
       location: location
     } = socket.assigns
 
-    feed =
-      Feeds.fetch_feed(
-        user.id,
-        location,
-        gender,
-        feed_filter,
-        10,
-        false
-      )
+    fetch_feed = Feeds.fetch_feed(user.id, location, true)
 
-    push(socket, "feed_limit_reset", %{"feed" => render_feed(feed, version, screen_width)})
+    feed =
+      case fetch_feed do
+        feed when is_list(feed) ->
+          render_feed(feed, version, screen_width)
+
+        {%DateTime{} = timestamp, feed_limit_story} ->
+          %{
+            "feed_limit_expiration" => timestamp,
+            "story" => render_story(feed_limit_story, version, screen_width)
+          }
+      end
+
+    push(socket, "feed_limit_reset", %{"feed" => feed})
 
     {:noreply, socket}
   end
@@ -455,25 +464,21 @@ defmodule TWeb.FeedChannel do
   defp fetch_feed(
          user_id,
          location,
-         gender,
-         feed_filter,
          version,
          screen_width,
-         params \\ nil
+         first_fetch
        ) do
-    fetch_feed =
-      Feeds.fetch_feed(
-        user_id,
-        location,
-        gender,
-        feed_filter,
-        params["count"] || 10,
-        params["cursor"] || nil
-      )
+    fetch_feed = Feeds.fetch_feed(user_id, location, first_fetch)
 
     case fetch_feed do
-      feed when is_list(feed) -> render_feed(feed, version, screen_width)
-      %DateTime{} = timestamp -> %{"feed_limit_expiration" => timestamp}
+      feed when is_list(feed) ->
+        render_feed(feed, version, screen_width)
+
+      {%DateTime{} = timestamp, feed_limit_story} ->
+        %{
+          "feed_limit_expiration" => timestamp,
+          "story" => render_story(feed_limit_story, version, screen_width)
+        }
     end
   end
 
@@ -527,10 +532,12 @@ defmodule TWeb.FeedChannel do
   end
 
   defp render_news(news, version, screen_width) do
-    alias TWeb.ViewHelpers
-
     Enum.map(news, fn %{story: story} = news ->
       %{news | story: ViewHelpers.postprocess_story(story, version, screen_width, :feed)}
     end)
+  end
+
+  defp render_story(story, version, screen_width) do
+    ViewHelpers.postprocess_story(story, version, screen_width, :feed)
   end
 end

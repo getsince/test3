@@ -20,7 +20,7 @@ defmodule T.Periodics do
           {Matches, :expiration_prune, []}
         },
         feed_limit_pruner: {
-          :timer.minutes(1),
+          :timer.seconds(1),
           {Feeds, :feed_limits_prune, []}
         }
       )

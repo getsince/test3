@@ -14,13 +14,7 @@ defmodule T.FeedsTest do
     end
 
     test "with no data in db", %{me: me} do
-      assert {[], nil} ==
-               Feeds.fetch_feed(
-                 me.id,
-                 me.profile.location,
-                 _count = 10,
-                 _cursor = nil
-               )
+      assert [] == Feeds.fetch_feed(me.id, me.profile.location, true)
     end
   end
 

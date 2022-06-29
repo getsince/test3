@@ -3,8 +3,8 @@ defmodule T.NewsTest do
 
   alias T.News
 
-  @previous_version "6.1.0"
-  @current_version "6.1.2"
+  @previous_version "7.0.0"
+  @current_version "7.0.1"
 
   describe "list_news/1" do
     test "to old user" do
@@ -13,10 +13,10 @@ defmodule T.NewsTest do
       assert length(news) == 2
     end
 
-    test "to not so old user" do
-      not_so_old_uid = "0000017f-f572-c244-0aa1-83b884ba0000"
-      news = News.list_news(not_so_old_uid, @current_version)
-      assert length(news) == 1
+    test "to just registered user" do
+      just_registered_uid = Ecto.Bigflake.UUID.generate()
+      news = News.list_news(just_registered_uid, @current_version)
+      assert length(news) == 0
     end
 
     test "to users of previous version" do

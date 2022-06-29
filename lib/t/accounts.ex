@@ -585,6 +585,15 @@ defmodule T.Accounts do
 
   @doc false
   def local_onboard_profile(user_id, attrs) do
+    # TODO remove
+    attrs = for {k, v} <- attrs, do: {to_string(k), v}, into: %{}
+
+    attrs =
+      case attrs["gender_preference"] do
+        nil -> Map.put(attrs, "gender_preference", ["M", "F", "N"])
+        _ -> attrs
+      end
+
     Multi.new()
     |> Multi.run(:user, fn repo, _changes ->
       user = repo.get!(User, user_id)

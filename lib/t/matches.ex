@@ -530,6 +530,12 @@ defmodule T.Matches do
     end)
   end
 
+  def has_matches(user_id) do
+    Match
+    |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
+    |> Repo.exists?()
+  end
+
   def save_contact_click(match_id, now \\ DateTime.utc_now()) do
     timestamp = DateTime.truncate(now, :second)
     primary_rpc(__MODULE__, :local_save_contact_click, [match_id, timestamp])

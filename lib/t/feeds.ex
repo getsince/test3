@@ -4,6 +4,7 @@ defmodule T.Feeds do
   import Ecto.{Query, Changeset}
   alias Ecto.Multi
   import Geo.PostGIS
+  import T.Gettext
 
   require Logger
 
@@ -50,9 +51,9 @@ defmodule T.Feeds do
   ### Feed
 
   @feed_fetch_count 10
-  @feed_daily_limit 50
+  @feed_daily_limit 11
   # @feed_limit_period 24 * 60 * 60
-  @feed_limit_period 60
+  @feed_limit_period 600
 
   # TODO refactor
   @spec fetch_feed(
@@ -67,7 +68,7 @@ defmodule T.Feeds do
     case feed_limit do
       %FeedLimit{timestamp: timestamp} ->
         reset_timestamp = timestamp |> DateTime.add(@feed_limit_period)
-        {reset_timestamp, feed_limit_story()}
+        {reset_timestamp, feed_limit_story(T.Matches.has_matches(user_id))}
 
       nil ->
         seen_and_feeded_ids = seen_and_feeded_ids(user_id)
@@ -76,7 +77,7 @@ defmodule T.Feeds do
           length(seen_and_feeded_ids) >= @feed_daily_limit ->
             %FeedLimit{timestamp: timestamp} = insert_feed_limit(user_id)
             reset_timestamp = timestamp |> DateTime.add(@feed_limit_period)
-            {reset_timestamp, feed_limit_story()}
+            {reset_timestamp, feed_limit_story(T.Matches.has_matches(user_id))}
 
           true ->
             adjusted_count =
@@ -359,30 +360,138 @@ defmodule T.Feeds do
 
   ### Feed limits
 
-  defp feed_limit_story do
-    # case Gettext.get_locale() do
-    # "ru" ->
-    # _ ->
-    # end
-    [
-      %{
-        "size" => [390, 844],
-        "labels" => [
+  defp feed_limit_story(has_matches) do
+    now_you_can_do_label =
+      if has_matches do
+        %{
+          "zoom" => 0.7091569071880537,
+          "value" => dgettext("feeds", "а пока можешь пообщаться \nс мэтчами"),
+          "position" => [25.74864426013174, 484.3437057898561],
+          "rotation" => -10.167247449849249,
+          "alignment" => 1,
+          "text_color" => "#FFFFFF",
+          "corner_radius" => 0,
+          "background_fill" => "#6D42B1"
+        }
+      else
+        %{
+          "zoom" => 0.7091569071880537,
+          "value" => dgettext("feeds", "а пока можешь поработать \nнад своим профилем"),
+          "position" => [176.7486442601318, 506.01036228399676],
+          "rotation" => 10.167247449849249,
+          "alignment" => 1,
+          "text_color" => "#FFFFFF",
+          "corner_radius" => 0,
+          "background_fill" => "#49BDB5"
+        }
+      end
+
+    drawing_lines =
+      if has_matches do
+        "W3sicG9pbnRzIjpbWzI4Ny42NjY2NTY0OTQxNDA2Miw0OTMuNjY2NjU2NDk0MTQwNjJdLFsyODguNjY2NjU2NDk0MTQwNjIsNDkzLjY2NjY1NjQ5NDE0MDYyXSxbMjkyLjMzMzMyODI0NzA3MDMxLDQ5My42NjY2NTY0OTQxNDA2Ml0sWzI5OS42NjY2NTY0OTQxNDA2Miw0OTNdLFszMTAuMzMzMzI4MjQ3MDcwMzEsNDkxXSxbMzE5LjMzMzMyODI0NzA3MDMxLDQ4OC42NjY2NTY0OTQxNDA2Ml0sWzMzMC4zMzMzMjgyNDcwNzAzMSw0ODZdLFszNDMsNDgyLjY2NjY1NjQ5NDE0MDYyXSxbMzUyLjMzMzMyODI0NzA3MDMxLDQ4MF0sWzM1Ny42NjY2NTY0OTQxNDA2Miw0NzguNjY2NjU2NDk0MTQwNjJdLFszNjUuMzMzMzI4MjQ3MDcwMzEsNDc2LjMzMzMyODI0NzA3MDMxXSxbMzcwLjMzMzMyODI0NzA3MDMxLDQ3NV0sWzM3OSw0NzIuNjY2NjU2NDk0MTQwNjJdLFszODYsNDcxXSxbMzg5LjY2NjY1NjQ5NDE0MDYyLDQ3MF0sWzM5NCw0NjldLFszOTYuMzMzMzI4MjQ3MDcwMzEsNDY4LjY2NjY1NjQ5NDE0MDYyXSxbMzk3LDQ2OC4zMzMzMjgyNDcwNzAzMV0sWzM5Ny4zMzMzMjgyNDcwNzAzMSw0NjguMzMzMzI4MjQ3MDcwMzFdLFszOTcuNjY2NjU2NDk0MTQwNjIsNDY4LjMzMzMyODI0NzA3MDMxXSxbMzk4LjMzMzMyODI0NzA3MDMxLDQ2OF0sWzM5OC42NjY2NTY0OTQxNDA2Miw0NjhdLFszOTgsNDY4XSxbMzk2LjY2NjY1NjQ5NDE0MDYyLDQ2OF0sWzM5NS4zMzMzMjgyNDcwNzAzMSw0NjhdLFszOTIsNDY4XSxbMzg5LjY2NjY1NjQ5NDE0MDYyLDQ2OF0sWzM4NSw0NjhdLFszNzUsNDY4XSxbMzcwLjMzMzMyODI0NzA3MDMxLDQ2OC42NjY2NTY0OTQxNDA2Ml0sWzM2Ny4zMzMzMjgyNDcwNzAzMSw0NjkuMzMzMzI4MjQ3MDcwMzFdLFszNjYsNDY5LjMzMzMyODI0NzA3MDMxXSxbMzY1LjY2NjY1NjQ5NDE0MDYyLDQ2OS4zMzMzMjgyNDcwNzAzMV0sWzM2Niw0NjkuMzMzMzI4MjQ3MDcwMzFdLFszNjYuNjY2NjU2NDk0MTQwNjIsNDY5LjMzMzMyODI0NzA3MDMxXSxbMzY3LjMzMzMyODI0NzA3MDMxLDQ2OS4zMzMzMjgyNDcwNzAzMV0sWzM3MC4zMzMzMjgyNDcwNzAzMSw0NjguNjY2NjU2NDk0MTQwNjJdLFszNzIuNjY2NjU2NDk0MTQwNjIsNDY4LjMzMzMyODI0NzA3MDMxXSxbMzc3LjMzMzMyODI0NzA3MDMxLDQ2Ny42NjY2NTY0OTQxNDA2Ml0sWzM4Myw0NjcuNjY2NjU2NDk0MTQwNjJdLFszODYuNjY2NjU2NDk0MTQwNjIsNDY3LjMzMzMyODI0NzA3MDMxXSxbMzkwLjMzMzMyODI0NzA3MDMxLDQ2Ny4zMzMzMjgyNDcwNzAzMV0sWzM5Mi4zMzMzMjgyNDcwNzAzMSw0NjcuMzMzMzI4MjQ3MDcwMzFdLFszOTUsNDY3LjMzMzMyODI0NzA3MDMxXSxbMzk1LjY2NjY1NjQ5NDE0MDYyLDQ2Ny4zMzMzMjgyNDcwNzAzMV0sWzM5Ni4zMzMzMjgyNDcwNzAzMSw0NjcuMzMzMzI4MjQ3MDcwMzFdLFszOTYuNjY2NjU2NDk0MTQwNjIsNDY3LjMzMzMyODI0NzA3MDMxXSxbMzk3LDQ2Ny4zMzMzMjgyNDcwNzAzMV0sWzM5Ny4zMzMzMjgyNDcwNzAzMSw0NjcuMzMzMzI4MjQ3MDcwMzFdLFszOTcuNjY2NjU2NDk0MTQwNjIsNDY3LjY2NjY1NjQ5NDE0MDYyXSxbMzk3LjY2NjY1NjQ5NDE0MDYyLDQ2OF0sWzM5Ny4zMzMzMjgyNDcwNzAzMSw0NjguMzMzMzI4MjQ3MDcwMzFdLFszOTYsNDY5XSxbMzk0LDQ3MV0sWzM5Mi42NjY2NTY0OTQxNDA2Miw0NzIuMzMzMzI4MjQ3MDcwMzFdLFszOTEsNDc0LjMzMzMyODI0NzA3MDMxXSxbMzg5LjY2NjY1NjQ5NDE0MDYyLDQ3NS42NjY2NTY0OTQxNDA2Ml0sWzM4OCw0NzcuMzMzMzI4MjQ3MDcwMzFdLFszODYuMzMzMzI4MjQ3MDcwMzEsNDc5LjMzMzMyODI0NzA3MDMxXSxbMzg1LDQ4MC42NjY2NTY0OTQxNDA2Ml0sWzM4NCw0ODEuNjY2NjU2NDk0MTQwNjJdLFszODMuMzMzMzI4MjQ3MDcwMzEsNDgyLjMzMzMyODI0NzA3MDMxXSxbMzgzLDQ4M10sWzM4Mi42NjY2NTY0OTQxNDA2Miw0ODNdLFszODIuMzMzMzI4MjQ3MDcwMzEsNDgzLjMzMzMyODI0NzA3MDMxXSxbMzgyLjMzMzMyODI0NzA3MDMxLDQ4My42NjY2NTY0OTQxNDA2Ml0sWzM4Miw0ODMuNjY2NjU2NDk0MTQwNjJdLFszODEuNjY2NjU2NDk0MTQwNjIsNDg0XSxbMzgxLjMzMzMyODI0NzA3MDMxLDQ4NC4zMzMzMjgyNDcwNzAzMV0sWzM4MSw0ODQuMzMzMzI4MjQ3MDcwMzFdLFszODAuNjY2NjU2NDk0MTQwNjIsNDg0LjY2NjY1NjQ5NDE0MDYyXSxbMzgwLjMzMzMyODI0NzA3MDMxLDQ4NC42NjY2NTY0OTQxNDA2Ml0sWzM4MC4zMzMzMjgyNDcwNzAzMSw0ODVdXSwic3Ryb2tlX2NvbG9yIjoiIzZENDJCMSIsInN0cm9rZV93aWR0aCI6Mi41fV0="
+      else
+        "W3sicG9pbnRzIjpbWzE2Miw1MjNdLFsxNjEsNTIzXSxbMTUyLjY2NjY1NjQ5NDE0MDYyLDUyM10sWzE0NS4zMzMzMjgyNDcwNzAzMSw1MjNdLFsxMzcuMzMzMzI4MjQ3MDcwMzEsNTIzXSxbMTE5LjMzMzMyODI0NzA3MDMxLDUyM10sWzExMS4zMzMzMjgyNDcwNzAzMSw1MjNdLFs5My4zMzMzMjgyNDcwNzAzMTIsNTIzXSxbODMsNTIzXSxbNzQuMzMzMzI4MjQ3MDcwMzEyLDUyM10sWzY1LjY2NjY1NjQ5NDE0MDYyNSw1MjNdLFs2MSw1MjNdLFs1NCw1MjNdLFs1MC4zMzMzMjgyNDcwNzAzMTIsNTIzXSxbNDgsNTIzXSxbNDcsNTIzXSxbNDYuNjY2NjU2NDk0MTQwNjI1LDUyM10sWzQ1LjMzMzMyODI0NzA3MDMxMiw1MjNdLFs0My4zMzMzMjgyNDcwNzAzMTIsNTIzXSxbNDIsNTIzXSxbMzkuNjY2NjU2NDk0MTQwNjI1LDUyM10sWzM4LjMzMzMyODI0NzA3MDMxMiw1MjNdLFszOCw1MjNdLFszNy4zMzMzMjgyNDcwNzAzMTIsNTIzXSxbMzcsNTIzXSxbMzcsNTIyLjY2NjY1NjQ5NDE0MDYyXSxbMzcuMzMzMzI4MjQ3MDcwMzEyLDUyMi4zMzMzMjgyNDcwNzAzMV0sWzM4LjMzMzMyODI0NzA3MDMxMiw1MjEuNjY2NjU2NDk0MTQwNjJdLFszOS42NjY2NTY0OTQxNDA2MjUsNTIxXSxbNDIsNTE5LjY2NjY1NjQ5NDE0MDYyXSxbNDQsNTE5XSxbNDYuNjY2NjU2NDk0MTQwNjI1LDUxOF0sWzUwLjMzMzMyODI0NzA3MDMxMiw1MTYuNjY2NjU2NDk0MTQwNjJdLFs1Myw1MTUuNjY2NjU2NDk0MTQwNjJdLFs1Ni4zMzMzMjgyNDcwNzAzMTIsNTE0LjY2NjY1NjQ5NDE0MDYyXSxbNTksNTEzLjY2NjY1NjQ5NDE0MDYyXSxbNjAuNjY2NjU2NDk0MTQwNjI1LDUxMy4zMzMzMjgyNDcwNzAzMV0sWzYyLDUxM10sWzYyLjY2NjY1NjQ5NDE0MDYyNSw1MTIuNjY2NjU2NDk0MTQwNjJdLFs2My4zMzMzMjgyNDcwNzAzMTIsNTEyLjMzMzMyODI0NzA3MDMxXSxbNjIuNjY2NjU2NDk0MTQwNjI1LDUxMi4zMzMzMjgyNDcwNzAzMV0sWzYxLjMzMzMyODI0NzA3MDMxMiw1MTIuNjY2NjU2NDk0MTQwNjJdLFs1OS4zMzMzMjgyNDcwNzAzMTIsNTEzLjY2NjY1NjQ5NDE0MDYyXSxbNTYuMzMzMzI4MjQ3MDcwMzEyLDUxNV0sWzUzLjMzMzMyODI0NzA3MDMxMiw1MTYuMzMzMzI4MjQ3MDcwMzFdLFs0OC42NjY2NTY0OTQxNDA2MjUsNTE4LjMzMzMyODI0NzA3MDMxXSxbNDUsNTIwXSxbNDEuNjY2NjU2NDk0MTQwNjI1LDUyMS4zMzMzMjgyNDcwNzAzMV0sWzM5LjMzMzMyODI0NzA3MDMxMiw1MjIuMzMzMzI4MjQ3MDcwMzFdLFszNyw1MjMuMzMzMzI4MjQ3MDcwMzFdLFszNSw1MjRdLFszMi4zMzMzMjgyNDcwNzAzMTIsNTI1XSxbMzAuNjY2NjU2NDk0MTQwNjI1LDUyNS42NjY2NTY0OTQxNDA2Ml0sWzMwLDUyNl0sWzI5LjY2NjY1NjQ5NDE0MDYyNSw1MjZdLFsyOS4zMzMzMjgyNDcwNzAzMTIsNTI2XSxbMjkuNjY2NjU2NDk0MTQwNjI1LDUyNl0sWzMwLDUyNl0sWzMwLjMzMzMyODI0NzA3MDMxMiw1MjYuMzMzMzI4MjQ3MDcwMzFdLFszMyw1MjcuMzMzMzI4MjQ3MDcwMzFdLFszNS42NjY2NTY0OTQxNDA2MjUsNTI4LjMzMzMyODI0NzA3MDMxXSxbNDMsNTMxLjMzMzMyODI0NzA3MDMxXSxbNDcuNjY2NjU2NDk0MTQwNjI1LDUzMy4zMzMzMjgyNDcwNzAzMV0sWzUyLjY2NjY1NjQ5NDE0MDYyNSw1MzUuMzMzMzI4MjQ3MDcwMzFdLFs1NS4zMzMzMjgyNDcwNzAzMTIsNTM2LjMzMzMyODI0NzA3MDMxXSxbNTcuMzMzMzI4MjQ3MDcwMzEyLDUzN10sWzU3LjY2NjY1NjQ5NDE0MDYyNSw1MzcuMzMzMzI4MjQ3MDcwMzFdLFs1OCw1MzcuMzMzMzI4MjQ3MDcwMzFdXSwic3Ryb2tlX2NvbG9yIjoiIzQ5QkRCNSIsInN0cm9rZV93aWR0aCI6Mi41fV0="
+      end
+
+    case Gettext.get_locale() do
+      "ru" ->
+        [
           %{
-            "zoom" => 0.7771570124471355,
-            "value" =>
-              "🍒🍒🍒\nAnd the most delicious part: \nnow you can chat with you match\nright in the app\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nBe creative & make your \ncommon canvas 🧚‍♀️",
-            "position" => [10, 174.12400000000008],
-            "rotation" => 0,
-            "alignment" => 0,
-            "text_color" => "#FFFFFF",
-            "corner_radius" => 1,
-            "background_fill" => "#ED3D90"
+            "size" => [428, 926],
+            "labels" => [
+              %{
+                "zoom" => 1,
+                "value" => dgettext("feeds", "Пока это все \nдоступные профили 👀"),
+                "position" => [75.61896702822253, 160.56426949136994],
+                "rotation" => 0,
+                "alignment" => 1,
+                "text_color" => "#FFFFFF",
+                "corner_radius" => 0,
+                "background_fill" => "#111010"
+              },
+              %{
+                "zoom" => 0.85,
+                "value" => dgettext("feeds", "Новые появятся через"),
+                "position" => [98.01755000000003, 294.9927156120549],
+                "rotation" => 0,
+                "alignment" => 1,
+                "text_color" => "#FFFFFF",
+                "corner_radius" => 1,
+                "background_fill" => "#111010"
+              },
+              %{
+                "zoom" => 0.681925669895563,
+                "value" =>
+                  dgettext(
+                    "feeds",
+                    "Мы за осознанный подход к \nзнакомствам — за каждым \nпрофилем скрывается \nинтересная  личность ✨"
+                  ),
+                "position" => [95.34884174656703, 700.7448955448994],
+                "rotation" => 15.905945431577537,
+                "alignment" => 1,
+                "text_color" => "#FFFFFF",
+                "corner_radius" => 0,
+                "background_fill" => "#ED3D90"
+              },
+              now_you_can_do_label
+            ],
+            "drawing" => %{
+              "lines" => drawing_lines
+            },
+            "background" => %{"color" => "#111010"}
           }
-        ],
-        "background" => %{"color" => "#ED3D90"}
-      }
-    ]
+        ]
+
+      # these differ slightly in sticker positions
+      # TODO proper
+      _ ->
+        [
+          %{
+            "size" => [428, 926],
+            "labels" => [
+              %{
+                "zoom" => 1,
+                "value" => dgettext("feeds", "Пока это все \nдоступные профили 👀"),
+                "position" => [65.39700000000002, 160.56426949136994],
+                "rotation" => 0,
+                "alignment" => 1,
+                "text_color" => "#FFFFFF",
+                "corner_radius" => 0,
+                "background_fill" => "#111010"
+              },
+              %{
+                "zoom" => 0.85,
+                "value" => dgettext("feeds", "Новые появятся через"),
+                "position" => [112.43992500000003, 294.9927156120549],
+                "rotation" => 0,
+                "alignment" => 1,
+                "text_color" => "#FFFFFF",
+                "corner_radius" => 1,
+                "background_fill" => "#111010"
+              },
+              %{
+                "zoom" => 0.681925669895563,
+                "value" =>
+                  dgettext(
+                    "feeds",
+                    "Мы за осознанный подход к \nзнакомствам — за каждым \nпрофилем скрывается \nинтересная  личность ✨"
+                  ),
+                "position" => [95.34884174656703, 700.7448955448994],
+                "rotation" => 15.905945431577537,
+                "alignment" => 1,
+                "text_color" => "#FFFFFF",
+                "corner_radius" => 0,
+                "background_fill" => "#ED3D90"
+              },
+              now_you_can_do_label
+            ],
+            "drawing" => %{
+              "lines" => drawing_lines
+            },
+            "background" => %{"color" => "#111010"}
+          }
+        ]
+    end
   end
 
   def reached_limit(me, timestamp) do

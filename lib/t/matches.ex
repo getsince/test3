@@ -616,7 +616,7 @@ defmodule T.Matches do
     undying_events_q =
       MatchEvent
       |> where(match_id: parent_as(:match).id)
-      |> where([e], e.event in @undying_events)
+      |> where([e], e.event in ^@undying_events)
       |> select([e], e.timestamp)
       |> limit(1)
 
@@ -626,7 +626,7 @@ defmodule T.Matches do
   def has_undying_events?(match_id) do
     MatchEvent
     |> where(match_id: ^match_id)
-    |> where([e], e.event in @undying_events)
+    |> where([e], e.event in ^@undying_events)
     |> Repo.exists?()
   end
 

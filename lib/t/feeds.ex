@@ -106,6 +106,11 @@ defmodule T.Feeds do
   end
 
   defp insert_feed_limit(user_id) do
+    m = "#{user_id} reached feed limit"
+
+    Logger.warn(m)
+    Bot.async_post_message(m)
+
     now = DateTime.utc_now() |> DateTime.truncate(:second)
     %FeedLimit{user_id: user_id, timestamp: now} |> Repo.insert!()
   end

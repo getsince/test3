@@ -50,7 +50,7 @@ defmodule T.Feeds do
 
   ### Feed
 
-  @feed_fetch_count 15
+  @feed_fetch_count 10
   @feed_daily_limit 50
   @feed_limit_period 12 * 60 * 60
 

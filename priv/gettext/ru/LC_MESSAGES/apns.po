@@ -128,11 +128,11 @@ msgid "sent%{verb_ending_ru} a photo"
 msgstr "прислал%{verb_ending_ru} фото"
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:129
-msgid "Come and meet new people"
-msgstr "Приходи и знакомься с новыми людьми"
+#: lib/t/push_notifications/apns.ex:128
+msgid "Meet interesting people ✨"
+msgstr "Знакомься с интересными людьми ✨"
 
 #, elixir-autogen, elixir-format
-#: lib/t/push_notifications/apns.ex:128
-msgid "Your daily feed is ready"
-msgstr "Твоя лента готова"
+#: lib/t/push_notifications/apns.ex:129
+msgid "New profiles are already in your feed"
+msgstr "Новые профили уже в твоей ленте"

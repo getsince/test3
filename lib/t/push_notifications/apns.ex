@@ -125,8 +125,8 @@ defmodule T.PushNotifications.APNS do
 
   def build_alert_payload("feed_limit_reset" = type, _data) do
     alert = %{
-      "title" => dgettext("apns", "Your daily feed is ready"),
-      "body" => dgettext("apns", "Come and meet new people")
+      "title" => dgettext("apns", "Meet interesting people ✨"),
+      "body" => dgettext("apns", "New profiles are already in your feed")
     }
 
     base_alert_payload(type, alert)

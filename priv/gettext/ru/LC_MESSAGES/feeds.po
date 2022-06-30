@@ -12,26 +12,29 @@ msgstr ""
 "Plural-Forms: nplurals=3\n"
 
 #, elixir-autogen, elixir-format
-#: lib/t/feeds.ex:368
+#: lib/t/feeds.ex:367
 msgid "а пока можешь пообщаться \nс мэтчами"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/feeds.ex:423
+#: lib/t/feeds.ex:424
+#: lib/t/feeds.ex:474
 msgid "Мы за осознанный подход к \nзнакомствам — за каждым \nпрофилем скрывается \nинтересная  личность ✨"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/feeds.ex:412
+#: lib/t/feeds.ex:413
+#: lib/t/feeds.ex:463
 msgid "Новые появятся через"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/feeds.ex:402
+#: lib/t/feeds.ex:403
+#: lib/t/feeds.ex:453
 msgid "Пока это все \nдоступные профили 👀"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-#: lib/t/feeds.ex:379
+#: lib/t/feeds.ex:378
 msgid "а пока можешь поработать \nнад своим профилем"
 msgstr ""

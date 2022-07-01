@@ -61,7 +61,7 @@ defmodule TWeb.FeedChannel do
       |> maybe_put("todos", todos)
       |> maybe_put("likes", likes)
       |> maybe_put("matches", matches)
-      |> maybe_put("feed", feed)
+      |> maybe_put_with_empty_list("feed", feed)
 
     {:ok, reply, assign(socket, location: location)}
   end

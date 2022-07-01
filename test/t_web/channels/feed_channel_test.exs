@@ -49,6 +49,42 @@ defmodule TWeb.FeedChannelTest do
       assert %{"private" => true} = private
     end
 
+    test "with feed if asked", %{socket: socket, me: me} do
+      assert {:ok, %{}, _socket} = join(socket, "feed:" <> me.id)
+
+      assert {:ok, %{"feed" => feed}, _socket} =
+               join(socket, "feed:" <> me.id, %{"need_feed" => true})
+
+      assert feed == []
+
+      p = onboarded_user(story: [], name: "mate", location: apple_location(), gender: "F")
+
+      assert {:ok, %{}, _socket} = join(socket, "feed:" <> me.id)
+
+      assert {:ok, %{"feed" => feed}, _socket} =
+               join(socket, "feed:" <> me.id, %{"need_feed" => true})
+
+      assert feed == [
+               %{
+                 "profile" => %{
+                   address: %{
+                     "en_US" => %{
+                       "city" => "Buenos Aires",
+                       "country" => "Argentina",
+                       "iso_country_code" => "AR",
+                       "state" => "Autonomous City of Buenos Aires"
+                     }
+                   },
+                   distance: 9510,
+                   gender: "F",
+                   name: "mate",
+                   story: [],
+                   user_id: p.id
+                 }
+               }
+             ]
+    end
+
     test "with matches", %{socket: socket, me: me} do
       [p1, p2, p3] = [
         onboarded_user(story: [], name: "mate-1", location: apple_location(), gender: "F"),
@@ -327,7 +363,7 @@ defmodule TWeb.FeedChannelTest do
         )
       end
 
-      ref = push(socket, "more", %{"count" => 3})
+      ref = push(socket, "more")
       assert_reply(ref, :ok, %{"feed" => feed0})
 
       initial_feed_ids =
@@ -342,6 +378,58 @@ defmodule TWeb.FeedChannelTest do
       for {p, _} <- feed1 do
         assert p.user_id not in initial_feed_ids
       end
+    end
+
+    test "with feed_limit", %{socket: socket, me: me} do
+      p = onboarded_user(story: [], name: "mate", location: apple_location(), gender: "F")
+
+      now = DateTime.utc_now() |> DateTime.truncate(:second)
+      insert(:feed_limit, user_id: me.id, timestamp: now |> DateTime.to_naive())
+
+      ref = push(socket, "more")
+      assert_reply(ref, :ok, %{"feed" => feed})
+
+      feed_limit_expiration = now |> DateTime.add(T.Feeds.feed_limit_period())
+
+      assert %{
+               "feed_limit_expiration" => ^feed_limit_expiration,
+               "story" => [%{"labels" => labels}]
+             } = feed
+
+      assert labels |> Enum.at(-1) == %{
+               "alignment" => 1,
+               "background_fill" => "#49BDB5",
+               "corner_radius" => 0,
+               "position" => [176.7486442601318, 506.01036228399676],
+               "rotation" => 10.167247449849249,
+               "text_color" => "#FFFFFF",
+               "value" => "in the meantime, you can work \non your profile",
+               "zoom" => 0.7091569071880537
+             }
+
+      insert(:match, user_id_1: me.id, user_id_2: p.id)
+
+      ref = push(socket, "more")
+      assert_reply(ref, :ok, %{"feed" => feed})
+
+      assert %{
+               "feed_limit_expiration" => ^feed_limit_expiration,
+               "story" => [%{"labels" => labels}]
+             } = feed
+
+      assert labels |> Enum.at(-1) == %{
+               "alignment" => 1,
+               "background_fill" => "#6D42B1",
+               "corner_radius" => 0,
+               "position" => [
+                 25.74864426013174,
+                 484.3437057898561
+               ],
+               "rotation" => -10.167247449849249,
+               "text_color" => "#FFFFFF",
+               "value" => "in the meantime,\nyou can chat with matches",
+               "zoom" => 0.7091569071880537
+             }
     end
   end
 
@@ -533,70 +621,6 @@ defmodule TWeb.FeedChannelTest do
       assert_reply ref, :ok, _reply
 
       assert [%Match{seen: true}] = Matches.list_matches(me.id, default_location())
-    end
-  end
-
-  describe "calls" do
-    setup [:joined]
-
-    test "result in deprecation warning", %{socket: socket} do
-      ref = push(socket, "call", _params = %{})
-      assert_reply ref, :error, reply
-
-      assert reply == %{
-               alert: %{
-                 title: "Deprecation warning",
-                 body: "Calls are no longer supported, please upgrade."
-               }
-             }
-    end
-  end
-
-  describe "offer-slots" do
-    setup :joined
-
-    test "results in deprecation warning", %{socket: socket} do
-      ref = push(socket, "offer-slots", _params = %{})
-      assert_reply ref, :error, reply
-
-      assert reply == %{
-               alert: %{
-                 title: "Deprecation warning",
-                 body: "Calls are no longer supported, please upgrade."
-               }
-             }
-    end
-  end
-
-  describe "pick-slot" do
-    setup :joined
-
-    test "results in deprecation warning", %{socket: socket} do
-      ref = push(socket, "pick-slot", _params = %{})
-      assert_reply ref, :error, reply
-
-      assert reply == %{
-               alert: %{
-                 title: "Deprecation warning",
-                 body: "Calls are no longer supported, please upgrade."
-               }
-             }
-    end
-  end
-
-  describe "cancel-slot" do
-    setup :joined
-
-    test "results in deprecation warning", %{socket: socket} do
-      ref = push(socket, "cancel-slot", _params = %{})
-      assert_reply ref, :error, reply
-
-      assert reply == %{
-               alert: %{
-                 title: "Deprecation warning",
-                 body: "Calls are no longer supported, please upgrade."
-               }
-             }
     end
   end
 
@@ -815,6 +839,20 @@ defmodule TWeb.FeedChannelTest do
       assert Map.keys(public) == ["background", "labels", "size"]
       assert Map.keys(private) == ["background", "labels", "private", "size"]
       assert %{"private" => true} = private
+    end
+  end
+
+  describe "feed_limit_reset" do
+    setup :joined
+
+    test "feed_limit_reset push, feed is returned", %{me: me} do
+      now = DateTime.utc_now() |> DateTime.truncate(:second)
+      insert(:feed_limit, user_id: me.id, timestamp: now |> DateTime.to_naive())
+      feed_limit_expiration = now |> DateTime.add(T.Feeds.feed_limit_period() + 1)
+
+      T.Feeds.feed_limits_prune(feed_limit_expiration)
+
+      assert_push "feed_limit_reset", %{"feed" => []}
     end
   end
 

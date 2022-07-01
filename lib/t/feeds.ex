@@ -54,6 +54,10 @@ defmodule T.Feeds do
   @feed_daily_limit 50
   @feed_limit_period 12 * 60 * 60
 
+  def feed_fetch_count, do: @feed_fetch_count
+  def feed_daily_limit, do: @feed_daily_limit
+  def feed_limit_period, do: @feed_limit_period
+
   # TODO refactor
   @spec fetch_feed(
           Ecto.UUID.t(),
@@ -510,7 +514,7 @@ defmodule T.Feeds do
     |> Enum.each(fn %FeedLimit{} = feed_limit -> local_reset_feed_limit(feed_limit) end)
   end
 
-  defp list_reset_feed_limits(reference) do
+  def list_reset_feed_limits(reference) do
     reset_date = DateTime.add(reference, -@feed_limit_period)
 
     FeedLimit

@@ -66,32 +66,41 @@ defmodule T.Feeds do
         ) :: [%FeedProfile{}] | {DateTime.t(), map}
   # TODO remove writes
   def fetch_feed(user_id, location, first_fetch) do
-    feed_limit = FeedLimit |> where(user_id: ^user_id) |> Repo.one()
-
-    case feed_limit do
-      %FeedLimit{timestamp: timestamp} ->
-        reset_timestamp = timestamp |> DateTime.add(@feed_limit_period)
-        {reset_timestamp, feed_limit_story(T.Matches.has_matches(user_id))}
+    case fetch_feed_limit(user_id) do
+      %FeedLimit{} = feed_limit ->
+        return_feed_limit(feed_limit)
 
       nil ->
-        seen_and_feeded_ids = seen_and_feeded_ids(user_id)
+        current_count = feed_limit_current_count(user_id)
 
         cond do
-          length(seen_and_feeded_ids) >= @feed_daily_limit ->
-            %FeedLimit{timestamp: timestamp} = insert_feed_limit(user_id)
-            reset_timestamp = timestamp |> DateTime.add(@feed_limit_period)
-            {reset_timestamp, feed_limit_story(T.Matches.has_matches(user_id))}
+          current_count >= @feed_daily_limit ->
+            return_feed_limit(insert_feed_limit(user_id))
 
           true ->
-            adjusted_count =
-              min(@feed_daily_limit - length(seen_and_feeded_ids), @feed_fetch_count)
-
+            adjusted_count = min(@feed_daily_limit - current_count, @feed_fetch_count)
             continue_feed(user_id, location, adjusted_count, first_fetch)
         end
     end
   end
 
-  defp seen_and_feeded_ids(user_id) do
+  def fetch_feed_limit(user_id), do: FeedLimit |> where(user_id: ^user_id) |> Repo.one()
+
+  defp insert_feed_limit(user_id) do
+    m = "#{user_id} reached feed limit"
+    Logger.warn(m)
+    Bot.async_post_message(m)
+
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+    %FeedLimit{user_id: user_id, timestamp: now} |> Repo.insert!()
+  end
+
+  defp return_feed_limit(%FeedLimit{user_id: user_id, timestamp: timestamp}) do
+    reset_timestamp = timestamp |> DateTime.add(@feed_limit_period)
+    {reset_timestamp, feed_limit_story(user_id)}
+  end
+
+  defp feed_limit_current_count(user_id) do
     feed_limit_treshold_date =
       DateTime.utc_now() |> DateTime.add(-@feed_limit_period) |> DateTime.truncate(:second)
 
@@ -107,54 +116,36 @@ defmodule T.Feeds do
     |> select([s], s.user_id)
     |> union(^seen_query)
     |> Repo.all()
-  end
-
-  defp insert_feed_limit(user_id) do
-    m = "#{user_id} reached feed limit"
-
-    Logger.warn(m)
-    Bot.async_post_message(m)
-
-    now = DateTime.utc_now() |> DateTime.truncate(:second)
-    %FeedLimit{user_id: user_id, timestamp: now} |> Repo.insert!()
+    |> length()
   end
 
   defp continue_feed(user_id, location, count, first_fetch) do
     feeded_ids =
       FeededProfile |> where(for_user_id: ^user_id) |> select([f], f.user_id) |> Repo.all()
 
-    if first_fetch do
-      previously_feeded_profiles =
+    previously_feeded_profiles =
+      if first_fetch do
         FeedProfile
         |> where([p], p.user_id in ^feeded_ids)
         |> limit(^count)
         |> select([p], %{p | distance: distance_km(^location, p.location)})
         |> Repo.all()
+      else
+        []
+      end
 
-      adjusted_count = max(0, count - length(previously_feeded_profiles))
+    adjusted_count = max(0, count - length(previously_feeded_profiles))
 
-      feed_profiles =
-        feed_profiles_q(user_id)
-        |> where([p], p.user_id not in ^feeded_ids)
-        |> order_by(fragment("location <-> ?::geometry", ^location))
-        |> limit(^adjusted_count)
-        |> select([p], %{p | distance: distance_km(^location, p.location)})
-        |> Repo.all()
+    feed_profiles =
+      feed_profiles_q(user_id)
+      |> where([p], p.user_id not in ^feeded_ids)
+      |> order_by(fragment("location <-> ?::geometry", ^location))
+      |> limit(^adjusted_count)
+      |> select([p], %{p | distance: distance_km(^location, p.location)})
+      |> Repo.all()
 
-      mark_profiles_feeded(user_id, feed_profiles)
-      previously_feeded_profiles ++ feed_profiles
-    else
-      feed_profiles =
-        feed_profiles_q(user_id)
-        |> where([p], p.user_id not in ^feeded_ids)
-        |> order_by(fragment("location <-> ?::geometry", ^location))
-        |> limit(^count)
-        |> select([p], %{p | distance: distance_km(^location, p.location)})
-        |> Repo.all()
-
-      mark_profiles_feeded(user_id, feed_profiles)
-      feed_profiles
-    end
+    mark_profiles_feeded(user_id, feed_profiles)
+    previously_feeded_profiles ++ feed_profiles
   end
 
   defp mark_profiles_feeded(for_user_id, feed_profiles) do
@@ -368,7 +359,9 @@ defmodule T.Feeds do
 
   ### Feed limits
 
-  defp feed_limit_story(has_matches) do
+  defp feed_limit_story(user_id) do
+    has_matches = T.Matches.has_matches(user_id)
+
     now_you_can_do_label =
       if has_matches do
         %{

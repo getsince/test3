@@ -842,8 +842,20 @@ defmodule TWeb.FeedChannelTest do
     end
   end
 
-  describe "feed_limit_reset" do
+  describe "feed_limit" do
     setup :joined
+
+    test "feed_limit_reached", %{socket: socket, me: me} do
+      now = DateTime.utc_now() |> DateTime.truncate(:second)
+      insert(:feed_limit, user_id: me.id, timestamp: now |> DateTime.to_naive())
+
+      assert %T.Feeds.FeedLimit{reached: false} = T.Feeds.fetch_feed_limit(me.id)
+
+      ref = push(socket, "reached-limit", %{"timestamp" => now})
+      assert_reply(ref, :ok)
+
+      assert %T.Feeds.FeedLimit{reached: true} = T.Feeds.fetch_feed_limit(me.id)
+    end
 
     test "feed_limit_reset push, feed is returned", %{me: me} do
       now = DateTime.utc_now() |> DateTime.truncate(:second)

@@ -438,21 +438,9 @@ defmodule TWeb.FeedChannel do
       location: location
     } = socket.assigns
 
-    fetch_feed = Feeds.fetch_feed(user.id, location, true)
+    feed = Feeds.fetch_feed(user.id, location, true)
 
-    feed =
-      case fetch_feed do
-        feed when is_list(feed) ->
-          render_feed(feed, version, screen_width)
-
-        {%DateTime{} = timestamp, feed_limit_story} ->
-          %{
-            "feed_limit_expiration" => timestamp,
-            "story" => render_story(feed_limit_story, version, screen_width)
-          }
-      end
-
-    push(socket, "feed_limit_reset", %{"feed" => feed})
+    push(socket, "feed_limit_reset", %{"feed" => render_feed(feed, version, screen_width)})
 
     {:noreply, socket}
   end
@@ -461,13 +449,7 @@ defmodule TWeb.FeedChannel do
     {:noreply, assign(socket, :feed_filter, feed_filter)}
   end
 
-  defp fetch_feed(
-         user_id,
-         location,
-         version,
-         screen_width,
-         first_fetch
-       ) do
+  defp fetch_feed(user_id, location, version, screen_width, first_fetch) do
     fetch_feed = Feeds.fetch_feed(user_id, location, first_fetch)
 
     case fetch_feed do

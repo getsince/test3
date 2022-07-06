@@ -123,6 +123,15 @@ defmodule T.PushNotifications.APNS do
     base_alert_payload(type, alert, data)
   end
 
+  def build_alert_payload("feed_limit_reset" = type, _data) do
+    alert = %{
+      "title" => dgettext("apns", "Meet interesting people ✨"),
+      "body" => dgettext("apns", "New profiles are already in your feed")
+    }
+
+    base_alert_payload(type, alert)
+  end
+
   def build_alert_payload("invite" = type, data) do
     %{"user_id" => user_id, "name" => name} = data
     alert = %{"title" => dgettext("apns", "%{name} invited you to connect", name: name)}

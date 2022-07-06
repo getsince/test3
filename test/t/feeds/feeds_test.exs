@@ -14,13 +14,50 @@ defmodule T.FeedsTest do
     end
 
     test "with no data in db", %{me: me} do
-      assert {[], nil} ==
-               Feeds.fetch_feed(
-                 me.id,
-                 me.profile.location,
-                 _count = 10,
-                 _cursor = nil
-               )
+      assert [] == Feeds.fetch_feed(me.id, me.profile.location, true)
+    end
+
+    test "with feed_daily_limit reached", %{me: me} do
+      for _ <- 1..Feeds.feed_daily_limit(), do: onboarded_user()
+
+      # first we fetch feed on channel join
+      feed = Feeds.fetch_feed(me.id, me.profile.location, true)
+      assert length(feed) == Feeds.feed_fetch_count()
+
+      # then we fetch feed on "more" command
+      for _ <- 3..Integer.floor_div(Feeds.feed_daily_limit(), Feeds.feed_fetch_count()) do
+        feed = Feeds.fetch_feed(me.id, me.profile.location, false)
+        assert length(feed) == Feeds.feed_fetch_count()
+      end
+
+      # to test the correct feed adjusted_count
+      p = onboarded_user()
+      Repo.insert(%SeenProfile{user_id: p.id, by_user_id: me.id})
+      feed = Feeds.fetch_feed(me.id, me.profile.location, false)
+      assert length(feed) == Feeds.feed_fetch_count() - 1
+
+      assert {%DateTime{}, [%{}] = _story} = Feeds.fetch_feed(me.id, me.profile.location, true)
+    end
+
+    test "first_fetch", %{me: me} do
+      for _ <- 1..(Feeds.feed_fetch_count() * 2), do: onboarded_user()
+
+      # users joins and receives feed
+      feed = Feeds.fetch_feed(me.id, me.profile.location, true)
+      assert length(feed) == Feeds.feed_fetch_count()
+
+      # but never watches it (no seen commands)
+      # asks for more users, gets the second batch
+      feed = Feeds.fetch_feed(me.id, me.profile.location, false)
+      assert length(feed) == Feeds.feed_fetch_count()
+
+      # asks for more, gets nobody since everybody was "feeded" to him
+      feed = Feeds.fetch_feed(me.id, me.profile.location, false)
+      assert feed == []
+
+      # but on reentering the app gets feed again since none of it was really watched
+      feed = Feeds.fetch_feed(me.id, me.profile.location, true)
+      assert length(feed) == Feeds.feed_fetch_count()
     end
   end
 

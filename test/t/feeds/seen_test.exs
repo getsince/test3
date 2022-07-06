@@ -12,35 +12,18 @@ defmodule T.Feeds.SeenTest do
     end
 
     test "seen profile is not returned in feed", %{me: me} do
-      assert {[], nil} ==
-               Feeds.fetch_feed(
-                 me.id,
-                 me.profile.location,
-                 _count = 10,
-                 _cursor = nil
-               )
+      assert [] == Feeds.fetch_feed(me.id, me.profile.location, true)
 
       now = DateTime.utc_now()
 
-      others =
-        insert_list(10, :profile,
-          gender: "F",
-          hidden?: false,
-          last_active: now
-        )
-
-      for profile <- others do
-        insert(:gender_preference, user_id: profile.user_id, gender: "M")
-      end
+      insert_list(10, :profile,
+        gender: "F",
+        hidden?: false,
+        last_active: now
+      )
 
       # I get the feed, nobody is "seen"
-      assert {not_seen, _some} =
-               Feeds.fetch_feed(
-                 me.id,
-                 me.profile.location,
-                 _count = 10,
-                 _cursor = nil
-               )
+      assert not_seen = Feeds.fetch_feed(me.id, me.profile.location, true)
 
       assert length(not_seen) == 10
 
@@ -49,17 +32,12 @@ defmodule T.Feeds.SeenTest do
 
       Enum.each(to_be_seen, fn p ->
         # TODO verify broadcast
-        assert {:ok, %SeenProfile{}} = Feeds.mark_profile_seen(p.user_id, by: me.id)
+        assert {:ok, %{seen_profile: %SeenProfile{}, delete_feeded_profile: _result}} =
+                 Feeds.mark_profile_seen(p.user_id, by: me.id)
       end)
 
       # then I get feed again, and those profiles I've seen are marked as "seen"
-      assert {loaded, _some} =
-               Feeds.fetch_feed(
-                 me.id,
-                 me.profile.location,
-                 _count = 10,
-                 _cursor = nil
-               )
+      assert loaded = Feeds.fetch_feed(me.id, me.profile.location, true)
 
       assert length(loaded) == 7
       # TODO
@@ -70,9 +48,10 @@ defmodule T.Feeds.SeenTest do
       me = insert(:user)
       not_me = insert(:user)
 
-      assert {:ok, %SeenProfile{}} = Feeds.mark_profile_seen(not_me.id, by: me.id)
+      assert {:ok, %{seen_profile: %SeenProfile{}, delete_feeded_profile: _result}} =
+               Feeds.mark_profile_seen(not_me.id, by: me.id)
 
-      assert {:error, %Ecto.Changeset{valid?: false} = changeset} =
+      assert {:error, :seen_profile, %Ecto.Changeset{valid?: false} = changeset, _} =
                Feeds.mark_profile_seen(not_me.id, by: me.id)
 
       assert errors_on(changeset) == %{seen: ["has already been taken"]}

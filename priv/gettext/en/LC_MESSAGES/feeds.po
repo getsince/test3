@@ -1,0 +1,40 @@
+## "msgid"s in this file come from POT (.pot) files.
+##
+## Do not add, change, or remove "msgid"s manually here as
+## they're tied to the ones in the corresponding POT file
+## (with the same domain).
+##
+## Use "mix gettext.extract --merge" or "mix gettext.merge"
+## to merge POT files into PO files.
+msgid ""
+msgstr ""
+"Language: en\n"
+"Plural-Forms: nplurals=2\n"
+
+#, elixir-autogen, elixir-format
+#: lib/t/feeds.ex:367
+msgid "а пока можешь пообщаться \nс мэтчами"
+msgstr "in the meantime,\nyou can chat with matches"
+
+#, elixir-autogen, elixir-format
+#: lib/t/feeds.ex:424
+#: lib/t/feeds.ex:474
+msgid "Мы за осознанный подход к \nзнакомствам — за каждым \nпрофилем скрывается \nинтересная  личность ✨"
+msgstr "We are for a conscious\napproach to dating — \nbehind each profile there is \nan interesting personality ✨"
+
+#, elixir-autogen, elixir-format
+#: lib/t/feeds.ex:413
+#: lib/t/feeds.ex:463
+msgid "Новые появятся через"
+msgstr "New ones coming in"
+
+#, elixir-autogen, elixir-format
+#: lib/t/feeds.ex:403
+#: lib/t/feeds.ex:453
+msgid "Пока это все \nдоступные профили 👀"
+msgstr "These are all \navailable profiles so far 👀"
+
+#, elixir-autogen, elixir-format
+#: lib/t/feeds.ex:378
+msgid "а пока можешь поработать \nнад своим профилем"
+msgstr "in the meantime, you can work \non your profile"

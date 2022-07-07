@@ -64,7 +64,7 @@ defmodule T.PushNotifications.APNS do
       "title" => dgettext("apns", "Match with %{name} is about to expire", name: name),
       "body" =>
         dgettext("apns", "Last chance to send %{pronoun_to} a message ✨",
-          pronoun: pronoun_to(gender)
+          pronoun_to: pronoun_to(gender)
         )
     }
 

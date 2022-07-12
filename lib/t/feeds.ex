@@ -335,6 +335,7 @@ defmodule T.Feeds do
     %SeenProfile{by_user_id: by_user_id, user_id: user_id}
     |> change()
     |> unique_constraint(:seen, name: :seen_profiles_pkey)
+    |> foreign_key_constraint(:fkey, name: :user_id)
   end
 
   defp local_maybe_bump_shown_count(repo, user_id) do
@@ -500,6 +501,11 @@ defmodule T.Feeds do
   end
 
   def reached_limit(me, timestamp) do
+    primary_rpc(__MODULE__, :local_reached_limit, [me, timestamp])
+  end
+
+  @spec reached_limit(any, any) :: any
+  def local_reached_limit(me, timestamp) do
     %FeedLimit{user_id: me, timestamp: timestamp}
     |> cast(%{reached: true}, [:reached])
     |> Repo.update()
@@ -508,7 +514,11 @@ defmodule T.Feeds do
   def feed_limits_prune(reference \\ DateTime.utc_now()) do
     reference
     |> list_reset_feed_limits()
-    |> Enum.each(fn %FeedLimit{} = feed_limit -> local_reset_feed_limit(feed_limit) end)
+    |> Enum.each(fn %FeedLimit{user_id: user_id} = feed_limit ->
+      if T.Accounts.User |> where(id: ^user_id) |> Repo.exists?() do
+        local_reset_feed_limit(feed_limit)
+      end
+    end)
   end
 
   def list_reset_feed_limits(reference) do

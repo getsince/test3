@@ -12,31 +12,11 @@ msgstr ""
 "Plural-Forms: nplurals=2\n"
 
 #, elixir-autogen, elixir-format
-#: lib/t/todos.ex:45
-msgid "Без него твои мэтчи\nне смогут связаться с тобой"
-msgstr "Without it, your matches\nwill not be able to contact you"
-
-#, elixir-autogen, elixir-format
-#: lib/t/todos.ex:56
-msgid "Добавить контакт"
-msgstr "Add contact"
-
-#, elixir-autogen, elixir-format
-#: lib/t/todos.ex:50
-msgid "Жми 👇"
-msgstr "Press 👇"
-
-#, elixir-autogen, elixir-format
-#: lib/t/todos.ex:40
-msgid "В твоей истории\nне хватает контакта"
-msgstr "You don't have\na contact in your story"
-
-#, elixir-autogen, elixir-format
-#: lib/t/todos.ex:22
+#: lib/t/todos.ex:19
 msgid "Обновить"
 msgstr "Update"
 
 #, elixir-autogen, elixir-format
-#: lib/t/todos.ex:16
+#: lib/t/todos.ex:13
 msgid "Твоя версия приложения\nне поддерживает\nновые функции 📟"
 msgstr "Your app version\ndoesn't support\nnew features 📟"

@@ -18,10 +18,8 @@ defmodule T.PushNotifications.DispatchJob do
       %Matches.Match{user_id_1: uid1, user_id_2: uid2} = match
 
       data = %{"match_id" => match_id}
-      template_uid1 = if has_contact?(uid1), do: "match", else: "match_no_contact"
-      template_uid2 = if has_contact?(uid2), do: "match", else: "match_no_contact"
-      uid1 |> Accounts.list_apns_devices() |> schedule_apns(template_uid1, data)
-      uid2 |> Accounts.list_apns_devices() |> schedule_apns(template_uid2, data)
+      uid1 |> Accounts.list_apns_devices() |> schedule_apns("match", data)
+      uid2 |> Accounts.list_apns_devices() |> schedule_apns("match", data)
 
       :ok
     else
@@ -43,10 +41,45 @@ defmodule T.PushNotifications.DispatchJob do
           {name2, gender2} = profile2
           data1 = %{"match_id" => match_id, "name" => name2, "gender" => gender2}
           data2 = %{"match_id" => match_id, "name" => name1, "gender" => gender1}
-          uid1 |> Accounts.list_apns_devices() |> schedule_apns("match_about_to_expire", data1)
-          uid2 |> Accounts.list_apns_devices() |> schedule_apns("match_about_to_expire", data2)
+
+          case Matches.has_interaction?(match_id) do
+            nil ->
+              uid1
+              |> Accounts.list_apns_devices()
+              |> schedule_apns("match_about_to_expire", data1)
+
+              uid2
+              |> Accounts.list_apns_devices()
+              |> schedule_apns("match_about_to_expire", data2)
+
+            %Matches.Interaction{to_user_id: to_user_id} ->
+              case to_user_id do
+                ^uid1 ->
+                  uid1
+                  |> Accounts.list_apns_devices()
+                  |> schedule_apns("match_about_to_expire_please_reply", data1)
+
+                ^uid2 ->
+                  uid2
+                  |> Accounts.list_apns_devices()
+                  |> schedule_apns("match_about_to_expire_please_reply", data2)
+              end
+          end
         end
       end
+    end
+
+    :ok
+  end
+
+  defp handle_type(type, %{"from_user_id" => from_user_id, "to_user_id" => to_user_id} = args)
+       when type in ["message", "drawing", "video", "audio", "spotify", "contact", "photo"] do
+    profile_from = profile_info(from_user_id)
+
+    if profile_from do
+      {name_from, gender_from} = profile_from
+      data = args |> Map.merge(%{"name_from" => name_from, "gender_from" => gender_from})
+      to_user_id |> Accounts.list_apns_devices() |> schedule_apns(type, data)
     end
 
     :ok
@@ -66,9 +99,12 @@ defmodule T.PushNotifications.DispatchJob do
     :ok
   end
 
-  defp handle_type("complete_onboarding" = type, args) do
-    %{"user_id" => user_id} = args
+  defp handle_type("feed_limit_reset" = type, %{"user_id" => user_id} = args) do
+    user_id |> Accounts.list_apns_devices() |> schedule_apns(type, args)
+    :ok
+  end
 
+  defp handle_type("complete_onboarding" = type, %{"user_id" => user_id} = args) do
     unless has_story?(user_id) do
       user_id |> Accounts.list_apns_devices() |> schedule_apns(type, args)
     end
@@ -89,19 +125,6 @@ defmodule T.PushNotifications.DispatchJob do
     |> where(user_id: ^user_id)
     |> select([p], {p.name, p.gender})
     |> Repo.one()
-  end
-
-  defp has_contact?(user_id) do
-    Accounts.Profile
-    |> where(user_id: ^user_id)
-    |> select([p], p.story)
-    |> Repo.one()
-    |> then(fn story -> story || [] end)
-    |> Enum.any?(fn page ->
-      Enum.any?(page["labels"] || [], fn label ->
-        label["question"] in Accounts.Profile.contacts()
-      end)
-    end)
   end
 
   defp alive_match(match_id) do

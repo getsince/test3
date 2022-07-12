@@ -30,6 +30,7 @@ defmodule TWeb.UserSocket do
       if check_version(version) do
         {:ok,
          assign(socket,
+           remote_ip: remote_ip,
            current_user: user,
            token: token,
            screen_width: params["screen_width"] || 1000,
@@ -58,8 +59,9 @@ defmodule TWeb.UserSocket do
   defp maybe_location(_params), do: nil
 
   defp check_version(nil), do: false
-  defp check_version(version), do: Version.match?(version, ">= 6.0.0")
+  defp check_version(version), do: Version.match?(version, ">= 6.2.0")
 
+  @spec handle_error(Plug.Conn.t(), :unsupported_version) :: Plug.Conn.t()
   def handle_error(conn, :unsupported_version),
     do: Plug.Conn.send_resp(conn, 418, "")
 

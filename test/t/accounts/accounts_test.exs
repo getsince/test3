@@ -25,8 +25,7 @@ defmodule T.AccountsTest do
                #  gender: ["can't be blank"],
                name: ["can't be blank"],
                location: ["can't be blank"],
-               birthdate: ["can't be blank"],
-               gender_preference: ["can't be blank"]
+               birthdate: ["can't be blank"]
              }
 
       assert {:ok, _profile} =
@@ -77,27 +76,6 @@ defmodule T.AccountsTest do
 
       %Profile{last_active: last_active} = Accounts.get_profile!(user_id)
       assert last_active == ~U[2021-12-29 09:15:47Z]
-    end
-  end
-
-  describe "list_gender_preferences/1" do
-    test "when user doesn't exist" do
-      assert Accounts.list_gender_preferences(Ecto.UUID.generate()) == []
-    end
-
-    test "when user exists and has no preferences" do
-      user = insert(:user)
-      assert Accounts.list_gender_preferences(user.id) == []
-    end
-
-    test "when user exists and has preferences" do
-      user = insert(:user)
-
-      insert(:gender_preference, gender: "F", user_id: user.id)
-      assert Accounts.list_gender_preferences(user.id) == ["F"]
-
-      insert(:gender_preference, gender: "M", user_id: user.id)
-      assert Accounts.list_gender_preferences(user.id) == ["F", "M"]
     end
   end
 

@@ -2,13 +2,13 @@ defmodule TWeb.FeedChannelTest do
   use TWeb.ChannelCase, async: true
 
   alias T.{Accounts, Matches}
-  alias Matches.Match
+  alias Matches.{Match, Interaction}
 
   setup do
     me = onboarded_user(location: moscow_location(), accept_genders: ["F", "N", "M"])
 
     {:ok,
-     me: me, socket: connected_socket(me), socket_with_old_version: connected_socket(me, "6.1.0")}
+     me: me, socket: connected_socket(me), socket_with_old_version: connected_socket(me, "6.9.0")}
   end
 
   describe "join" do
@@ -49,6 +49,42 @@ defmodule TWeb.FeedChannelTest do
       assert %{"private" => true} = private
     end
 
+    test "with feed if asked", %{socket: socket, me: me} do
+      assert {:ok, %{}, _socket} = join(socket, "feed:" <> me.id)
+
+      assert {:ok, %{"feed" => feed}, _socket} =
+               join(socket, "feed:" <> me.id, %{"need_feed" => true})
+
+      assert feed == []
+
+      p = onboarded_user(story: [], name: "mate", location: apple_location(), gender: "F")
+
+      assert {:ok, %{}, _socket} = join(socket, "feed:" <> me.id)
+
+      assert {:ok, %{"feed" => feed}, _socket} =
+               join(socket, "feed:" <> me.id, %{"need_feed" => true})
+
+      assert feed == [
+               %{
+                 "profile" => %{
+                   address: %{
+                     "en_US" => %{
+                       "city" => "Buenos Aires",
+                       "country" => "Argentina",
+                       "iso_country_code" => "AR",
+                       "state" => "Autonomous City of Buenos Aires"
+                     }
+                   },
+                   distance: 9510,
+                   gender: "F",
+                   name: "mate",
+                   story: [],
+                   user_id: p.id
+                 }
+               }
+             ]
+    end
+
     test "with matches", %{socket: socket, me: me} do
       [p1, p2, p3] = [
         onboarded_user(story: [], name: "mate-1", location: apple_location(), gender: "F"),
@@ -65,7 +101,38 @@ defmodule TWeb.FeedChannelTest do
       # first and second matches are seen
       :ok = Matches.mark_match_seen(me.id, m1.id)
       :ok = Matches.mark_match_seen(me.id, m2.id)
-      Matches.save_contact_click(m1.id)
+
+      # second match has one interaction
+      {:ok, %Interaction{id: interaction_id_1}} =
+        Matches.save_interaction(
+          m2.id,
+          me.id,
+          %{
+            "size" => [100, 100],
+            "sticker" => %{"value" => "hey mama"}
+          }
+        )
+
+      # third match had interaction exchanged
+      {:ok, %Interaction{id: interaction_id_2}} =
+        Matches.save_interaction(
+          m3.id,
+          me.id,
+          %{
+            "size" => [100, 100],
+            "sticker" => %{"question" => "telegram", "answer" => "durov"}
+          }
+        )
+
+      {:ok, %Interaction{id: interaction_id_3}} =
+        Matches.save_interaction(
+          m3.id,
+          p3.id,
+          %{
+            "size" => [100, 100],
+            "sticker" => %{"question" => "audio", "s3_key" => "abcd"}
+          }
+        )
 
       assert {:ok, %{"matches" => matches}, _socket} = join(socket, "feed:" <> me.id)
 
@@ -88,20 +155,91 @@ defmodule TWeb.FeedChannelTest do
                    }
                  },
                  "inserted_at" => ~U[2021-09-30 12:16:07Z],
-                 "expiration_date" => ~U[2021-10-01 12:16:07Z]
+                 "interactions" => [
+                   %{
+                     "from_user_id" => me.id,
+                     "id" => interaction_id_2,
+                     "inserted_at" => datetime(interaction_id_2),
+                     "interaction" => %{
+                       "size" => [100, 100],
+                       "sticker" => %{
+                         "answer" => "durov",
+                         "question" => "telegram",
+                         "url" => "https://t.me/durov"
+                       }
+                     },
+                     "seen" => false
+                   },
+                   %{
+                     "from_user_id" => p3.id,
+                     "id" => interaction_id_3,
+                     "inserted_at" => datetime(interaction_id_3),
+                     "interaction" => %{
+                       "size" => [100, 100],
+                       "sticker" => %{
+                         "question" => "audio",
+                         "s3_key" => "abcd",
+                         "url" => "https://d6666.cloudfront.net/abcd"
+                       }
+                     },
+                     "seen" => false
+                   }
+                 ]
                },
                %{
                  "id" => m2.id,
-                 "profile" => %{name: "mate-2", story: [], user_id: p2.id, gender: "N"},
+                 "profile" => %{
+                   name: "mate-2",
+                   story: [],
+                   user_id: p2.id,
+                   gender: "N",
+                   distance: 9510,
+                   address: %{
+                     "en_US" => %{
+                       "city" => "Buenos Aires",
+                       "state" => "Autonomous City of Buenos Aires",
+                       "country" => "Argentina",
+                       "iso_country_code" => "AR"
+                     }
+                   }
+                 },
                  "inserted_at" => ~U[2021-09-30 12:16:06Z],
                  "expiration_date" => ~U[2021-10-01 12:16:06Z],
-                 "seen" => true
+                 "seen" => true,
+                 "interactions" => [
+                   %{
+                     "from_user_id" => me.id,
+                     "id" => interaction_id_1,
+                     "inserted_at" => datetime(interaction_id_1),
+                     "interaction" => %{
+                       "size" => [100, 100],
+                       "sticker" => %{"value" => "hey mama"}
+                     },
+                     "seen" => false
+                   }
+                 ]
                },
                %{
                  "id" => m1.id,
-                 "profile" => %{name: "mate-1", story: [], user_id: p1.id, gender: "F"},
+                 "profile" => %{
+                   name: "mate-1",
+                   story: [],
+                   user_id: p1.id,
+                   gender: "F",
+                   distance: 9510,
+                   address: %{
+                     "en_US" => %{
+                       "city" => "Buenos Aires",
+                       "state" => "Autonomous City of Buenos Aires",
+                       "country" => "Argentina",
+                       "iso_country_code" => "AR"
+                     }
+                   }
+                 },
                  "inserted_at" => ~U[2021-09-30 12:16:05Z],
-                 "seen" => true
+                 "expiration_date" => ~U[2021-10-01 12:16:05Z],
+                 "seen" => true,
+                 "interactions" => []
                }
              ]
     end
@@ -171,30 +309,6 @@ defmodule TWeb.FeedChannelTest do
       refute reply["todos"]
     end
 
-    test "with contact todo", %{socket: socket, me: me} do
-      {:ok, _profile} =
-        Accounts.update_profile(me.id, %{
-          "story" => [
-            %{
-              "background" => %{"s3_key" => "photo.jpg"},
-              "labels" => []
-            }
-          ]
-        })
-
-      assert {:ok, %{"todos" => todos}, _socket} = join(socket, "feed:" <> me.id)
-
-      assert [_first_todos_item = %{story: story}] = todos
-      assert [p1] = story
-
-      assert %{"background" => %{"color" => _}, "labels" => labels, "size" => _} = p1
-
-      assert labels
-             |> Enum.any?(fn label ->
-               label["action"] == "add_contact"
-             end)
-    end
-
     test "with update todo", %{socket_with_old_version: socket_with_old_version, me: me} do
       assert {:ok, %{"todos" => todos}, _socket} = join(socket_with_old_version, "feed:" <> me.id)
 
@@ -208,42 +322,6 @@ defmodule TWeb.FeedChannelTest do
                label["action"] == "update_app"
              end)
     end
-
-    test "with update and contact todo", %{
-      socket_with_old_version: socket_with_old_version,
-      me: me
-    } do
-      {:ok, _profile} =
-        Accounts.update_profile(me.id, %{
-          "story" => [
-            %{
-              "background" => %{"s3_key" => "photo.jpg"},
-              "labels" => []
-            }
-          ]
-        })
-
-      assert {:ok, %{"todos" => todos}, _socket} = join(socket_with_old_version, "feed:" <> me.id)
-
-      assert [_first_todos_item = %{story: story1}, _second_todos_item = %{story: story2}] = todos
-      assert [p1] = story1
-
-      assert %{"background" => %{"color" => _}, "labels" => labels1, "size" => _} = p1
-
-      assert labels1
-             |> Enum.any?(fn label ->
-               label["action"] == "update_app"
-             end)
-
-      assert [p2] = story2
-
-      assert %{"background" => %{"color" => _}, "labels" => labels2, "size" => _} = p2
-
-      assert labels2
-             |> Enum.any?(fn label ->
-               label["action"] == "add_contact"
-             end)
-    end
   end
 
   describe "more" do
@@ -252,7 +330,7 @@ defmodule TWeb.FeedChannelTest do
     test "with no data in db", %{socket: socket} do
       ref = push(socket, "more")
       assert_reply(ref, :ok, reply)
-      assert reply == %{"cursor" => nil, "feed" => []}
+      assert reply == %{"feed" => []}
     end
 
     test "with users who haven't been online for a while", %{socket: socket} do
@@ -268,347 +346,7 @@ defmodule TWeb.FeedChannelTest do
 
       ref = push(socket, "more")
       assert_reply(ref, :ok, reply)
-      assert reply == %{"cursor" => nil, "feed" => []}
-    end
-
-    test "with active users more than count", %{socket: socket} do
-      now = DateTime.utc_now()
-
-      [m1, m2, m3] = [
-        onboarded_user(
-          name: "mate-1",
-          location: moscow_location(),
-          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
-          gender: "F",
-          accept_genders: ["M"],
-          last_active: DateTime.add(now, -1)
-        ),
-        onboarded_user(
-          name: "mate-2",
-          location: apple_location(),
-          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
-          gender: "N",
-          accept_genders: ["M"],
-          last_active: DateTime.add(now, -2)
-        ),
-        onboarded_user(
-          name: "mate-3",
-          location: apple_location(),
-          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
-          gender: "M",
-          accept_genders: ["M"],
-          last_active: DateTime.add(now, -3)
-        )
-      ]
-
-      ref = push(socket, "more", %{"count" => 2})
-      assert_reply(ref, :ok, %{"cursor" => cursor, "feed" => feed})
-
-      assert feed == [
-               %{
-                 "profile" => %{
-                   user_id: m1.id,
-                   name: "mate-1",
-                   gender: "F",
-                   story: [
-                     %{
-                       "background" => %{
-                         "proxy" =>
-                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
-                         "s3_key" => "test"
-                       },
-                       "labels" => []
-                     }
-                   ],
-                   distance: 0,
-                   address: %{
-                     "en_US" => %{
-                       "city" => "Buenos Aires",
-                       "state" => "Autonomous City of Buenos Aires",
-                       "country" => "Argentina",
-                       "iso_country_code" => "AR"
-                     }
-                   }
-                 }
-               },
-               %{
-                 "profile" => %{
-                   user_id: m2.id,
-                   name: "mate-2",
-                   gender: "N",
-                   story: [
-                     %{
-                       "background" => %{
-                         "proxy" =>
-                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
-                         "s3_key" => "test"
-                       },
-                       "labels" => []
-                     }
-                   ],
-                   distance: 9510,
-                   address: %{
-                     "en_US" => %{
-                       "city" => "Buenos Aires",
-                       "state" => "Autonomous City of Buenos Aires",
-                       "country" => "Argentina",
-                       "iso_country_code" => "AR"
-                     }
-                   }
-                 }
-               }
-             ]
-
-      ref = push(socket, "more", %{"cursor" => cursor})
-
-      assert_reply(ref, :ok, %{
-        "cursor" => cursor,
-        "feed" => feed
-      })
-
-      assert feed == [
-               %{
-                 "profile" => %{
-                   user_id: m3.id,
-                   name: "mate-3",
-                   gender: "M",
-                   story: [
-                     %{
-                       "background" => %{
-                         "proxy" =>
-                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
-                         "s3_key" => "test"
-                       },
-                       "labels" => []
-                     }
-                   ],
-                   distance: 9510,
-                   address: %{
-                     "en_US" => %{
-                       "city" => "Buenos Aires",
-                       "state" => "Autonomous City of Buenos Aires",
-                       "country" => "Argentina",
-                       "iso_country_code" => "AR"
-                     }
-                   }
-                 }
-               }
-             ]
-
-      ref = push(socket, "more", %{"cursor" => cursor})
-      assert_reply(ref, :ok, %{"cursor" => ^cursor, "feed" => []})
-    end
-
-    test "with age filter" do
-      me =
-        onboarded_user(
-          location: moscow_location(),
-          accept_genders: ["F"],
-          min_age: 20,
-          max_age: 40
-        )
-
-      socket = connected_socket(me)
-
-      assert {:ok, _reply, socket} =
-               subscribe_and_join(socket, "feed:" <> me.id, %{"mode" => "normal"})
-
-      now = DateTime.utc_now()
-
-      [_m1, m2, _m3] = [
-        onboarded_user(
-          name: "mate-1",
-          location: apple_location(),
-          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
-          gender: "F",
-          accept_genders: ["M"],
-          birthdate: Date.add(now, -19 * 365)
-        ),
-        onboarded_user(
-          name: "mate-2",
-          location: apple_location(),
-          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
-          gender: "F",
-          accept_genders: ["M"],
-          birthdate: Date.add(now, -30 * 365)
-        ),
-        onboarded_user(
-          name: "mate-3",
-          location: apple_location(),
-          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
-          gender: "F",
-          accept_genders: ["M"],
-          birthdate: Date.add(now, -50 * 365)
-        )
-      ]
-
-      ref = push(socket, "more", %{"count" => 2})
-      assert_reply(ref, :ok, %{"feed" => feed})
-
-      assert feed == [
-               %{
-                 "profile" => %{
-                   user_id: m2.id,
-                   name: "mate-2",
-                   gender: "F",
-                   story: [
-                     %{
-                       "background" => %{
-                         "proxy" =>
-                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
-                         "s3_key" => "test"
-                       },
-                       "labels" => []
-                     }
-                   ],
-                   distance: 9510,
-                   address: %{
-                     "en_US" => %{
-                       "city" => "Buenos Aires",
-                       "state" => "Autonomous City of Buenos Aires",
-                       "country" => "Argentina",
-                       "iso_country_code" => "AR"
-                     }
-                   }
-                 }
-               }
-             ]
-    end
-
-    test "with distance filter" do
-      me =
-        onboarded_user(
-          location: moscow_location(),
-          accept_genders: ["F"],
-          distance: 10
-        )
-
-      socket = connected_socket(me)
-
-      assert {:ok, _reply, socket} =
-               subscribe_and_join(socket, "feed:" <> me.id, %{"mode" => "normal"})
-
-      [m1, m2] = [
-        onboarded_user(
-          name: "mate-1",
-          location: apple_location(),
-          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
-          gender: "F",
-          accept_genders: ["M"]
-        ),
-        onboarded_user(
-          name: "mate-2",
-          location: moscow_location(),
-          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
-          gender: "F",
-          accept_genders: ["M"]
-        )
-      ]
-
-      set_like_ratio(m1, 1)
-      set_like_ratio(m2, 0.5)
-
-      ref = push(socket, "more", %{"count" => 2})
-      assert_reply(ref, :ok, %{"feed" => feed})
-
-      assert feed == [
-               %{
-                 "profile" => %{
-                   user_id: m2.id,
-                   name: "mate-2",
-                   gender: "F",
-                   story: [
-                     %{
-                       "background" => %{
-                         "proxy" =>
-                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
-                         "s3_key" => "test"
-                       },
-                       "labels" => []
-                     }
-                   ],
-                   distance: 0,
-                   address: %{
-                     "en_US" => %{
-                       "city" => "Buenos Aires",
-                       "state" => "Autonomous City of Buenos Aires",
-                       "country" => "Argentina",
-                       "iso_country_code" => "AR"
-                     }
-                   }
-                 }
-               }
-             ]
-
-      me =
-        onboarded_user(
-          location: moscow_location(),
-          accept_genders: ["F"],
-          distance: 20000
-        )
-
-      socket = connected_socket(me)
-
-      assert {:ok, _reply, socket} =
-               subscribe_and_join(socket, "feed:" <> me.id, %{"mode" => "normal"})
-
-      ref = push(socket, "more", %{"count" => 3})
-      assert_reply(ref, :ok, %{"feed" => feed})
-
-      assert feed == [
-               %{
-                 "profile" => %{
-                   user_id: m2.id,
-                   name: "mate-2",
-                   gender: "F",
-                   story: [
-                     %{
-                       "background" => %{
-                         "proxy" =>
-                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
-                         "s3_key" => "test"
-                       },
-                       "labels" => []
-                     }
-                   ],
-                   distance: 0,
-                   address: %{
-                     "en_US" => %{
-                       "city" => "Buenos Aires",
-                       "state" => "Autonomous City of Buenos Aires",
-                       "country" => "Argentina",
-                       "iso_country_code" => "AR"
-                     }
-                   }
-                 }
-               },
-               %{
-                 "profile" => %{
-                   user_id: m1.id,
-                   name: "mate-1",
-                   gender: "F",
-                   story: [
-                     %{
-                       "background" => %{
-                         "proxy" =>
-                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
-                         "s3_key" => "test"
-                       },
-                       "labels" => []
-                     }
-                   ],
-                   distance: 9510,
-                   address: %{
-                     "en_US" => %{
-                       "city" => "Buenos Aires",
-                       "state" => "Autonomous City of Buenos Aires",
-                       "country" => "Argentina",
-                       "iso_country_code" => "AR"
-                     }
-                   }
-                 }
-               }
-             ]
+      assert reply == %{"feed" => []}
     end
 
     test "previously returned profiles are not returned, feed can be reset", %{socket: socket} do
@@ -625,28 +363,73 @@ defmodule TWeb.FeedChannelTest do
         )
       end
 
-      ref = push(socket, "more", %{"count" => 3})
-      assert_reply(ref, :ok, %{"cursor" => cursor, "feed" => feed0})
+      ref = push(socket, "more")
+      assert_reply(ref, :ok, %{"feed" => feed0})
 
       initial_feed_ids =
         Enum.map(feed0, fn %{"profile" => profile} ->
           profile.user_id
         end)
 
-      # non-nil cursor
-      ref = push(socket, "more", %{"cursor" => cursor})
+      ref = push(socket, "more")
 
-      assert_reply(ref, :ok, %{"cursor" => _cursor, "feed" => feed1})
+      assert_reply(ref, :ok, %{"feed" => feed1})
 
       for {p, _} <- feed1 do
         assert p.user_id not in initial_feed_ids
       end
+    end
 
-      # nil cursor
-      ref = push(socket, "more", %{"cursor" => nil, "count" => 3})
-      assert_reply(ref, :ok, %{"cursor" => _cursor, "feed" => feed2})
+    test "with feed_limit", %{socket: socket, me: me} do
+      p = onboarded_user(story: [], name: "mate", location: apple_location(), gender: "F")
 
-      assert feed0 == feed2
+      now = DateTime.utc_now() |> DateTime.truncate(:second)
+      insert(:feed_limit, user_id: me.id, timestamp: now |> DateTime.to_naive())
+
+      ref = push(socket, "more")
+      assert_reply(ref, :ok, %{"feed" => feed})
+
+      feed_limit_expiration = now |> DateTime.add(T.Feeds.feed_limit_period())
+
+      assert %{
+               "feed_limit_expiration" => ^feed_limit_expiration,
+               "story" => [%{"labels" => labels}]
+             } = feed
+
+      assert labels |> Enum.at(-1) == %{
+               "alignment" => 1,
+               "background_fill" => "#49BDB5",
+               "corner_radius" => 0,
+               "position" => [176.7486442601318, 506.01036228399676],
+               "rotation" => 10.167247449849249,
+               "text_color" => "#FFFFFF",
+               "value" => "in the meantime, you can work \non your profile",
+               "zoom" => 0.7091569071880537
+             }
+
+      insert(:match, user_id_1: me.id, user_id_2: p.id)
+
+      ref = push(socket, "more")
+      assert_reply(ref, :ok, %{"feed" => feed})
+
+      assert %{
+               "feed_limit_expiration" => ^feed_limit_expiration,
+               "story" => [%{"labels" => labels}]
+             } = feed
+
+      assert labels |> Enum.at(-1) == %{
+               "alignment" => 1,
+               "background_fill" => "#6D42B1",
+               "corner_radius" => 0,
+               "position" => [
+                 25.74864426013174,
+                 484.3437057898561
+               ],
+               "rotation" => -10.167247449849249,
+               "text_color" => "#FFFFFF",
+               "value" => "in the meantime,\nyou can chat with matches",
+               "zoom" => 0.7091569071880537
+             }
     end
   end
 
@@ -841,70 +624,6 @@ defmodule TWeb.FeedChannelTest do
     end
   end
 
-  describe "calls" do
-    setup [:joined]
-
-    test "result in deprecation warning", %{socket: socket} do
-      ref = push(socket, "call", _params = %{})
-      assert_reply ref, :error, reply
-
-      assert reply == %{
-               alert: %{
-                 title: "Deprecation warning",
-                 body: "Calls are no longer supported, please upgrade."
-               }
-             }
-    end
-  end
-
-  describe "offer-slots" do
-    setup :joined
-
-    test "results in deprecation warning", %{socket: socket} do
-      ref = push(socket, "offer-slots", _params = %{})
-      assert_reply ref, :error, reply
-
-      assert reply == %{
-               alert: %{
-                 title: "Deprecation warning",
-                 body: "Calls are no longer supported, please upgrade."
-               }
-             }
-    end
-  end
-
-  describe "pick-slot" do
-    setup :joined
-
-    test "results in deprecation warning", %{socket: socket} do
-      ref = push(socket, "pick-slot", _params = %{})
-      assert_reply ref, :error, reply
-
-      assert reply == %{
-               alert: %{
-                 title: "Deprecation warning",
-                 body: "Calls are no longer supported, please upgrade."
-               }
-             }
-    end
-  end
-
-  describe "cancel-slot" do
-    setup :joined
-
-    test "results in deprecation warning", %{socket: socket} do
-      ref = push(socket, "cancel-slot", _params = %{})
-      assert_reply ref, :error, reply
-
-      assert reply == %{
-               alert: %{
-                 title: "Deprecation warning",
-                 body: "Calls are no longer supported, please upgrade."
-               }
-             }
-    end
-  end
-
   describe "unmatch success" do
     setup :joined
 
@@ -1012,21 +731,6 @@ defmodule TWeb.FeedChannelTest do
     end
   end
 
-  describe "feed filter" do
-    setup :joined
-
-    test "is refetched when profile is updated", %{me: me, socket: socket} do
-      %{feed_filter: initial_filter} = socket.assigns
-      user_id = me.id
-
-      Accounts.subscribe_for_user(user_id)
-      Accounts.update_profile(me.id, %{"min_age" => 31})
-
-      new_filter = %T.Feeds.FeedFilter{initial_filter | min_age: 31}
-      assert_receive {Accounts, :feed_filter_updated, ^new_filter}
-    end
-  end
-
   describe "send-voicemail" do
     setup :joined
 
@@ -1056,6 +760,24 @@ defmodule TWeb.FeedChannelTest do
                  body: "Voicemail is no longer supported, please upgrade."
                }
              }
+    end
+  end
+
+  describe "interactions" do
+    setup :joined
+
+    test "send-interaction", %{me: me, socket: socket} do
+      mate = onboarded_user()
+      match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
+
+      # save normal interaction
+      ref =
+        push(socket, "send-interaction", %{
+          "match_id" => match.id,
+          "interaction" => %{"size" => [375, 667], "sticker" => %{"value" => "hello moto"}}
+        })
+
+      assert_reply ref, :ok, _reply
     end
   end
 
@@ -1120,6 +842,32 @@ defmodule TWeb.FeedChannelTest do
     end
   end
 
+  describe "feed_limit" do
+    setup :joined
+
+    test "feed_limit_reached", %{socket: socket, me: me} do
+      now = DateTime.utc_now() |> DateTime.truncate(:second)
+      insert(:feed_limit, user_id: me.id, timestamp: now |> DateTime.to_naive())
+
+      assert %T.Feeds.FeedLimit{reached: false} = T.Feeds.fetch_feed_limit(me.id)
+
+      ref = push(socket, "reached-limit", %{"timestamp" => now})
+      assert_reply(ref, :ok)
+
+      assert %T.Feeds.FeedLimit{reached: true} = T.Feeds.fetch_feed_limit(me.id)
+    end
+
+    test "feed_limit_reset push, feed is returned", %{me: me} do
+      now = DateTime.utc_now() |> DateTime.truncate(:second)
+      insert(:feed_limit, user_id: me.id, timestamp: now |> DateTime.to_naive())
+      feed_limit_expiration = now |> DateTime.add(T.Feeds.feed_limit_period() + 1)
+
+      T.Feeds.feed_limits_prune(feed_limit_expiration)
+
+      assert_push "feed_limit_reset", %{"feed" => []}
+    end
+  end
+
   defp joined(%{socket: socket, me: me}) do
     assert {:ok, _reply, socket} =
              subscribe_and_join(socket, "feed:" <> me.id, %{"mode" => "normal"})
@@ -1131,5 +879,13 @@ defmodule TWeb.FeedChannelTest do
     socket = connected_socket(mate)
     {:ok, _reply, socket} = join(socket, "feed:" <> mate.id, %{"mode" => "normal"})
     {:ok, mate_socket: socket}
+  end
+
+  defp datetime(<<_::288>> = uuid) do
+    datetime(Ecto.Bigflake.UUID.dump!(uuid))
+  end
+
+  defp datetime(<<unix::64, _rest::64>>) do
+    unix |> DateTime.from_unix!(:millisecond) |> DateTime.truncate(:second)
   end
 end

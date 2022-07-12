@@ -2,7 +2,7 @@ defmodule TWeb.FeedChannel do
   use TWeb, :channel
   import TWeb.ChannelHelpers
 
-  alias TWeb.{FeedView, MatchView}
+  alias TWeb.{FeedView, MatchView, ViewHelpers}
   alias T.{Feeds, Matches, Accounts, Events, News, Todos}
 
   @impl true
@@ -24,9 +24,8 @@ defmodule TWeb.FeedChannel do
     end
   end
 
-  defp join_normal_mode(user_id, _params, socket) do
-    feed_filter = Feeds.get_feed_filter(user_id)
-    {old_location, gender} = Accounts.get_location_and_gender!(user_id)
+  defp join_normal_mode(user_id, params, socket) do
+    {old_location, _gender} = Accounts.get_location_and_gender!(user_id)
     location = socket.assigns.location || old_location
     %{screen_width: screen_width, version: version} = socket.assigns
 
@@ -50,44 +49,43 @@ defmodule TWeb.FeedChannel do
       |> Todos.list_todos(version)
       |> render_news(version, screen_width)
 
+    feed =
+      case params["need_feed"] do
+        true -> fetch_feed(user_id, location, version, screen_width, true)
+        _ -> nil
+      end
+
     reply =
       %{}
       |> maybe_put("news", news)
       |> maybe_put("todos", todos)
       |> maybe_put("likes", likes)
       |> maybe_put("matches", matches)
+      |> maybe_put_with_empty_list("feed", feed)
 
-    {:ok, reply,
-     assign(socket,
-       feed_filter: feed_filter,
-       location: location,
-       gender: gender
-     )}
+    {:ok, reply, assign(socket, location: location)}
   end
 
   @impl true
-  def handle_in("more", params, socket) do
+  def handle_in("more", _params, socket) do
     %{
       current_user: user,
       screen_width: screen_width,
       version: version,
-      feed_filter: feed_filter,
-      gender: gender,
       location: location
     } = socket.assigns
 
-    {feed, cursor} =
-      Feeds.fetch_feed(
-        user.id,
-        location,
-        gender,
-        feed_filter,
-        params["count"] || 10,
-        params["cursor"]
-      )
+    feed = fetch_feed(user.id, location, version, screen_width, false)
 
-    {:reply, {:ok, %{"feed" => render_feed(feed, version, screen_width), "cursor" => cursor}},
-     socket}
+    {:reply, {:ok, %{"feed" => feed}}, socket}
+  end
+
+  def handle_in("onboarding-feed", _params, socket) do
+    %{remote_ip: remote_ip, screen_width: screen_width, version: version} = socket.assigns
+
+    feed = Feeds.fetch_onboarding_feed(remote_ip)
+
+    {:reply, {:ok, %{"feed" => render_feed(feed, version, screen_width)}}, socket}
   end
 
   # TODO remove
@@ -156,6 +154,13 @@ defmodule TWeb.FeedChannel do
     end
 
     Matches.mark_like_seen(me, by_user_id)
+    {:reply, :ok, socket}
+  end
+
+  def handle_in("reached-limit", %{"timestamp" => timestamp} = _params, socket) do
+    me = me_id(socket)
+
+    Feeds.reached_limit(me, timestamp)
     {:reply, :ok, socket}
   end
 
@@ -334,10 +339,29 @@ defmodule TWeb.FeedChannel do
     {:reply, {:error, %{alert: alert}}, socket}
   end
 
-  # history
+  # interactions
 
-  def handle_in("list-interactions", _params, socket) do
-    {:reply, {:ok, %{"interactions" => []}}, socket}
+  def handle_in(
+        "send-interaction",
+        %{"match_id" => match_id, "interaction" => interaction},
+        socket
+      ) do
+    %{current_user: %{id: from_user_id}} = socket.assigns
+
+    case Matches.save_interaction(match_id, from_user_id, interaction) do
+      {:ok, interaction} ->
+        {:reply, {:ok, %{"interaction" => render_interaction(interaction)}}, socket}
+
+      {:error, _changeset} ->
+        {:reply, :error, socket}
+    end
+  end
+
+  def handle_in("seen-interaction", %{"interaction_id" => interaction_id}, socket) do
+    %{current_user: %{id: by_user_id}} = socket.assigns
+
+    reply = Matches.mark_interaction_seen(by_user_id, interaction_id)
+    {:reply, reply, socket}
   end
 
   @impl true
@@ -395,8 +419,49 @@ defmodule TWeb.FeedChannel do
     {:noreply, socket}
   end
 
+  def handle_info({Matches, :interaction, interaction}, socket) do
+    %Matches.Interaction{match_id: match_id} = interaction
+
+    push(socket, "interaction", %{
+      "match_id" => match_id,
+      "interaction" => render_interaction(interaction)
+    })
+
+    {:noreply, socket}
+  end
+
+  def handle_info({Feeds, :feed_limit_reset}, socket) do
+    %{
+      current_user: user,
+      screen_width: screen_width,
+      version: version,
+      location: location
+    } = socket.assigns
+
+    feed = Feeds.fetch_feed(user.id, location, true)
+
+    push(socket, "feed_limit_reset", %{"feed" => render_feed(feed, version, screen_width)})
+
+    {:noreply, socket}
+  end
+
   def handle_info({Accounts, :feed_filter_updated, feed_filter}, socket) do
     {:noreply, assign(socket, :feed_filter, feed_filter)}
+  end
+
+  defp fetch_feed(user_id, location, version, screen_width, first_fetch) do
+    fetch_feed = Feeds.fetch_feed(user_id, location, first_fetch)
+
+    case fetch_feed do
+      feed when is_list(feed) ->
+        render_feed(feed, version, screen_width)
+
+      {%DateTime{} = timestamp, feed_limit_story} ->
+        %{
+          "feed_limit_expiration" => timestamp,
+          "story" => render_story(feed_limit_story, version, screen_width)
+        }
+    end
   end
 
   defp render_feed_item(profile, version, screen_width) do
@@ -423,7 +488,8 @@ defmodule TWeb.FeedChannel do
         inserted_at: inserted_at,
         profile: profile,
         expiration_date: expiration_date,
-        seen: seen
+        seen: seen,
+        interactions: interactions
       } = match
 
       render_match(%{
@@ -433,25 +499,27 @@ defmodule TWeb.FeedChannel do
         screen_width: screen_width,
         version: version,
         expiration_date: expiration_date,
-        seen: seen
+        seen: seen,
+        interactions: interactions
       })
     end)
   end
 
-  @compile inline: [render_match: 1]
-  defp render_match(%{seen: true} = assigns) do
+  defp render_match(assigns) do
     render(MatchView, "match.json", assigns)
   end
 
-  defp render_match(assigns) do
-    render(MatchView, "match_with_distance.json", assigns)
+  defp render_interaction(interaction) do
+    render(MatchView, "interaction.json", interaction: interaction)
   end
 
   defp render_news(news, version, screen_width) do
-    alias TWeb.ViewHelpers
-
     Enum.map(news, fn %{story: story} = news ->
       %{news | story: ViewHelpers.postprocess_story(story, version, screen_width, :feed)}
     end)
+  end
+
+  defp render_story(story, version, screen_width) do
+    ViewHelpers.postprocess_story(story, version, screen_width, :feed)
   end
 end

@@ -33,6 +33,7 @@ defmodule T.PeriodicsTest do
     me = self()
 
     assert [
+             {:feed_limit_pruner, _, :worker, [Periodic]},
              {:match_expirer, _, :worker, [Periodic]},
              {:seen_pruner, _, :worker, [Periodic]}
            ] = children

@@ -14,6 +14,8 @@ defmodule TWeb.ViewHelpers do
     end)
   end
 
+  def process_sticker(sticker, screen_width), do: process_label(sticker, screen_width)
+
   defp blur(%{"blurred" => %{"s3_key" => s3_key} = bg}, screen_width, :feed) do
     bg = maybe_put(bg, "proxy", image_cdn_url(s3_key, screen_width))
     %{"blurred" => bg, "private" => true}
@@ -50,45 +52,10 @@ defmodule TWeb.ViewHelpers do
     end
   end
 
-  defp process_labels(%{"labels" => labels} = page, version, screen_width) do
-    # we do not add url for versions prior to 6.2.0 because they will be rendered incorrectly
+  defp process_labels(%{"labels" => labels} = page, _version, screen_width) do
     labels =
-      case Version.compare(version, "6.2.0") do
-        :lt ->
-          labels
-          |> Enum.reduce([], fn label, acc ->
-            case label do
-              %{"s3_key" => _key, "question" => "audio"} -> acc
-              %{"s3_key" => _key, "question" => "video"} -> acc
-              label -> [process_label(label) | acc]
-            end
-          end)
-
-        _ ->
-          labels
-          |> Enum.reduce([], fn label, acc ->
-            case label do
-              %{"s3_key" => key, "question" => "audio"} ->
-                label = Map.put(label, "url", media_cdn_url(key))
-                [label | acc]
-
-              %{
-                "s3_key" => key,
-                "video_s3_key" => video_s3_key,
-                "question" => "video"
-              } ->
-                label =
-                  label
-                  |> Map.put("url", media_cdn_url(video_s3_key))
-                  |> Map.put("proxy", image_cdn_url(key, screen_width))
-
-                [label | acc]
-
-              label ->
-                [process_label(label) | acc]
-            end
-          end)
-      end
+      labels
+      |> Enum.reduce([], fn label, acc -> [process_label(label, screen_width) | acc] end)
       |> :lists.reverse()
 
     %{page | "labels" => labels}
@@ -96,39 +63,56 @@ defmodule TWeb.ViewHelpers do
 
   defp process_labels(page, _version, _screen_width), do: page
 
-  defp process_label(%{"question" => "telegram", "answer" => handle} = label) do
+  defp process_label(
+         %{"question" => "video", "s3_key" => key, "video_s3_key" => video_s3_key} = label,
+         screen_width
+       ) do
+    label
+    |> Map.put("url", media_cdn_url(video_s3_key))
+    |> Map.put("proxy", image_cdn_url(key, screen_width))
+  end
+
+  defp process_label(%{"question" => "photo", "s3_key" => key} = label, screen_width) do
+    Map.put(label, "proxy", image_cdn_url(key, screen_width))
+  end
+
+  defp process_label(%{"question" => "audio", "s3_key" => key} = label, _screen_width) do
+    Map.put(label, "url", media_cdn_url(key))
+  end
+
+  defp process_label(%{"question" => "telegram", "answer" => handle} = label, _screen_width) do
     Map.put(label, "url", "https://t.me/" <> handle)
   end
 
-  defp process_label(%{"question" => "instagram", "answer" => handle} = label) do
+  defp process_label(%{"question" => "instagram", "answer" => handle} = label, _screen_width) do
     Map.put(label, "url", "https://instagram.com/" <> handle)
   end
 
-  defp process_label(%{"question" => "whatsapp", "answer" => handle} = label) do
+  defp process_label(%{"question" => "whatsapp", "answer" => handle} = label, _screen_width) do
     Map.put(label, "url", "https://wa.me/" <> handle)
   end
 
-  defp process_label(%{"question" => "snapchat", "answer" => handle} = label) do
+  defp process_label(%{"question" => "snapchat", "answer" => handle} = label, _screen_width) do
     Map.put(label, "url", "https://www.snapchat.com/add/" <> handle)
   end
 
-  defp process_label(%{"question" => "messenger", "answer" => handle} = label) do
+  defp process_label(%{"question" => "messenger", "answer" => handle} = label, _screen_width) do
     Map.put(label, "url", "https://m.me/" <> handle)
   end
 
-  defp process_label(%{"question" => "signal", "answer" => handle} = label) do
+  defp process_label(%{"question" => "signal", "answer" => handle} = label, _screen_width) do
     Map.put(label, "url", "https://signal.me/#p/" <> handle)
   end
 
-  defp process_label(%{"question" => "twitter", "answer" => handle} = label) do
+  defp process_label(%{"question" => "twitter", "answer" => handle} = label, _screen_width) do
     Map.put(label, "url", "https://twitter.com/" <> handle)
   end
 
-  defp process_label(%{"question" => q} = label) when q in ["phone", "email"] do
+  defp process_label(%{"question" => q} = label, _screen_width) when q in ["phone", "email"] do
     label
   end
 
-  defp process_label(%{"answer" => a} = label) do
+  defp process_label(%{"answer" => a} = label, _screen_width) do
     if url = Media.known_sticker_url(a) do
       Map.put(label, "url", url)
     else
@@ -136,7 +120,7 @@ defmodule TWeb.ViewHelpers do
     end
   end
 
-  defp process_label(label), do: label
+  defp process_label(label, _screen_width), do: label
 
   defp image_cdn_url(key, width) when is_binary(key) do
     Media.user_imgproxy_cdn_url(key, width)

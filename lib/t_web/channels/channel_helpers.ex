@@ -47,6 +47,10 @@ defmodule TWeb.ChannelHelpers do
   def maybe_put(map, _key, []), do: map
   def maybe_put(map, key, value), do: Map.put(map, key, value)
 
+  def maybe_put_with_empty_list(map, _key, nil), do: map
+  def maybe_put_with_empty_list(map, _key, false), do: map
+  def maybe_put_with_empty_list(map, key, value), do: Map.put(map, key, value)
+
   @spec utc_now(Socket.t()) :: DateTime.t()
   def utc_now(%Socket{private: %{freeze_time: f}}) when is_function(f, 0), do: f.()
   def utc_now(%Socket{}), do: DateTime.utc_now()

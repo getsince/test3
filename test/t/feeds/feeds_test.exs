@@ -3,7 +3,7 @@ defmodule T.FeedsTest do
   use Oban.Testing, repo: T.Repo
 
   alias T.Feeds
-  alias T.Feeds.{FeedProfile, FeedFilter, SeenProfile}
+  alias T.Feeds.{FeedProfile, SeenProfile}
 
   doctest Feeds, import: true
 
@@ -14,81 +14,50 @@ defmodule T.FeedsTest do
     end
 
     test "with no data in db", %{me: me} do
-      assert {[], nil} ==
-               Feeds.fetch_feed(
-                 me.id,
-                 me.profile.location,
-                 _gender = "M",
-                 _feed_filter = %FeedFilter{
-                   genders: ["F"],
-                   min_age: nil,
-                   max_age: nil,
-                   distance: nil
-                 },
-                 _count = 10,
-                 _cursor = nil
-               )
+      assert [] == Feeds.fetch_feed(me.id, me.profile.location, true)
     end
 
-    test "with no active users", %{me: me} do
-      insert_list(3, :profile, gender: "F")
+    test "with feed_daily_limit reached", %{me: me} do
+      for _ <- 1..Feeds.feed_daily_limit(), do: onboarded_user()
 
-      assert {[], nil} ==
-               Feeds.fetch_feed(
-                 me.id,
-                 me.profile.location,
-                 _gender = "M",
-                 _feed_filter = %FeedFilter{
-                   genders: ["F"],
-                   min_age: nil,
-                   max_age: nil,
-                   distance: nil
-                 },
-                 _count = 10,
-                 _cursor = nil
-               )
-    end
+      # first we fetch feed on channel join
+      feed = Feeds.fetch_feed(me.id, me.profile.location, true)
+      assert length(feed) == Feeds.feed_fetch_count()
 
-    test "with no users of preferred gender", %{me: me} do
-      _others = insert_list(3, :profile, gender: "M")
-
-      assert {[], nil} ==
-               Feeds.fetch_feed(
-                 me.id,
-                 me.profile.location,
-                 _gender = "M",
-                 _feed_filter = %FeedFilter{
-                   genders: ["F"],
-                   min_age: nil,
-                   max_age: nil,
-                   distance: nil
-                 },
-                 _count = 10,
-                 _cursor = nil
-               )
-    end
-
-    test "with users of preferred gender but not interested", %{me: me} do
-      others = insert_list(3, :profile, gender: "F")
-
-      for profile <- others do
-        insert(:gender_preference, user_id: profile.user_id, gender: "F")
+      # then we fetch feed on "more" command
+      for _ <- 3..Integer.floor_div(Feeds.feed_daily_limit(), Feeds.feed_fetch_count()) do
+        feed = Feeds.fetch_feed(me.id, me.profile.location, false)
+        assert length(feed) == Feeds.feed_fetch_count()
       end
 
-      assert {[], nil} ==
-               Feeds.fetch_feed(
-                 me.id,
-                 me.profile.location,
-                 _gender = "M",
-                 _feed_filter = %FeedFilter{
-                   genders: ["F"],
-                   min_age: nil,
-                   max_age: nil,
-                   distance: nil
-                 },
-                 _count = 10,
-                 _cursor = nil
-               )
+      # to test the correct feed adjusted_count
+      p = onboarded_user()
+      Repo.insert(%SeenProfile{user_id: p.id, by_user_id: me.id})
+      feed = Feeds.fetch_feed(me.id, me.profile.location, false)
+      assert length(feed) == Feeds.feed_fetch_count() - 1
+
+      assert {%DateTime{}, [%{}] = _story} = Feeds.fetch_feed(me.id, me.profile.location, true)
+    end
+
+    test "first_fetch", %{me: me} do
+      for _ <- 1..(Feeds.feed_fetch_count() * 2), do: onboarded_user()
+
+      # users joins and receives feed
+      feed = Feeds.fetch_feed(me.id, me.profile.location, true)
+      assert length(feed) == Feeds.feed_fetch_count()
+
+      # but never watches it (no seen commands)
+      # asks for more users, gets the second batch
+      feed = Feeds.fetch_feed(me.id, me.profile.location, false)
+      assert length(feed) == Feeds.feed_fetch_count()
+
+      # asks for more, gets nobody since everybody was "feeded" to him
+      feed = Feeds.fetch_feed(me.id, me.profile.location, false)
+      assert feed == []
+
+      # but on reentering the app gets feed again since none of it was really watched
+      feed = Feeds.fetch_feed(me.id, me.profile.location, true)
+      assert length(feed) == Feeds.feed_fetch_count()
     end
   end
 
@@ -129,6 +98,19 @@ defmodule T.FeedsTest do
              |> select([p], {p.times_shown, p.like_ratio})
              |> Repo.one!() ==
                {0, 0.0}
+    end
+  end
+
+  describe "fetch_onboarding_feed/2" do
+    test "with no data in db" do
+      assert [] == Feeds.fetch_onboarding_feed(nil, 0)
+    end
+
+    test "with no ip" do
+      mate = onboarded_user()
+
+      assert [%FeedProfile{user_id: user_id}] = Feeds.fetch_onboarding_feed(nil, 0)
+      assert user_id == mate.id
     end
   end
 end

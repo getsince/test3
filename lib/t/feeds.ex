@@ -504,7 +504,6 @@ defmodule T.Feeds do
     primary_rpc(__MODULE__, :local_reached_limit, [me, timestamp])
   end
 
-  @spec reached_limit(any, any) :: any
   def local_reached_limit(me, timestamp) do
     %FeedLimit{user_id: me, timestamp: timestamp}
     |> cast(%{reached: true}, [:reached])

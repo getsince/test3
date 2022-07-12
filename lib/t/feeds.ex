@@ -92,6 +92,10 @@ defmodule T.Feeds do
     Bot.async_post_message(m)
 
     now = DateTime.utc_now() |> DateTime.truncate(:second)
+    primary_rpc(__MODULE__, :local_insert_feed_limit, [user_id, now])
+  end
+
+  def local_insert_feed_limit(user_id, now) do
     %FeedLimit{user_id: user_id, timestamp: now} |> Repo.insert!()
   end
 

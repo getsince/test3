@@ -283,13 +283,16 @@ defmodule T.Matches do
 
   @spec mark_match_seen(uuid, uuid) :: :ok
   def mark_match_seen(by_user_id, match_id) do
-    primary_rpc(__MODULE__, :local_mark_match_seen, [by_user_id, match_id])
+    if Match |> where(id: ^match_id) |> Repo.exists?() do
+      primary_rpc(__MODULE__, :local_mark_match_seen, [by_user_id, match_id])
+    end
+
+    :ok
   end
 
   @doc false
   def local_mark_match_seen(by_user_id, match_id) do
     Repo.insert_all(Seen, [%{user_id: by_user_id, match_id: match_id}], on_conflict: :nothing)
-    :ok
   end
 
   @spec unmatch_match(uuid, uuid) :: boolean

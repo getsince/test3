@@ -53,6 +53,7 @@ defmodule T.Feeds do
   @feed_fetch_count 10
   @feed_daily_limit 50
   @feed_limit_period 12 * 60 * 60
+  @feed_profiles_recency_limit 60 * 24 * 60 * 60
 
   def feed_fetch_count, do: @feed_fetch_count
   def feed_daily_limit, do: @feed_daily_limit
@@ -178,7 +179,7 @@ defmodule T.Feeds do
   end
 
   defp feed_profiles_q(user_id) do
-    treshold_date = DateTime.utc_now() |> DateTime.add(-60 * 24 * 60 * 60, :second)
+    treshold_date = DateTime.utc_now() |> DateTime.add(-@feed_profiles_recency_limit, :second)
 
     filtered_profiles_q(user_id)
     |> where([p], p.user_id != ^user_id)

@@ -22,10 +22,12 @@ defmodule T.Application do
         maybe_migrator(),
         maybe_oban(),
         maybe_periodics(),
+        maybe_algo_exec(),
         maybe_endpoint(),
         TWeb.Telemetry,
         Supervisor.child_spec({Task, &T.Release.mark_ready/0}, id: :readiness_notifier)
       ]
+      |> List.flatten()
       |> Enum.reject(&is_nil/1)
 
     # TODO wait with :locus.await_loader(@db) before readiness_notifier
@@ -93,6 +95,17 @@ defmodule T.Application do
   defp maybe_periodics do
     if T.Cluster.is_primary() do
       unless_disabled(T.Periodics)
+    end
+  end
+
+  defp maybe_algo_exec do
+    if T.Cluster.is_primary() do
+      unless disabled?(T.AlgoExec) do
+        [
+          {Registry, keys: :unique, name: T.AlgoExec.Registry},
+          T.AlgoExec.Supervisor
+        ]
+      end
     end
   end
 

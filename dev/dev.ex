@@ -1,4 +1,17 @@
 defmodule Dev do
+  def import_calculated_feed do
+    T.Repo.query!("""
+    COPY calculated_feed (for_user_id, user_id, score)
+    FROM '/Users/akhmetov/Desktop/calculated_feed.csv'
+    DELIMITER ','
+    CSV HEADER;
+    """)
+  end
+
+  def empty_calculated_feed do
+    T.Repo.delete_all("calculated_feed")
+  end
+
   def force_app_upgrade() do
     alert1_ru = %{
       "aps" => %{

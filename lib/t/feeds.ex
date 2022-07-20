@@ -169,7 +169,7 @@ defmodule T.Feeds do
   end
 
   defp preload_feed_profiles(profile_ids, user_id, location, count) do
-    filtered_profiles_q(user_id)
+    feed_profiles_q(user_id)
     |> where([p], p.user_id in ^profile_ids)
     |> limit(^count)
     |> select([p], %{p | distance: distance_km(^location, p.location)})

@@ -141,17 +141,23 @@ defmodule T.Feeds do
 
     adjusted_count = max(0, count - length(previously_feeded))
 
-    calculated_feed =
+    calculated_feed_ids =
       CalculatedFeed
       |> where(for_user_id: ^user_id)
       |> where([p], p.user_id not in ^feeded_ids)
       |> select([p], p.user_id)
       |> Repo.all()
-      |> preload_feed_profiles(user_id, location, count)
+
+    calculated_feed = preload_feed_profiles(calculated_feed_ids, user_id, location, count)
 
     default_feed =
       if length(calculated_feed) < adjusted_count do
-        default_feed(user_id, feeded_ids, location, adjusted_count - length(calculated_feed))
+        default_feed(
+          user_id,
+          calculated_feed_ids ++ feeded_ids,
+          location,
+          adjusted_count - length(calculated_feed)
+        )
       else
         []
       end

@@ -2,6 +2,7 @@ defmodule T.AlgoExec do
   @moduledoc "Runs feed algo script on remote ec2 instance"
   use GenServer
   import T.Cluster, only: [primary_rpc: 3, list_primary_nodes: 0]
+  alias T.Repo
   @task_sup T.TaskSupervisor
 
   def start_link(opts) do

@@ -6,7 +6,8 @@ defmodule T.AlgoExec do
   @task_sup T.TaskSupervisor
 
   def start_link(opts) do
-    id = opts[:id] || :rand.uniform(100_000)
+    id = opts[:id] || Ecto.Bigflake.UUID.generate()
+    opts = Keyword.put_new(opts, :id, id)
     GenServer.start_link(__MODULE__, opts, name: via(id))
   end
 
@@ -29,6 +30,7 @@ defmodule T.AlgoExec do
     Registry.select(__MODULE__.Registry, [{{:"$1", :_, :_}, [], [:"$1"]}])
   end
 
+  # TODO + monitor
   def attach(id), do: GenServer.call(via(id), :attach)
   def detach(id), do: GenServer.call(via(id), :detach)
 
@@ -45,8 +47,10 @@ defmodule T.AlgoExec do
   @impl true
   def init(opts) do
     state = %{
+      id: Keyword.fetch!(opts, :id),
       # TODO tasks or steps
       task: :generate_inputs,
+      # TODO log (time + level + message)
       lv: opts[:subscribe],
       inputs: nil,
       ec2: nil
@@ -179,9 +183,9 @@ defmodule T.AlgoExec do
     :ok = SSHKit.SCP.download(ssh, "~/calculated_feed.csv", calculated_feed)
     log(state, "downloaded calculated_feed.csv to #{calculated_feed}")
 
-    # TODO
-    # load_calulated_feed(calculated_feed)
-    # File.rm!(calculated_feed)
+    load_calculated_feed(calculated_feed)
+    File.rm!(calculated_feed)
+
     %{state | task: :terminate_ec2}
   end
 
@@ -192,6 +196,17 @@ defmodule T.AlgoExec do
       |> ExAws.request!(region: "eu-north-1")
 
     %{state | task: :cleanup_inputs}
+  end
+
+  @doc false
+  def load_calculated_feed(path) do
+    Repo.transaction(fn ->
+      Repo.query!("truncate calculated_feed")
+
+      Repo.query!(
+        "copy calculated_feed (for_user_id, user_id, score) from '#{path}' delimiter ',' csv header;"
+      )
+    end)
   end
 
   @doc false

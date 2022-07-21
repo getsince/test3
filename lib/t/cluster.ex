@@ -77,7 +77,7 @@ defmodule T.Cluster do
   @spec list_primary_nodes :: [node]
   def list_primary_nodes do
     primary_prefix = primary_prefix()
-    Enum.filter(Node.list(), fn node -> is_primary(node, primary_prefix) end)
+    Enum.filter([node() | Node.list()], fn node -> is_primary(node, primary_prefix) end)
   end
 
   @doc """

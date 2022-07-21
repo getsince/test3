@@ -41,7 +41,8 @@ defmodule T.AlgoExec do
 
   @doc false
   def local_run(opts) do
-    DynamicSupervisor.start_child(__MODULE__.Supervisor, {__MODULE__, opts})
+    child_spec = Supervisor.child_spec({__MODULE__, opts}, restart: :transient)
+    DynamicSupervisor.start_child(__MODULE__.Supervisor, child_spec)
   end
 
   @impl true

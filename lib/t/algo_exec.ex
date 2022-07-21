@@ -15,17 +15,19 @@ defmodule T.AlgoExec do
     {:via, Registry, {__MODULE__.Registry, id}}
   end
 
+  @type uuid :: Ecto.Bigflake.UUID.t()
+
   @doc """
   Lists currently running processes
   """
-  @spec list_running :: [integer]
+  @spec list_running :: %{atom => [uuid]}
   def list_running do
-    list_primary_nodes()
-    |> :erpc.multicall(__MODULE__, :local_list_running, [])
-    |> Enum.flat_map(fn {:ok, running} -> running end)
+    Map.new(list_primary_nodes(), fn node ->
+      {node, :erpc.call(node, __MODULE__, :local_list_running, [])}
+    end)
   end
 
-  @spec list_running :: [integer]
+  @spec list_running :: [uuid]
   def local_list_running do
     Registry.select(__MODULE__.Registry, [{{:"$1", :_, :_}, [], [:"$1"]}])
   end

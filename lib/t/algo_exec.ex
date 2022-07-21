@@ -203,13 +203,28 @@ defmodule T.AlgoExec do
 
   @doc false
   def load_calculated_feed(path) do
-    Repo.transaction(fn ->
-      Repo.query!("truncate calculated_feed")
+    {:ok, :ok} =
+      Repo.transaction(fn ->
+        Repo.query!("truncate calculated_feed")
 
-      Repo.query!(
-        "copy calculated_feed (for_user_id, user_id, score) from '#{path}' delimiter ',' csv header;"
-      )
-    end)
+        path
+        |> File.stream!()
+        |> NimbleCSV.RFC4180.parse_stream(skip_headers: true)
+        |> Stream.chunk_every(2000)
+        |> Stream.each(fn chunk ->
+          rows =
+            Enum.map(chunk, fn [for_user_id, user_id, score] ->
+              [
+                for_user_id: Ecto.UUID.dump!(for_user_id),
+                user_id: Ecto.UUID.dump!(user_id),
+                score: String.to_float(score)
+              ]
+            end)
+
+          Repo.insert_all("calculated_feed", rows)
+        end)
+        |> Stream.run()
+      end)
   end
 
   @doc false

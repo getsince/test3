@@ -3,7 +3,7 @@ defmodule T.FeedsTest do
   use Oban.Testing, repo: T.Repo
 
   alias T.Feeds
-  alias T.Feeds.{FeedProfile, SeenProfile}
+  alias T.Feeds.{FeedProfile, SeenProfile, CalculatedFeed}
 
   doctest Feeds, import: true
 
@@ -58,6 +58,97 @@ defmodule T.FeedsTest do
       # but on reentering the app gets feed again since none of it was really watched
       feed = Feeds.fetch_feed(me.id, me.profile.location, true)
       assert length(feed) == Feeds.feed_fetch_count()
+    end
+
+    test "with calculated_feed", %{me: me} do
+      regular_ids = for _ <- 1..Feeds.feed_fetch_count(), do: onboarded_user().id
+
+      calculated_ids =
+        for i <- 1..Feeds.feed_fetch_count() do
+          u = onboarded_user()
+
+          Repo.insert(%CalculatedFeed{
+            for_user_id: me.id,
+            user_id: u.id,
+            score: i / Feeds.feed_fetch_count()
+          })
+
+          u.id
+        end
+
+      # users joins and receive calculated feed
+      feed = Feeds.fetch_feed(me.id, me.profile.location, true)
+
+      for %FeedProfile{user_id: user_id} <- feed do
+        assert user_id not in regular_ids
+        assert user_id in calculated_ids
+      end
+
+      # users fetches more and receive regular feed, since runs out of calculated feed
+      feed = Feeds.fetch_feed(me.id, me.profile.location, false)
+
+      for %FeedProfile{user_id: user_id} <- feed do
+        assert user_id in regular_ids
+        assert user_id not in calculated_ids
+      end
+    end
+
+    test "with partly relevant calculated_feed", %{me: me} do
+      regular_ids = for _ <- 1..Feeds.feed_fetch_count(), do: onboarded_user().id
+
+      calculated_ids =
+        for i <- 1..Feeds.feed_fetch_count() do
+          u = onboarded_user()
+
+          Repo.insert(%CalculatedFeed{
+            for_user_id: me.id,
+            user_id: u.id,
+            score: i / Feeds.feed_fetch_count()
+          })
+
+          u.id
+        end
+
+      irrelevant_users_count = 0
+
+      # hidden user
+      uid = calculated_ids |> Enum.at(0)
+      FeedProfile |> where(user_id: ^uid) |> Repo.update_all(set: [hidden?: true])
+      irrelevant_users_count = irrelevant_users_count + 1
+
+      # user who liked us
+      uid = calculated_ids |> Enum.at(1)
+      %T.Matches.Like{by_user_id: uid, user_id: me.id} |> Repo.insert()
+      irrelevant_users_count = irrelevant_users_count + 1
+
+      # user who we reported
+      uid = calculated_ids |> Enum.at(2)
+
+      %T.Accounts.UserReport{on_user_id: uid, from_user_id: me.id, reason: "nude"}
+      |> Repo.insert()
+
+      irrelevant_users_count = irrelevant_users_count + 1
+
+      # user who we seen
+      uid = calculated_ids |> Enum.at(3)
+      Repo.insert(%SeenProfile{user_id: uid, by_user_id: me.id})
+      irrelevant_users_count = irrelevant_users_count + 1
+
+      # users joins and receive feed: partially calculated and partially regular
+      feed = Feeds.fetch_feed(me.id, me.profile.location, true)
+
+      calculated_count =
+        feed |> Enum.count(fn %FeedProfile{user_id: user_id} -> user_id in calculated_ids end)
+
+      regular_count =
+        feed |> Enum.count(fn %FeedProfile{user_id: user_id} -> user_id in regular_ids end)
+
+      assert calculated_count == Feeds.feed_fetch_count() - irrelevant_users_count
+      assert regular_count == irrelevant_users_count
+
+      # users fetches more and receive regular feed, since runs out of calculated feed
+      feed = Feeds.fetch_feed(me.id, me.profile.location, false)
+      assert length(feed) == Feeds.feed_fetch_count() - irrelevant_users_count
     end
   end
 

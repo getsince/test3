@@ -14,7 +14,7 @@ defmodule T.Feeds do
 
   alias T.Accounts.UserReport
   alias T.Matches.{Match, Like}
-  alias T.Feeds.{FeedProfile, SeenProfile, FeededProfile, FeedLimit}
+  alias T.Feeds.{FeedProfile, SeenProfile, FeededProfile, FeedLimit, CalculatedFeed}
   alias T.PushNotifications.DispatchJob
   alias T.Bot
 
@@ -128,7 +128,7 @@ defmodule T.Feeds do
     feeded_ids =
       FeededProfile |> where(for_user_id: ^user_id) |> select([f], f.user_id) |> Repo.all()
 
-    previously_feeded_profiles =
+    previously_feeded =
       if first_fetch do
         FeedProfile
         |> where([p], p.user_id in ^feeded_ids)
@@ -139,18 +139,50 @@ defmodule T.Feeds do
         []
       end
 
-    adjusted_count = max(0, count - length(previously_feeded_profiles))
+    adjusted_count = max(0, count - length(previously_feeded))
 
-    feed_profiles =
-      feed_profiles_q(user_id)
+    calculated_feed_ids =
+      CalculatedFeed
+      |> where(for_user_id: ^user_id)
       |> where([p], p.user_id not in ^feeded_ids)
-      |> order_by(fragment("location <-> ?::geometry", ^location))
-      |> limit(^adjusted_count)
-      |> select([p], %{p | distance: distance_km(^location, p.location)})
+      |> select([p], p.user_id)
       |> Repo.all()
 
-    mark_profiles_feeded(user_id, feed_profiles)
-    previously_feeded_profiles ++ feed_profiles
+    calculated_feed = preload_feed_profiles(calculated_feed_ids, user_id, location, count)
+
+    default_feed =
+      if length(calculated_feed) < adjusted_count do
+        default_feed(
+          user_id,
+          calculated_feed_ids ++ feeded_ids,
+          location,
+          adjusted_count - length(calculated_feed)
+        )
+      else
+        []
+      end
+
+    new_feed = calculated_feed ++ default_feed
+
+    mark_profiles_feeded(user_id, new_feed)
+    previously_feeded ++ new_feed
+  end
+
+  defp preload_feed_profiles(profile_ids, user_id, location, count) do
+    feed_profiles_q(user_id)
+    |> where([p], p.user_id in ^profile_ids)
+    |> limit(^count)
+    |> select([p], %{p | distance: distance_km(^location, p.location)})
+    |> Repo.all()
+  end
+
+  defp default_feed(user_id, feeded_ids, location, count) do
+    feed_profiles_q(user_id)
+    |> where([p], p.user_id not in ^feeded_ids)
+    |> order_by(fragment("location <-> ?::geometry", ^location))
+    |> limit(^count)
+    |> select([p], %{p | distance: distance_km(^location, p.location)})
+    |> Repo.all()
   end
 
   defp mark_profiles_feeded(for_user_id, feed_profiles) do

@@ -46,4 +46,20 @@ defmodule Dev do
       end
     end
   end
+
+  def wait(_changes) do
+    receive do
+      :never -> :ok
+    end
+  end
+
+  alias T.Workflows
+
+  def run_workflow do
+    Workflows.start_workflow(
+      a: [
+        up: {__MODULE__, :wait, []}
+      ]
+    )
+  end
 end

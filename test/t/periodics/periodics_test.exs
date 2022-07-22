@@ -33,16 +33,21 @@ defmodule T.PeriodicsTest do
     me = self()
 
     assert [
+             {:prune_feed_ai_ec2, _, :worker, [Periodic]},
+             {:feed_ai, _, :worker, [Periodic]},
              {:feed_limit_pruner, _, :worker, [Periodic]},
              {:match_expirer, _, :worker, [Periodic]},
              {:seen_pruner, _, :worker, [Periodic]}
            ] = children
 
     # smoke test that nothing crashes during run
-    Enum.each(children, fn {_id, pid, :worker, [Periodic]} ->
-      Ecto.Adapters.SQL.Sandbox.allow(Repo, me, pid)
-      send(pid, :run)
-      assert {_period, _fun} = :sys.get_state(pid)
+    Enum.each(children, fn {id, pid, :worker, [Periodic]} ->
+      # except for feed ai since it touches aws resources
+      unless id in [:feed_ai, :prune_feed_ai_ec2] do
+        Ecto.Adapters.SQL.Sandbox.allow(Repo, me, pid)
+        send(pid, :run)
+        assert {_period, _fun} = :sys.get_state(pid)
+      end
     end)
   end
 end

@@ -1,5 +1,5 @@
-# TODO move to T.AlgoExec
-defmodule T.AlgoExec.Supervisor do
+# TODO move to T.Workflows
+defmodule T.Workflows.Supervisor do
   @moduledoc false
   use DynamicSupervisor
 

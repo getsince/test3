@@ -42,6 +42,7 @@ smoke? = !!System.get_env("SMOKE")
 if config_env() == :prod and smoke? do
   config :t, T.Media.Static, disabled?: true
   config :t, T.Periodics, disabled?: true
+  config :t, T.Workflows, disabled?: true
   config :t, Finch, disabled?: true
 end
 
@@ -158,6 +159,8 @@ if config_env() == :prod and not smoke? do
   # TODO use cidr like in PRIMARY_SUBNET=10.0.0.0/16
   # export PRIMARY_HOST_PREFIX=10.0.
   config :t, primary_prefix: System.fetch_env!("PRIMARY_HOST_PREFIX")
+
+  config :t, T.FeedAI, instance_name: "feed-vm"
 end
 
 if config_env() == :dev do
@@ -241,6 +244,8 @@ if config_env() == :dev do
 
   # TODO
   config :t, primary_prefix: "nohost"
+
+  config :t, T.FeedAI, instance_name: "feed-vm-dev"
 end
 
 if config_env() == :test do
@@ -296,6 +301,8 @@ if config_env() == :test do
 
   # TODO
   config :t, primary_prefix: "nohost"
+
+  config :t, T.FeedAI, instance_name: "feed-vm-test"
 end
 
 if config_env() == :bench do
@@ -305,6 +312,7 @@ if config_env() == :bench do
 
   config :t, T.Media.Static, disabled?: true
   config :t, T.Periodics, disabled?: true
+  config :t, T.Workflows, disabled?: true
   config :t, Finch, disabled?: true
 
   # TODO

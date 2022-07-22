@@ -84,6 +84,24 @@ if config_env() == :prod and not smoke? do
       }
     ]
 
+  config :t, AppStore,
+    keys: [
+      %{
+        key: System.fetch_env!("APP_STORE_KEY"),
+        key_id: System.fetch_env!("APP_STORE_KEY_ID"),
+        issuer_id: System.fetch_env!("APP_STORE_ISSUER_ID"),
+        topic: apns_topic,
+        env: :dev
+      },
+      %{
+        key: System.fetch_env!("APP_STORE_KEY"),
+        key_id: System.fetch_env!("APP_STORE_KEY_ID"),
+        issuer_id: System.fetch_env!("APP_STORE_ISSUER_ID"),
+        topic: apns_topic,
+        env: :prod
+      }
+    ]
+
   config :t, run_migrations_on_start?: true
 
   config :t, T.Repo,
@@ -172,6 +190,24 @@ if config_env() == :dev do
         team_id: System.fetch_env!("APNS_TEAM_ID"),
         topic: System.fetch_env!("APNS_TOPIC"),
         env: :dev
+      }
+    ]
+
+  config :t, AppStore,
+    keys: [
+      %{
+        key: System.fetch_env!("APP_STORE_KEY"),
+        key_id: System.fetch_env!("APP_STORE_KEY_ID"),
+        issuer_id: System.fetch_env!("APP_STORE_ISSUER_ID"),
+        topic: System.fetch_env!("APNS_TOPIC"),
+        env: :dev
+      },
+      %{
+        key: System.fetch_env!("APP_STORE_KEY"),
+        key_id: System.fetch_env!("APP_STORE_KEY_ID"),
+        issuer_id: System.fetch_env!("APP_STORE_ISSUER_ID"),
+        topic: System.fetch_env!("APNS_TOPIC"),
+        env: :prod
       }
     ]
 

@@ -6,17 +6,31 @@ defmodule TWeb.ProfileLive.Index do
   def render(assigns) do
     ~H"""
     <div id="blocked-user-listener" class="hidden" phx-hook="BlockedUser"></div>
-    <div id="profiles" class="p-4 space-y-4" phx-update="append" phx-hook="ProfilesInfiniteScroll" data-selector="[data-cursor-user-id]">
-      <%= for profile <- @profiles do %>
-        <.profile profile={profile} />
-      <% end %>
-    </div>
+    <%= if @live_action == :sort_by_registration do %>
+      <div id="profiles" class="p-4 space-y-4" phx-update="append" phx-hook="RegisteredProfilesInfiniteScroll" data-selector="[data-cursor-user-id]">
+        <%= for profile <- @profiles do %>
+          <.profile profile={profile} />
+        <% end %>
+      </div>
+    <% else %>
+      <div id="profiles" class="p-4 space-y-4" phx-update="append" phx-hook="ProfilesInfiniteScroll" data-selector="[data-cursor-user-id]">
+        <%= for profile <- @profiles do %>
+          <.profile profile={profile} />
+        <% end %>
+      </div>
+    <% end %>
     """
   end
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, paginate_profiles(socket), temporary_assigns: [profiles: []]}
+    case socket.assigns.live_action do
+      :index ->
+        {:ok, paginate_profiles_by_last_active(socket), temporary_assigns: [profiles: []]}
+
+      :sort_by_registration ->
+        {:ok, paginate_profiles_by_inserted_at(socket), temporary_assigns: [profiles: []]}
+    end
   end
 
   @impl true
@@ -26,15 +40,27 @@ defmodule TWeb.ProfileLive.Index do
   end
 
   def handle_event("more", %{"last_active" => last_active, "user_id" => user_id}, socket) do
-    {:noreply, paginate_profiles(socket, last_active, user_id)}
+    {:noreply, paginate_profiles_by_last_active(socket, last_active, user_id)}
   end
 
-  defp paginate_profiles(socket) do
-    paginate_profiles(socket, _last_active = nil, _user_id = nil)
+  def handle_event("more", %{"inserted_at" => inserted_at, "user_id" => user_id}, socket) do
+    {:noreply, paginate_profiles_by_inserted_at(socket, inserted_at, user_id)}
   end
 
-  defp paginate_profiles(socket, last_active, user_id) do
-    assign(socket, profiles: Ctx.paginate_profiles(last_active, user_id))
+  defp paginate_profiles_by_last_active(socket) do
+    paginate_profiles_by_last_active(socket, _last_active = nil, _user_id = nil)
+  end
+
+  defp paginate_profiles_by_inserted_at(socket) do
+    paginate_profiles_by_inserted_at(socket, _inserted_at = nil, _user_id = nil)
+  end
+
+  defp paginate_profiles_by_last_active(socket, last_active, user_id) do
+    assign(socket, profiles: Ctx.paginate_profiles_by_last_active(last_active, user_id))
+  end
+
+  defp paginate_profiles_by_inserted_at(socket, inserted_at, user_id) do
+    assign(socket, profiles: Ctx.paginate_profiles_by_inserted_at(inserted_at, user_id))
   end
 
   defp background_image(%{"background" => %{"s3_key" => s3_key}}) do
@@ -67,7 +93,7 @@ defmodule TWeb.ProfileLive.Index do
 
   defp profile(assigns) do
     ~H"""
-    <div id={"profile-" <> @profile.user_id} data-cursor-user-id={@profile.user_id} data-cursor-last-active={@profile.last_active} class="p-2 rounded-lg border dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+    <div id={"profile-" <> @profile.user_id} data-cursor-user-id={@profile.user_id} data-cursor-last-active={@profile.last_active} data-cursor-inserted-at={@profile.inserted_at} class="p-2 rounded-lg border dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
       <div class="flex space-x-2 items-center">
         <p class="font-bold"><%= @profile.name %> <time class="text-gray-500 dark:text-gray-400 font-normal" datetime={@profile.last_active}>was last seen <%= render_relative(@profile.last_active) %></time></p>
         <%= if @profile.blocked_at do %>
@@ -303,20 +329,8 @@ defmodule TWeb.ProfileLive.Index.Ctx do
   alias T.{Repo, Accounts}
   alias T.Accounts.{Profile, User}
 
-  def paginate_profiles(last_active, user_id) do
-    profiles_q =
-      Profile
-      |> join(:inner, [p], u in User, on: p.user_id == u.id)
-      |> order_by([p], desc: p.last_active, desc: p.user_id)
-      |> select([p, u], %{
-        user_id: p.user_id,
-        name: p.name,
-        email: u.email,
-        last_active: p.last_active,
-        story: p.story,
-        blocked_at: u.blocked_at
-      })
-      |> limit(5)
+  def paginate_profiles_by_last_active(last_active, user_id) do
+    profiles_q = profiles_q() |> order_by([p], desc: p.last_active, desc: p.user_id)
 
     profiles_q =
       if last_active && user_id do
@@ -326,6 +340,34 @@ defmodule TWeb.ProfileLive.Index.Ctx do
       end
 
     Repo.all(profiles_q)
+  end
+
+  def paginate_profiles_by_inserted_at(inserted_at, user_id) do
+    profiles_q = profiles_q() |> order_by([p, u], desc: u.inserted_at)
+
+    profiles_q =
+      if inserted_at && user_id do
+        where(profiles_q, [p, u], u.inserted_at < ^inserted_at)
+      else
+        profiles_q
+      end
+
+    Repo.all(profiles_q)
+  end
+
+  defp profiles_q do
+    Profile
+    |> join(:inner, [p], u in User, on: p.user_id == u.id)
+    |> select([p, u], %{
+      user_id: p.user_id,
+      name: p.name,
+      email: u.email,
+      last_active: p.last_active,
+      story: p.story,
+      blocked_at: u.blocked_at,
+      inserted_at: u.inserted_at
+    })
+    |> limit(5)
   end
 
   def block_user(user_id) do

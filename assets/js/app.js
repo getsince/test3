@@ -30,8 +30,31 @@ const ProfilesInfiniteScroll = {
   cursor() {
     const { selector } = this.el.dataset;
     const node = this.el.querySelector(`${selector}:last-child`);
-    const { cursorUserId, cursorLastActive } = node.dataset;
+    const { cursorUserId, cursorLastActive, cursorInsertedAt } = node.dataset;
     return { user_id: cursorUserId, last_active: cursorLastActive };
+  },
+
+  mounted() {
+    this.pending = false;
+    window.addEventListener("scroll", () => {
+      if (scrollAt() > 90 && !this.pending) {
+        this.pending = true;
+        this.pushEvent("more", this.cursor());
+      }
+    });
+  },
+
+  updated() {
+    this.pending = false;
+  },
+};
+
+const RegisteredProfilesInfiniteScroll = {
+  cursor() {
+    const { selector } = this.el.dataset;
+    const node = this.el.querySelector(`${selector}:last-child`);
+    const { cursorUserId, cursorLastActive, cursorInsertedAt } = node.dataset;
+    return { user_id: cursorUserId, inserted_at: cursorInsertedAt };
   },
 
   mounted() {
@@ -86,6 +109,7 @@ let liveSocket = new LiveSocket("/live", Socket, {
   uploaders: { S3 },
   hooks: {
     ProfilesInfiniteScroll,
+    RegisteredProfilesInfiniteScroll,
     BlockedUser,
   },
 });

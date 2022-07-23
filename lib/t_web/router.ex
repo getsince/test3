@@ -52,6 +52,7 @@ defmodule TWeb.Router do
     live_session :admin do
       live "/", AdminLive.Index, :index
       live "/profiles", ProfileLive.Index, :index
+      live "/registered_profiles", ProfileLive.Index, :sort_by_registration
       live "/stickers", StickerLive.Index, :index
       live "/tokens", TokenLive.Index, :index
       live "/tokens/:user_id", TokenLive.Index, :show

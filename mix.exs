@@ -64,7 +64,7 @@ defmodule T.MixProject do
       {:imgproxy, "~> 2.0"},
       {:rexbug, "~> 1.0"},
       {:geo_postgis, "~> 3.4"},
-      {:finch, "~> 0.10.1"},
+      {:finch, "~> 0.13.0"},
       {:locus, "~> 2.2"},
       {:cloud_watch, github: "getsince/cloud_watch", branch: "drop-httpoison"},
       {:benchee, "~> 1.0", only: :bench},

@@ -35,7 +35,6 @@ defmodule T.PeriodicsTest do
     assert [
              {:prune_feed_ai_ec2, _, :worker, [Periodic]},
              {:feed_ai, _, :worker, [Periodic]},
-             {:feed_limit_pruner, _, :worker, [Periodic]},
              {:match_expirer, _, :worker, [Periodic]},
              {:seen_pruner, _, :worker, [Periodic]}
            ] = children

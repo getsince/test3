@@ -844,25 +844,28 @@ defmodule TWeb.FeedChannelTest do
 
   describe "feed_limit" do
     setup :joined
+    alias T.Feeds
 
     test "feed_limit_reached", %{socket: socket, me: me} do
       now = DateTime.utc_now() |> DateTime.truncate(:second)
       insert(:feed_limit, user_id: me.id, timestamp: now |> DateTime.to_naive())
 
-      assert %T.Feeds.FeedLimit{reached: false} = T.Feeds.fetch_feed_limit(me.id)
+      assert %Feeds.FeedLimit{reached: false} = Feeds.fetch_feed_limit(me.id)
 
       ref = push(socket, "reached-limit", %{"timestamp" => now})
       assert_reply(ref, :ok)
 
-      assert %T.Feeds.FeedLimit{reached: true} = T.Feeds.fetch_feed_limit(me.id)
+      assert %Feeds.FeedLimit{reached: true} = Feeds.fetch_feed_limit(me.id)
     end
 
     test "feed_limit_reset push, feed is returned", %{me: me} do
       now = DateTime.utc_now() |> DateTime.truncate(:second)
-      insert(:feed_limit, user_id: me.id, timestamp: now |> DateTime.to_naive())
-      feed_limit_expiration = now |> DateTime.add(T.Feeds.feed_limit_period() + 1)
+      feed_limit_period_ago = DateTime.add(now, -Feeds.feed_limit_period() - 1)
+      _limit = Feeds.insert_feed_limit(me.id, feed_limit_period_ago)
 
-      T.Feeds.feed_limits_prune(feed_limit_expiration)
+      # trigger scheduled FeedLimitResetJob
+      assert %{success: 1} =
+               Oban.drain_queue(queue: :default, with_safety: false, with_scheduled: true)
 
       assert_push "feed_limit_reset", %{"feed" => []}
     end

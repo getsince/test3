@@ -49,7 +49,7 @@ defmodule TWeb.WorkflowLive.Index do
 
   @impl true
   def handle_event("shutdown", %{"id" => workflow_id}, socket) do
-    :ok = Workflows.shutdown_workflow(workflow_id)
+    :ok = Workflows.primary_shutdown_workflow(workflow_id)
     {:noreply, socket}
   end
 

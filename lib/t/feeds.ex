@@ -14,7 +14,16 @@ defmodule T.Feeds do
 
   alias T.Accounts.UserReport
   alias T.Matches.{Match, Like}
-  alias T.Feeds.{FeedProfile, SeenProfile, FeededProfile, FeedLimit, CalculatedFeed}
+
+  alias T.Feeds.{
+    FeedProfile,
+    SeenProfile,
+    FeededProfile,
+    FeedLimit,
+    CalculatedFeed,
+    FeedLimitResetJob
+  }
+
   alias T.PushNotifications.DispatchJob
   alias T.Bot
 
@@ -87,17 +96,28 @@ defmodule T.Feeds do
 
   def fetch_feed_limit(user_id), do: FeedLimit |> where(user_id: ^user_id) |> Repo.one()
 
-  defp insert_feed_limit(user_id) do
+  @doc false
+  def insert_feed_limit(user_id, now \\ DateTime.utc_now()) do
     m = "#{user_id} reached feed limit"
     Logger.warn(m)
     Bot.async_post_message(m)
 
-    now = DateTime.utc_now() |> DateTime.truncate(:second)
+    now = DateTime.truncate(now, :second)
     primary_rpc(__MODULE__, :local_insert_feed_limit, [user_id, now])
   end
 
+  @doc false
   def local_insert_feed_limit(user_id, now) do
-    %FeedLimit{user_id: user_id, timestamp: now} |> Repo.insert!()
+    reset_at = DateTime.add(now, @feed_limit_period)
+    reset_job = FeedLimitResetJob.new(%{"user_id" => user_id}, scheduled_at: reset_at)
+
+    {:ok, %{limit: %FeedLimit{} = limit}} =
+      Multi.new()
+      |> Multi.insert(:limit, %FeedLimit{user_id: user_id, timestamp: now})
+      |> Oban.insert(:reset, reset_job)
+      |> Repo.transaction()
+
+    limit
   end
 
   defp return_feed_limit(%FeedLimit{user_id: user_id, timestamp: timestamp}) do
@@ -543,24 +563,7 @@ defmodule T.Feeds do
     |> Repo.update()
   end
 
-  def feed_limits_prune(reference \\ DateTime.utc_now()) do
-    reference
-    |> list_reset_feed_limits()
-    |> Enum.each(fn %FeedLimit{user_id: user_id} = feed_limit ->
-      if T.Accounts.User |> where(id: ^user_id) |> Repo.exists?() do
-        local_reset_feed_limit(feed_limit)
-      end
-    end)
-  end
-
-  def list_reset_feed_limits(reference) do
-    reset_date = DateTime.add(reference, -@feed_limit_period)
-
-    FeedLimit
-    |> where([l], l.timestamp < ^reset_date)
-    |> Repo.all()
-  end
-
+  @doc false
   @spec local_reset_feed_limit(%FeedLimit{}) :: :ok
   def local_reset_feed_limit(feed_limit) do
     m = "feed limit of #{feed_limit.user_id} was reset"

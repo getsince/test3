@@ -217,6 +217,18 @@ defmodule TWeb.FeedChannel do
     {:reply, reply, socket}
   end
 
+  def handle_in("example-feed", _params, socket) do
+    %{
+      screen_width: screen_width,
+      version: version,
+      location: location
+    } = socket.assigns
+
+    example_feed = Feeds.example_feed(location)
+
+    {:reply, {:ok, %{"feed" => render_fetch_feed(example_feed, version, screen_width)}}, socket}
+  end
+
   def handle_in("decline", %{"user_id" => liker}, socket) do
     Matches.decline_like(me_id(socket), liker)
     {:reply, :ok, socket}

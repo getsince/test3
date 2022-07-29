@@ -1,7 +1,7 @@
 defmodule T.Periodics do
   @moduledoc "Supervisor for periodic tasks"
   use Supervisor
-  alias T.{Matches, Feeds}
+  alias T.{Matches, Feeds, FeedAI}
 
   def start_link(init_arg) do
     Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
@@ -22,6 +22,14 @@ defmodule T.Periodics do
         feed_limit_pruner: {
           :timer.seconds(1),
           {Feeds, :feed_limits_prune, []}
+        },
+        feed_ai: {
+          :timer.hours(2),
+          {FeedAI, :start_workflow, []}
+        },
+        prune_feed_ai_ec2: {
+          :timer.minutes(10),
+          {FeedAI, :prune_stray_instances, []}
         }
       )
 

@@ -22,7 +22,7 @@ defmodule T.Application do
         maybe_migrator(),
         maybe_oban(),
         maybe_periodics(),
-        maybe_algo_exec(),
+        maybe_workflows(),
         maybe_endpoint(),
         TWeb.Telemetry,
         Supervisor.child_spec({Task, &T.Release.mark_ready/0}, id: :readiness_notifier)
@@ -98,12 +98,14 @@ defmodule T.Application do
     end
   end
 
-  defp maybe_algo_exec do
+  defp maybe_workflows do
     if T.Cluster.is_primary() do
-      unless disabled?(T.AlgoExec) do
+      unless disabled?(T.Workflows) do
         [
-          {Registry, keys: :unique, name: T.AlgoExec.Registry},
-          T.AlgoExec.Supervisor
+          T.Workflows.Listener,
+          {Registry,
+           keys: :unique, name: T.Workflows.Registry, listeners: [T.Workflows.Listener]},
+          T.Workflows.Supervisor
         ]
       end
     end

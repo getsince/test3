@@ -56,7 +56,7 @@ defmodule TWeb.Router do
       live "/stickers", StickerLive.Index, :index
       live "/tokens", TokenLive.Index, :index
       live "/tokens/:user_id", TokenLive.Index, :show
-      live "/algo-exec", ExecLive.Index, :index
+      live "/workflows", WorkflowLive.Index, :index
     end
   end
 

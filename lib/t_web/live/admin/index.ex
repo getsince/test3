@@ -11,7 +11,8 @@ defmodule TWeb.AdminLive.Index do
     [
       Routes.profile_index_path(socket, :index),
       Routes.token_index_path(socket, :index),
-      Routes.sticker_index_path(socket, :index)
+      Routes.sticker_index_path(socket, :index),
+      Routes.workflow_index_path(socket, :index)
     ]
   end
 end

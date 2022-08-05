@@ -197,9 +197,9 @@ defmodule T.Accounts do
   def local_report_user(from_user_id, on_user_id, reason) do
     Logger.warn("user #{from_user_id} reported #{on_user_id} with reason #{reason}")
 
-    {reported_user_name, story} = name_and_story(on_user_id)
+    {reported_user_name, story, _quality, _date} = name_story_quality_date(on_user_id)
     story_string = story_to_string(story)
-    {from_user_name, _story} = name_and_story(from_user_id)
+    {from_user_name, _story, _quality, _date} = name_story_quality_date(from_user_id)
 
     m =
       "user report from #{from_user_name} (#{from_user_id}) on #{reported_user_name} (#{on_user_id}), #{story_string}"
@@ -297,29 +297,55 @@ defmodule T.Accounts do
     end)
   end
 
-  defp name_and_story(user_id) do
-    Profile
-    |> where(user_id: ^user_id)
-    |> select([p], {p.name, p.story})
-    |> Repo.one!()
+  defp name_story_quality_date(user_id) do
+    {name, story} =
+      Profile
+      |> where(user_id: ^user_id)
+      |> select([p], {p.name, p.story})
+      |> Repo.one!()
+
+    quality =
+      case story do
+        nil ->
+          false
+
+        _ ->
+          if length(story) > 2 do
+            true
+          else
+            labels_count = story |> Enum.count(fn page -> length(page["labels"]) end)
+
+            if labels_count > 7 do
+              true
+            else
+              false
+            end
+          end
+      end
+
+    date = User |> where(id: ^user_id) |> select([u], u.inserted_at) |> Repo.one!()
+
+    {name, story, quality, date}
   end
 
   defp story_to_string(story) do
     if is_list(story) do
       photo_urls =
         Enum.map(story, fn p -> p["background"]["s3_key"] end)
-        |> Enum.filter(& &1)
-        |> Enum.each(fn k ->
-          "https://since-when-are-you-happy.s3.eu-north-1.amazonaws.com/" <> k <> " "
+        |> Enum.filter(&(!is_nil(&1)))
+        |> Enum.flat_map(fn k ->
+          ["https://since-when-are-you-happy.s3.eu-north-1.amazonaws.com/" <> k, " "]
         end)
 
       labels =
         Enum.map(story, fn p ->
-          Enum.map(p["labels"], fn l -> l["value"] end)
-          |> Enum.filter(& &1)
+          Enum.map(p["labels"], fn l ->
+            l["value"] || l["answer"] || l["artist"] || l["question"]
+          end)
+          |> Enum.filter(&(!is_nil(&1)))
           |> Enum.flat_map(fn l -> [l, ", "] end)
         end)
-        |> Enum.filter(& &1)
+        |> Enum.filter(&(!is_nil(&1)))
 
       "photos: #{photo_urls}, labels: #{labels}"
     else
@@ -334,10 +360,15 @@ defmodule T.Accounts do
 
   @doc false
   def local_delete_user(user_id) do
-    {delete_user_name, story} = name_and_story(user_id)
+    {name, story, quality, date} = name_story_quality_date(user_id)
     story_string = story_to_string(story)
 
-    m = "deleted user #{delete_user_name} (#{user_id}), #{story_string}"
+    m =
+      if quality do
+        "deleted quality user #{name}, registration date #{date}, (#{user_id}), #{story_string}"
+      else
+        "deleted user #{name}, registration date #{date}, (#{user_id}), #{story_string}"
+      end
 
     Logger.warn(m)
     Bot.async_post_silent_message(m)

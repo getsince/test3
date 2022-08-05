@@ -282,6 +282,20 @@ defmodule T.Accounts do
     end
   end
 
+  def hide_user(user_id) do
+    primary_rpc(__MODULE__, :local_hide_user, [user_id])
+  end
+
+  @doc false
+  def local_hide_user(user_id) do
+    %Profile{user_id: user_id}
+    |> cast(%{hidden?: true}, [:hidden?])
+    |> Repo.update()
+    |> case do
+      {:ok, _profile} -> :ok
+    end
+  end
+
   defp unmatch_all(multi, user_id) do
     Multi.run(multi, :unmatch, fn repo, _changes ->
       unmatches =

@@ -6,6 +6,7 @@ defmodule TWeb.ProfileLive.Index do
   def render(assigns) do
     ~H"""
     <div id="blocked-user-listener" class="hidden" phx-hook="BlockedUser"></div>
+    <div id="hidden-user-listener" class="hidden" phx-hook="HiddenUser"></div>
     <%= if @live_action == :sort_by_registration do %>
       <div id="profiles" class="p-4 space-y-4" phx-update="append" phx-hook="RegisteredProfilesInfiniteScroll" data-selector="[data-cursor-user-id]">
         <%= for profile <- @profiles do %>
@@ -37,6 +38,12 @@ defmodule TWeb.ProfileLive.Index do
   def handle_event("block", %{"user-id" => user_id}, socket) do
     :ok = Ctx.block_user(user_id)
     {:noreply, push_event(socket, "blocked", %{"user_id" => user_id})}
+  end
+
+  @impl true
+  def handle_event("hide", %{"user-id" => user_id}, socket) do
+    :ok = Ctx.hide_user(user_id)
+    {:noreply, push_event(socket, "hidden", %{"user_id" => user_id})}
   end
 
   def handle_event("more", %{"last_active" => last_active, "user_id" => user_id}, socket) do
@@ -100,6 +107,11 @@ defmodule TWeb.ProfileLive.Index do
           <span class="bg-red-700 px-2 rounded border border-red-500 font-semibold cursor-not-allowed">Blocked <%= render_relative(@profile.blocked_at) %></span>
         <% else %>
           <button phx-click="block" phx-value-user-id={@profile.user_id} class="bg-red-200 dark:bg-red-500 px-2 rounded border border-red-500 dark:border-red-700 font-semibold hover:bg-red-300 dark:hover:bg-red-600 transition" data-confirm={"Are you sure you want to block #{@profile.name}?"}>Block</button>
+        <% end %>
+        <%= if @profile.hidden do %>
+          <span class="bg-red-700 px-2 rounded border border-red-500 font-semibold cursor-not-allowed">Hidden</span>
+        <% else %>
+          <button phx-click="hide" phx-value-user-id={@profile.user_id} class="bg-red-200 dark:bg-red-500 px-2 rounded border border-red-500 dark:border-red-700 font-semibold hover:bg-red-300 dark:hover:bg-red-600 transition" data-confirm={"Are you sure you want to hide #{@profile.name}?"}>Hide</button>
         <% end %>
       </div>
       <div class="mt-2 flex space-x-2 items-center">
@@ -365,12 +377,17 @@ defmodule TWeb.ProfileLive.Index.Ctx do
       last_active: p.last_active,
       story: p.story,
       blocked_at: u.blocked_at,
-      inserted_at: u.inserted_at
+      inserted_at: u.inserted_at,
+      hidden: p.hidden?
     })
     |> limit(5)
   end
 
   def block_user(user_id) do
     Accounts.block_user(user_id)
+  end
+
+  def hide_user(user_id) do
+    Accounts.hide_user(user_id)
   end
 end

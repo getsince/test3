@@ -147,6 +147,7 @@ defmodule T.Feeds do
       if first_fetch do
         FeedProfile
         |> where([p], p.user_id in ^feeded_ids)
+        |> where([p], p.user_id in subquery(filtered_profiles_ids_q(user_id)))
         |> limit(^count)
         |> select([p], %{p | distance: distance_km(^location, p.location)})
         |> Repo.all()

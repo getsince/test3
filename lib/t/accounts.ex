@@ -203,7 +203,7 @@ defmodule T.Accounts do
     {from_user_name, _story, _quality, _date} = name_story_quality_date(from_user_id)
 
     m =
-      "user report from #{from_user_name} (#{from_user_id}) on #{reported_user_name} (#{on_user_id}), #{story_string}"
+      "user report from #{from_user_name} (#{from_user_id}) on #{reported_user_name} (#{on_user_id}), reason: #{reason}, story of reported: #{story_string}"
 
     Bot.async_post_message(m)
 

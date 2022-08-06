@@ -10,12 +10,12 @@
 msgid ""
 msgstr ""
 
-#, elixir-autogen, elixir-format
 #: lib/t/todos.ex:19
+#, elixir-autogen, elixir-format
 msgid "Обновить"
 msgstr ""
 
-#, elixir-autogen, elixir-format
 #: lib/t/todos.ex:13
+#, elixir-autogen, elixir-format
 msgid "Твоя версия приложения\nне поддерживает\nновые функции 📟"
 msgstr ""

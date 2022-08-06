@@ -25,7 +25,7 @@ defmodule T.Periodics do
         },
         feed_ai: {
           :timer.hours(2),
-          {FeedAI, :start_workflow, []}
+          {FeedAI, :maybe_start_workflow, []}
         },
         prune_feed_ai_ec2: {
           :timer.minutes(10),

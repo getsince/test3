@@ -6,6 +6,14 @@ defmodule T.FeedAI do
   @region "eu-north-1"
 
   @doc """
+  Starts FeedAI workflow on a primary node unless it has
+  already been started within the last 30 minutes
+  """
+  def maybe_start_workflow do
+    primary_rpc(__MODULE__, :local_maybe_start_workflow, [])
+  end
+
+  @doc """
   Starts FeedAI workflow on a primary node
   """
   def start_workflow do
@@ -16,6 +24,21 @@ defmodule T.FeedAI do
     :t
     |> Application.fetch_env!(__MODULE__)
     |> Keyword.fetch!(:instance_name)
+  end
+
+  @doc false
+  def local_maybe_start_workflow do
+    instances = list_ec2([{"tag:Name", instance_name()}])
+    thirty_min_ago = DateTime.add(DateTime.utc_now(), -30 * 60)
+
+    has_been_run_within_thirty_min? =
+      Enum.any?(instances, fn %{launch_time: launch_time} ->
+        DateTime.compare(thirty_min_ago, launch_time) in [:gt, :eq]
+      end)
+
+    unless has_been_run_within_thirty_min? do
+      local_start_workflow()
+    end
   end
 
   @doc false
@@ -58,23 +81,12 @@ defmodule T.FeedAI do
   """
   @spec find_stray_instances :: [instance_id :: String.t()]
   def find_stray_instances do
-    import SweetXml, only: [sigil_x: 2]
+    filters = [
+      {"tag:Name", [instance_name()]},
+      {"instance-state-name", ["running"]}
+    ]
 
-    request =
-      ExAws.EC2.describe_instances(
-        filters: [
-          {"tag:Name", [instance_name()]},
-          {"instance-state-name", ["running"]}
-        ]
-      )
-
-    {:ok, %{body: body}} = ExAws.request(request, region: @region)
-
-    instances =
-      SweetXml.xpath(
-        body,
-        ~x"//DescribeInstancesResponse/reservationSet/item/instancesSet/item/instanceId/text()"ls
-      )
+    instances = Enum.map(list_ec2(filters), & &1.id)
 
     running =
       Enum.flat_map(Workflows.primary_list_running(), fn {_node, workflows} ->
@@ -312,5 +324,26 @@ defmodule T.FeedAI do
         end)
         |> Stream.run()
       end)
+  end
+
+  @doc false
+  def list_ec2(filters) do
+    import SweetXml, only: [sigil_x: 2]
+
+    request = ExAws.EC2.describe_instances(filters: filters)
+    {:ok, %{body: body}} = ExAws.request(request, region: @region)
+
+    SweetXml.parse(body)
+    |> SweetXml.xpath(~x"//DescribeInstancesResponse/reservationSet/item/instancesSet/item"l)
+    |> Enum.map(fn xml ->
+      launch_time = SweetXml.xpath(xml, ~x"launchTime/text()"s)
+      {:ok, launch_time, 0} = DateTime.from_iso8601(launch_time)
+
+      %{
+        id: SweetXml.xpath(xml, ~x"instanceId/text()"s),
+        private_ip: SweetXml.xpath(xml, ~x"privateIpAddress/text()"s),
+        launch_time: launch_time
+      }
+    end)
   end
 end

@@ -61,7 +61,7 @@ defmodule TWeb.UserSocketTest do
       {token, %Accounts.UserToken{context: "mobile", token: token}} =
         Accounts.UserToken.build_token(user, "mobile")
 
-      assert :error ==
+      assert {:error, :invalid_token} ==
                connect(UserSocket, %{"token" => Accounts.UserToken.encoded_token(token)}, %{})
     end
 

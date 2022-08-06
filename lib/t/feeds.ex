@@ -25,7 +25,6 @@ defmodule T.Feeds do
   }
 
   alias T.PushNotifications.DispatchJob
-  alias T.Bot
 
   ### PubSub
 
@@ -98,10 +97,6 @@ defmodule T.Feeds do
 
   @doc false
   def insert_feed_limit(user_id, now \\ DateTime.utc_now()) do
-    m = "#{user_id} reached feed limit"
-    Logger.warn(m)
-    Bot.async_post_message(m)
-
     now = DateTime.truncate(now, :second)
     primary_rpc(__MODULE__, :local_insert_feed_limit, [user_id, now])
   end
@@ -165,6 +160,7 @@ defmodule T.Feeds do
       CalculatedFeed
       |> where(for_user_id: ^user_id)
       |> where([p], p.user_id not in ^feeded_ids)
+      |> where([p], p.user_id in subquery(filtered_profiles_ids_q(user_id)))
       |> select([p], p.user_id)
       |> Repo.all()
 
@@ -280,6 +276,10 @@ defmodule T.Feeds do
     |> not_liked_profiles_q(user_id)
     |> not_liker_profiles_q(user_id)
     |> not_seen_profiles_q(user_id)
+  end
+
+  defp filtered_profiles_ids_q(user_id) do
+    filtered_profiles_q(user_id) |> select([p], p.user_id)
   end
 
   ### Onboarding Feed
@@ -566,11 +566,6 @@ defmodule T.Feeds do
   @doc false
   @spec local_reset_feed_limit(%FeedLimit{}) :: :ok
   def local_reset_feed_limit(feed_limit) do
-    m = "feed limit of #{feed_limit.user_id} was reset"
-
-    Logger.warn(m)
-    Bot.async_post_message(m)
-
     Multi.new()
     |> Multi.delete(:delete_feed_limit, feed_limit)
     |> maybe_schedule_push(feed_limit)

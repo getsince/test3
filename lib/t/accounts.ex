@@ -2,6 +2,7 @@ defmodule T.Accounts do
   @moduledoc """
   The Accounts context.
   """
+  use TWeb, :controller
 
   import Ecto.Query, warn: false
   import Ecto.Changeset
@@ -204,7 +205,7 @@ defmodule T.Accounts do
     m =
       "user report from #{from_user_name} (#{from_user_id}) on #{reported_user_name} (#{on_user_id}), #{story_string}"
 
-    Bot.async_post_silent_message(m)
+    Bot.async_post_message(m)
 
     report_changeset =
       %UserReport{from_user_id: from_user_id, on_user_id: on_user_id}
@@ -214,7 +215,6 @@ defmodule T.Accounts do
 
     Multi.new()
     |> Multi.insert(:report, report_changeset)
-    |> maybe_block(on_user_id)
     |> Matches.unmatch_multi(from_user_id, on_user_id)
     |> Repo.transaction()
     |> case do
@@ -225,32 +225,6 @@ defmodule T.Accounts do
       {:error, :report, %Ecto.Changeset{} = changeset, _changes} ->
         {:error, changeset}
     end
-  end
-
-  # TODO test, unmatch
-  defp maybe_block(multi, reported_user_id) do
-    Multi.run(multi, :block, fn repo, _changes ->
-      reports_count =
-        UserReport |> where(on_user_id: ^reported_user_id) |> select([r], count()) |> Repo.one!()
-
-      blocked? =
-        if reports_count >= 3 do
-          reported_user_id
-          |> block_user_q()
-          |> repo.update_all([])
-
-          m = "blocking user #{reported_user_id} due to #reports >= 3"
-
-          Logger.warn(m)
-          Bot.async_post_silent_message(m)
-
-          Profile
-          |> where(user_id: ^reported_user_id)
-          |> repo.update_all(set: [hidden?: true])
-        end
-
-      {:ok, !!blocked?}
-    end)
   end
 
   defp block_user_q(user_id) do
@@ -278,8 +252,29 @@ defmodule T.Accounts do
     |> unmatch_all(user_id)
     |> Repo.transaction()
     |> case do
-      {:ok, _changes} -> :ok
+      {:ok, _changes} ->
+        tokens = UserToken |> where(user_id: ^user_id) |> select([t], t.token) |> Repo.all()
+
+        for token <- tokens do
+          encoded = UserToken.encoded_token(token)
+          TWeb.Endpoint.broadcast("user_socket:#{encoded}", "disconnect", %{})
+        end
+
+        :ok
     end
+  end
+
+  def local_unblock_user(user_id) do
+    Multi.new()
+    |> Multi.update_all(
+      :unblock,
+      User |> where(id: ^user_id) |> update(set: [blocked_at: nil]),
+      []
+    )
+    |> Multi.update(:unhide, fn _changes ->
+      %Profile{user_id: user_id} |> Ecto.Changeset.change(hidden?: false)
+    end)
+    |> Repo.transaction()
   end
 
   def hide_user(user_id) do
@@ -739,13 +734,9 @@ defmodule T.Accounts do
           name = profile.name
           user_id = profile.user_id
 
-          first_photo_s3_key =
-            profile.story |> Enum.find_value(fn p -> p["background"]["s3_key"] end)
+          story_string = story_to_string(profile.story)
 
-          photo_url =
-            "https://since-when-are-you-happy.s3.eu-north-1.amazonaws.com/" <> first_photo_s3_key
-
-          m = "user #{name} (#{user_id}) onboarded with photo #{photo_url}"
+          m = "user #{name} (#{user_id}) onboarded with story #{story_string}"
 
           Bot.async_post_message(m)
         end

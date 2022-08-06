@@ -13,7 +13,6 @@ defmodule T.Matches do
   alias T.Matches.{Match, Like, MatchEvent, Seen, Interaction}
   alias T.Feeds.{FeedProfile, SeenProfile}
   alias T.PushNotifications.DispatchJob
-  alias T.Bot
 
   @type uuid :: Ecto.UUID.t()
 
@@ -155,31 +154,12 @@ defmodule T.Matches do
     Multi.run(multi, :match, fn _repo, %{mutual: mutual} ->
       if mutual do
         [user_id_1, user_id_2] = Enum.sort(user_ids)
-        {name1, number_of_matches1} = user_info(user_id_1)
-        {name2, number_of_matches2} = user_info(user_id_2)
-
-        m =
-          "new match: #{name1} (#{user_id_1}, #{number_of_matches1 + 1} matches) and #{name2} (#{user_id_2}, #{number_of_matches2 + 1})"
-
-        Bot.async_post_message(m)
 
         Repo.insert(%Match{user_id_1: user_id_1, user_id_2: user_id_2})
       else
         {:ok, nil}
       end
     end)
-  end
-
-  defp user_info(user_id) do
-    name = FeedProfile |> where(user_id: ^user_id) |> select([p], p.name) |> Repo.one()
-
-    number_of_matches =
-      Match
-      |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
-      |> select([m], count(m.id))
-      |> Repo.one()
-
-    {name, number_of_matches}
   end
 
   defp maybe_schedule_match_push_m(multi, now \\ DateTime.utc_now()) do
@@ -413,15 +393,6 @@ defmodule T.Matches do
 
   @spec local_expire_match(uuid, uuid, uuid) :: boolean
   def local_expire_match(match_id, user_id_1, user_id_2) do
-    {name1, number_of_matches1} = user_info(user_id_1)
-    {name2, number_of_matches2} = user_info(user_id_2)
-
-    m =
-      "match between #{name1} (#{user_id_1}, #{number_of_matches1} matches) and #{name2} (#{user_id_2}, #{number_of_matches2}) expired"
-
-    Logger.warn(m)
-    Bot.async_post_message(m)
-
     Multi.new()
     |> Multi.run(:unmatch, fn _repo, _changes ->
       Match
@@ -654,8 +625,6 @@ defmodule T.Matches do
   @spec local_save_interaction(uuid, uuid, uuid, map, DateTime.t()) ::
           {:ok, map} | {:error, map}
   def local_save_interaction(match_id, from_user_id, to_user_id, interaction_data, now) do
-    {from_name, _number_of_matches1} = user_info(from_user_id)
-    {to_name, _number_of_matches2} = user_info(to_user_id)
     now = DateTime.truncate(now, :second)
 
     interaction_type =
@@ -669,12 +638,6 @@ defmodule T.Matches do
         _ ->
           "message"
       end
-
-    m =
-      "interaction #{interaction_type} from #{from_name} (#{from_user_id}) to #{to_name} (#{to_user_id})"
-
-    Logger.warn(m)
-    Bot.async_post_message(m)
 
     changeset =
       interaction_changeset(%{

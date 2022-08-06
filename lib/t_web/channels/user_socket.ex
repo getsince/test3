@@ -27,24 +27,27 @@ defmodule TWeb.UserSocket do
       location = maybe_location(params)
       if location, do: Accounts.update_location(user.id, location)
 
-      if check_version(version) do
-        {:ok,
-         assign(socket,
-           remote_ip: remote_ip,
-           current_user: user,
-           token: token,
-           screen_width: params["screen_width"] || 1000,
-           locale: params["locale"],
-           version: version,
-           location: location
-         )}
+      if user.blocked_at == nil do
+        if check_version(version) do
+          {:ok,
+           assign(socket,
+             remote_ip: remote_ip,
+             current_user: user,
+             token: token,
+             screen_width: params["screen_width"] || 1000,
+             locale: params["locale"],
+             version: version,
+             location: location
+           )}
+        else
+          Accounts.schedule_upgrade_app_push(user.id)
+          {:error, :unsupported_version}
+        end
       else
-        Accounts.schedule_upgrade_app_push(user.id)
-        {:error, :unsupported_version}
+        {:error, :blocked_user}
       end
     else
-      # TODO return reason (like user deleted, or invalid token)
-      :error
+      {:error, :invalid_token}
     end
   end
 
@@ -61,9 +64,14 @@ defmodule TWeb.UserSocket do
   defp check_version(nil), do: false
   defp check_version(version), do: Version.match?(version, ">= 6.2.0")
 
+  @spec handle_error(Plug.Conn.t(), :invalid_token) :: Plug.Conn.t()
+  def handle_error(conn, :invalid_token), do: Plug.Conn.send_resp(conn, 401, "")
+
+  @spec handle_error(Plug.Conn.t(), :blocked_user) :: Plug.Conn.t()
+  def handle_error(conn, :blocked_user), do: Plug.Conn.send_resp(conn, 403, "")
+
   @spec handle_error(Plug.Conn.t(), :unsupported_version) :: Plug.Conn.t()
-  def handle_error(conn, :unsupported_version),
-    do: Plug.Conn.send_resp(conn, 418, "")
+  def handle_error(conn, :unsupported_version), do: Plug.Conn.send_resp(conn, 418, "")
 
   defp extract_ip_address(connect_info) do
     _extract_ip_address(:x_headers, connect_info) ||

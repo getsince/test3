@@ -98,7 +98,7 @@ defmodule TWeb.ProfileLive.Index do
     end
   end
 
-  defp profile(assigns) do
+  def profile(assigns) do
     ~H"""
     <div id={"profile-" <> @profile.user_id} data-cursor-user-id={@profile.user_id} data-cursor-last-active={@profile.last_active} data-cursor-inserted-at={@profile.inserted_at} class="p-2 rounded-lg border dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
       <div class="flex space-x-2 items-center">

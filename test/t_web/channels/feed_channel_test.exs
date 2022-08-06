@@ -322,6 +322,24 @@ defmodule TWeb.FeedChannelTest do
                label["action"] == "update_app"
              end)
     end
+
+    test "with hidden_profile todo", %{socket: socket, me: me} do
+      %T.Accounts.Profile{user_id: me.id}
+      |> Ecto.Changeset.change(hidden?: true)
+      |> T.Repo.update()
+
+      assert {:ok, %{"todos" => todos}, _socket} = join(socket, "feed:" <> me.id)
+
+      assert [_first_todos_item = %{story: story}] = todos
+      assert [p1] = story
+
+      assert %{"background" => %{"color" => _}, "labels" => labels, "size" => _} = p1
+
+      assert labels
+             |> Enum.any?(fn label ->
+               label["action"] == "edit_story"
+             end)
+    end
   end
 
   describe "more" do

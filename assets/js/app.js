@@ -18,6 +18,18 @@ const BlockedUser = {
   },
 };
 
+const HiddenUser = {
+  mounted() {
+    this.handleEvent("hidden", ({ user_id }) => {
+      let button = document.querySelector(
+        `[phx-click='hide'][phx-value-user-id='${user_id}']`
+      );
+      button.disabled = true;
+      button.innerText = "Hidden";
+    });
+  },
+};
+
 let scrollAt = () => {
   let scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
   let scrollHeight =
@@ -111,6 +123,7 @@ let liveSocket = new LiveSocket("/live", Socket, {
     ProfilesInfiniteScroll,
     RegisteredProfilesInfiniteScroll,
     BlockedUser,
+    HiddenUser
   },
 });
 

@@ -25,7 +25,7 @@ defmodule TWeb.FeedChannel do
   end
 
   defp join_normal_mode(user_id, params, socket) do
-    {old_location, _gender} = Accounts.get_location_and_gender!(user_id)
+    {old_location, _gender, hidden?} = Accounts.get_location_gender_hidden?(user_id)
     location = socket.assigns.location || old_location
     %{screen_width: screen_width, version: version} = socket.assigns
 
@@ -46,7 +46,7 @@ defmodule TWeb.FeedChannel do
 
     todos =
       user_id
-      |> Todos.list_todos(version)
+      |> Todos.list_todos(version, hidden?)
       |> render_news(version, screen_width)
 
     feed =

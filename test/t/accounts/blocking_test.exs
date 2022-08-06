@@ -52,23 +52,6 @@ defmodule T.Accounts.BlockingTest do
       assert [] == Matches.list_matches(reported.id, default_location())
       assert [] == Matches.list_matches(reporter.id, default_location())
     end
-
-    test "3 reports block the user", %{reporter: reporter1, reported: reported} do
-      reporter2 = onboarded_user()
-      reporter3 = onboarded_user()
-
-      :ok = Accounts.report_user(reporter1.id, reported.id, "he bad")
-      refute Repo.get!(Accounts.User, reported.id).blocked_at
-      assert Repo.get!(Accounts.Profile, reported.id).hidden? == false
-      :ok = Accounts.report_user(reporter2.id, reported.id, "he show dicky")
-      refute Repo.get!(Accounts.User, reported.id).blocked_at
-      assert Repo.get!(Accounts.Profile, reported.id).hidden? == false
-      :ok = Accounts.report_user(reporter3.id, reported.id, "he show dicky")
-      assert Repo.get!(Accounts.User, reported.id).blocked_at
-
-      # blocked user is hidden
-      assert Repo.get!(Accounts.Profile, reported.id).hidden? == true
-    end
   end
 
   describe "block_user/1" do

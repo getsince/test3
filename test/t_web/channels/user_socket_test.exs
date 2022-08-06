@@ -65,6 +65,23 @@ defmodule TWeb.UserSocketTest do
                connect(UserSocket, %{"token" => Accounts.UserToken.encoded_token(token)}, %{})
     end
 
+    test "blocked" do
+      user = insert(:user)
+
+      Accounts.User
+      |> where(id: ^user.id)
+      |> update([u], set: [blocked_at: fragment("now()")])
+      |> Repo.update_all([])
+
+      token =
+        user
+        |> Accounts.generate_user_session_token("mobile")
+        |> Accounts.UserToken.encoded_token()
+
+      assert {:error, :blocked_user} ==
+               connect(UserSocket, %{"token" => Accounts.UserToken.encoded_token(token)}, %{})
+    end
+
     test "with location" do
       user = onboarded_user()
 

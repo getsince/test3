@@ -2,7 +2,6 @@ defmodule T.Accounts do
   @moduledoc """
   The Accounts context.
   """
-  use TWeb, :controller
 
   import Ecto.Query, warn: false
   import Ecto.Changeset
@@ -255,10 +254,7 @@ defmodule T.Accounts do
       {:ok, _changes} ->
         tokens = UserToken |> where(user_id: ^user_id) |> select([t], t.token) |> Repo.all()
 
-        for token <- tokens do
-          encoded = UserToken.encoded_token(token)
-          TWeb.Endpoint.broadcast("user_socket:#{encoded}", "disconnect", %{})
-        end
+        for token <- tokens, do: TWeb.UserAuth.disconnect_mobile_user(token)
 
         :ok
     end

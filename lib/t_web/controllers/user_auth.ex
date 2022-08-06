@@ -15,6 +15,11 @@ defmodule TWeb.UserAuth do
     :ok
   end
 
+  def disconnect_mobile_user(token) do
+    encoded_token = Accounts.UserToken.encoded_token(token)
+    TWeb.Endpoint.broadcast("user_socket:#{encoded_token}", "disconnect", %{})
+  end
+
   def fetch_current_user_from_bearer_token(conn, _opts) do
     user =
       if token = bearer_token(conn) do

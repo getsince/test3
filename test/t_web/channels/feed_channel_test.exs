@@ -749,38 +749,6 @@ defmodule TWeb.FeedChannelTest do
     end
   end
 
-  describe "send-voicemail" do
-    setup :joined
-
-    test "results in deprecation warning", %{socket: socket} do
-      ref = push(socket, "send-voicemail", _params = %{})
-      assert_reply ref, :error, reply
-
-      assert reply == %{
-               alert: %{
-                 title: "Deprecation warning",
-                 body: "Voicemail is no longer supported, please upgrade."
-               }
-             }
-    end
-  end
-
-  describe "listen-voicemail" do
-    setup :joined
-
-    test "results in deprecation warning", %{socket: socket} do
-      ref = push(socket, "listen-voicemail", _params = %{})
-      assert_reply ref, :error, reply
-
-      assert reply == %{
-               alert: %{
-                 title: "Deprecation warning",
-                 body: "Voicemail is no longer supported, please upgrade."
-               }
-             }
-    end
-  end
-
   describe "interactions" do
     setup :joined
 

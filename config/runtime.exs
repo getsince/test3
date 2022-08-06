@@ -135,7 +135,7 @@ if config_env() == :prod and not smoke? do
     client_secret: System.fetch_env!("SPOTIFY_CLIENT_SECRET")
 
   config :t, T.Events,
-    buffers: [:seen_buffer, :like_buffer, :contact_buffer],
+    buffers: [:seen_buffer, :like_buffer],
     bucket: System.fetch_env!("AWS_S3_BUCKET_EVENTS")
 
   ec2_polling_interval = String.to_integer(System.get_env("EC2_POLL_INTERVAL_SECONDS") || "5")

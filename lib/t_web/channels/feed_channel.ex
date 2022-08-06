@@ -88,31 +88,6 @@ defmodule TWeb.FeedChannel do
     {:reply, {:ok, %{"feed" => render_feed(feed, version, screen_width)}}, socket}
   end
 
-  # TODO remove
-  def handle_in("archived-matches", _params, socket) do
-    {:reply, {:ok, %{"archived_matches" => []}}, socket}
-  end
-
-  def handle_in("archive-match", _params, socket) do
-    alert =
-      alert(
-        dgettext("alerts", "Deprecation warning"),
-        dgettext("alerts", "Archived matches are no longer supported, please upgrade.")
-      )
-
-    {:reply, {:error, %{alert: alert}}, socket}
-  end
-
-  def handle_in("unarchive-match", _params, socket) do
-    alert =
-      alert(
-        dgettext("alerts", "Deprecation warning"),
-        dgettext("alerts", "Archived matches are no longer supported, please upgrade.")
-      )
-
-    {:reply, {:error, %{alert: alert}}, socket}
-  end
-
   # TODO possibly batch
   def handle_in("seen", %{"user_id" => user_id} = params, socket) do
     me = me_id(socket)
@@ -122,11 +97,6 @@ defmodule TWeb.FeedChannel do
     end
 
     Feeds.mark_profile_seen(user_id, by: me)
-    {:reply, :ok, socket}
-  end
-
-  # TODO remove
-  def handle_in("seen", %{"expired_match_id" => _match_id}, socket) do
     {:reply, :ok, socket}
   end
 
@@ -162,16 +132,6 @@ defmodule TWeb.FeedChannel do
 
     Feeds.reached_limit(me, timestamp)
     {:reply, :ok, socket}
-  end
-
-  def handle_in("call", _params, socket) do
-    alert =
-      alert(
-        dgettext("alerts", "Deprecation warning"),
-        dgettext("alerts", "Calls are no longer supported, please upgrade.")
-      )
-
-    {:reply, {:error, %{alert: alert}}, socket}
   end
 
   def handle_in("like", %{"user_id" => liked}, socket) do
@@ -234,87 +194,6 @@ defmodule TWeb.FeedChannel do
     {:reply, :ok, socket}
   end
 
-  def handle_in("offer-slots", _params, socket) do
-    alert =
-      alert(
-        dgettext("alerts", "Deprecation warning"),
-        dgettext("alerts", "Calls are no longer supported, please upgrade.")
-      )
-
-    {:reply, {:error, %{alert: alert}}, socket}
-  end
-
-  def handle_in("pick-slot", _params, socket) do
-    alert =
-      alert(
-        dgettext("alerts", "Deprecation warning"),
-        dgettext("alerts", "Calls are no longer supported, please upgrade.")
-      )
-
-    {:reply, {:error, %{alert: alert}}, socket}
-  end
-
-  def handle_in("cancel-slot", _params, socket) do
-    alert =
-      alert(
-        dgettext("alerts", "Deprecation warning"),
-        dgettext("alerts", "Calls are no longer supported, please upgrade.")
-      )
-
-    {:reply, {:error, %{alert: alert}}, socket}
-  end
-
-  def handle_in("send-contact", _params, socket) do
-    alert =
-      alert(
-        dgettext("alerts", "Deprecation warning"),
-        dgettext("alerts", "Sending contacts is no longer supported, please upgrade.")
-      )
-
-    {:reply, {:error, %{alert: alert}}, socket}
-  end
-
-  def handle_in("open-contact", _params, socket) do
-    alert =
-      alert(
-        dgettext("alerts", "Deprecation warning"),
-        dgettext("alerts", "Contact sharing is no longer supported, please upgrade.")
-      )
-
-    {:reply, {:error, %{alert: alert}}, socket}
-  end
-
-  def handle_in("click-contact", %{"user_id" => user_id, "contact" => contact}, socket) do
-    me = me_id(socket)
-    Events.save_contact_click(me, user_id, contact)
-
-    if match_id = Matches.get_match_id([me, user_id]) do
-      Matches.save_contact_click(match_id)
-    end
-
-    {:reply, :ok, socket}
-  end
-
-  def handle_in("report-we-met", _params, socket) do
-    alert =
-      alert(
-        dgettext("alerts", "Deprecation warning"),
-        dgettext("alerts", "Contact sharing is no longer supported, please upgrade.")
-      )
-
-    {:reply, {:error, %{alert: alert}}, socket}
-  end
-
-  def handle_in("report-we-not-met", _params, socket) do
-    alert =
-      alert(
-        dgettext("alerts", "Deprecation warning"),
-        dgettext("alerts", "Contact sharing is no longer supported, please upgrade.")
-      )
-
-    {:reply, {:error, %{alert: alert}}, socket}
-  end
-
   def handle_in("unmatch", params, socket) do
     unmatched? =
       case params do
@@ -327,28 +206,6 @@ defmodule TWeb.FeedChannel do
 
   def handle_in("report", params, socket) do
     report(socket, params)
-  end
-
-  # voicemail
-
-  def handle_in("send-voicemail", _params, socket) do
-    alert =
-      alert(
-        dgettext("alerts", "Deprecation warning"),
-        dgettext("alerts", "Voicemail is no longer supported, please upgrade.")
-      )
-
-    {:reply, {:error, %{alert: alert}}, socket}
-  end
-
-  def handle_in("listen-voicemail", _params, socket) do
-    alert =
-      alert(
-        dgettext("alerts", "Deprecation warning"),
-        dgettext("alerts", "Voicemail is no longer supported, please upgrade.")
-      )
-
-    {:reply, {:error, %{alert: alert}}, socket}
   end
 
   # interactions

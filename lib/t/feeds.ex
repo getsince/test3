@@ -313,6 +313,7 @@ defmodule T.Feeds do
   defp profiles_near_location(location, limit) do
     not_hidden_profiles_q()
     |> where([p], st_dwithin_in_meters(^location, p.location, ^1_000_000))
+    |> where([p], fragment("jsonb_array_length(?) > 2", p.story))
     |> order_by(desc: :like_ratio)
     |> limit(^limit)
     |> Repo.all()
@@ -323,6 +324,7 @@ defmodule T.Feeds do
     |> where([p], p.user_id not in ^feeded_ids)
     |> where([p], p.times_liked >= ^likes_count_treshold)
     |> where([p], p.gender in ^genders)
+    |> where([p], fragment("jsonb_array_length(?) > 2", p.story))
     |> order_by(desc: :like_ratio)
     |> limit(^limit)
     |> Repo.all()

@@ -198,10 +198,23 @@ defmodule T.FeedsTest do
     end
 
     test "with no ip" do
-      mate = onboarded_user()
+      mate =
+        onboarded_user(
+          story: [
+            %{"background" => %{"s3_key" => "public1"}, "labels" => [], "size" => [400, 100]},
+            %{"background" => %{"s3_key" => "public1"}, "labels" => [], "size" => [400, 100]},
+            %{"background" => %{"s3_key" => "public1"}, "labels" => [], "size" => [400, 100]}
+          ]
+        )
 
       assert [%FeedProfile{user_id: user_id}] = Feeds.fetch_onboarding_feed(nil, 0)
       assert user_id == mate.id
+    end
+
+    test "with no quality profiles" do
+      for _ <- 1..10, do: onboarded_user()
+
+      assert Feeds.fetch_onboarding_feed(nil, 0) == []
     end
   end
 end

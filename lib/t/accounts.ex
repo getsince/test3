@@ -724,7 +724,7 @@ defmodule T.Accounts do
     |> Repo.transaction()
     |> case do
       {:ok, changes} ->
-        %{profile: profile, gender_preferences: genders, maybe_unhide: maybe_unhide} = changes
+        %{profile: profile, gender_preferences: genders} = changes
 
         {:ok, %Profile{profile | gender_preference: genders}}
 

@@ -174,7 +174,7 @@ defmodule T.AccountsTest do
         "birthdate" => "2000-01-01",
         "gender_preference" => ["F"],
         "story" => [
-          %{"background" => %{"s3_key" => "some_key", "labels" => [], "size" => [100, 200]}}
+          %{"background" => %{"s3_key" => "some_key"}, "labels" => [], "size" => [100, 200]}
         ]
       }
 

@@ -79,7 +79,10 @@ defmodule T.Accounts do
     |> Repo.transaction()
     |> case do
       {:ok, %{user: user, profile: profile}} ->
-        Logger.warn("new user #{user.apple_id}")
+        m = "new user #{user.id}"
+        Logger.warn(m)
+        Bot.async_post_message(m)
+
         {:ok, %User{user | profile: profile}}
 
       {:error, :user, %Ecto.Changeset{} = changeset, _changes} ->
@@ -195,8 +198,6 @@ defmodule T.Accounts do
 
   @doc false
   def local_report_user(from_user_id, on_user_id, reason) do
-    Logger.warn("user #{from_user_id} reported #{on_user_id} with reason #{reason}")
-
     {reported_user_name, story, _quality, _date} = name_story_quality_date(on_user_id)
     story_string = story_to_string(story)
     {from_user_name, _story, _quality, _date} = name_story_quality_date(from_user_id)
@@ -204,6 +205,7 @@ defmodule T.Accounts do
     m =
       "user report from #{from_user_name} (#{from_user_id}) on #{reported_user_name} (#{on_user_id}), reason: #{reason}, story of reported: #{story_string}"
 
+    Logger.warn(m)
     Bot.async_post_message(m)
 
     report_changeset =
@@ -666,11 +668,9 @@ defmodule T.Accounts do
     |> case do
       {:ok, changes} ->
         %{user: user, profile: %Profile{} = profile, gender_preferences: genders} = changes
+        story_string = story_to_string(profile.story)
 
-        time_spent =
-          DateTime.utc_now() |> DateTime.diff(DateTime.from_naive!(user.inserted_at, "Etc/UTC"))
-
-        m = "user #{profile.name} registered #{user.id}, registration took #{time_spent} seconds"
+        m = "user #{profile.name} (#{user.id}) onboarded with story #{story_string}"
 
         Logger.warn(m)
         Bot.async_post_message(m)
@@ -724,18 +724,7 @@ defmodule T.Accounts do
     |> Repo.transaction()
     |> case do
       {:ok, changes} ->
-        %{profile: profile, gender_preferences: genders, maybe_unhide: maybe_unhide} = changes
-
-        if maybe_unhide do
-          name = profile.name
-          user_id = profile.user_id
-
-          story_string = story_to_string(profile.story)
-
-          m = "user #{name} (#{user_id}) onboarded with story #{story_string}"
-
-          Bot.async_post_message(m)
-        end
+        %{profile: profile, gender_preferences: genders} = changes
 
         {:ok, %Profile{profile | gender_preference: genders}}
 

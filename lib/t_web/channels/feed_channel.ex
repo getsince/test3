@@ -12,16 +12,34 @@ defmodule TWeb.FeedChannel do
         Gettext.put_locale(locale)
       end
 
-      user_id = String.downcase(user_id)
+      if params["onboarding_mode"] do
+        join_onboarding_mode(params, socket)
+      else
+        user_id = String.downcase(user_id)
 
-      :ok = Matches.subscribe_for_user(user_id)
-      :ok = Accounts.subscribe_for_user(user_id)
-      :ok = Feeds.subscribe_for_user(user_id)
+        :ok = Matches.subscribe_for_user(user_id)
+        :ok = Accounts.subscribe_for_user(user_id)
+        :ok = Feeds.subscribe_for_user(user_id)
 
-      join_normal_mode(user_id, params, socket)
+        join_normal_mode(user_id, params, socket)
+      end
     else
       {:error, %{"error" => "forbidden"}}
     end
+  end
+
+  defp join_onboarding_mode(params, socket) do
+    %{remote_ip: remote_ip, screen_width: screen_width, version: version} = socket.assigns
+
+    feed =
+      case params["need_feed"] do
+        true -> Feeds.fetch_onboarding_feed(remote_ip) |> render_feed(version, screen_width)
+        _ -> nil
+      end
+
+    reply = %{} |> maybe_put_with_empty_list("feed", feed)
+
+    {:ok, reply, assign(socket, mode: :onboarding)}
   end
 
   defp join_normal_mode(user_id, params, socket) do
@@ -63,7 +81,7 @@ defmodule TWeb.FeedChannel do
       |> maybe_put("matches", matches)
       |> maybe_put_with_empty_list("feed", feed)
 
-    {:ok, reply, assign(socket, location: location)}
+    {:ok, reply, assign(socket, location: location, mode: :normal)}
   end
 
   @impl true
@@ -91,12 +109,14 @@ defmodule TWeb.FeedChannel do
   # TODO possibly batch
   def handle_in("seen", %{"user_id" => user_id} = params, socket) do
     me = me_id(socket)
+    %{mode: mode} = socket.assigns
 
     if timings = params["timings"] do
       Events.save_seen_timings(:feed, me, user_id, timings)
     end
 
-    Feeds.mark_profile_seen(user_id, by: me)
+    if mode == :normal, do: Feeds.mark_profile_seen(user_id, by: me)
+
     {:reply, :ok, socket}
   end
 

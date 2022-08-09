@@ -340,6 +340,19 @@ defmodule TWeb.FeedChannelTest do
                label["action"] == "edit_story"
              end)
     end
+
+    test "in onboarding mode without feed", %{socket: socket, me: me} do
+      assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id, %{"onboarding_mode" => true})
+
+      assert reply == %{}
+    end
+
+    test "in onboarding mode with feed", %{socket: socket, me: me} do
+      assert {:ok, reply, _socket} =
+               join(socket, "feed:" <> me.id, %{"onboarding_mode" => true, "need_feed" => true})
+
+      assert reply == %{"feed" => []}
+    end
   end
 
   describe "more" do
@@ -858,15 +871,14 @@ defmodule TWeb.FeedChannelTest do
   end
 
   defp joined(%{socket: socket, me: me}) do
-    assert {:ok, _reply, socket} =
-             subscribe_and_join(socket, "feed:" <> me.id, %{"mode" => "normal"})
+    assert {:ok, _reply, socket} = subscribe_and_join(socket, "feed:" <> me.id)
 
     {:ok, socket: socket}
   end
 
   defp joined_mate(%{mate: mate}) do
     socket = connected_socket(mate)
-    {:ok, _reply, socket} = join(socket, "feed:" <> mate.id, %{"mode" => "normal"})
+    {:ok, _reply, socket} = join(socket, "feed:" <> mate.id)
     {:ok, mate_socket: socket}
   end
 

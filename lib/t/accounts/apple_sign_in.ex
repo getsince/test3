@@ -17,15 +17,16 @@ defmodule T.Accounts.AppleSignIn do
     end
   end
 
-  @spec extract_user_id(map) :: %{user_id: String.t(), email: String.t()}
+  @spec extract_user_id(map) :: %{user_id: String.t(), email: String.t() | nil}
   defp extract_user_id(fields) do
     %{
       # TODO verify bundle <> team id? aud == "com.example.apple-samplecode.juiceP85PYLD8U2"
       "aud" => _aud,
       "iss" => "https://appleid.apple.com",
-      "sub" => user_id,
-      "email" => email
+      "sub" => user_id
     } = fields
+
+    email = fields["email"]
 
     %{user_id: user_id, email: email}
   end

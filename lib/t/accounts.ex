@@ -180,6 +180,18 @@ defmodule T.Accounts do
   end
 
   @doc false
+  def local_get_user_by_apple_id_updating_email(apple_id, nil) do
+    User
+    |> where(apple_id: ^apple_id)
+    |> select([u], u)
+    |> Repo.one()
+    |> case do
+      nil -> nil
+      user -> Repo.preload(user, :profile)
+    end
+  end
+
+  @doc false
   def local_get_user_by_apple_id_updating_email(apple_id, email) do
     User
     |> where(apple_id: ^apple_id)

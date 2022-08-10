@@ -180,13 +180,12 @@ defmodule T.Feeds do
   end
 
   defp continue_feed(user_id, location, count) do
-    feeded_ids =
-      FeededProfile |> where(for_user_id: ^user_id) |> select([f], f.user_id) |> Repo.all()
+    feeded_ids_q = FeededProfile |> where(for_user_id: ^user_id) |> select([f], f.user_id)
 
     calculated_feed_ids =
       CalculatedFeed
       |> where(for_user_id: ^user_id)
-      |> where([p], p.user_id not in ^feeded_ids)
+      |> where([p], p.user_id not in subquery(feeded_ids_q))
       |> where([p], p.user_id in subquery(filtered_profiles_ids_q(user_id)))
       |> select([p], p.user_id)
       |> Repo.all()
@@ -197,7 +196,8 @@ defmodule T.Feeds do
       if length(calculated_feed) < count do
         default_feed(
           user_id,
-          calculated_feed_ids ++ feeded_ids,
+          calculated_feed_ids,
+          feeded_ids_q,
           location,
           count - length(calculated_feed)
         )
@@ -219,9 +219,10 @@ defmodule T.Feeds do
     |> Repo.all()
   end
 
-  defp default_feed(user_id, feeded_ids, location, count) do
+  defp default_feed(user_id, calculated_feed_ids, feeded_ids_q, location, count) do
     feed_profiles_q(user_id)
-    |> where([p], p.user_id not in ^feeded_ids)
+    |> where([p], p.user_id not in ^calculated_feed_ids)
+    |> where([p], p.user_id not in subquery(feeded_ids_q))
     |> order_by(fragment("location <-> ?::geometry", ^location))
     |> limit(^count)
     |> select([p], %{p | distance: distance_km(^location, p.location)})

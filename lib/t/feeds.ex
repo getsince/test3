@@ -205,10 +205,10 @@ defmodule T.Feeds do
         []
       end
 
-    new_feed = calculated_feed ++ default_feed
+    feed = calculated_feed ++ default_feed
 
-    mark_profiles_feeded(user_id, new_feed)
-    new_feed
+    mark_profiles_feeded(user_id, feed)
+    feed
   end
 
   defp preload_feed_profiles(profile_ids, user_id, location, count) do

@@ -10,11 +10,48 @@ defmodule T.FeedsTest do
   describe "fetch_feed/3" do
     setup do
       me = onboarded_user(location: moscow_location())
+      # so that our onboarded_user is not treated as the first-time user when being served feed
+      not_me = insert(:user)
+      inserted_at = DateTime.utc_now() |> DateTime.add(-Feeds.feed_limit_period())
+      insert(:seen_profile, by_user: me, user: not_me, inserted_at: inserted_at)
       {:ok, me: me}
     end
 
     test "with no data in db", %{me: me} do
       assert [] == Feeds.fetch_feed(me.id, me.profile.location, true)
+    end
+
+    test "for newly onboarded user" do
+      new_user = onboarded_user()
+
+      for _ <- 1..Feeds.feed_daily_limit(), do: onboarded_user()
+
+      for _ <- 1..Feeds.feed_daily_limit() do
+        u =
+          onboarded_user(
+            story: [
+              %{"background" => %{"s3_key" => "public1"}, "labels" => [], "size" => [400, 100]},
+              %{"background" => %{"s3_key" => "public2"}, "labels" => [], "size" => [400, 100]},
+              %{"background" => %{"s3_key" => "public2"}, "labels" => [], "size" => [400, 100]}
+            ]
+          )
+
+        FeedProfile
+        |> where(user_id: ^u.id)
+        |> update(set: [times_liked: ^Feeds.quality_likes_count_treshold()])
+        |> Repo.update_all([])
+      end
+
+      for _ <- 1..Feeds.feed_daily_limit(), do: onboarded_user()
+
+      feed = Feeds.fetch_feed(new_user.id, new_user.profile.location, true)
+
+      assert length(feed) == Feeds.feed_daily_limit()
+
+      for f <- feed do
+        assert length(f.story) > 2
+        assert f.times_liked >= Feeds.quality_likes_count_treshold()
+      end
     end
 
     test "with feed_daily_limit reached", %{me: me} do
@@ -36,7 +73,7 @@ defmodule T.FeedsTest do
       feed = Feeds.fetch_feed(me.id, me.profile.location, false)
       assert length(feed) == Feeds.feed_fetch_count() - 1
 
-      assert {%DateTime{}, [%{}] = _story} = Feeds.fetch_feed(me.id, me.profile.location, true)
+      assert {%DateTime{}, [%{}] = _story} = Feeds.fetch_feed(me.id, me.profile.location, false)
     end
 
     test "first_fetch", %{me: me} do
@@ -56,8 +93,9 @@ defmodule T.FeedsTest do
       assert feed == []
 
       # but on reentering the app gets feed again since none of it was really watched
+      # all the previously feeded profiles are returned at once
       feed = Feeds.fetch_feed(me.id, me.profile.location, true)
-      assert length(feed) == Feeds.feed_fetch_count()
+      assert length(feed) == Feeds.feed_fetch_count() * 2
     end
 
     test "with calculated_feed", %{me: me} do

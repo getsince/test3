@@ -151,6 +151,7 @@ defmodule T.Factory do
       registered_user(opts[:apple_id] || apple_id(), opts[:last_active] || DateTime.utc_now())
 
     News.mark_seen(user.id)
+
     {:ok, profile} = Accounts.onboard_profile(user.id, onboarding_attrs(opts))
     %Accounts.User{user | profile: profile}
   end

@@ -59,6 +59,10 @@ defmodule TWeb.FeedChannelTest do
 
       p = onboarded_user(story: [], name: "mate", location: apple_location(), gender: "F")
 
+      # so that our onboarded_user is not treated as the first-time user when being served feed
+      not_me = insert(:user)
+      insert(:seen_profile, by_user: me, user: not_me, inserted_at: DateTime.utc_now())
+
       assert {:ok, %{}, _socket} = join(socket, "feed:" <> me.id)
 
       assert {:ok, %{"feed" => feed}, _socket} =
@@ -812,7 +816,11 @@ defmodule TWeb.FeedChannelTest do
       {:ok, stacy: stacy}
     end
 
-    test "more: private stories are blurred", %{socket: socket} do
+    test "more: private stories are blurred", %{me: me, socket: socket} do
+      # so that our onboarded_user is not treated as the first-time user when being served feed
+      not_me = insert(:user)
+      insert(:seen_profile, by_user: me, user: not_me, inserted_at: DateTime.utc_now())
+
       ref = push(socket, "more")
       assert_reply(ref, :ok, %{"feed" => feed})
 

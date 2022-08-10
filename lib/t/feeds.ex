@@ -62,10 +62,12 @@ defmodule T.Feeds do
   @feed_daily_limit 50
   @feed_limit_period 12 * 60 * 60
   @feed_profiles_recency_limit 60 * 24 * 60 * 60
+  @quality_likes_count_treshold 50
 
   def feed_fetch_count, do: @feed_fetch_count
   def feed_daily_limit, do: @feed_daily_limit
   def feed_limit_period, do: @feed_limit_period
+  def quality_likes_count_treshold, do: @quality_likes_count_treshold
 
   # TODO refactor
   @spec fetch_feed(
@@ -75,22 +77,41 @@ defmodule T.Feeds do
         ) :: [%FeedProfile{}] | {DateTime.t(), map}
   # TODO remove writes
   def fetch_feed(user_id, location, first_fetch) do
-    case fetch_feed_limit(user_id) do
-      %FeedLimit{} = feed_limit ->
-        return_feed_limit(feed_limit)
+    cond do
+      first_fetch and length(previously_feeded_profiles(user_id, location, @feed_daily_limit)) > 0 ->
+        previously_feeded_profiles(user_id, location, @feed_daily_limit)
 
-      nil ->
-        current_count = feed_limit_current_count(user_id)
+      true ->
+        case fetch_feed_limit(user_id) do
+          %FeedLimit{} = feed_limit ->
+            return_feed_limit(feed_limit)
 
-        cond do
-          current_count >= @feed_daily_limit ->
-            return_feed_limit(insert_feed_limit(user_id))
+          nil ->
+            current_count = feed_limit_current_count(user_id)
 
-          true ->
-            adjusted_count = min(@feed_daily_limit - current_count, @feed_fetch_count)
-            continue_feed(user_id, location, adjusted_count, first_fetch)
+            cond do
+              current_count >= @feed_daily_limit ->
+                return_feed_limit(insert_feed_limit(user_id))
+
+              current_count == 0 and first_time_user(user_id) ->
+                first_time_user_feed(user_id, location, @feed_daily_limit)
+
+              true ->
+                adjusted_count = min(@feed_daily_limit - current_count, @feed_fetch_count)
+                continue_feed(user_id, location, adjusted_count)
+            end
         end
     end
+  end
+
+  defp previously_feeded_profiles(user_id, location, count) do
+    FeededProfile
+    |> where(for_user_id: ^user_id)
+    |> join(:inner, [f], p in FeedProfile, on: f.user_id == p.user_id)
+    |> where([f, p], p.user_id in subquery(filtered_profiles_ids_q(user_id)))
+    |> limit(^count)
+    |> select([f, p], %{p | distance: distance_km(^location, p.location)})
+    |> Repo.all()
   end
 
   def fetch_feed_limit(user_id), do: FeedLimit |> where(user_id: ^user_id) |> Repo.one()
@@ -139,28 +160,32 @@ defmodule T.Feeds do
     |> length()
   end
 
-  defp continue_feed(user_id, location, count, first_fetch) do
-    feeded_ids =
-      FeededProfile |> where(for_user_id: ^user_id) |> select([f], f.user_id) |> Repo.all()
+  defp first_time_user(user_id) do
+    SeenProfile |> where(by_user_id: ^user_id) |> Repo.all() |> length() == 0 and
+      CalculatedFeed |> where(for_user_id: ^user_id) |> Repo.all() |> length() == 0
+  end
 
-    previously_feeded =
-      if first_fetch do
-        FeedProfile
-        |> where([p], p.user_id in ^feeded_ids)
-        |> where([p], p.user_id in subquery(filtered_profiles_ids_q(user_id)))
-        |> limit(^count)
-        |> select([p], %{p | distance: distance_km(^location, p.location)})
-        |> Repo.all()
-      else
-        []
-      end
+  defp first_time_user_feed(user_id, location, count) do
+    feed =
+      filtered_profiles_q(user_id)
+      |> where([p], p.times_liked >= ^@quality_likes_count_treshold)
+      |> where([p], fragment("jsonb_array_length(?) > 2", p.story))
+      |> order_by(fragment("location <-> ?::geometry", ^location))
+      |> limit(^count)
+      |> select([p], %{p | distance: distance_km(^location, p.location)})
+      |> Repo.all()
 
-    adjusted_count = max(0, count - length(previously_feeded))
+    mark_profiles_feeded(user_id, feed)
+    feed
+  end
+
+  defp continue_feed(user_id, location, count) do
+    feeded_ids_q = FeededProfile |> where(for_user_id: ^user_id) |> select([f], f.user_id)
 
     calculated_feed_ids =
       CalculatedFeed
       |> where(for_user_id: ^user_id)
-      |> where([p], p.user_id not in ^feeded_ids)
+      |> where([p], p.user_id not in subquery(feeded_ids_q))
       |> where([p], p.user_id in subquery(filtered_profiles_ids_q(user_id)))
       |> select([p], p.user_id)
       |> Repo.all()
@@ -168,21 +193,22 @@ defmodule T.Feeds do
     calculated_feed = preload_feed_profiles(calculated_feed_ids, user_id, location, count)
 
     default_feed =
-      if length(calculated_feed) < adjusted_count do
+      if length(calculated_feed) < count do
         default_feed(
           user_id,
-          calculated_feed_ids ++ feeded_ids,
+          calculated_feed_ids,
+          feeded_ids_q,
           location,
-          adjusted_count - length(calculated_feed)
+          count - length(calculated_feed)
         )
       else
         []
       end
 
-    new_feed = calculated_feed ++ default_feed
+    feed = calculated_feed ++ default_feed
 
-    mark_profiles_feeded(user_id, new_feed)
-    previously_feeded ++ new_feed
+    mark_profiles_feeded(user_id, feed)
+    feed
   end
 
   defp preload_feed_profiles(profile_ids, user_id, location, count) do
@@ -193,9 +219,10 @@ defmodule T.Feeds do
     |> Repo.all()
   end
 
-  defp default_feed(user_id, feeded_ids, location, count) do
+  defp default_feed(user_id, calculated_feed_ids, feeded_ids_q, location, count) do
     feed_profiles_q(user_id)
-    |> where([p], p.user_id not in ^feeded_ids)
+    |> where([p], p.user_id not in ^calculated_feed_ids)
+    |> where([p], p.user_id not in subquery(feeded_ids_q))
     |> order_by(fragment("location <-> ?::geometry", ^location))
     |> limit(^count)
     |> select([p], %{p | distance: distance_km(^location, p.location)})
@@ -285,7 +312,7 @@ defmodule T.Feeds do
 
   ### Onboarding Feed
 
-  def fetch_onboarding_feed(remote_ip, likes_count_treshold \\ 50) do
+  def fetch_onboarding_feed(remote_ip, likes_count_treshold \\ @quality_likes_count_treshold) do
     location =
       case remote_ip do
         nil ->

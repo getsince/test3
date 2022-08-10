@@ -10,6 +10,10 @@ defmodule T.FeedsTest do
   describe "fetch_feed/3" do
     setup do
       me = onboarded_user(location: moscow_location())
+      # so that our onboarded_user is not treated as the first-time user when being served feed
+      not_me = insert(:user)
+      inserted_at = DateTime.utc_now() |> DateTime.add(-Feeds.feed_limit_period())
+      insert(:seen_profile, by_user: me, user: not_me, inserted_at: inserted_at)
       {:ok, me: me}
     end
 

@@ -8,6 +8,10 @@ defmodule T.Feeds.SeenTest do
   describe "feed" do
     setup do
       me = onboarded_user(location: moscow_location())
+      # so that our onboarded_user is not treated as the first-time user when being served feed
+      not_me = insert(:user)
+      inserted_at = DateTime.utc_now() |> DateTime.add(-Feeds.feed_limit_period())
+      insert(:seen_profile, by_user: me, user: not_me, inserted_at: inserted_at)
       {:ok, me: me}
     end
 
@@ -64,17 +68,13 @@ defmodule T.Feeds.SeenTest do
 
       insert(:seen_profile, by_user: me, user: not_me, inserted_at: long_ago)
 
-      seen_profiles =
-        SeenProfile
-        |> T.Repo.all()
+      seen_profiles = SeenProfile |> where(by_user_id: ^me.id) |> T.Repo.all()
 
       assert length(seen_profiles) == 1
 
       Feeds.local_prune_seen_profiles(5)
 
-      seen_profiles_after =
-        SeenProfile
-        |> T.Repo.all()
+      seen_profiles_after = SeenProfile |> where(by_user_id: ^me.id) |> T.Repo.all()
 
       assert length(seen_profiles_after) == 0
     end

@@ -67,6 +67,7 @@ defmodule T.Feeds do
   def feed_fetch_count, do: @feed_fetch_count
   def feed_daily_limit, do: @feed_daily_limit
   def feed_limit_period, do: @feed_limit_period
+  def quality_likes_count_treshold, do: @quality_likes_count_treshold
 
   # TODO refactor
   @spec fetch_feed(

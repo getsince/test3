@@ -21,6 +21,39 @@ defmodule T.FeedsTest do
       assert [] == Feeds.fetch_feed(me.id, me.profile.location, true)
     end
 
+    test "for newly onboarded user" do
+      new_user = onboarded_user()
+
+      for _ <- 1..Feeds.feed_daily_limit(), do: onboarded_user()
+
+      for _ <- 1..Feeds.feed_daily_limit() do
+        u =
+          onboarded_user(
+            story: [
+              %{"background" => %{"s3_key" => "public1"}, "labels" => [], "size" => [400, 100]},
+              %{"background" => %{"s3_key" => "public2"}, "labels" => [], "size" => [400, 100]},
+              %{"background" => %{"s3_key" => "public2"}, "labels" => [], "size" => [400, 100]}
+            ]
+          )
+
+        FeedProfile
+        |> where(user_id: ^u.id)
+        |> update(set: [times_liked: ^Feeds.quality_likes_count_treshold()])
+        |> Repo.update_all([])
+      end
+
+      for _ <- 1..Feeds.feed_daily_limit(), do: onboarded_user()
+
+      feed = Feeds.fetch_feed(new_user.id, new_user.profile.location, true)
+
+      assert length(feed) == Feeds.feed_daily_limit()
+
+      for f <- feed do
+        assert length(f.story) > 2
+        assert f.times_liked >= Feeds.quality_likes_count_treshold()
+      end
+    end
+
     test "with feed_daily_limit reached", %{me: me} do
       for _ <- 1..Feeds.feed_daily_limit(), do: onboarded_user()
 

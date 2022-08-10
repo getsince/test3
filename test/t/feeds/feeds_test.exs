@@ -62,16 +62,16 @@ defmodule T.FeedsTest do
       assert length(feed) == Feeds.feed_fetch_count()
 
       # then we fetch feed on "more" command
-      for _ <- 3..Integer.floor_div(Feeds.feed_daily_limit(), Feeds.feed_fetch_count()) do
-        feed = Feeds.fetch_feed(me.id, me.profile.location, false)
-        assert length(feed) == Feeds.feed_fetch_count()
-      end
+      feed = Feeds.fetch_feed(me.id, me.profile.location, false)
+      assert length(feed) == Feeds.feed_fetch_count()
+
+      left_limit = Feeds.feed_daily_limit() - 2 * Feeds.feed_fetch_count()
 
       # to test the correct feed adjusted_count
       p = onboarded_user()
       Repo.insert(%SeenProfile{user_id: p.id, by_user_id: me.id})
       feed = Feeds.fetch_feed(me.id, me.profile.location, false)
-      assert length(feed) == Feeds.feed_fetch_count() - 1
+      assert length(feed) == left_limit - 1
 
       assert {%DateTime{}, [%{}] = _story} = Feeds.fetch_feed(me.id, me.profile.location, false)
     end

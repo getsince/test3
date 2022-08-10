@@ -59,7 +59,7 @@ defmodule T.Feeds do
   ### Feed
 
   @feed_fetch_count 10
-  @feed_daily_limit 50
+  @feed_daily_limit 25
   @feed_limit_period 12 * 60 * 60
   @feed_profiles_recency_limit 60 * 24 * 60 * 60
   @quality_likes_count_treshold 50

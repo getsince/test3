@@ -568,13 +568,13 @@ defmodule T.Feeds do
 
   @doc false
   @spec local_reset_feed_limit(%FeedLimit{}) :: :ok
-  def local_reset_feed_limit(feed_limit) do
+  def local_reset_feed_limit(%FeedLimit{user_id: user_id} = feed_limit) do
     Multi.new()
-    |> Multi.delete(:delete_feed_limit, feed_limit)
+    |> Multi.delete_all(:delete_feed_limit, FeedLimit |> where(user_id: ^user_id))
     |> maybe_schedule_push(feed_limit)
     |> Repo.transaction()
     |> case do
-      {:ok, _result} -> broadcast_for_user(feed_limit.user_id, {__MODULE__, :feed_limit_reset})
+      {:ok, _result} -> broadcast_for_user(user_id, {__MODULE__, :feed_limit_reset})
       {:error, _error} -> nil
     end
 

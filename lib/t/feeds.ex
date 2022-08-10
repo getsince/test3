@@ -77,25 +77,41 @@ defmodule T.Feeds do
         ) :: [%FeedProfile{}] | {DateTime.t(), map}
   # TODO remove writes
   def fetch_feed(user_id, location, first_fetch) do
-    case fetch_feed_limit(user_id) do
-      %FeedLimit{} = feed_limit ->
-        return_feed_limit(feed_limit)
+    cond do
+      first_fetch and length(previously_feeded_profiles(user_id, location, @feed_daily_limit)) > 0 ->
+        previously_feeded_profiles(user_id, location, @feed_daily_limit)
 
-      nil ->
-        current_count = feed_limit_current_count(user_id)
+      true ->
+        case fetch_feed_limit(user_id) do
+          %FeedLimit{} = feed_limit ->
+            return_feed_limit(feed_limit)
 
-        cond do
-          current_count >= @feed_daily_limit ->
-            return_feed_limit(insert_feed_limit(user_id))
+          nil ->
+            current_count = feed_limit_current_count(user_id)
 
-          current_count == 0 and first_time_user(user_id) ->
-            first_time_user_feed(user_id, location, @feed_daily_limit)
+            cond do
+              current_count >= @feed_daily_limit ->
+                return_feed_limit(insert_feed_limit(user_id))
 
-          true ->
-            adjusted_count = min(@feed_daily_limit - current_count, @feed_fetch_count)
-            continue_feed(user_id, location, adjusted_count, first_fetch)
+              current_count == 0 and first_time_user(user_id) ->
+                first_time_user_feed(user_id, location, @feed_daily_limit)
+
+              true ->
+                adjusted_count = min(@feed_daily_limit - current_count, @feed_fetch_count)
+                continue_feed(user_id, location, adjusted_count)
+            end
         end
     end
+  end
+
+  defp previously_feeded_profiles(user_id, location, count) do
+    FeededProfile
+    |> where(for_user_id: ^user_id)
+    |> join(:inner, [f], p in FeedProfile, on: f.user_id == p.user_id)
+    |> where([f, p], p.user_id in subquery(filtered_profiles_ids_q(user_id)))
+    |> limit(^count)
+    |> select([f, p], %{p | distance: distance_km(^location, p.location)})
+    |> Repo.all()
   end
 
   def fetch_feed_limit(user_id), do: FeedLimit |> where(user_id: ^user_id) |> Repo.one()
@@ -163,23 +179,9 @@ defmodule T.Feeds do
     feed
   end
 
-  defp continue_feed(user_id, location, count, first_fetch) do
+  defp continue_feed(user_id, location, count) do
     feeded_ids =
       FeededProfile |> where(for_user_id: ^user_id) |> select([f], f.user_id) |> Repo.all()
-
-    previously_feeded =
-      if first_fetch do
-        FeedProfile
-        |> where([p], p.user_id in ^feeded_ids)
-        |> where([p], p.user_id in subquery(filtered_profiles_ids_q(user_id)))
-        |> limit(^count)
-        |> select([p], %{p | distance: distance_km(^location, p.location)})
-        |> Repo.all()
-      else
-        []
-      end
-
-    adjusted_count = max(0, count - length(previously_feeded))
 
     calculated_feed_ids =
       CalculatedFeed
@@ -192,12 +194,12 @@ defmodule T.Feeds do
     calculated_feed = preload_feed_profiles(calculated_feed_ids, user_id, location, count)
 
     default_feed =
-      if length(calculated_feed) < adjusted_count do
+      if length(calculated_feed) < count do
         default_feed(
           user_id,
           calculated_feed_ids ++ feeded_ids,
           location,
-          adjusted_count - length(calculated_feed)
+          count - length(calculated_feed)
         )
       else
         []
@@ -206,7 +208,7 @@ defmodule T.Feeds do
     new_feed = calculated_feed ++ default_feed
 
     mark_profiles_feeded(user_id, new_feed)
-    previously_feeded ++ new_feed
+    new_feed
   end
 
   defp preload_feed_profiles(profile_ids, user_id, location, count) do

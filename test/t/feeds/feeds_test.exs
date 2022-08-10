@@ -73,7 +73,7 @@ defmodule T.FeedsTest do
       feed = Feeds.fetch_feed(me.id, me.profile.location, false)
       assert length(feed) == Feeds.feed_fetch_count() - 1
 
-      assert {%DateTime{}, [%{}] = _story} = Feeds.fetch_feed(me.id, me.profile.location, true)
+      assert {%DateTime{}, [%{}] = _story} = Feeds.fetch_feed(me.id, me.profile.location, false)
     end
 
     test "first_fetch", %{me: me} do
@@ -93,8 +93,9 @@ defmodule T.FeedsTest do
       assert feed == []
 
       # but on reentering the app gets feed again since none of it was really watched
+      # all the previously feeded profiles are returned at once
       feed = Feeds.fetch_feed(me.id, me.profile.location, true)
-      assert length(feed) == Feeds.feed_fetch_count()
+      assert length(feed) == Feeds.feed_fetch_count() * 2
     end
 
     test "with calculated_feed", %{me: me} do

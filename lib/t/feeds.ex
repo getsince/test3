@@ -89,7 +89,7 @@ defmodule T.Feeds do
             return_feed_limit(insert_feed_limit(user_id))
 
           current_count == 0 and first_time_user(user_id) ->
-            first_time_user_feed(location, @feed_daily_limit)
+            first_time_user_feed(user_id, location, @feed_daily_limit)
 
           true ->
             adjusted_count = min(@feed_daily_limit - current_count, @feed_fetch_count)
@@ -149,14 +149,18 @@ defmodule T.Feeds do
       CalculatedFeed |> where(for_user_id: ^user_id) |> Repo.all() |> length() == 0
   end
 
-  defp first_time_user_feed(location, count) do
-    not_hidden_profiles_q()
-    |> where([p], p.times_liked >= ^@quality_likes_count_treshold)
-    |> where([p], fragment("jsonb_array_length(?) > 2", p.story))
-    |> order_by(fragment("location <-> ?::geometry", ^location))
-    |> limit(^count)
-    |> select([p], %{p | distance: distance_km(^location, p.location)})
-    |> Repo.all()
+  defp first_time_user_feed(user_id, location, count) do
+    feed =
+      filtered_profiles_q(user_id)
+      |> where([p], p.times_liked >= ^@quality_likes_count_treshold)
+      |> where([p], fragment("jsonb_array_length(?) > 2", p.story))
+      |> order_by(fragment("location <-> ?::geometry", ^location))
+      |> limit(^count)
+      |> select([p], %{p | distance: distance_km(^location, p.location)})
+      |> Repo.all()
+
+    mark_profiles_feeded(user_id, feed)
+    feed
   end
 
   defp continue_feed(user_id, location, count, first_fetch) do

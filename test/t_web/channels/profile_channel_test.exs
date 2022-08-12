@@ -300,6 +300,11 @@ defmodule TWeb.ProfileChannelTest do
       assert user.profile.hidden? == false
       assert user.onboarded_at
     end
+
+    test "with support story", %{socket: socket, user: user} do
+      assert {:ok, %{support_story: story}, _socket} = join(socket, "profile:" <> user.id)
+      assert [%{"background" => _background, "labels" => _labels, "size" => _size}] = story
+    end
   end
 
   describe "upload-preflight" do

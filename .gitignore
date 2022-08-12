@@ -40,3 +40,5 @@ npm-debug.log
 
 events.sqlite*
 *.csv
+
+recreate_db

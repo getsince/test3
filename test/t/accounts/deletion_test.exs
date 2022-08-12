@@ -12,7 +12,7 @@ defmodule T.Accounts.DeletionTest do
     end
 
     test "profile and user are deleted", %{user: user} do
-      assert {:ok, %{delete_user: true}} = Accounts.delete_user(user.id)
+      assert {:ok, %{delete_user: true}} = Accounts.delete_user(user.id, nil)
       refute Repo.get(Accounts.User, user.id)
       refute Repo.get(Accounts.Profile, user.id)
     end
@@ -21,7 +21,7 @@ defmodule T.Accounts.DeletionTest do
       assert <<_::32-bytes>> = token = Accounts.generate_user_session_token(user, "mobile")
       assert [%Accounts.UserToken{token: ^token}] = Repo.all(Accounts.UserToken)
 
-      assert {:ok, %{delete_user: true}} = Accounts.delete_user(user.id)
+      assert {:ok, %{delete_user: true}} = Accounts.delete_user(user.id, "reason")
       assert [] == Repo.all(Accounts.UserToken)
     end
 
@@ -51,7 +51,9 @@ defmodule T.Accounts.DeletionTest do
                inserted_at: inserted_at
              }
 
-      assert {:ok, %{delete_user: true, unmatch: [true]}} = Accounts.delete_user(user.id)
+      assert {:ok, %{delete_user: true, unmatch: [true]}} =
+               Accounts.delete_user(user.id, "reason")
+
       assert_receive {Matches, :unmatched, ^match_id}
       assert [] == Matches.list_matches(p2.user_id, default_location())
     end

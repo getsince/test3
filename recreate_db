@@ -1,8 +1,0 @@
-#!/bin/bash      
-
-mix ecto.drop
-mix ecto.create
-cd
-pg_restore --no-owner --no-privileges -1 -h localhost -d t_dev -v -U postgres prod.dump
-cd since/test3
-mix ecto.migrate

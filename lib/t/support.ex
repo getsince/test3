@@ -36,7 +36,7 @@ defmodule T.Support do
                 "rotation" => 0
               }
             ],
-            "background" => %{"color" => "#111010"}
+            "background" => %{"color" => "#85e26a"}
           }
         ]
 
@@ -66,7 +66,7 @@ defmodule T.Support do
               },
               %{
                 "zoom" => 1.153968547422431,
-                "answer" => "getsinceapp",
+                "answer" => "getsince",
                 "center" => [194.85990113825812, 478.2110697759229],
                 "position" => [85.61754531560132, 450.90048082025874],
                 "question" => "telegram",
@@ -81,7 +81,7 @@ defmodule T.Support do
                 "rotation" => -0.0000000000000003670865283153256
               }
             ],
-            "background" => %{"color" => "#111010"}
+            "background" => %{"color" => "#85e26a"}
           }
         ]
     end

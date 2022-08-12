@@ -373,20 +373,20 @@ defmodule T.Accounts do
   end
 
   # TODO deactivate session
-  def delete_user(user_id) do
-    primary_rpc(__MODULE__, :local_delete_user, [user_id])
+  def delete_user(user_id, reason) do
+    primary_rpc(__MODULE__, :local_delete_user, [user_id, reason])
   end
 
   @doc false
-  def local_delete_user(user_id) do
+  def local_delete_user(user_id, reason) do
     {name, story, quality, date} = name_story_quality_date(user_id)
     story_string = story_to_string(story)
 
     m =
       if quality do
-        "deleted quality user #{name}, registration date #{date}, (#{user_id}), #{story_string}"
+        "deleted quality user #{name}, reason: #{reason}, registration date #{date}, (#{user_id}), #{story_string}"
       else
-        "deleted user #{name}, registration date #{date}, (#{user_id}), #{story_string}"
+        "deleted user #{name}, reason: #{reason}, registration date #{date}, (#{user_id}), #{story_string}"
       end
 
     Logger.warn(m)

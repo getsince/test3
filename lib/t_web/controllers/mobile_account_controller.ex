@@ -2,9 +2,11 @@ defmodule TWeb.MobileAccountController do
   use TWeb, :controller
   alias T.Accounts
 
-  def delete(conn, _params) do
+  def delete(conn, params) do
+    reason = params["reason"]
+    IO.inspect("reason #{reason}")
     %Accounts.User{} = user = conn.assigns.current_user
-    {:ok, %{session_tokens: tokens}} = Accounts.delete_user(user.id)
+    {:ok, %{session_tokens: tokens}} = Accounts.delete_user(user.id, reason)
 
     for token <- tokens do
       encoded = Accounts.UserToken.encoded_token(token)

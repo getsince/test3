@@ -2,7 +2,7 @@ defmodule TWeb.ProfileChannel do
   use TWeb, :channel
   alias T.Accounts.Profile
   alias T.{Accounts, Media, Spotify}
-  alias TWeb.{ErrorView, ProfileView}
+  alias TWeb.{ErrorView, ProfileView, ViewHelpers}
 
   @impl true
   def join("profile:" <> user_id, _params, socket) do
@@ -13,6 +13,8 @@ defmodule TWeb.ProfileChannel do
       reply = %{
         profile: render_profile(profile, version, screen_width),
         stickers: T.Media.known_stickers(),
+        support_story: render_story(T.Support.story(), version, screen_width),
+        # TODO remove?
         min_version: 1
       }
 
@@ -86,5 +88,9 @@ defmodule TWeb.ProfileChannel do
       screen_width: screen_width,
       version: version
     )
+  end
+
+  defp render_story(story, version, screen_width) do
+    ViewHelpers.postprocess_story(story, version, screen_width, :feed)
   end
 end

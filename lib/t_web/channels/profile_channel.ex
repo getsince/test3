@@ -80,30 +80,9 @@ defmodule TWeb.ProfileChannel do
     {:reply, Accounts.update_address(user_id, address), socket}
   end
 
-  # TODO remove
-  def handle_in("set-audio-only", _params, socket) do
-    {:reply, :ok, socket}
-  end
-
-  # TODO remove
-  def handle_in("profile-editor-tutorial", params, socket) do
-    %{screen_width: screen_width, version: version} = socket.assigns
-    id = params["id"] || "yabloko"
-    story = Accounts.profile_editor_tutorial(id)
-    {:reply, {:ok, %{story: render_editor_tutorial_story(story, version, screen_width)}}, socket}
-  end
-
   defp render_profile(profile, version, screen_width) do
     render(ProfileView, "show_with_location.json",
       profile: profile,
-      screen_width: screen_width,
-      version: version
-    )
-  end
-
-  defp render_editor_tutorial_story(story, version, screen_width) do
-    render(ProfileView, "editor_tutorial_story.json",
-      story: story,
       screen_width: screen_width,
       version: version
     )

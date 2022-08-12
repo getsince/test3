@@ -30,14 +30,6 @@ defmodule TWeb.ProfileView do
     |> Map.put(:longitude, lon(location))
   end
 
-  def render("editor_tutorial_story.json", %{
-        story: story,
-        screen_width: screen_width,
-        version: version
-      }) do
-    ViewHelpers.postprocess_story(story, version, screen_width, _env = :feed)
-  end
-
   defp lat(%Geo.Point{coordinates: {_lon, lat}}), do: lat
   defp lat(nil), do: nil
 

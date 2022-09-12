@@ -253,6 +253,19 @@ defmodule TWeb.FeedChannel do
     {:reply, reply, socket}
   end
 
+  # onboarding events
+
+  def handle_in(
+        "onboarding-event",
+        %{"timestamp" => timestamp, "stage" => stage, "event" => event},
+        socket
+      ) do
+    %{current_user: %{id: user_id}} = socket.assigns
+
+    reply = Accounts.save_onboarding_event(user_id, timestamp, stage, event)
+    {:reply, reply, socket}
+  end
+
   @impl true
   def handle_info({Matches, :liked, like}, socket) do
     %{screen_width: screen_width, version: version, location: location} = socket.assigns

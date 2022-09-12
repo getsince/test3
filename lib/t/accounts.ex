@@ -20,7 +20,8 @@ defmodule T.Accounts do
     UserReport,
     APNSDevice,
     GenderPreference,
-    AppleSignIn
+    AppleSignIn,
+    OnboardingEvent
   }
 
   alias T.PushNotifications.DispatchJob
@@ -826,5 +827,141 @@ defmodule T.Accounts do
   def local_schedule_upgrade_app_push(user_id) do
     job = DispatchJob.new(%{"type" => "upgrade_app", "user_id" => user_id})
     Oban.insert(job)
+  end
+
+  def save_onboarding_event(user_id, timestamp, stage, event) do
+    primary_rpc(__MODULE__, :local_save_onboarding_event, [user_id, timestamp, stage, event])
+    :ok
+  end
+
+  def local_save_onboarding_event(user_id, timestamp, stage, event) do
+    {:ok, datetime, 0} = DateTime.from_iso8601(timestamp)
+
+    Repo.insert!(%OnboardingEvent{
+      timestamp: datetime,
+      user_id: user_id,
+      stage: stage,
+      event: event
+    })
+
+    if event == "finished", do: count_onboarding_stats(user_id)
+  end
+
+  defp count_onboarding_stats(user_id) do
+    events = OnboardingEvent |> where(user_id: ^user_id) |> Repo.all()
+    feed_events = events |> Enum.filter(fn %OnboardingEvent{stage: stage} -> stage == "feed" end)
+
+    fields_events =
+      events |> Enum.filter(fn %OnboardingEvent{stage: stage} -> stage == "fields" end)
+
+    story_events =
+      events |> Enum.filter(fn %OnboardingEvent{stage: stage} -> stage == "story" end)
+
+    timestamps = Enum.map(events, fn %OnboardingEvent{timestamp: timestamp} -> timestamp end)
+    {start, finish} = timestamps |> Enum.min_max()
+    total = Float.ceil(DateTime.diff(finish, start) / 60, 2)
+
+    dummy_event = %OnboardingEvent{
+      timestamp: DateTime.utc_now(),
+      user_id: user_id,
+      stage: "feed",
+      event: "background"
+    }
+
+    {_event, active} =
+      Enum.reduce(events, {dummy_event, 0}, fn event, {previous_event, time_acc} ->
+        time =
+          if previous_event.event == "background" do
+            time_acc
+          else
+            time_acc + DateTime.diff(event.timestamp, previous_event.timestamp)
+          end
+
+        {event, time}
+      end)
+
+    active = Float.ceil(active / 60, 2)
+
+    sessions =
+      1 + Enum.count(events, fn %OnboardingEvent{event: event} -> event == "background" end)
+
+    feed_finish =
+      fields_events
+      |> Enum.map(fn %OnboardingEvent{timestamp: timestamp} -> timestamp end)
+      |> Enum.min()
+
+    feed_total = Float.ceil(DateTime.diff(feed_finish, start) / 60, 2)
+
+    {feed_event, feed_active} =
+      Enum.reduce(feed_events, {dummy_event, 0}, fn event, {previous_event, time_acc} ->
+        time =
+          if previous_event.event == "background" do
+            time_acc
+          else
+            time_acc + DateTime.diff(event.timestamp, previous_event.timestamp)
+          end
+
+        {event, time}
+      end)
+
+    feed_active =
+      Float.ceil(feed_active + DateTime.diff(feed_finish, feed_event.timestamp) / 60, 2)
+
+    feed_sessions =
+      1 + Enum.count(feed_events, fn %OnboardingEvent{event: event} -> event == "background" end)
+
+    fields_finish =
+      story_events
+      |> Enum.map(fn %OnboardingEvent{timestamp: timestamp} -> timestamp end)
+      |> Enum.min()
+
+    fields_total = Float.ceil(DateTime.diff(fields_finish, feed_finish) / 60, 2)
+
+    {fields_event, fields_active} =
+      Enum.reduce(fields_events, {dummy_event, 0}, fn event, {previous_event, time_acc} ->
+        time =
+          if previous_event.event == "background" do
+            time_acc
+          else
+            time_acc + DateTime.diff(event.timestamp, previous_event.timestamp)
+          end
+
+        {event, time}
+      end)
+
+    fields_active =
+      Float.ceil((fields_active + DateTime.diff(fields_finish, fields_event.timestamp)) / 60, 2)
+
+    fields_sessions =
+      1 +
+        Enum.count(fields_events, fn %OnboardingEvent{event: event} -> event == "background" end)
+
+    story_total = Float.ceil(DateTime.diff(finish, fields_finish) / 60, 2)
+
+    {story_event, story_active} =
+      Enum.reduce(story_events, {dummy_event, 0}, fn event, {previous_event, time_acc} ->
+        time =
+          if previous_event.event == "background" do
+            time_acc
+          else
+            time_acc + DateTime.diff(event.timestamp, previous_event.timestamp)
+          end
+
+        {event, time}
+      end)
+
+    story_active =
+      Float.ceil((story_active + DateTime.diff(finish, story_event.timestamp)) / 60, 2)
+
+    story_sessions =
+      1 + Enum.count(story_events, fn %OnboardingEvent{event: event} -> event == "background" end)
+
+    m =
+      "onboarding for #{user_id} took #{total} minutes (#{active} active) in #{sessions} session(s)
+    \nfeed: #{feed_total} minutes (#{feed_active} active) in #{feed_sessions} session(s)
+    \nfields: #{fields_total} minutes (#{fields_active} active) in #{fields_sessions} session(s)
+    \nstory: #{story_total} minutes (#{story_active} active) in #{story_sessions} session(s)"
+
+    Bot.async_post_message(m)
   end
 end

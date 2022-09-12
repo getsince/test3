@@ -847,8 +847,10 @@ defmodule T.Accounts do
     if event == "finished", do: count_onboarding_stats(user_id)
   end
 
-  defp count_onboarding_stats(user_id) do
-    events = OnboardingEvent |> where(user_id: ^user_id) |> Repo.all()
+  def count_onboarding_stats(user_id) do
+    events =
+      OnboardingEvent |> where(user_id: ^user_id) |> order_by(asc: :timestamp) |> Repo.all()
+
     feed_events = events |> Enum.filter(fn %OnboardingEvent{stage: stage} -> stage == "feed" end)
 
     fields_events =
@@ -905,7 +907,7 @@ defmodule T.Accounts do
       end)
 
     feed_active =
-      Float.ceil(feed_active + DateTime.diff(feed_finish, feed_event.timestamp) / 60, 2)
+      Float.ceil((feed_active + DateTime.diff(feed_finish, feed_event.timestamp)) / 60, 2)
 
     feed_sessions =
       1 + Enum.count(feed_events, fn %OnboardingEvent{event: event} -> event == "background" end)

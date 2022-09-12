@@ -859,7 +859,7 @@ defmodule T.Accounts do
 
     timestamps = Enum.map(events, fn %OnboardingEvent{timestamp: timestamp} -> timestamp end)
     {start, finish} = timestamps |> Enum.min_max()
-    total = div(DateTime.diff(finish, start), 60)
+    total = Float.ceil(DateTime.diff(finish, start) / 60, 2)
 
     dummy_event = %OnboardingEvent{
       timestamp: DateTime.utc_now(),
@@ -880,7 +880,7 @@ defmodule T.Accounts do
         {event, time}
       end)
 
-    active = div(active, 60)
+    active = Float.ceil(active / 60, 2)
 
     sessions =
       1 + Enum.count(events, fn %OnboardingEvent{event: event} -> event == "background" end)
@@ -890,7 +890,7 @@ defmodule T.Accounts do
       |> Enum.map(fn %OnboardingEvent{timestamp: timestamp} -> timestamp end)
       |> Enum.min()
 
-    feed_total = div(DateTime.diff(feed_finish, start), 60)
+    feed_total = Float.ceil(DateTime.diff(feed_finish, start) / 60, 2)
 
     {feed_event, feed_active} =
       Enum.reduce(feed_events, {dummy_event, 0}, fn event, {previous_event, time_acc} ->
@@ -904,7 +904,8 @@ defmodule T.Accounts do
         {event, time}
       end)
 
-    feed_active = div(feed_active + DateTime.diff(feed_finish, feed_event.timestamp), 60)
+    feed_active =
+      Float.ceil(feed_active + DateTime.diff(feed_finish, feed_event.timestamp) / 60, 2)
 
     feed_sessions =
       1 + Enum.count(feed_events, fn %OnboardingEvent{event: event} -> event == "background" end)
@@ -914,7 +915,7 @@ defmodule T.Accounts do
       |> Enum.map(fn %OnboardingEvent{timestamp: timestamp} -> timestamp end)
       |> Enum.min()
 
-    fields_total = div(DateTime.diff(fields_finish, feed_finish), 60)
+    fields_total = Float.ceil(DateTime.diff(fields_finish, feed_finish) / 60, 2)
 
     {fields_event, fields_active} =
       Enum.reduce(fields_events, {dummy_event, 0}, fn event, {previous_event, time_acc} ->
@@ -928,13 +929,14 @@ defmodule T.Accounts do
         {event, time}
       end)
 
-    fields_active = div(fields_active + DateTime.diff(fields_finish, fields_event.timestamp), 60)
+    fields_active =
+      Float.ceil((fields_active + DateTime.diff(fields_finish, fields_event.timestamp)) / 60, 2)
 
     fields_sessions =
       1 +
         Enum.count(fields_events, fn %OnboardingEvent{event: event} -> event == "background" end)
 
-    story_total = div(DateTime.diff(finish, fields_finish), 60)
+    story_total = Float.ceil(DateTime.diff(finish, fields_finish) / 60, 2)
 
     {story_event, story_active} =
       Enum.reduce(story_events, {dummy_event, 0}, fn event, {previous_event, time_acc} ->
@@ -948,7 +950,8 @@ defmodule T.Accounts do
         {event, time}
       end)
 
-    story_active = div(story_active + DateTime.diff(finish, story_event.timestamp), 60)
+    story_active =
+      Float.ceil((story_active + DateTime.diff(finish, story_event.timestamp)) / 60, 2)
 
     story_sessions =
       1 + Enum.count(story_events, fn %OnboardingEvent{event: event} -> event == "background" end)
@@ -959,7 +962,6 @@ defmodule T.Accounts do
     \nfields: #{fields_total} minutes (#{fields_active} active) in #{fields_sessions} session(s)
     \nstory: #{story_total} minutes (#{story_active} active) in #{story_sessions} session(s)"
 
-    Logger.warn(m)
     Bot.async_post_message(m)
   end
 end

@@ -3,7 +3,7 @@ defmodule T.Feeds.SeenTest do
   use Oban.Testing, repo: T.Repo
 
   alias T.Feeds
-  alias T.Feeds.SeenProfile
+  alias T.Feeds.{FeedFilter, SeenProfile}
 
   describe "feed" do
     setup do
@@ -16,18 +16,44 @@ defmodule T.Feeds.SeenTest do
     end
 
     test "seen profile is not returned in feed", %{me: me} do
-      assert [] == Feeds.fetch_feed(me.id, me.profile.location, true)
+      assert [] ==
+               Feeds.fetch_feed(
+                 me.id,
+                 me.profile.location,
+                 _gender = "M",
+                 _feed_filter = %FeedFilter{
+                   genders: ["F"],
+                   min_age: nil,
+                   max_age: nil,
+                   distance: nil
+                 },
+                 true
+               )
 
       now = DateTime.utc_now()
 
-      insert_list(10, :profile,
-        gender: "F",
-        hidden?: false,
-        last_active: now
-      )
+      for _ <- 1..10 do
+        onboarded_user(
+          gender: "F",
+          hidden?: false,
+          last_active: now
+        )
+      end
 
       # I get the feed, nobody is "seen"
-      assert not_seen = Feeds.fetch_feed(me.id, me.profile.location, true)
+      assert not_seen =
+               Feeds.fetch_feed(
+                 me.id,
+                 me.profile.location,
+                 _gender = "M",
+                 _feed_filter = %FeedFilter{
+                   genders: ["F"],
+                   min_age: nil,
+                   max_age: nil,
+                   distance: nil
+                 },
+                 true
+               )
 
       assert length(not_seen) == 10
 
@@ -41,7 +67,19 @@ defmodule T.Feeds.SeenTest do
       end)
 
       # then I get feed again, and those profiles I've seen are marked as "seen"
-      assert loaded = Feeds.fetch_feed(me.id, me.profile.location, true)
+      assert loaded =
+               Feeds.fetch_feed(
+                 me.id,
+                 me.profile.location,
+                 _gender = "M",
+                 _feed_filter = %FeedFilter{
+                   genders: ["F"],
+                   min_age: nil,
+                   max_age: nil,
+                   distance: nil
+                 },
+                 true
+               )
 
       assert length(loaded) == 7
       # TODO

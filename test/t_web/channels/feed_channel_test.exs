@@ -1,7 +1,7 @@
 defmodule TWeb.FeedChannelTest do
   use TWeb.ChannelCase, async: true
 
-  alias T.{Accounts, Matches}
+  alias T.{Accounts, Matches, Feeds}
   alias Matches.{Match, Interaction}
 
   setup do
@@ -466,6 +466,232 @@ defmodule TWeb.FeedChannelTest do
                "zoom" => 0.7091569071880537
              }
     end
+
+    test "with age filter" do
+      me =
+        onboarded_user(
+          location: moscow_location(),
+          gender: "M",
+          accept_genders: ["F"],
+          min_age: 20,
+          max_age: 40
+        )
+
+      # so that our onboarded_user is not treated as the first-time user when being served feed
+      not_me = insert(:user)
+      inserted_at = DateTime.utc_now() |> DateTime.add(-Feeds.feed_limit_period())
+      insert(:seen_profile, by_user: me, user: not_me, inserted_at: inserted_at)
+
+      socket = connected_socket(me)
+
+      assert {:ok, _reply, socket} =
+               subscribe_and_join(socket, "feed:" <> me.id, %{"mode" => "normal"})
+
+      now = DateTime.utc_now()
+
+      [_m1, m2, _m3] = [
+        onboarded_user(
+          name: "mate-1",
+          location: apple_location(),
+          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
+          gender: "F",
+          accept_genders: ["M"],
+          birthdate: Date.add(now, -19 * 365)
+        ),
+        onboarded_user(
+          name: "mate-2",
+          location: apple_location(),
+          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
+          gender: "F",
+          accept_genders: ["M"],
+          birthdate: Date.add(now, -30 * 365)
+        ),
+        onboarded_user(
+          name: "mate-3",
+          location: apple_location(),
+          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
+          gender: "F",
+          accept_genders: ["M"],
+          birthdate: Date.add(now, -50 * 365)
+        )
+      ]
+
+      ref = push(socket, "more")
+      assert_reply(ref, :ok, %{"feed" => feed})
+
+      assert feed == [
+               %{
+                 "profile" => %{
+                   user_id: m2.id,
+                   name: "mate-2",
+                   gender: "F",
+                   story: [
+                     %{
+                       "background" => %{
+                         "proxy" =>
+                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
+                         "s3_key" => "test"
+                       },
+                       "labels" => []
+                     }
+                   ],
+                   distance: 9510,
+                   address: %{
+                     "en_US" => %{
+                       "city" => "Buenos Aires",
+                       "state" => "Autonomous City of Buenos Aires",
+                       "country" => "Argentina",
+                       "iso_country_code" => "AR"
+                     }
+                   }
+                 }
+               }
+             ]
+    end
+
+    test "with distance filter" do
+      me =
+        onboarded_user(
+          location: moscow_location(),
+          gender: "M",
+          accept_genders: ["F"],
+          distance: 10
+        )
+
+      # so that our onboarded_user is not treated as the first-time user when being served feed
+      not_me = insert(:user)
+      inserted_at = DateTime.utc_now() |> DateTime.add(-Feeds.feed_limit_period())
+      insert(:seen_profile, by_user: me, user: not_me, inserted_at: inserted_at)
+
+      socket = connected_socket(me)
+
+      assert {:ok, _reply, socket} =
+               subscribe_and_join(socket, "feed:" <> me.id, %{"mode" => "normal"})
+
+      [m1, m2] = [
+        onboarded_user(
+          name: "mate-1",
+          location: apple_location(),
+          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
+          gender: "F",
+          accept_genders: ["M"]
+        ),
+        onboarded_user(
+          name: "mate-2",
+          location: moscow_location(),
+          story: [%{"background" => %{"s3_key" => "test"}, "labels" => []}],
+          gender: "F",
+          accept_genders: ["M"]
+        )
+      ]
+
+      ref = push(socket, "more")
+      assert_reply(ref, :ok, %{"feed" => feed})
+
+      assert feed == [
+               %{
+                 "profile" => %{
+                   user_id: m2.id,
+                   name: "mate-2",
+                   gender: "F",
+                   story: [
+                     %{
+                       "background" => %{
+                         "proxy" =>
+                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
+                         "s3_key" => "test"
+                       },
+                       "labels" => []
+                     }
+                   ],
+                   distance: 0,
+                   address: %{
+                     "en_US" => %{
+                       "city" => "Buenos Aires",
+                       "state" => "Autonomous City of Buenos Aires",
+                       "country" => "Argentina",
+                       "iso_country_code" => "AR"
+                     }
+                   }
+                 }
+               }
+             ]
+
+      me =
+        onboarded_user(
+          location: moscow_location(),
+          accept_genders: ["F"],
+          distance: 20000
+        )
+
+      # so that our onboarded_user is not treated as the first-time user when being served feed
+      not_me = insert(:user)
+      inserted_at = DateTime.utc_now() |> DateTime.add(-Feeds.feed_limit_period())
+      insert(:seen_profile, by_user: me, user: not_me, inserted_at: inserted_at)
+
+      socket = connected_socket(me)
+
+      assert {:ok, _reply, socket} =
+               subscribe_and_join(socket, "feed:" <> me.id, %{"mode" => "normal"})
+
+      ref = push(socket, "more", %{"count" => 3})
+      assert_reply(ref, :ok, %{"feed" => feed})
+
+      assert feed == [
+               %{
+                 "profile" => %{
+                   user_id: m2.id,
+                   name: "mate-2",
+                   gender: "F",
+                   story: [
+                     %{
+                       "background" => %{
+                         "proxy" =>
+                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
+                         "s3_key" => "test"
+                       },
+                       "labels" => []
+                     }
+                   ],
+                   distance: 0,
+                   address: %{
+                     "en_US" => %{
+                       "city" => "Buenos Aires",
+                       "state" => "Autonomous City of Buenos Aires",
+                       "country" => "Argentina",
+                       "iso_country_code" => "AR"
+                     }
+                   }
+                 }
+               },
+               %{
+                 "profile" => %{
+                   user_id: m1.id,
+                   name: "mate-1",
+                   gender: "F",
+                   story: [
+                     %{
+                       "background" => %{
+                         "proxy" =>
+                           "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
+                         "s3_key" => "test"
+                       },
+                       "labels" => []
+                     }
+                   ],
+                   distance: 9510,
+                   address: %{
+                     "en_US" => %{
+                       "city" => "Buenos Aires",
+                       "state" => "Autonomous City of Buenos Aires",
+                       "country" => "Argentina",
+                       "iso_country_code" => "AR"
+                     }
+                   }
+                 }
+               }
+             ]
+    end
   end
 
   describe "like" do
@@ -763,6 +989,21 @@ defmodule TWeb.FeedChannelTest do
                report = Repo.get_by(Accounts.UserReport, from_user_id: me.id, on_user_id: mate.id)
 
       assert report.reason == "he don't believe in jesus"
+    end
+  end
+
+  describe "feed filter" do
+    setup :joined
+
+    test "is refetched when profile is updated", %{me: me, socket: socket} do
+      %{feed_filter: initial_filter} = socket.assigns
+      user_id = me.id
+
+      Accounts.subscribe_for_user(user_id)
+      Accounts.update_profile(me.id, %{"min_age" => 31})
+
+      new_filter = %T.Feeds.FeedFilter{initial_filter | min_age: 31}
+      assert_receive {Accounts, :feed_filter_updated, ^new_filter}
     end
   end
 

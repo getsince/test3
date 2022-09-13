@@ -122,7 +122,7 @@ defmodule T.Factory do
       birthdate: opts[:birthdate] || "1998-10-28",
       gender: gender,
       name: opts[:name] || "that",
-      gender_preference: opts[:accept_genders] || ["F"],
+      gender_preference: opts[:accept_genders] || ["F", "M", "N"],
       distance: opts[:distance],
       address:
         opts[:address] ||

@@ -170,7 +170,7 @@ defmodule TWeb.ProfileChannelTest do
                  }
                ],
                gender: "M",
-               gender_preference: ["F"],
+               gender_preference: ["F", "M", "N"],
                distance: nil,
                max_age: nil,
                min_age: nil,

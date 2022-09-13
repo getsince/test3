@@ -37,6 +37,10 @@ defmodule T.Accounts do
     Phoenix.PubSub.subscribe(@pubsub, pubsub_user_topic(user_id))
   end
 
+  defp broadcast_for_user(user_id, message) do
+    Phoenix.PubSub.broadcast(@pubsub, pubsub_user_topic(user_id), message)
+  end
+
   # def subscribe_to_new_users do
   #   Phoenix.PubSub.subscribe(T.PubSub, "new_users")
   # end
@@ -658,7 +662,7 @@ defmodule T.Accounts do
     |> Multi.update(:profile, fn %{user: %{profile: profile}} ->
       Profile.changeset(profile, attrs, validate_required?: true)
     end)
-    |> maybe_update_profile_gender_preferences(user_id, attrs)
+    |> maybe_update_profile_gender_preference(user_id, attrs)
     |> Multi.run(:mark_onboarded, fn repo, %{user: user} ->
       {1, nil} =
         User
@@ -680,7 +684,7 @@ defmodule T.Accounts do
     |> Repo.transaction()
     |> case do
       {:ok, changes} ->
-        %{user: user, profile: %Profile{} = profile, gender_preferences: genders} = changes
+        %{user: user, profile: %Profile{} = profile, gender_preference: genders} = changes
         story_string = story_to_string(profile.story)
 
         m = "user #{profile.name} (#{user.id}) onboarded with story #{story_string}"
@@ -716,7 +720,7 @@ defmodule T.Accounts do
       fn %{old_profile: profile} -> Profile.changeset(profile, attrs) end,
       returning: true
     )
-    |> maybe_update_profile_gender_preferences(user_id, attrs)
+    |> maybe_update_profile_gender_preference(user_id, attrs)
     |> Multi.run(:maybe_unhide, fn _repo, %{profile: profile} ->
       has_story? = !!profile.story
       hidden? = profile.hidden?
@@ -737,7 +741,18 @@ defmodule T.Accounts do
     |> Repo.transaction()
     |> case do
       {:ok, changes} ->
-        %{profile: profile, gender_preferences: genders} = changes
+        %{profile: profile, gender_preference: genders} = changes
+
+        broadcast_for_user(
+          profile.user_id,
+          {__MODULE__, :feed_filter_updated,
+           %T.Feeds.FeedFilter{
+             genders: genders,
+             min_age: profile.min_age,
+             max_age: profile.max_age,
+             distance: profile.distance
+           }}
+        )
 
         {:ok, %Profile{profile | gender_preference: genders}}
 
@@ -746,9 +761,9 @@ defmodule T.Accounts do
     end
   end
 
-  defp maybe_update_profile_gender_preferences(multi, user_id, attrs)
+  defp maybe_update_profile_gender_preference(multi, user_id, attrs)
        when is_map(attrs) do
-    maybe_update_profile_gender_preferences(
+    maybe_update_profile_gender_preference(
       multi,
       user_id,
       attrs[:gender_preference] || attrs["gender_preference"]
@@ -756,9 +771,9 @@ defmodule T.Accounts do
   end
 
   # TODO test
-  defp maybe_update_profile_gender_preferences(multi, user_id, new_genders)
+  defp maybe_update_profile_gender_preference(multi, user_id, new_genders)
        when is_list(new_genders) do
-    Multi.run(multi, :gender_preferences, fn _repo, _changes ->
+    Multi.run(multi, :gender_preference, fn _repo, _changes ->
       old_genders =
         GenderPreference
         |> where(user_id: ^user_id)
@@ -782,8 +797,8 @@ defmodule T.Accounts do
     end)
   end
 
-  defp maybe_update_profile_gender_preferences(multi, user_id, _attrs) do
-    Multi.run(multi, :gender_preferences, fn _repo, _changes ->
+  defp maybe_update_profile_gender_preference(multi, user_id, _attrs) do
+    Multi.run(multi, :gender_preference, fn _repo, _changes ->
       genders =
         GenderPreference
         |> where(user_id: ^user_id)
@@ -799,6 +814,13 @@ defmodule T.Accounts do
     |> where(user_id: ^user_id)
     |> select([p], {p.location, p.gender, p.hidden?})
     |> Repo.one!()
+  end
+
+  def list_gender_preference(user_id) do
+    GenderPreference
+    |> where(user_id: ^user_id)
+    |> select([p], p.gender)
+    |> Repo.all()
   end
 
   defp maybe_unhide_profile_with_story(user_id) when is_binary(user_id) do

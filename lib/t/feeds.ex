@@ -12,13 +12,14 @@ defmodule T.Feeds do
 
   alias T.Repo
 
-  alias T.Accounts.UserReport
+  alias T.Accounts.{Profile, UserReport, GenderPreference}
   alias T.Matches.{Match, Like}
 
   alias T.Feeds.{
     FeedProfile,
     SeenProfile,
     FeededProfile,
+    FeedFilter,
     FeedLimit,
     CalculatedFeed,
     FeedLimitResetJob
@@ -61,7 +62,7 @@ defmodule T.Feeds do
   @feed_fetch_count 10
   @feed_daily_limit 25
   @feed_limit_period 12 * 60 * 60
-  @feed_profiles_recency_limit 60 * 24 * 60 * 60
+  @feed_profiles_recency_limit 90 * 24 * 60 * 60
   @quality_likes_count_treshold 50
 
   def feed_fetch_count, do: @feed_fetch_count
@@ -73,13 +74,32 @@ defmodule T.Feeds do
   @spec fetch_feed(
           Ecto.UUID.t(),
           Geo.Point.t(),
+          String.t(),
+          %FeedFilter{},
           String.t() | nil
         ) :: [%FeedProfile{}] | {DateTime.t(), map}
   # TODO remove writes
-  def fetch_feed(user_id, location, first_fetch) do
+  def fetch_feed(user_id, location, gender, feed_filter, first_fetch) do
+    %FeedFilter{genders: gender_preference} = feed_filter
+
     cond do
-      first_fetch and length(previously_feeded_profiles(user_id, location, @feed_daily_limit)) > 0 ->
-        previously_feeded_profiles(user_id, location, @feed_daily_limit)
+      first_fetch and
+          length(
+            previously_feeded_profiles(
+              user_id,
+              location,
+              gender,
+              gender_preference,
+              @feed_daily_limit
+            )
+          ) > 0 ->
+        previously_feeded_profiles(
+          user_id,
+          location,
+          gender,
+          gender_preference,
+          @feed_daily_limit
+        )
 
       true ->
         case fetch_feed_limit(user_id) do
@@ -94,21 +114,24 @@ defmodule T.Feeds do
                 return_feed_limit(insert_feed_limit(user_id))
 
               current_count == 0 and first_time_user(user_id) ->
-                first_time_user_feed(user_id, location, @feed_daily_limit)
+                first_time_user_feed(user_id, location, gender, feed_filter, @feed_daily_limit)
 
               true ->
                 adjusted_count = min(@feed_daily_limit - current_count, @feed_fetch_count)
-                continue_feed(user_id, location, adjusted_count)
+                continue_feed(user_id, location, gender, feed_filter, adjusted_count)
             end
         end
     end
   end
 
-  defp previously_feeded_profiles(user_id, location, count) do
+  defp previously_feeded_profiles(user_id, location, gender, gender_preference, count) do
     FeededProfile
     |> where(for_user_id: ^user_id)
     |> join(:inner, [f], p in FeedProfile, on: f.user_id == p.user_id)
-    |> where([f, p], p.user_id in subquery(filtered_profiles_ids_q(user_id)))
+    |> where(
+      [f, p],
+      p.user_id in subquery(filtered_profiles_ids_q(user_id, gender, gender_preference))
+    )
     |> limit(^count)
     |> select([f, p], %{p | distance: distance_km(^location, p.location)})
     |> Repo.all()
@@ -165,12 +188,21 @@ defmodule T.Feeds do
       CalculatedFeed |> where(for_user_id: ^user_id) |> Repo.all() |> length() == 0
   end
 
-  defp first_time_user_feed(user_id, location, count) do
+  defp first_time_user_feed(user_id, location, gender, feed_filter, count) do
+    %FeedFilter{
+      genders: gender_preference,
+      min_age: min_age,
+      max_age: max_age,
+      distance: distance
+    } = feed_filter
+
     feed =
-      filtered_profiles_q(user_id)
+      filtered_profiles_q(user_id, gender, gender_preference)
       |> where([p], p.times_liked >= ^@quality_likes_count_treshold)
       |> where([p], fragment("jsonb_array_length(?) > 2", p.story))
       |> order_by(fragment("location <-> ?::geometry", ^location))
+      |> maybe_apply_age_filters(min_age, max_age)
+      |> maybe_apply_distance_filter(location, distance)
       |> limit(^count)
       |> select([p], %{p | distance: distance_km(^location, p.location)})
       |> Repo.all()
@@ -179,18 +211,31 @@ defmodule T.Feeds do
     feed
   end
 
-  defp continue_feed(user_id, location, count) do
+  defp continue_feed(user_id, location, gender, feed_filter, count) do
+    %FeedFilter{genders: gender_preference} = feed_filter
+
     feeded_ids_q = FeededProfile |> where(for_user_id: ^user_id) |> select([f], f.user_id)
 
     calculated_feed_ids =
       CalculatedFeed
       |> where(for_user_id: ^user_id)
       |> where([p], p.user_id not in subquery(feeded_ids_q))
-      |> where([p], p.user_id in subquery(filtered_profiles_ids_q(user_id)))
+      |> where(
+        [p],
+        p.user_id in subquery(filtered_profiles_ids_q(user_id, gender, gender_preference))
+      )
       |> select([p], p.user_id)
       |> Repo.all()
 
-    calculated_feed = preload_feed_profiles(calculated_feed_ids, user_id, location, count)
+    calculated_feed =
+      preload_feed_profiles(
+        calculated_feed_ids,
+        user_id,
+        location,
+        gender,
+        feed_filter,
+        count
+      )
 
     default_feed =
       if length(calculated_feed) < count do
@@ -199,6 +244,8 @@ defmodule T.Feeds do
           calculated_feed_ids,
           feeded_ids_q,
           location,
+          gender,
+          feed_filter,
           count - length(calculated_feed)
         )
       else
@@ -211,22 +258,79 @@ defmodule T.Feeds do
     feed
   end
 
-  defp preload_feed_profiles(profile_ids, user_id, location, count) do
-    feed_profiles_q(user_id)
+  defp preload_feed_profiles(profile_ids, user_id, location, gender, feed_filter, count) do
+    %FeedFilter{
+      genders: gender_preference,
+      min_age: min_age,
+      max_age: max_age,
+      distance: distance
+    } = feed_filter
+
+    feed_profiles_q(user_id, gender, gender_preference)
     |> where([p], p.user_id in ^profile_ids)
+    |> maybe_apply_age_filters(min_age, max_age)
+    |> maybe_apply_distance_filter(location, distance)
     |> limit(^count)
     |> select([p], %{p | distance: distance_km(^location, p.location)})
     |> Repo.all()
   end
 
-  defp default_feed(user_id, calculated_feed_ids, feeded_ids_q, location, count) do
-    feed_profiles_q(user_id)
+  defp default_feed(
+         user_id,
+         calculated_feed_ids,
+         feeded_ids_q,
+         location,
+         gender,
+         feed_filter,
+         count
+       ) do
+    %FeedFilter{
+      genders: gender_preference,
+      min_age: min_age,
+      max_age: max_age,
+      distance: distance
+    } = feed_filter
+
+    feed_profiles_q(user_id, gender, gender_preference)
     |> where([p], p.user_id not in ^calculated_feed_ids)
     |> where([p], p.user_id not in subquery(feeded_ids_q))
     |> order_by(fragment("location <-> ?::geometry", ^location))
+    |> maybe_apply_age_filters(min_age, max_age)
+    |> maybe_apply_distance_filter(location, distance)
     |> limit(^count)
     |> select([p], %{p | distance: distance_km(^location, p.location)})
     |> Repo.all()
+  end
+
+  defp maybe_apply_age_filters(query, min_age, max_age) do
+    query
+    |> maybe_apply_min_age_filer(min_age)
+    |> maybe_apply_max_age_filer(max_age)
+  end
+
+  defp maybe_apply_min_age_filer(query, min_age) do
+    if min_age do
+      where(query, [p], p.birthdate <= fragment("now() - ? * interval '1y'", ^min_age))
+    else
+      query
+    end
+  end
+
+  defp maybe_apply_max_age_filer(query, max_age) do
+    if max_age do
+      where(query, [p], p.birthdate >= fragment("now() - ? * interval '1y'", ^max_age))
+    else
+      query
+    end
+  end
+
+  defp maybe_apply_distance_filter(query, location, distance) do
+    if distance do
+      meters = distance * 1000
+      where(query, [p], st_dwithin_in_meters(^location, p.location, ^meters))
+    else
+      query
+    end
   end
 
   defp mark_profiles_feeded(for_user_id, feed_profiles) do
@@ -246,6 +350,27 @@ defmodule T.Feeds do
     Repo.insert_all(FeededProfile, data, on_conflict: :nothing)
   end
 
+  def empty_feeded_profiles(user_id) do
+    primary_rpc(__MODULE__, :local_empty_feeded_profiles, [user_id])
+  end
+
+  @doc false
+  def local_empty_feeded_profiles(user_id) do
+    FeededProfile |> where(for_user_id: ^user_id) |> Repo.delete_all()
+  end
+
+  def get_feed_filter(user_id) do
+    genders = T.Accounts.list_gender_preference(user_id)
+
+    {min_age, max_age, distance} =
+      Profile
+      |> where(user_id: ^user_id)
+      |> select([p], {p.min_age, p.max_age, p.distance})
+      |> Repo.one!()
+
+    %FeedFilter{genders: genders, min_age: min_age, max_age: max_age, distance: distance}
+  end
+
   @spec get_mate_feed_profile(Ecto.UUID.t(), Geo.Point.t()) :: %FeedProfile{} | nil
   def get_mate_feed_profile(user_id, location) do
     not_hidden_profiles_q()
@@ -254,10 +379,10 @@ defmodule T.Feeds do
     |> Repo.one()
   end
 
-  defp feed_profiles_q(user_id) do
+  defp feed_profiles_q(user_id, gender, gender_preference) do
     treshold_date = DateTime.utc_now() |> DateTime.add(-@feed_profiles_recency_limit, :second)
 
-    filtered_profiles_q(user_id)
+    filtered_profiles_q(user_id, gender, gender_preference)
     |> where([p], p.user_id != ^user_id)
     |> where([p], p.last_active > ^treshold_date)
   end
@@ -298,16 +423,34 @@ defmodule T.Feeds do
     where(query, [p], p.user_id not in subquery(seen_user_ids_q(user_id)))
   end
 
-  defp filtered_profiles_q(user_id) do
+  defp profiles_that_accept_gender_q(query, gender) do
+    if gender do
+      join(query, :inner, [p], gp in GenderPreference,
+        on: gp.gender == ^gender and p.user_id == gp.user_id
+      )
+    else
+      query
+    end
+  end
+
+  defp maybe_gender_preferenced_q(query, _no_preferences = []), do: query
+
+  defp maybe_gender_preferenced_q(query, gender_preference) do
+    where(query, [p], p.gender in ^gender_preference)
+  end
+
+  defp filtered_profiles_q(user_id, gender, gender_preference) do
     not_hidden_profiles_q()
     |> not_reported_profiles_q(user_id)
     |> not_liked_profiles_q(user_id)
     |> not_liker_profiles_q(user_id)
     |> not_seen_profiles_q(user_id)
+    |> profiles_that_accept_gender_q(gender)
+    |> maybe_gender_preferenced_q(gender_preference)
   end
 
-  defp filtered_profiles_ids_q(user_id) do
-    filtered_profiles_q(user_id) |> select([p], p.user_id)
+  defp filtered_profiles_ids_q(user_id, gender, gender_preference) do
+    filtered_profiles_q(user_id, gender, gender_preference) |> select([p], p.user_id)
   end
 
   ### Onboarding Feed

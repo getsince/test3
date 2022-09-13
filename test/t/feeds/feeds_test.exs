@@ -3,7 +3,7 @@ defmodule T.FeedsTest do
   use Oban.Testing, repo: T.Repo
 
   alias T.Feeds
-  alias T.Feeds.{FeedProfile, SeenProfile, CalculatedFeed}
+  alias T.Feeds.{FeedProfile, FeedFilter, SeenProfile, CalculatedFeed}
 
   doctest Feeds, import: true
 
@@ -18,7 +18,77 @@ defmodule T.FeedsTest do
     end
 
     test "with no data in db", %{me: me} do
-      assert [] == Feeds.fetch_feed(me.id, me.profile.location, true)
+      assert [] ==
+               Feeds.fetch_feed(
+                 me.id,
+                 me.profile.location,
+                 _gender = "M",
+                 _feed_filter = %FeedFilter{
+                   genders: ["F"],
+                   min_age: nil,
+                   max_age: nil,
+                   distance: nil
+                 },
+                 _first_fetch = true
+               )
+    end
+
+    test "with no active users", %{me: me} do
+      insert_list(3, :profile, gender: "F")
+
+      assert [] ==
+               Feeds.fetch_feed(
+                 me.id,
+                 me.profile.location,
+                 _gender = "M",
+                 _feed_filter = %FeedFilter{
+                   genders: ["F"],
+                   min_age: nil,
+                   max_age: nil,
+                   distance: nil
+                 },
+                 _first_fetch = true
+               )
+    end
+
+    test "with no users of preferred gender", %{me: me} do
+      _others = insert_list(3, :profile, gender: "M")
+
+      assert [] ==
+               Feeds.fetch_feed(
+                 me.id,
+                 me.profile.location,
+                 _gender = "M",
+                 _feed_filter = %FeedFilter{
+                   genders: ["F"],
+                   min_age: nil,
+                   max_age: nil,
+                   distance: nil
+                 },
+                 _first_fetch = true
+               )
+    end
+
+    test "with users of preferred gender but not interested", %{me: me} do
+      others = insert_list(3, :profile, gender: "F")
+
+      for profile <- others do
+        insert(:gender_preference, user_id: profile.user_id, gender: "F")
+      end
+
+      assert [] ==
+               Feeds.fetch_feed(
+                 me.id,
+                 me.profile.location,
+                 _gender = "M",
+                 _feed_filter = %FeedFilter{
+                   genders: ["F"],
+                   min_age: nil,
+                   max_age: nil,
+                   distance: nil
+                 },
+                 _first_fetch = true
+               )
     end
 
     test "for newly onboarded user" do
@@ -44,7 +114,19 @@ defmodule T.FeedsTest do
 
       for _ <- 1..Feeds.feed_daily_limit(), do: onboarded_user()
 
-      feed = Feeds.fetch_feed(new_user.id, new_user.profile.location, true)
+      feed =
+        Feeds.fetch_feed(
+          new_user.id,
+          new_user.profile.location,
+          new_user.profile.gender,
+          _feed_filter = %FeedFilter{
+            genders: ["F", "M", "N"],
+            min_age: nil,
+            max_age: nil,
+            distance: nil
+          },
+          true
+        )
 
       assert length(feed) == Feeds.feed_daily_limit()
 
@@ -58,11 +140,37 @@ defmodule T.FeedsTest do
       for _ <- 1..Feeds.feed_daily_limit(), do: onboarded_user()
 
       # first we fetch feed on channel join
-      feed = Feeds.fetch_feed(me.id, me.profile.location, true)
+      feed =
+        Feeds.fetch_feed(
+          me.id,
+          me.profile.location,
+          _gender = "M",
+          _feed_filter = %FeedFilter{
+            genders: ["F", "M", "N"],
+            min_age: nil,
+            max_age: nil,
+            distance: nil
+          },
+          true
+        )
+
       assert length(feed) == Feeds.feed_fetch_count()
 
       # then we fetch feed on "more" command
-      feed = Feeds.fetch_feed(me.id, me.profile.location, false)
+      feed =
+        Feeds.fetch_feed(
+          me.id,
+          me.profile.location,
+          _gender = "M",
+          _feed_filter = %FeedFilter{
+            genders: ["F", "M", "N"],
+            min_age: nil,
+            max_age: nil,
+            distance: nil
+          },
+          false
+        )
+
       assert length(feed) == Feeds.feed_fetch_count()
 
       left_limit = Feeds.feed_daily_limit() - 2 * Feeds.feed_fetch_count()
@@ -70,31 +178,109 @@ defmodule T.FeedsTest do
       # to test the correct feed adjusted_count
       p = onboarded_user()
       Repo.insert(%SeenProfile{user_id: p.id, by_user_id: me.id})
-      feed = Feeds.fetch_feed(me.id, me.profile.location, false)
+
+      feed =
+        Feeds.fetch_feed(
+          me.id,
+          me.profile.location,
+          _gender = "M",
+          _feed_filter = %FeedFilter{
+            genders: ["F", "M", "N"],
+            min_age: nil,
+            max_age: nil,
+            distance: nil
+          },
+          false
+        )
+
       assert length(feed) == left_limit - 1
 
-      assert {%DateTime{}, [%{}] = _story} = Feeds.fetch_feed(me.id, me.profile.location, false)
+      assert {%DateTime{}, [%{}] = _story} =
+               Feeds.fetch_feed(
+                 me.id,
+                 me.profile.location,
+                 _gender = "M",
+                 _feed_filter = %FeedFilter{
+                   genders: ["F", "M", "N"],
+                   min_age: nil,
+                   max_age: nil,
+                   distance: nil
+                 },
+                 false
+               )
     end
 
     test "first_fetch", %{me: me} do
       for _ <- 1..(Feeds.feed_fetch_count() * 2), do: onboarded_user()
 
       # users joins and receives feed
-      feed = Feeds.fetch_feed(me.id, me.profile.location, true)
+      feed =
+        Feeds.fetch_feed(
+          me.id,
+          me.profile.location,
+          _gender = "M",
+          _feed_filter = %FeedFilter{
+            genders: ["F", "M", "N"],
+            min_age: nil,
+            max_age: nil,
+            distance: nil
+          },
+          true
+        )
+
       assert length(feed) == Feeds.feed_fetch_count()
 
       # but never watches it (no seen commands)
       # asks for more users, gets the second batch
-      feed = Feeds.fetch_feed(me.id, me.profile.location, false)
+      feed =
+        Feeds.fetch_feed(
+          me.id,
+          me.profile.location,
+          _gender = "M",
+          _feed_filter = %FeedFilter{
+            genders: ["F", "M", "N"],
+            min_age: nil,
+            max_age: nil,
+            distance: nil
+          },
+          false
+        )
+
       assert length(feed) == Feeds.feed_fetch_count()
 
       # asks for more, gets nobody since everybody was "feeded" to him
-      feed = Feeds.fetch_feed(me.id, me.profile.location, false)
+      feed =
+        Feeds.fetch_feed(
+          me.id,
+          me.profile.location,
+          _gender = "M",
+          _feed_filter = %FeedFilter{
+            genders: ["F", "M", "N"],
+            min_age: nil,
+            max_age: nil,
+            distance: nil
+          },
+          false
+        )
+
       assert feed == []
 
       # but on reentering the app gets feed again since none of it was really watched
       # all the previously feeded profiles are returned at once
-      feed = Feeds.fetch_feed(me.id, me.profile.location, true)
+      feed =
+        Feeds.fetch_feed(
+          me.id,
+          me.profile.location,
+          _gender = "M",
+          _feed_filter = %FeedFilter{
+            genders: ["F", "M", "N"],
+            min_age: nil,
+            max_age: nil,
+            distance: nil
+          },
+          true
+        )
+
       assert length(feed) == Feeds.feed_fetch_count() * 2
     end
 
@@ -115,7 +301,19 @@ defmodule T.FeedsTest do
         end
 
       # users joins and receive calculated feed
-      feed = Feeds.fetch_feed(me.id, me.profile.location, true)
+      feed =
+        Feeds.fetch_feed(
+          me.id,
+          me.profile.location,
+          _gender = "M",
+          _feed_filter = %FeedFilter{
+            genders: ["F", "M", "N"],
+            min_age: nil,
+            max_age: nil,
+            distance: nil
+          },
+          true
+        )
 
       for %FeedProfile{user_id: user_id} <- feed do
         assert user_id not in regular_ids
@@ -123,7 +321,19 @@ defmodule T.FeedsTest do
       end
 
       # users fetches more and receive regular feed, since runs out of calculated feed
-      feed = Feeds.fetch_feed(me.id, me.profile.location, false)
+      feed =
+        Feeds.fetch_feed(
+          me.id,
+          me.profile.location,
+          _gender = "M",
+          _feed_filter = %FeedFilter{
+            genders: ["F", "M", "N"],
+            min_age: nil,
+            max_age: nil,
+            distance: nil
+          },
+          false
+        )
 
       for %FeedProfile{user_id: user_id} <- feed do
         assert user_id in regular_ids
@@ -173,7 +383,19 @@ defmodule T.FeedsTest do
       irrelevant_users_count = irrelevant_users_count + 1
 
       # users joins and receive feed: partially calculated and partially regular
-      feed = Feeds.fetch_feed(me.id, me.profile.location, true)
+      feed =
+        Feeds.fetch_feed(
+          me.id,
+          me.profile.location,
+          _gender = "M",
+          _feed_filter = %FeedFilter{
+            genders: ["F", "M", "N"],
+            min_age: nil,
+            max_age: nil,
+            distance: nil
+          },
+          true
+        )
 
       calculated_count =
         feed |> Enum.count(fn %FeedProfile{user_id: user_id} -> user_id in calculated_ids end)
@@ -185,7 +407,20 @@ defmodule T.FeedsTest do
       assert regular_count == irrelevant_users_count
 
       # users fetches more and receive regular feed, since runs out of calculated feed
-      feed = Feeds.fetch_feed(me.id, me.profile.location, false)
+      feed =
+        Feeds.fetch_feed(
+          me.id,
+          me.profile.location,
+          _gender = "M",
+          _feed_filter = %FeedFilter{
+            genders: ["F", "M", "N"],
+            min_age: nil,
+            max_age: nil,
+            distance: nil
+          },
+          false
+        )
+
       assert length(feed) == Feeds.feed_fetch_count() - irrelevant_users_count
     end
   end

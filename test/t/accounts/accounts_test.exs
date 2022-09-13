@@ -79,6 +79,27 @@ defmodule T.AccountsTest do
     end
   end
 
+  describe "list_gender_preference/1" do
+    test "when user doesn't exist" do
+      assert Accounts.list_gender_preference(Ecto.UUID.generate()) == []
+    end
+
+    test "when user exists and has no preference" do
+      user = insert(:user)
+      assert Accounts.list_gender_preference(user.id) == []
+    end
+
+    test "when user exists and has preference" do
+      user = insert(:user)
+
+      insert(:gender_preference, gender: "F", user_id: user.id)
+      assert Accounts.list_gender_preference(user.id) == ["F"]
+
+      insert(:gender_preference, gender: "M", user_id: user.id)
+      assert Accounts.list_gender_preference(user.id) == ["F", "M"]
+    end
+  end
+
   describe "get_profile/1" do
     test "with gender preferences" do
       {:ok, %{profile: %Profile{user_id: user_id}}} =

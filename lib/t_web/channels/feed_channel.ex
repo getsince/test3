@@ -43,7 +43,9 @@ defmodule TWeb.FeedChannel do
   end
 
   defp join_normal_mode(user_id, params, socket) do
-    {old_location, _gender, hidden?} = Accounts.get_location_gender_hidden?(user_id)
+    feed_filter = Feeds.get_feed_filter(user_id)
+    {old_location, gender, hidden?} = Accounts.get_location_gender_hidden?(user_id)
+
     location = socket.assigns.location || old_location
     %{screen_width: screen_width, version: version} = socket.assigns
 
@@ -69,7 +71,7 @@ defmodule TWeb.FeedChannel do
 
     feed =
       case params["need_feed"] do
-        true -> fetch_feed(user_id, location, version, screen_width, true)
+        true -> fetch_feed(user_id, location, gender, feed_filter, version, screen_width, true)
         _ -> nil
       end
 
@@ -81,7 +83,8 @@ defmodule TWeb.FeedChannel do
       |> maybe_put("matches", matches)
       |> maybe_put_with_empty_list("feed", feed)
 
-    {:ok, reply, assign(socket, location: location, mode: :normal)}
+    {:ok, reply,
+     assign(socket, feed_filter: feed_filter, location: location, gender: gender, mode: :normal)}
   end
 
   @impl true
@@ -90,10 +93,12 @@ defmodule TWeb.FeedChannel do
       current_user: user,
       screen_width: screen_width,
       version: version,
+      feed_filter: feed_filter,
+      gender: gender,
       location: location
     } = socket.assigns
 
-    feed = fetch_feed(user.id, location, version, screen_width, false)
+    feed = fetch_feed(user.id, location, gender, feed_filter, version, screen_width, false)
 
     {:reply, {:ok, %{"feed" => feed}}, socket}
   end
@@ -337,10 +342,12 @@ defmodule TWeb.FeedChannel do
       current_user: user,
       screen_width: screen_width,
       version: version,
-      location: location
+      location: location,
+      feed_filter: feed_filter,
+      gender: gender
     } = socket.assigns
 
-    feed_reply = Feeds.fetch_feed(user.id, location, true)
+    feed_reply = Feeds.fetch_feed(user.id, location, gender, feed_filter, true)
 
     push(socket, "feed_limit_reset", %{
       "feed" => render_fetch_feed(feed_reply, version, screen_width)
@@ -350,11 +357,18 @@ defmodule TWeb.FeedChannel do
   end
 
   def handle_info({Accounts, :feed_filter_updated, feed_filter}, socket) do
-    {:noreply, assign(socket, :feed_filter, feed_filter)}
+    %{current_user: user, feed_filter: old_feed_filter} = socket.assigns
+
+    if feed_filter != old_feed_filter do
+      Feeds.empty_feeded_profiles(user.id)
+      {:noreply, assign(socket, :feed_filter, feed_filter)}
+    else
+      :noreply
+    end
   end
 
-  defp fetch_feed(user_id, location, version, screen_width, first_fetch) do
-    feed_reply = Feeds.fetch_feed(user_id, location, first_fetch)
+  defp fetch_feed(user_id, location, gender, feed_filter, version, screen_width, first_fetch) do
+    feed_reply = Feeds.fetch_feed(user_id, location, gender, feed_filter, first_fetch)
     render_fetch_feed(feed_reply, version, screen_width)
   end
 

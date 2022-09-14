@@ -113,6 +113,7 @@ defmodule T.FeedAI do
   def generate_inputs do
     %{
       profiles: dump_to_csv("profiles"),
+      gender_preferences: dump_to_csv("gender_preferences"),
       seen_profiles: dump_to_csv("seen_profiles"),
       seen: restore_seen()
     }
@@ -275,6 +276,7 @@ defmodule T.FeedAI do
   @doc false
   def upload_inputs(ssh, inputs) do
     :ok = SSHKit.SCP.upload(ssh, inputs.profiles, "~/profiles.csv")
+    :ok = SSHKit.SCP.upload(ssh, inputs.gender_preferences, "~/gender_preferences.csv")
     :ok = SSHKit.SCP.upload(ssh, inputs.seen_profiles, "~/seen_profiles.csv")
     :ok = SSHKit.SCP.upload(ssh, inputs.seen, "~/seen.csv")
   end

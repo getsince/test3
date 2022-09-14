@@ -183,6 +183,53 @@ defmodule T.News do
                 }
               }
             ]
+          },
+          %{
+            id: 16,
+            timestamp: ~U[2022-09-14 15:00:00Z],
+            version: "7.1.6",
+            story: [
+              %{
+                "size" => [428, 926],
+                "labels" => [
+                  %{
+                    "zoom" => 1,
+                    "value" => "Привет 👋 ",
+                    "center" => [213.94016666666664, 230.66667175292966],
+                    "position" => [141.77349999999996, 205.000005086263],
+                    "rotation" => 0,
+                    "alignment" => 1,
+                    "text_color" => "#111010",
+                    "corner_radius" => 1,
+                    "background_fill" => "#FFFFFF"
+                  },
+                  %{
+                    "zoom" => 1,
+                    "value" => "Фильтры для ленты \nвозвращаются\n👇👇👇",
+                    "center" => [214.33333333333331, 408],
+                    "position" => [91.99999999999999, 349.3333333333333],
+                    "rotation" => 0,
+                    "alignment" => 1,
+                    "text_color" => "#111010",
+                    "corner_radius" => 1,
+                    "background_fill" => "#FFFFFF"
+                  },
+                  %{
+                    "zoom" => 1,
+                    "value" => "настроить фильтры",
+                    "action" => "edit_filters",
+                    "center" => [213.8913333333333, 610.3333129882811],
+                    "position" => [69.05799999999996, 584.6666463216145],
+                    "rotation" => 0,
+                    "alignment" => 1,
+                    "text_color" => "#111010",
+                    "corner_radius" => 1,
+                    "background_fill" => "#FFFFFF"
+                  }
+                ],
+                "background" => %{"color" => "#0DAA8B"}
+              }
+            ]
           }
         ]
 
@@ -327,6 +374,53 @@ defmodule T.News do
                   "position" => [0, 0],
                   "rotation" => 0
                 }
+              }
+            ]
+          },
+          %{
+            id: 16,
+            timestamp: ~U[2022-09-14 15:00:00Z],
+            version: "7.1.6",
+            story: [
+              %{
+                "size" => [428, 926],
+                "labels" => [
+                  %{
+                    "zoom" => 1,
+                    "value" => "Hey 👋 ",
+                    "center" => [213.99808333333334, 231.6666564941406],
+                    "position" => [160.49808333333334, 205.99998982747394],
+                    "rotation" => 0,
+                    "alignment" => 1,
+                    "text_color" => "#111010",
+                    "corner_radius" => 1,
+                    "background_fill" => "#FFFFFF"
+                  },
+                  %{
+                    "zoom" => 1,
+                    "value" => "Feed filters are back!\n👇👇👇",
+                    "center" => [214.0271666666667, 416.00000508626306],
+                    "position" => [90.36050000000002, 373.8333384195964],
+                    "rotation" => 0,
+                    "alignment" => 1,
+                    "text_color" => "#111010",
+                    "corner_radius" => 1,
+                    "background_fill" => "#FFFFFF"
+                  },
+                  %{
+                    "zoom" => 1,
+                    "value" => "configure filters",
+                    "action" => "edit_filters",
+                    "center" => [213.72400000000005, 620.0000152587891],
+                    "position" => [97.05733333333337, 594.3333485921224],
+                    "rotation" => 0,
+                    "alignment" => 1,
+                    "text_color" => "#111010",
+                    "corner_radius" => 1,
+                    "background_fill" => "#FFFFFF"
+                  }
+                ],
+                "background" => %{"color" => "#90CD36"}
               }
             ]
           }

@@ -363,7 +363,7 @@ defmodule TWeb.FeedChannel do
       Feeds.empty_feeded_profiles(user.id)
       {:noreply, assign(socket, :feed_filter, feed_filter)}
     else
-      :noreply
+      {:noreply, socket}
     end
   end
 

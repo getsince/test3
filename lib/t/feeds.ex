@@ -65,6 +65,39 @@ defmodule T.Feeds do
   @feed_profiles_recency_limit 90 * 24 * 60 * 60
   @quality_likes_count_treshold 50
 
+  @onboarding_categories_stickers %{
+    "искусство" => "creatives",
+    "art" => "creatives",
+    "фотография" => "creatives",
+    "photography" => "creatives",
+    "SMM" => "creatives",
+    "musician" => "creatives",
+    "музыкант" => "creatives",
+    "общение" => "communication",
+    "communication" => "communication",
+    "бег" => "sports",
+    "running" => "sports",
+    "dancing" => "sports",
+    "танцы" => "sports",
+    "кроссфит" => "sports",
+    "crossfit" => "sports",
+    "digital" => "tech",
+    "Яндекс" => "tech",
+    "Yandex" => "tech",
+    "science" => "tech",
+    "наука" => "tech",
+    "нетворкинг" => "networking",
+    "networking" => "networking",
+    "психология" => "mindfulness",
+    "psychology" => "mindfulness",
+    "саморазвитие" => "mindfulness",
+    "медитация" => "mindfulness",
+    "meditation" => "mindfulness",
+    "йога" => "mindfulness",
+    "yoga" => "mindfulness",
+    "психолог" => "mindfulness"
+  }
+
   def feed_fetch_count, do: @feed_fetch_count
   def feed_daily_limit, do: @feed_daily_limit
   def feed_limit_period, do: @feed_limit_period
@@ -468,35 +501,48 @@ defmodule T.Feeds do
           end
       end
 
-    people_nearby = profiles_near_location(location, 4)
-    feeded_ids = people_nearby |> Enum.map(fn %FeedProfile{user_id: user_id} -> user_id end)
+    stickers = @onboarding_categories_stickers |> Map.keys()
 
-    most_popular_females =
-      most_popular_profiles_with_genders(["F"], likes_count_treshold, feeded_ids, 3)
+    user_ids = user_ids_with_stickers(stickers)
+    # TODO
+    profiles = most_popular_profiles(user_ids, @quality_likes_count_treshold, 60)
 
-    most_popular_non_females =
-      most_popular_profiles_with_genders(["M", "N"], likes_count_treshold, feeded_ids, 3)
-
-    people_nearby ++ most_popular_females ++ most_popular_non_females
+    profiles
+    |> Enum.map(fn profile -> %{profile: profile, categories: profile_categories(profile)} end)
   end
 
-  defp profiles_near_location(location, limit) do
-    not_hidden_profiles_q()
-    |> where([p], st_dwithin_in_meters(^location, p.location, ^1_000_000))
-    |> where([p], fragment("jsonb_array_length(?) > 2", p.story))
-    |> order_by(desc: :like_ratio)
-    |> limit(^limit)
-    |> Repo.all()
+  defp profile_categories(%FeedProfile{story: story}) do
+    story
+    |> Enum.map(fn p -> p["labels"] end)
+    |> List.flatten()
+    |> Enum.reduce_while([], fn label, categories ->
+      case @onboarding_categories_stickers[label["answer"]] do
+        nil -> {:cont, categories}
+        category -> {:halt, [category | categories]}
+      end
+    end)
   end
 
-  defp most_popular_profiles_with_genders(genders, likes_count_treshold, feeded_ids, limit) do
+  def user_ids_with_stickers(stickers) do
+    joined_stickers = Enum.join(stickers, "', '")
+
+    %Postgrex.Result{columns: ["user_id"], rows: rows} =
+      Repo.query!("""
+      SELECT DISTINCT user_id
+      FROM (SELECT user_id, jsonb_array_elements(jsonb_array_elements(story) -> 'labels') AS label FROM profiles
+      WHERE jsonb_array_length(story) > 2) AS l
+      WHERE (l.label ->> 'answer') = ANY (ARRAY ['#{joined_stickers}'])
+      """)
+
+    Enum.map(rows, fn [user_id] -> Ecto.UUID.cast!(user_id) end)
+  end
+
+  defp most_popular_profiles(user_ids, likes_count_treshold, count) do
     not_hidden_profiles_q()
-    |> where([p], p.user_id not in ^feeded_ids)
+    |> where([p], p.user_id in ^user_ids)
     |> where([p], p.times_liked >= ^likes_count_treshold)
-    |> where([p], p.gender in ^genders)
-    |> where([p], fragment("jsonb_array_length(?) > 2", p.story))
     |> order_by(desc: :like_ratio)
-    |> limit(^limit)
+    |> limit(^count)
     |> Repo.all()
   end
 

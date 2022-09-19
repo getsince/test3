@@ -65,6 +65,7 @@ defmodule T.Feeds do
   @feed_profiles_recency_limit 90 * 24 * 60 * 60
   @quality_likes_count_treshold 50
 
+  @onboarding_feed_count 50
   @onboarding_categories_stickers %{
     "искусство" => "creatives",
     "art" => "creatives",
@@ -504,8 +505,9 @@ defmodule T.Feeds do
     stickers = @onboarding_categories_stickers |> Map.keys()
 
     user_ids = user_ids_with_stickers(stickers)
-    # TODO
-    profiles = most_popular_profiles(user_ids, @quality_likes_count_treshold, 60)
+
+    profiles =
+      most_popular_profiles(user_ids, location, likes_count_treshold, @onboarding_feed_count)
 
     profiles
     |> Enum.map(fn profile -> %{profile: profile, categories: profile_categories(profile)} end)
@@ -537,11 +539,11 @@ defmodule T.Feeds do
     Enum.map(rows, fn [user_id] -> Ecto.UUID.cast!(user_id) end)
   end
 
-  defp most_popular_profiles(user_ids, likes_count_treshold, count) do
+  defp most_popular_profiles(user_ids, location, likes_count_treshold, count) do
     not_hidden_profiles_q()
     |> where([p], p.user_id in ^user_ids)
     |> where([p], p.times_liked >= ^likes_count_treshold)
-    |> order_by(desc: :like_ratio)
+    |> order_by(fragment("location <-> ?::geometry", ^location))
     |> limit(^count)
     |> Repo.all()
   end
@@ -806,32 +808,4 @@ defmodule T.Feeds do
   end
 
   defp maybe_schedule_push(multi, _feed_limit), do: multi
-
-  defp example_feed_ids do
-    [
-      "0000017c-56a7-4078-0242-ac1100040000",
-      "0000017d-e5e3-681b-0242-ac1100020000",
-      "0000017e-3b2c-96df-0242-ac1100020000",
-      "0000017e-3fa3-2c67-0242-ac1100020000",
-      "00000181-b541-c469-0605-56f435980000",
-      "0000017d-fdf4-5d3d-0242-ac1100020000",
-      "00000181-d2ba-80a2-0e0c-2b42dfb40000",
-      "0000017d-1996-9fb8-0242-ac1100020000",
-      "0000017d-f6ba-a411-0242-ac1100020000",
-      "0000017e-5508-46f1-0242-ac1100020000",
-      "0000017d-8b11-a124-0242-ac1100020000",
-      "0000017d-7d36-b939-0242-ac1100020000",
-      "0000017d-9723-3910-0242-ac1100020000",
-      "00000181-cfbd-a817-0605-56f435980000",
-      "0000017d-f746-d12d-0242-ac1100020000",
-      "0000017e-b12d-7d7b-0242-ac1100020000"
-    ]
-  end
-
-  def example_feed(location) do
-    FeedProfile
-    |> where([p], p.user_id in ^example_feed_ids())
-    |> select([p], %{p | distance: distance_km(^location, p.location)})
-    |> Repo.all()
-  end
 end

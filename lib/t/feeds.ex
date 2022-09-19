@@ -507,7 +507,7 @@ defmodule T.Feeds do
     user_ids = user_ids_with_stickers(stickers)
 
     profiles =
-      most_popular_profiles(user_ids, location, likes_count_treshold, @onboarding_feed_count)
+      fetch_onboarding_profiles(user_ids, location, likes_count_treshold, @onboarding_feed_count)
 
     profiles
     |> Enum.map(fn profile -> %{profile: profile, categories: profile_categories(profile)} end)
@@ -517,10 +517,10 @@ defmodule T.Feeds do
     story
     |> Enum.map(fn p -> p["labels"] end)
     |> List.flatten()
-    |> Enum.reduce_while([], fn label, categories ->
+    |> Enum.reduce([], fn label, categories ->
       case @onboarding_categories_stickers[label["answer"]] do
-        nil -> {:cont, categories}
-        category -> {:halt, [category | categories]}
+        nil -> categories
+        category -> [category | categories]
       end
     end)
   end
@@ -539,7 +539,7 @@ defmodule T.Feeds do
     Enum.map(rows, fn [user_id] -> Ecto.UUID.cast!(user_id) end)
   end
 
-  defp most_popular_profiles(user_ids, location, likes_count_treshold, count) do
+  defp fetch_onboarding_profiles(user_ids, location, likes_count_treshold, count) do
     not_hidden_profiles_q()
     |> where([p], p.user_id in ^user_ids)
     |> where([p], p.times_liked >= ^likes_count_treshold)

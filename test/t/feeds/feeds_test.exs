@@ -474,13 +474,23 @@ defmodule T.FeedsTest do
       mate =
         onboarded_user(
           story: [
-            %{"background" => %{"s3_key" => "public1"}, "labels" => [], "size" => [400, 100]},
-            %{"background" => %{"s3_key" => "public1"}, "labels" => [], "size" => [400, 100]},
+            %{
+              "background" => %{"s3_key" => "public1"},
+              "labels" => [%{"answer" => "Yandex"}],
+              "size" => [400, 100]
+            },
+            %{
+              "background" => %{"s3_key" => "public1"},
+              "labels" => [%{"answer" => "communication"}],
+              "size" => [400, 100]
+            },
             %{"background" => %{"s3_key" => "public1"}, "labels" => [], "size" => [400, 100]}
           ]
         )
 
-      assert [%FeedProfile{user_id: user_id}] = Feeds.fetch_onboarding_feed(nil, 0)
+      assert [%{profile: %FeedProfile{user_id: user_id}, categories: ["communication", "tech"]}] =
+               Feeds.fetch_onboarding_feed(nil, 0)
+
       assert user_id == mate.id
     end
 

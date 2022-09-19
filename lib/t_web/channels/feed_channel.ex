@@ -33,8 +33,11 @@ defmodule TWeb.FeedChannel do
 
     feed =
       case params["need_feed"] do
-        true -> Feeds.fetch_onboarding_feed(remote_ip) |> render_feed(version, screen_width)
-        _ -> nil
+        true ->
+          Feeds.fetch_onboarding_feed(remote_ip) |> render_onboarding_feed(version, screen_width)
+
+        _ ->
+          nil
       end
 
     reply = %{} |> maybe_put_with_empty_list("feed", feed)
@@ -101,14 +104,6 @@ defmodule TWeb.FeedChannel do
     feed = fetch_feed(user.id, location, gender, feed_filter, version, screen_width, false)
 
     {:reply, {:ok, %{"feed" => feed}}, socket}
-  end
-
-  def handle_in("onboarding-feed", _params, socket) do
-    %{remote_ip: remote_ip, screen_width: screen_width, version: version} = socket.assigns
-
-    feed = Feeds.fetch_onboarding_feed(remote_ip)
-
-    {:reply, {:ok, %{"feed" => render_feed(feed, version, screen_width)}}, socket}
   end
 
   # TODO possibly batch
@@ -200,18 +195,6 @@ defmodule TWeb.FeedChannel do
       end
 
     {:reply, reply, socket}
-  end
-
-  def handle_in("example-feed", _params, socket) do
-    %{
-      screen_width: screen_width,
-      version: version,
-      location: location
-    } = socket.assigns
-
-    example_feed = Feeds.example_feed(location)
-
-    {:reply, {:ok, %{"feed" => render_fetch_feed(example_feed, version, screen_width)}}, socket}
   end
 
   def handle_in("decline", %{"user_id" => liker}, socket) do
@@ -392,6 +375,12 @@ defmodule TWeb.FeedChannel do
 
   defp render_feed(feed, version, screen_width) do
     Enum.map(feed, fn feed_item -> render_feed_item(feed_item, version, screen_width) end)
+  end
+
+  defp render_onboarding_feed(feed, version, screen_width) do
+    Enum.map(feed, fn %{profile: feed_item, categories: categories} ->
+      render_feed_item(feed_item, version, screen_width) |> Map.put_new("categories", categories)
+    end)
   end
 
   defp render_likes(likes, version, screen_width) do

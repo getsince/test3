@@ -65,6 +65,40 @@ defmodule T.Feeds do
   @feed_profiles_recency_limit 90 * 24 * 60 * 60
   @quality_likes_count_treshold 50
 
+  @onboarding_feed_count 50
+  @onboarding_categories_stickers %{
+    "искусство" => "creatives",
+    "art" => "creatives",
+    "фотография" => "creatives",
+    "photography" => "creatives",
+    "SMM" => "creatives",
+    "musician" => "creatives",
+    "музыкант" => "creatives",
+    "общение" => "communication",
+    "communication" => "communication",
+    "бег" => "sports",
+    "running" => "sports",
+    "dancing" => "sports",
+    "танцы" => "sports",
+    "кроссфит" => "sports",
+    "crossfit" => "sports",
+    "digital" => "tech",
+    "Яндекс" => "tech",
+    "Yandex" => "tech",
+    "science" => "tech",
+    "наука" => "tech",
+    "нетворкинг" => "networking",
+    "networking" => "networking",
+    "психология" => "mindfulness",
+    "psychology" => "mindfulness",
+    "саморазвитие" => "mindfulness",
+    "медитация" => "mindfulness",
+    "meditation" => "mindfulness",
+    "йога" => "mindfulness",
+    "yoga" => "mindfulness",
+    "психолог" => "mindfulness"
+  }
+
   def feed_fetch_count, do: @feed_fetch_count
   def feed_daily_limit, do: @feed_daily_limit
   def feed_limit_period, do: @feed_limit_period
@@ -468,35 +502,49 @@ defmodule T.Feeds do
           end
       end
 
-    people_nearby = profiles_near_location(location, 4)
-    feeded_ids = people_nearby |> Enum.map(fn %FeedProfile{user_id: user_id} -> user_id end)
+    stickers = @onboarding_categories_stickers |> Map.keys()
 
-    most_popular_females =
-      most_popular_profiles_with_genders(["F"], likes_count_treshold, feeded_ids, 3)
+    user_ids = user_ids_with_stickers(stickers)
 
-    most_popular_non_females =
-      most_popular_profiles_with_genders(["M", "N"], likes_count_treshold, feeded_ids, 3)
+    profiles =
+      fetch_onboarding_profiles(user_ids, location, likes_count_treshold, @onboarding_feed_count)
 
-    people_nearby ++ most_popular_females ++ most_popular_non_females
+    profiles
+    |> Enum.map(fn profile -> %{profile: profile, categories: profile_categories(profile)} end)
   end
 
-  defp profiles_near_location(location, limit) do
-    not_hidden_profiles_q()
-    |> where([p], st_dwithin_in_meters(^location, p.location, ^1_000_000))
-    |> where([p], fragment("jsonb_array_length(?) > 2", p.story))
-    |> order_by(desc: :like_ratio)
-    |> limit(^limit)
-    |> Repo.all()
+  defp profile_categories(%FeedProfile{story: story}) do
+    story
+    |> Enum.map(fn p -> p["labels"] end)
+    |> List.flatten()
+    |> Enum.reduce([], fn label, categories ->
+      case @onboarding_categories_stickers[label["answer"]] do
+        nil -> categories
+        category -> [category | categories]
+      end
+    end)
   end
 
-  defp most_popular_profiles_with_genders(genders, likes_count_treshold, feeded_ids, limit) do
+  def user_ids_with_stickers(stickers) do
+    joined_stickers = Enum.join(stickers, "', '")
+
+    %Postgrex.Result{columns: ["user_id"], rows: rows} =
+      Repo.query!("""
+      SELECT DISTINCT user_id
+      FROM (SELECT user_id, jsonb_array_elements(jsonb_array_elements(story) -> 'labels') AS label FROM profiles
+      WHERE jsonb_array_length(story) > 2) AS l
+      WHERE (l.label ->> 'answer') = ANY (ARRAY ['#{joined_stickers}'])
+      """)
+
+    Enum.map(rows, fn [user_id] -> Ecto.UUID.cast!(user_id) end)
+  end
+
+  defp fetch_onboarding_profiles(user_ids, location, likes_count_treshold, count) do
     not_hidden_profiles_q()
-    |> where([p], p.user_id not in ^feeded_ids)
+    |> where([p], p.user_id in ^user_ids)
     |> where([p], p.times_liked >= ^likes_count_treshold)
-    |> where([p], p.gender in ^genders)
-    |> where([p], fragment("jsonb_array_length(?) > 2", p.story))
-    |> order_by(desc: :like_ratio)
-    |> limit(^limit)
+    |> order_by(fragment("location <-> ?::geometry", ^location))
+    |> limit(^count)
     |> Repo.all()
   end
 
@@ -760,32 +808,4 @@ defmodule T.Feeds do
   end
 
   defp maybe_schedule_push(multi, _feed_limit), do: multi
-
-  defp example_feed_ids do
-    [
-      "0000017c-56a7-4078-0242-ac1100040000",
-      "0000017d-e5e3-681b-0242-ac1100020000",
-      "0000017e-3b2c-96df-0242-ac1100020000",
-      "0000017e-3fa3-2c67-0242-ac1100020000",
-      "00000181-b541-c469-0605-56f435980000",
-      "0000017d-fdf4-5d3d-0242-ac1100020000",
-      "00000181-d2ba-80a2-0e0c-2b42dfb40000",
-      "0000017d-1996-9fb8-0242-ac1100020000",
-      "0000017d-f6ba-a411-0242-ac1100020000",
-      "0000017e-5508-46f1-0242-ac1100020000",
-      "0000017d-8b11-a124-0242-ac1100020000",
-      "0000017d-7d36-b939-0242-ac1100020000",
-      "0000017d-9723-3910-0242-ac1100020000",
-      "00000181-cfbd-a817-0605-56f435980000",
-      "0000017d-f746-d12d-0242-ac1100020000",
-      "0000017e-b12d-7d7b-0242-ac1100020000"
-    ]
-  end
-
-  def example_feed(location) do
-    FeedProfile
-    |> where([p], p.user_id in ^example_feed_ids())
-    |> select([p], %{p | distance: distance_km(^location, p.location)})
-    |> Repo.all()
-  end
 end

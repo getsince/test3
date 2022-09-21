@@ -145,7 +145,7 @@ defmodule T.Accounts.ProfileTest do
       assert %Ecto.Changeset{valid?: true} =
                changeset = Profile.story_changeset(%Profile{}, %{"story" => good_story})
 
-      %Profile{story: story} = apply_changes(changeset)
+      %Profile{story: story, stickers: stickers} = apply_changes(changeset)
 
       assert story == [
                %{
@@ -193,6 +193,8 @@ defmodule T.Accounts.ProfileTest do
                  "size" => [375, 667]
                }
              ]
+
+      assert stickers == []
     end
 
     test "background with proxy but no s3 key is corrected" do
@@ -1051,6 +1053,45 @@ defmodule T.Accounts.ProfileTest do
       changeset = Profile.story_changeset(%Profile{}, attrs.(too_long))
       refute changeset.valid?
       assert errors_on(changeset) == %{story: ["email address should be at most 60 character(s)"]}
+    end
+
+    test "stickers are updated" do
+      attrs = fn labels ->
+        %{
+          "story" => [
+            %{
+              "background" => %{"color" => "#FFFFFF"},
+              "labels" => labels,
+              "size" => [375, 667]
+            }
+          ]
+        }
+      end
+
+      # multiple stickers
+
+      valid_value = [
+        %{"question" => "interests", "answer" => "sex"},
+        %{"question" => "sports", "answer" => "domino"}
+      ]
+
+      changeset = Profile.story_changeset(%Profile{}, attrs.(valid_value))
+      assert changeset.valid?
+
+      assert apply_changes(changeset).stickers == ["domino", "sex"]
+
+      # contact, birthdate, normal sticker
+
+      labels = [
+        %{"question" => "telegram", "answer" => "loxxxx"},
+        %{"question" => "birthdate", "answer" => "1994-06-21T14:46:37Z"},
+        %{"question" => "food", "answer" => "bread"}
+      ]
+
+      changeset = Profile.story_changeset(%Profile{}, attrs.(labels))
+      assert changeset.valid?
+
+      assert apply_changes(changeset).stickers == ["bread"]
     end
   end
 

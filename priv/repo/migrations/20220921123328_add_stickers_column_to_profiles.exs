@@ -21,8 +21,6 @@ defmodule T.Repo.Migrations.AddStickersColumnToProfiles do
           _ ->
             story
             |> Enum.flat_map(fn %{"labels" => labels} ->
-              IO.inspect(labels)
-
               labels
               |> Enum.reduce([], fn label, acc ->
                 case label["answer"] do
@@ -60,11 +58,7 @@ defmodule T.Repo.Migrations.AddStickersColumnToProfiles do
             end)
         end
 
-      IO.inspect(stickers)
-
-      Profile
-      |> where(user_id: ^user_id)
-      |> T.Repo.update_all(set: [stickers: stickers])
+      Profile |> where(user_id: ^user_id) |> T.Repo.update_all(set: [stickers: stickers])
     end)
   end
 end

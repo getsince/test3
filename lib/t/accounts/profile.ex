@@ -11,6 +11,7 @@ defmodule T.Accounts.Profile do
     belongs_to :user, T.Accounts.User, primary_key: true
 
     field :story, {:array, :map}
+    field :stickers, {:array, :string}
     field :location, Geo.PostGIS.Geometry
     field :address, :map
 

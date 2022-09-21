@@ -32,6 +32,9 @@ defmodule T.Repo.Migrations.AddStickersColumnToProfiles do
 
                   answer ->
                     case label["question"] do
+                      nil ->
+                        acc
+
                       q when q in ["birthdate", "name", "height"] ->
                         acc
 

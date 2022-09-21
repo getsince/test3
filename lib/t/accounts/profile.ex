@@ -398,6 +398,7 @@ defmodule T.Accounts.Profile do
 
                   answer ->
                     case label["question"] do
+                      nil -> acc
                       q when q in ["birthdate", "name", "height"] -> acc
                       q when q in @contacts -> acc
                       _ -> [answer | acc]

@@ -23,33 +23,13 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-      # TODO use setup-beam once https://github.com/erlef/setup-beam/pull/124 is released
-
-      # - name: Set up Elixir
-      #   uses: erlef/setup-beam@v1
-      #   with:
-      #     elixir-version: "1.13.1"
-      #     otp-version: "24.2"
-
-      # from https://github.com/erlef/setup-beam/issues/116#issuecomment-1158544960
-      - name: Install Erlang
-        run: |
-          curl -Lo erlang.tar.gz https://repo.hex.pm/builds/otp/ubuntu-22.04/OTP-25.0.2.tar.gz
-          mkdir erlang
-          tar zxf erlang.tar.gz -C erlang --strip-components=1
-          erlang/Install -minimal  `pwd`/erlang
-          echo "`pwd`/erlang/bin" >> $GITHUB_PATH
-          rm erlang.tar.gz
-
-      - name: Install Elixir
-        run: |
-          curl -Lo elixir.zip https://repo.hex.pm/builds/elixir/v1.13.4-otp-25.zip
-          mkdir elixir
-          unzip -q -o -d `pwd`/elixir elixir.zip
-          echo "`pwd`/elixir/bin" >> $GITHUB_PATH
-          rm elixir.zip
+      - name: Set up Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: "1.14.0"
+          otp-version: "25.0.4"
 
       - name: Install hex
         run: mix local.hex --force
@@ -58,7 +38,7 @@ jobs:
         run: mix local.rebar --force
 
       - name: Restore dependencies cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             deps
@@ -68,7 +48,7 @@ jobs:
           restore-keys: release-${{ runner.os }}-mix-
 
       - name: Restore assets cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: assets/node_modules
           key: assets-${{ hashFiles('assets/package-lock.json') }}

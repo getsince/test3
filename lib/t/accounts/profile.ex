@@ -11,6 +11,7 @@ defmodule T.Accounts.Profile do
     belongs_to :user, T.Accounts.User, primary_key: true
 
     field :story, {:array, :map}
+    field :stickers, {:array, :string}
     field :location, Geo.PostGIS.Geometry
     field :address, :map
 
@@ -116,6 +117,7 @@ defmodule T.Accounts.Profile do
       story |> Stickers.fix_story() |> StoryBackground.fix_story()
     end)
     |> validate_story()
+    |> update_stickers()
   end
 
   defp validate_story(%Ecto.Changeset{changes: %{story: story}} = cs) do
@@ -374,4 +376,43 @@ defmodule T.Accounts.Profile do
       message: dgettext("errors", "%{label} can't be blank", label: label_name)
     )
   end
+
+  defp update_stickers(%Ecto.Changeset{changes: %{story: story}} = cs) do
+    stickers =
+      case story do
+        nil ->
+          []
+
+        _ ->
+          story
+          |> Enum.flat_map(fn
+            %{"labels" => labels} ->
+              labels
+              |> Enum.reduce([], fn label, acc ->
+                case label["answer"] do
+                  nil ->
+                    acc
+
+                  "" ->
+                    acc
+
+                  answer ->
+                    case label["question"] do
+                      nil -> acc
+                      q when q in ["birthdate", "name", "height"] -> acc
+                      q when q in @contacts -> acc
+                      _ -> [answer | acc]
+                    end
+                end
+              end)
+
+            _ ->
+              []
+          end)
+      end
+
+    force_change(cs, :stickers, stickers)
+  end
+
+  defp update_stickers(changeset), do: changeset
 end

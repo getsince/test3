@@ -251,6 +251,8 @@ defmodule T.FeedAI do
 
   @doc false
   def ssh_into_retry(%{private_ip: ip} = ec2) do
+    Logger.metadata(feed_ai_ec2_ip: ip)
+
     case SSHKit.SSH.connect(ip, user: "ec2-user", key_cb: __MODULE__.SSH) do
       {:ok, conn} -> conn
       {:error, :etimedout} -> ssh_into_retry(ec2)

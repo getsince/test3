@@ -377,6 +377,16 @@ defmodule T.Accounts do
     end
   end
 
+  defp address_to_string(address) do
+    case address["en_US"] do
+      nil -> "no en_US address"
+      %{"city" => city} -> city
+      %{"state" => state} -> state
+      %{"country" => country} -> country
+      a -> a
+    end
+  end
+
   # TODO deactivate session
   def delete_user(user_id, reason) do
     primary_rpc(__MODULE__, :local_delete_user, [user_id, reason])
@@ -686,8 +696,10 @@ defmodule T.Accounts do
       {:ok, changes} ->
         %{user: user, profile: %Profile{} = profile, gender_preference: genders} = changes
         story_string = story_to_string(profile.story)
+        address_string = address_to_string(profile.address)
 
-        m = "user #{profile.name} (#{user.id}) onboarded with story #{story_string}"
+        m =
+          "user #{profile.name} (#{user.id}) from #{address_string} onboarded with story #{story_string}"
 
         Logger.warn(m)
         Bot.async_post_message(m)

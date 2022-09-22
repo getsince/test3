@@ -56,6 +56,8 @@ if config_env() == :prod and not smoke? do
     log_stream_name: "backend",
     log_group_name: "prod"
 
+  config :logger, Sentry.LoggerBackend, metadata: [:feed_ai_ec2_ip]
+
   config :sentry, dsn: System.fetch_env!("SENTRY_DSN")
 
   config :t, T.Bot,

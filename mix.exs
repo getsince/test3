@@ -63,7 +63,7 @@ defmodule T.MixProject do
       # https://github.com/getsentry/sentry-elixir/commit/2a08ac67
       {:sentry, github: "getsentry/sentry-elixir", ref: "2a08ac67"},
       {:bigflake, "0.5.0"},
-      {:imgproxy, "~> 2.0"},
+      {:imgproxy, "~> 3.0"},
       {:rexbug, "~> 1.0"},
       {:geo_postgis, "~> 3.4"},
       {:finch, "~> 0.13.0"},

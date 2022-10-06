@@ -82,6 +82,11 @@ defmodule TWeb.ProfileChannel do
     {:reply, Accounts.update_address(user_id, address), socket}
   end
 
+  def handle_in("acquisition-channel", channel, socket) do
+    %{current_user: %{id: user_id}} = socket.assigns
+    {:reply, Accounts.save_acquisition_channel(user_id, channel), socket}
+  end
+
   defp render_profile(profile, version, screen_width) do
     render(ProfileView, "show_with_location.json",
       profile: profile,

@@ -353,4 +353,21 @@ defmodule TWeb.ProfileChannelTest do
              } = reply
     end
   end
+
+  describe "acquisition-channel" do
+    setup do
+      user = onboarded_user()
+      {:ok, user: user, socket: connected_socket(user)}
+    end
+
+    setup :subscribe_and_join
+
+    test "it works", %{socket: socket} do
+      ref = push(socket, "acquisition-channel", "instagram")
+      assert_reply(ref, :ok)
+
+      ref = push(socket, "acquisition-channel", "friends")
+      assert_reply(ref, :ok)
+    end
+  end
 end

@@ -363,10 +363,10 @@ defmodule TWeb.ProfileChannelTest do
     setup :subscribe_and_join
 
     test "it works", %{socket: socket} do
-      ref = push(socket, "acquisition-channel", "instagram")
+      ref = push(socket, "acquisition-channel", %{"channel" => "instagram"})
       assert_reply(ref, :ok)
 
-      ref = push(socket, "acquisition-channel", "friends")
+      ref = push(socket, "acquisition-channel", %{"channel" => "friends"})
       assert_reply(ref, :ok)
     end
   end

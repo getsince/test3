@@ -21,7 +21,8 @@ defmodule T.Accounts do
     APNSDevice,
     GenderPreference,
     AppleSignIn,
-    OnboardingEvent
+    OnboardingEvent,
+    AcquisitionChannel
   }
 
   alias T.PushNotifications.DispatchJob
@@ -142,6 +143,16 @@ defmodule T.Accounts do
       {1, _} -> :ok
       _ -> :error
     end
+  end
+
+  def save_acquisition_channel(user_id, channel) do
+    primary_rpc(__MODULE__, :local_save_acquisition_channel, [user_id, channel])
+  end
+
+  @doc false
+  def local_save_acquisition_channel(user_id, channel) do
+    Repo.insert!(%AcquisitionChannel{user_id: user_id, channel: channel})
+    :ok
   end
 
   defp ensure_has_profile(%User{profile: %Profile{}} = user), do: user

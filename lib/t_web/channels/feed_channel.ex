@@ -331,20 +331,7 @@ defmodule TWeb.FeedChannel do
 
   defp fetch_feed(user_id, location, gender, feed_filter, version, screen_width, first_fetch) do
     feed_reply = Feeds.fetch_feed(user_id, location, gender, feed_filter, first_fetch)
-    render_fetch_feed(feed_reply, version, screen_width)
-  end
-
-  defp render_fetch_feed(feed_reply, version, screen_width) do
-    case feed_reply do
-      feed when is_list(feed) ->
-        render_feed(feed_reply, version, screen_width)
-
-      {%DateTime{} = timestamp, feed_limit_story} ->
-        %{
-          "feed_limit_expiration" => timestamp,
-          "story" => render_story(feed_limit_story, version, screen_width)
-        }
-    end
+    render_feed(feed_reply, version, screen_width)
   end
 
   defp render_feed_item(profile, version, screen_width) do
@@ -406,9 +393,5 @@ defmodule TWeb.FeedChannel do
     Enum.map(news, fn %{story: story} = news ->
       %{news | story: ViewHelpers.postprocess_story(story, version, screen_width, :feed)}
     end)
-  end
-
-  defp render_story(story, version, screen_width) do
-    ViewHelpers.postprocess_story(story, version, screen_width, :feed)
   end
 end

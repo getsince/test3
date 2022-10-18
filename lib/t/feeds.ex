@@ -97,28 +97,6 @@ defmodule T.Feeds do
   def feed_limit_period, do: @feed_limit_period
   def quality_likes_count_treshold, do: @quality_likes_count_treshold
 
-  def fetch_feed(user_id, location, gender, feed_filter, first_fetch, "new") do
-    if first_fetch, do: empty_feeded_profiles(user_id)
-
-    feeded_ids_q = FeededProfile |> where(for_user_id: ^user_id) |> select([f], f.user_id)
-
-    %FeedFilter{
-      genders: gender_preference,
-      min_age: min_age,
-      max_age: max_age,
-      distance: distance
-    } = feed_filter
-
-    feed_profiles_q(user_id, gender, gender_preference)
-    |> where([p], p.user_id not in subquery(feeded_ids_q))
-    |> order_by(desc: :user_id)
-    |> maybe_apply_age_filters(min_age, max_age)
-    |> maybe_apply_distance_filter(location, distance)
-    |> limit(^@feed_fetch_count)
-    |> select([p], %{p | distance: distance_km(^location, p.location)})
-    |> Repo.all()
-  end
-
   # TODO refactor
   @spec fetch_feed(
           Ecto.UUID.t(),

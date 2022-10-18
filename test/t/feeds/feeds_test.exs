@@ -91,51 +91,6 @@ defmodule T.FeedsTest do
                )
     end
 
-    test "for newly onboarded user" do
-      new_user = onboarded_user()
-
-      for _ <- 1..Feeds.feed_fetch_count(), do: onboarded_user()
-
-      for _ <- 1..Feeds.feed_fetch_count() do
-        u =
-          onboarded_user(
-            story: [
-              %{"background" => %{"s3_key" => "public1"}, "labels" => [], "size" => [400, 100]},
-              %{"background" => %{"s3_key" => "public2"}, "labels" => [], "size" => [400, 100]},
-              %{"background" => %{"s3_key" => "public2"}, "labels" => [], "size" => [400, 100]}
-            ]
-          )
-
-        FeedProfile
-        |> where(user_id: ^u.id)
-        |> update(set: [times_liked: ^Feeds.quality_likes_count_treshold()])
-        |> Repo.update_all([])
-      end
-
-      for _ <- 1..Feeds.feed_fetch_count(), do: onboarded_user()
-
-      feed =
-        Feeds.fetch_feed(
-          new_user.id,
-          new_user.profile.location,
-          new_user.profile.gender,
-          _feed_filter = %FeedFilter{
-            genders: ["F", "M", "N"],
-            min_age: nil,
-            max_age: nil,
-            distance: nil
-          },
-          true
-        )
-
-      assert length(feed) == Feeds.feed_fetch_count()
-
-      for f <- feed do
-        assert length(f.story) > 2
-        assert f.times_liked >= Feeds.quality_likes_count_treshold()
-      end
-    end
-
     test "first_fetch", %{me: me} do
       for _ <- 1..(Feeds.feed_fetch_count() * 2), do: onboarded_user()
 

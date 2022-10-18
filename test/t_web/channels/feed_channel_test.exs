@@ -369,7 +369,7 @@ defmodule TWeb.FeedChannelTest do
     end
 
     test "with users who haven't been online for a while", %{socket: socket} do
-      long_ago = DateTime.add(DateTime.utc_now(), -62 * 24 * 60 * 60)
+      long_ago = DateTime.add(DateTime.utc_now(), -182 * 24 * 60 * 60)
 
       for _ <- 1..3 do
         onboarded_user(
@@ -732,7 +732,7 @@ defmodule TWeb.FeedChannelTest do
       assert expiration_date
       assert is_binary(match_id)
 
-      assert_push "matched", _payload
+      assert_push("matched", _payload)
 
       # when we are matched, we can see private pages of the liker (now mate)
       assert Map.keys(public) == ["background", "labels", "size"]
@@ -758,7 +758,7 @@ defmodule TWeb.FeedChannelTest do
       assert_reply(ref, :ok, %{"match_id" => match_id})
       assert is_binary(match_id)
 
-      assert_push "matched", %{"match" => match} = push
+      assert_push("matched", %{"match" => match} = push)
 
       now = DateTime.utc_now()
       expected_expiration_date = DateTime.add(now, Matches.match_ttl())
@@ -809,7 +809,7 @@ defmodule TWeb.FeedChannelTest do
 
       # we see mate's like
       ref = push(socket, "seen-like", %{"user_id" => mate.id})
-      assert_reply ref, :ok, _reply
+      assert_reply(ref, :ok, _reply)
 
       assert %Matches.Like{seen: true} =
                Matches.Like
@@ -827,7 +827,7 @@ defmodule TWeb.FeedChannelTest do
       match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
 
       ref = push(socket, "seen-match", %{"match_id" => match.id})
-      assert_reply ref, :ok, _reply
+      assert_reply(ref, :ok, _reply)
 
       assert [%Match{seen: true}] = Matches.list_matches(me.id, default_location())
     end
@@ -969,7 +969,7 @@ defmodule TWeb.FeedChannelTest do
           "interaction" => %{"size" => [375, 667], "sticker" => %{"value" => "hello moto"}}
         })
 
-      assert_reply ref, :ok, _reply
+      assert_reply(ref, :ok, _reply)
     end
   end
 
@@ -1031,7 +1031,7 @@ defmodule TWeb.FeedChannelTest do
       Matches.like_user(me.id, stacy.id, default_location())
       Matches.like_user(stacy.id, me.id, default_location())
 
-      assert_push "matched", %{"match" => %{"profile" => %{story: [public, private]}}}
+      assert_push("matched", %{"match" => %{"profile" => %{story: [public, private]}}})
       assert Map.keys(public) == ["background", "labels", "size"]
       assert Map.keys(private) == ["background", "labels", "private", "size"]
       assert %{"private" => true} = private

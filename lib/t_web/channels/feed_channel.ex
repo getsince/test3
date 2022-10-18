@@ -78,6 +78,12 @@ defmodule TWeb.FeedChannel do
         _ -> nil
       end
 
+    feed_categories =
+      case params["need_feed"] do
+        true -> Feeds.feed_categories()
+        _ -> nil
+      end
+
     reply =
       %{}
       |> maybe_put("news", news)
@@ -85,13 +91,13 @@ defmodule TWeb.FeedChannel do
       |> maybe_put("likes", likes)
       |> maybe_put("matches", matches)
       |> maybe_put_with_empty_list("feed", feed)
+      |> maybe_put_with_empty_list("feed_categories", feed_categories)
 
     {:ok, reply,
      assign(socket, feed_filter: feed_filter, location: location, gender: gender, mode: :normal)}
   end
 
-  @impl true
-  def handle_in("more", _params, socket) do
+  def handle_in("fetch-category", %{"category" => category}, socket) do
     %{
       current_user: user,
       screen_width: screen_width,
@@ -101,7 +107,27 @@ defmodule TWeb.FeedChannel do
       location: location
     } = socket.assigns
 
-    feed = fetch_feed(user.id, location, gender, feed_filter, version, screen_width, false)
+    feed =
+      fetch_feed(user.id, location, gender, feed_filter, version, screen_width, true, category)
+
+    {:reply, {:ok, %{"feed" => feed}}, socket}
+  end
+
+  @impl true
+  def handle_in("more", params, socket) do
+    %{
+      current_user: user,
+      screen_width: screen_width,
+      version: version,
+      feed_filter: feed_filter,
+      gender: gender,
+      location: location
+    } = socket.assigns
+
+    category = params["category"] || "new"
+
+    feed =
+      fetch_feed(user.id, location, gender, feed_filter, version, screen_width, false, category)
 
     {:reply, {:ok, %{"feed" => feed}}, socket}
   end
@@ -329,8 +355,17 @@ defmodule TWeb.FeedChannel do
     end
   end
 
-  defp fetch_feed(user_id, location, gender, feed_filter, version, screen_width, first_fetch) do
-    feed_reply = Feeds.fetch_feed(user_id, location, gender, feed_filter, first_fetch)
+  defp fetch_feed(
+         user_id,
+         location,
+         gender,
+         feed_filter,
+         version,
+         screen_width,
+         first_fetch,
+         category \\ "new"
+       ) do
+    feed_reply = Feeds.fetch_feed(user_id, location, gender, feed_filter, first_fetch, category)
     render_feed(feed_reply, version, screen_width)
   end
 

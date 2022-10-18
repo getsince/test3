@@ -99,8 +99,8 @@ defmodule T.PushNotifications.DispatchJob do
     :ok
   end
 
-  defp handle_type("feed_limit_reset" = type, %{"user_id" => user_id} = args) do
-    user_id |> Accounts.list_apns_devices() |> schedule_apns(type, args)
+  # TODO remove
+  defp handle_type("feed_limit_reset", _args) do
     :ok
   end
 

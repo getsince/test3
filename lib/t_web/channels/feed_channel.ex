@@ -318,25 +318,6 @@ defmodule TWeb.FeedChannel do
     {:noreply, socket}
   end
 
-  def handle_info({Feeds, :feed_limit_reset}, socket) do
-    %{
-      current_user: user,
-      screen_width: screen_width,
-      version: version,
-      location: location,
-      feed_filter: feed_filter,
-      gender: gender
-    } = socket.assigns
-
-    feed_reply = Feeds.fetch_feed(user.id, location, gender, feed_filter, true)
-
-    push(socket, "feed_limit_reset", %{
-      "feed" => render_fetch_feed(feed_reply, version, screen_width)
-    })
-
-    {:noreply, socket}
-  end
-
   def handle_info({Accounts, :feed_filter_updated, feed_filter}, socket) do
     %{current_user: user, feed_filter: old_feed_filter} = socket.assigns
 

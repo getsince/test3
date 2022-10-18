@@ -2,7 +2,7 @@ defmodule T.Factory do
   use ExMachina.Ecto, repo: T.Repo
 
   alias T.Accounts.{User, Profile, GenderPreference, APNSDevice, UserToken}
-  alias T.Feeds.{SeenProfile, FeedLimit}
+  alias T.Feeds.{SeenProfile}
   alias T.Matches.{Match, MatchEvent}
 
   alias T.News
@@ -13,10 +13,6 @@ defmodule T.Factory do
 
   def seen_profile_factory do
     %SeenProfile{}
-  end
-
-  def feed_limit_factory do
-    %FeedLimit{}
   end
 
   def profile_factory do

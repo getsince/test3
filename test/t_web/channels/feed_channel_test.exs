@@ -415,58 +415,6 @@ defmodule TWeb.FeedChannelTest do
       end
     end
 
-    test "with feed_limit", %{socket: socket, me: me} do
-      p = onboarded_user(story: [], name: "mate", location: apple_location(), gender: "F")
-
-      now = DateTime.utc_now() |> DateTime.truncate(:second)
-      insert(:feed_limit, user_id: me.id, timestamp: now |> DateTime.to_naive())
-
-      ref = push(socket, "more")
-      assert_reply(ref, :ok, %{"feed" => feed})
-
-      feed_limit_expiration = now |> DateTime.add(T.Feeds.feed_limit_period())
-
-      assert %{
-               "feed_limit_expiration" => ^feed_limit_expiration,
-               "story" => [%{"labels" => labels}]
-             } = feed
-
-      assert labels |> Enum.at(-1) == %{
-               "alignment" => 1,
-               "background_fill" => "#49BDB5",
-               "corner_radius" => 0,
-               "position" => [176.7486442601318, 506.01036228399676],
-               "rotation" => 10.167247449849249,
-               "text_color" => "#FFFFFF",
-               "value" => "in the meantime, you can work \non your profile",
-               "zoom" => 0.7091569071880537
-             }
-
-      insert(:match, user_id_1: me.id, user_id_2: p.id)
-
-      ref = push(socket, "more")
-      assert_reply(ref, :ok, %{"feed" => feed})
-
-      assert %{
-               "feed_limit_expiration" => ^feed_limit_expiration,
-               "story" => [%{"labels" => labels}]
-             } = feed
-
-      assert labels |> Enum.at(-1) == %{
-               "alignment" => 1,
-               "background_fill" => "#6D42B1",
-               "corner_radius" => 0,
-               "position" => [
-                 25.74864426013174,
-                 484.3437057898561
-               ],
-               "rotation" => -10.167247449849249,
-               "text_color" => "#FFFFFF",
-               "value" => "in the meantime,\nyou can chat with matches",
-               "zoom" => 0.7091569071880537
-             }
-    end
-
     test "with age filter" do
       me =
         onboarded_user(
@@ -1087,35 +1035,6 @@ defmodule TWeb.FeedChannelTest do
       assert Map.keys(public) == ["background", "labels", "size"]
       assert Map.keys(private) == ["background", "labels", "private", "size"]
       assert %{"private" => true} = private
-    end
-  end
-
-  describe "feed_limit" do
-    setup :joined
-    alias T.Feeds
-
-    test "feed_limit_reached", %{socket: socket, me: me} do
-      now = DateTime.utc_now() |> DateTime.truncate(:second)
-      insert(:feed_limit, user_id: me.id, timestamp: now |> DateTime.to_naive())
-
-      assert %Feeds.FeedLimit{reached: false} = Feeds.fetch_feed_limit(me.id)
-
-      ref = push(socket, "reached-limit", %{"timestamp" => now})
-      assert_reply(ref, :ok)
-
-      assert %Feeds.FeedLimit{reached: true} = Feeds.fetch_feed_limit(me.id)
-    end
-
-    test "feed_limit_reset push, feed is returned", %{me: me} do
-      now = DateTime.utc_now() |> DateTime.truncate(:second)
-      feed_limit_period_ago = DateTime.add(now, -Feeds.feed_limit_period() - 1)
-      _limit = Feeds.insert_feed_limit(me.id, feed_limit_period_ago)
-
-      # trigger scheduled FeedLimitResetJob
-      assert %{success: 1} =
-               Oban.drain_queue(queue: :default, with_safety: false, with_scheduled: true)
-
-      assert_push "feed_limit_reset", %{"feed" => []}
     end
   end
 

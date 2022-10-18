@@ -94,9 +94,9 @@ defmodule T.FeedsTest do
     test "for newly onboarded user" do
       new_user = onboarded_user()
 
-      for _ <- 1..Feeds.feed_daily_limit(), do: onboarded_user()
+      for _ <- 1..Feeds.feed_fetch_count(), do: onboarded_user()
 
-      for _ <- 1..Feeds.feed_daily_limit() do
+      for _ <- 1..Feeds.feed_fetch_count() do
         u =
           onboarded_user(
             story: [
@@ -112,7 +112,7 @@ defmodule T.FeedsTest do
         |> Repo.update_all([])
       end
 
-      for _ <- 1..Feeds.feed_daily_limit(), do: onboarded_user()
+      for _ <- 1..Feeds.feed_fetch_count(), do: onboarded_user()
 
       feed =
         Feeds.fetch_feed(
@@ -128,86 +128,12 @@ defmodule T.FeedsTest do
           true
         )
 
-      assert length(feed) == Feeds.feed_daily_limit()
+      assert length(feed) == Feeds.feed_fetch_count()
 
       for f <- feed do
         assert length(f.story) > 2
         assert f.times_liked >= Feeds.quality_likes_count_treshold()
       end
-    end
-
-    test "with feed_daily_limit reached", %{me: me} do
-      for _ <- 1..Feeds.feed_daily_limit(), do: onboarded_user()
-
-      # first we fetch feed on channel join
-      feed =
-        Feeds.fetch_feed(
-          me.id,
-          me.profile.location,
-          _gender = "M",
-          _feed_filter = %FeedFilter{
-            genders: ["F", "M", "N"],
-            min_age: nil,
-            max_age: nil,
-            distance: nil
-          },
-          true
-        )
-
-      assert length(feed) == Feeds.feed_fetch_count()
-
-      # then we fetch feed on "more" command
-      feed =
-        Feeds.fetch_feed(
-          me.id,
-          me.profile.location,
-          _gender = "M",
-          _feed_filter = %FeedFilter{
-            genders: ["F", "M", "N"],
-            min_age: nil,
-            max_age: nil,
-            distance: nil
-          },
-          false
-        )
-
-      assert length(feed) == Feeds.feed_fetch_count()
-
-      left_limit = Feeds.feed_daily_limit() - 2 * Feeds.feed_fetch_count()
-
-      # to test the correct feed adjusted_count
-      p = onboarded_user()
-      Repo.insert(%SeenProfile{user_id: p.id, by_user_id: me.id})
-
-      feed =
-        Feeds.fetch_feed(
-          me.id,
-          me.profile.location,
-          _gender = "M",
-          _feed_filter = %FeedFilter{
-            genders: ["F", "M", "N"],
-            min_age: nil,
-            max_age: nil,
-            distance: nil
-          },
-          false
-        )
-
-      assert length(feed) == left_limit - 1
-
-      assert {%DateTime{}, [%{}] = _story} =
-               Feeds.fetch_feed(
-                 me.id,
-                 me.profile.location,
-                 _gender = "M",
-                 _feed_filter = %FeedFilter{
-                   genders: ["F", "M", "N"],
-                   min_age: nil,
-                   max_age: nil,
-                   distance: nil
-                 },
-                 false
-               )
     end
 
     test "first_fetch", %{me: me} do
@@ -281,7 +207,7 @@ defmodule T.FeedsTest do
           true
         )
 
-      assert length(feed) == Feeds.feed_fetch_count() * 2
+      assert length(feed) == Feeds.feed_fetch_count()
     end
 
     test "with calculated_feed", %{me: me} do

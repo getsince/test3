@@ -147,10 +147,8 @@ defmodule TWeb.FeedChannel do
     {:reply, :ok, socket}
   end
 
-  def handle_in("reached-limit", %{"timestamp" => timestamp} = _params, socket) do
-    me = me_id(socket)
-
-    Feeds.reached_limit(me, timestamp)
+  # TODO remove
+  def handle_in("reached-limit", _params, socket) do
     {:reply, :ok, socket}
   end
 

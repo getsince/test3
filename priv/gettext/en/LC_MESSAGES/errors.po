@@ -97,77 +97,77 @@ msgstr ""
 msgid "must be equal to %{number}"
 msgstr ""
 
-#: lib/t/accounts/profile.ex:374
+#: lib/t/accounts/profile.ex:376
 #, elixir-autogen, elixir-format
 msgid "%{label} can't be blank"
 msgstr ""
 
-#: lib/t/accounts/profile.ex:340
+#: lib/t/accounts/profile.ex:342
 #, elixir-autogen, elixir-format
 msgid "%{label} has invalid format"
 msgstr ""
 
-#: lib/t/accounts/profile.ex:352
+#: lib/t/accounts/profile.ex:354
 #, elixir-autogen, elixir-format
 msgid "%{label} should be at least %{count} character(s)"
 msgstr ""
 
-#: lib/t/accounts/profile.ex:363
+#: lib/t/accounts/profile.ex:365
 #, elixir-autogen, elixir-format
 msgid "%{label} should be at most %{count} character(s)"
 msgstr ""
 
-#: lib/t/accounts/profile.ex:305
+#: lib/t/accounts/profile.ex:307
 #, elixir-autogen, elixir-format
 msgid "email address"
 msgstr ""
 
-#: lib/t/accounts/profile.ex:193
+#: lib/t/accounts/profile.ex:195
 #, elixir-autogen, elixir-format
 msgid "instagram username"
 msgstr ""
 
-#: lib/t/accounts/profile.ex:295
+#: lib/t/accounts/profile.ex:297
 #, elixir-autogen, elixir-format
 msgid "phone number"
 msgstr ""
 
-#: lib/t/accounts/profile.ex:183
+#: lib/t/accounts/profile.ex:185
 #, elixir-autogen, elixir-format
 msgid "telegram username"
 msgstr ""
 
-#: lib/t/accounts/profile.ex:250
+#: lib/t/accounts/profile.ex:252
 #, elixir-autogen, elixir-format
 msgid "whatsapp phone number"
 msgstr ""
 
-#: lib/t/accounts/profile.ex:272
+#: lib/t/accounts/profile.ex:274
 #, elixir-autogen, elixir-format
 msgid "imessage email address"
 msgstr ""
 
-#: lib/t/accounts/profile.ex:283
+#: lib/t/accounts/profile.ex:285
 #, elixir-autogen, elixir-format
 msgid "imessage phone number"
 msgstr ""
 
-#: lib/t/accounts/profile.ex:221
+#: lib/t/accounts/profile.ex:223
 #, elixir-autogen, elixir-format
 msgid "messenger username"
 msgstr ""
 
-#: lib/t/accounts/profile.ex:260
+#: lib/t/accounts/profile.ex:262
 #, elixir-autogen, elixir-format, fuzzy
 msgid "signal phone number"
 msgstr ""
 
-#: lib/t/accounts/profile.ex:207
+#: lib/t/accounts/profile.ex:209
 #, elixir-autogen, elixir-format
 msgid "snapchat username"
 msgstr ""
 
-#: lib/t/accounts/profile.ex:235
+#: lib/t/accounts/profile.ex:237
 #, elixir-autogen, elixir-format
 msgid "twitter username"
 msgstr ""

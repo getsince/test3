@@ -74,8 +74,22 @@ defmodule TWeb.FeedChannel do
 
     feed =
       case params["need_feed"] do
-        true -> fetch_feed(user_id, location, gender, feed_filter, version, screen_width, true)
-        _ -> nil
+        true ->
+          category = params["category"] || "recommended"
+
+          fetch_feed(
+            user_id,
+            location,
+            gender,
+            feed_filter,
+            version,
+            screen_width,
+            true,
+            category
+          )
+
+        _ ->
+          nil
       end
 
     feed_categories =
@@ -124,7 +138,7 @@ defmodule TWeb.FeedChannel do
       location: location
     } = socket.assigns
 
-    category = params["category"] || "new"
+    category = params["category"] || "recommended"
 
     feed =
       fetch_feed(user.id, location, gender, feed_filter, version, screen_width, false, category)
@@ -363,7 +377,7 @@ defmodule TWeb.FeedChannel do
          version,
          screen_width,
          first_fetch,
-         category \\ "new"
+         category
        ) do
     feed_reply = Feeds.fetch_feed(user_id, location, gender, feed_filter, first_fetch, category)
     render_feed(feed_reply, version, screen_width)

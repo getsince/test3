@@ -2,8 +2,8 @@ defmodule TWeb.FeedChannel do
   use TWeb, :channel
   import TWeb.ChannelHelpers
 
-  alias TWeb.{FeedView, MatchView, ViewHelpers}
-  alias T.{Feeds, Matches, Accounts, Events, News, Todos}
+  alias TWeb.{FeedView, ChatView, MatchView, ViewHelpers}
+  alias T.{Feeds, Chats, Matches, Accounts, Events, News, Todos}
 
   @impl true
   def join("feed:" <> user_id, params, socket) do
@@ -17,6 +17,8 @@ defmodule TWeb.FeedChannel do
       else
         user_id = String.downcase(user_id)
 
+        :ok = Chats.subscribe_for_user(user_id)
+        # TODO remove
         :ok = Matches.subscribe_for_user(user_id)
         :ok = Accounts.subscribe_for_user(user_id)
         :ok = Feeds.subscribe_for_user(user_id)
@@ -52,15 +54,22 @@ defmodule TWeb.FeedChannel do
     location = socket.assigns.location || old_location
     %{screen_width: screen_width, version: version} = socket.assigns
 
+    # TODO remove
     likes =
       user_id
       |> Feeds.list_received_likes(location)
       |> render_likes(version, screen_width)
 
+    # TODO remove
     matches =
       user_id
       |> Matches.list_matches(location)
       |> render_matches(version, screen_width)
+
+    chats =
+      user_id
+      |> Chats.list_chats(location)
+      |> render_chats(version, screen_width)
 
     news =
       user_id
@@ -102,6 +111,7 @@ defmodule TWeb.FeedChannel do
       %{}
       |> maybe_put("news", news)
       |> maybe_put("todos", todos)
+      |> maybe_put("chats", chats)
       |> maybe_put("likes", likes)
       |> maybe_put("matches", matches)
       |> maybe_put_with_empty_list("feed", feed)
@@ -165,6 +175,7 @@ defmodule TWeb.FeedChannel do
     {:reply, :ok, socket}
   end
 
+  # TODO remove
   def handle_in("seen-match", %{"match_id" => match_id} = params, socket) do
     me = me_id(socket)
 
@@ -176,6 +187,7 @@ defmodule TWeb.FeedChannel do
     {:reply, :ok, socket}
   end
 
+  # TODO remove
   def handle_in("seen-like", %{"user_id" => by_user_id} = params, socket) do
     me = me_id(socket)
 
@@ -192,6 +204,7 @@ defmodule TWeb.FeedChannel do
     {:reply, :ok, socket}
   end
 
+  # TODO remove
   def handle_in("like", %{"user_id" => liked}, socket) do
     %{
       current_user: %{id: liker},
@@ -235,11 +248,18 @@ defmodule TWeb.FeedChannel do
     {:reply, reply, socket}
   end
 
+  # TODO remove
   def handle_in("decline", %{"user_id" => liker}, socket) do
     Matches.decline_like(me_id(socket), liker)
     {:reply, :ok, socket}
   end
 
+  def handle_in("decline-invitation", %{"chat_id" => chat_id}, socket) do
+    Chats.delete_chat(me_id(socket), chat_id)
+    {:reply, :ok, socket}
+  end
+
+  # TODO remove
   def handle_in("unmatch", params, socket) do
     unmatched? =
       case params do
@@ -251,11 +271,13 @@ defmodule TWeb.FeedChannel do
   end
 
   def handle_in("report", params, socket) do
+    # TODO adapt
     report(socket, params)
   end
 
-  # interactions
+  # messages
 
+  # TODO remove
   def handle_in(
         "send-interaction",
         %{"match_id" => match_id, "interaction" => interaction},
@@ -272,10 +294,45 @@ defmodule TWeb.FeedChannel do
     end
   end
 
+  def handle_in("send-message", %{"to_user_id" => to_user_id, "message" => message}, socket) do
+    %{current_user: %{id: from_user_id}, screen_width: screen_width} = socket.assigns
+
+    case Chats.save_first_message(to_user_id, from_user_id, message) do
+      {:ok, chat, message} ->
+        {:reply,
+         {:ok,
+          %{"chat" => render_chat(chat), "message" => render_message(message, screen_width)}},
+         socket}
+
+      {:error, _changeset} ->
+        {:reply, :error, socket}
+    end
+  end
+
+  def handle_in("send-message", %{"chat_id" => chat_id, "message" => message}, socket) do
+    %{current_user: %{id: from_user_id}, screen_width: screen_width} = socket.assigns
+
+    case Chats.save_message(chat_id, from_user_id, message) do
+      {:ok, message} ->
+        {:reply, {:ok, %{"message" => render_message(message, screen_width)}}, socket}
+
+      {:error, _changeset} ->
+        {:reply, :error, socket}
+    end
+  end
+
+  # TODO remove
   def handle_in("seen-interaction", %{"interaction_id" => interaction_id}, socket) do
     %{current_user: %{id: by_user_id}} = socket.assigns
 
     reply = Matches.mark_interaction_seen(by_user_id, interaction_id)
+    {:reply, reply, socket}
+  end
+
+  def handle_in("seen-message", %{"message_id" => message_id}, socket) do
+    %{current_user: %{id: by_user_id}} = socket.assigns
+
+    reply = Chats.mark_message_seen(by_user_id, message_id)
     {:reply, reply, socket}
   end
 
@@ -292,6 +349,7 @@ defmodule TWeb.FeedChannel do
     {:reply, reply, socket}
   end
 
+  # TODO remove
   @impl true
   def handle_info({Matches, :liked, like}, socket) do
     %{screen_width: screen_width, version: version, location: location} = socket.assigns
@@ -305,6 +363,7 @@ defmodule TWeb.FeedChannel do
     {:noreply, socket}
   end
 
+  # TODO remove
   def handle_info({Matches, :matched, match}, socket) do
     %{screen_width: screen_width, version: version, location: location} = socket.assigns
 
@@ -332,27 +391,48 @@ defmodule TWeb.FeedChannel do
     {:noreply, socket}
   end
 
+  # TODO remove
   def handle_info({Matches, :unmatched, match_id}, socket) when is_binary(match_id) do
     push(socket, "unmatched", %{"match_id" => match_id})
     {:noreply, socket}
   end
 
+  # TODO remove
   def handle_info({Matches, :expired, match_id}, socket) when is_binary(match_id) do
     push(socket, "match_expired", %{"match_id" => match_id})
     {:noreply, socket}
   end
 
+  # TODO remove
   def handle_info({Matches, :expiration_reset, match_id}, socket) when is_binary(match_id) do
     push(socket, "match_expiration_reset", %{"match_id" => match_id})
     {:noreply, socket}
   end
 
+  # TODO remove
   def handle_info({Matches, :interaction, interaction}, socket) do
     %Matches.Interaction{match_id: match_id} = interaction
 
     push(socket, "interaction", %{
       "match_id" => match_id,
       "interaction" => render_interaction(interaction)
+    })
+
+    {:noreply, socket}
+  end
+
+  def handle_info({Chats, :deleted_chat, chat_id}, socket) when is_binary(chat_id) do
+    push(socket, "deleted_chat", %{"chat_id" => chat_id})
+    {:noreply, socket}
+  end
+
+  def handle_info({Chats, :message, message}, socket) do
+    %{screen_width: screen_width} = socket.assigns
+    %Chats.Message{chat_id: chat_id} = message
+
+    push(socket, "message", %{
+      "chat_id" => chat_id,
+      "message" => render_message(message, screen_width)
     })
 
     {:noreply, socket}
@@ -398,6 +478,7 @@ defmodule TWeb.FeedChannel do
     end)
   end
 
+  # TODO remove
   defp render_likes(likes, version, screen_width) do
     Enum.map(likes, fn %{profile: profile, seen: seen} ->
       profile
@@ -406,6 +487,7 @@ defmodule TWeb.FeedChannel do
     end)
   end
 
+  # TODO remove
   defp render_matches(matches, version, screen_width) do
     Enum.map(matches, fn match ->
       %Matches.Match{
@@ -430,12 +512,42 @@ defmodule TWeb.FeedChannel do
     end)
   end
 
+  defp render_chats(chats, version, screen_width) do
+    Enum.map(chats, fn chat ->
+      %Chats.Chat{
+        id: chat_id,
+        inserted_at: inserted_at,
+        profile: profile,
+        messages: messages
+      } = chat
+
+      render_chat(%{
+        id: chat_id,
+        inserted_at: inserted_at,
+        profile: profile,
+        screen_width: screen_width,
+        version: version,
+        messages: messages
+      })
+    end)
+  end
+
+  # TODO remove
   defp render_match(assigns) do
     render(MatchView, "match.json", assigns)
   end
 
+  defp render_chat(assigns) do
+    render(ChatView, "chat.json", assigns)
+  end
+
+  # TODO remove
   defp render_interaction(interaction) do
     render(MatchView, "interaction.json", interaction: interaction)
+  end
+
+  defp render_message(message, screen_width) do
+    render(ChatView, "message.json", message: message, screen_width: screen_width)
   end
 
   defp render_news(news, version, screen_width) do

@@ -1071,6 +1071,7 @@ defmodule TWeb.FeedChannelTest do
     end
   end
 
+  # TODO report with chatter
   describe "report with match" do
     setup :joined
 
@@ -1122,6 +1123,7 @@ defmodule TWeb.FeedChannelTest do
     end
   end
 
+  # TODO chats
   describe "interactions" do
     setup :joined
 

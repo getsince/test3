@@ -184,13 +184,18 @@ defmodule T.Chats do
     [user_id_1, user_id_2] = Enum.sort([from_user_id, to_user_id])
 
     Multi.new()
-    |> Multi.run(:chat, fn repo, _changes ->
+    # TODO :needs_chat multi
+    |> Multi.run(:chat_new?, fn repo, _changes ->
       case repo.get_by(Chat, user_id_1: user_id_1, user_id_2: user_id_2) do
-        %Chat{} = chat -> {:ok, chat}
-        nil -> %Chat{user_id_1: user_id_1, user_id_2: user_id_2} |> repo.insert()
+        %Chat{} = chat ->
+          {:ok, {chat, false}}
+
+        nil ->
+          chat = %Chat{user_id_1: user_id_1, user_id_2: user_id_2} |> repo.insert!()
+          {:ok, {chat, true}}
       end
     end)
-    |> Multi.insert(:message, fn %{chat: %Chat{id: chat_id}} ->
+    |> Multi.insert(:message, fn %{chat_new?: {%Chat{id: chat_id}, _new}} ->
       message_changeset(%{
         data: message_data,
         chat_id: chat_id,
@@ -213,7 +218,12 @@ defmodule T.Chats do
     end)
     |> Repo.transaction()
     |> case do
-      {:ok, %{chat: %Chat{} = chat, message: %Message{} = message}} ->
+      {:ok, %{chat_new?: {%Chat{} = chat, true}, message: %Message{} = message}} ->
+        chat_with_message = %Chat{chat | messages: [message]}
+        broadcast_chat(chat_with_message)
+        {:ok, chat, message}
+
+      {:ok, %{chat_new?: {%Chat{} = chat, false}, message: %Message{} = message}} ->
         broadcast_chat_message(message)
         {:ok, chat, message}
 
@@ -250,6 +260,14 @@ defmodule T.Chats do
           [message: "unrecognized message type"]
       end
     end)
+  end
+
+  @spec broadcast_chat(%Chat{}) :: :ok
+  defp broadcast_chat(%Chat{user_id_1: uid1, user_id_2: uid2} = chat) do
+    message = {__MODULE__, :chat, chat}
+    broadcast_for_user(uid1, message)
+    broadcast_for_user(uid2, message)
+    :ok
   end
 
   @spec broadcast_chat_message(%Message{}) :: :ok

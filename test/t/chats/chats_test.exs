@@ -25,8 +25,9 @@ defmodule T.ChatsTest do
                  Chats.save_message(p2_id, p1_id, %{"question" => "invitation"})
       end)
 
-      assert_receive {Chats, :message, message}
-      assert %{id: invite_id, from_user_id: from_user_id, chat_id: chat_id} = message
+      assert_receive {Chats, :chat, chat}
+      assert %{id: chat_id, messages: [message]} = chat
+      assert %{id: invite_id, from_user_id: from_user_id} = message
       assert from_user_id == p1_id
 
       assert {:ok, %Chat{}, %Message{id: acceptance_id}} =

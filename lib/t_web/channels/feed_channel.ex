@@ -4,6 +4,7 @@ defmodule TWeb.FeedChannel do
 
   alias TWeb.{FeedView, ChatView, MatchView, ViewHelpers}
   alias T.{Feeds, Chats, Matches, Accounts, Events, News, Todos}
+  alias T.Chats.{Chat, Message}
 
   @impl true
   def join("feed:" <> user_id, params, socket) do
@@ -414,9 +415,33 @@ defmodule TWeb.FeedChannel do
     {:noreply, socket}
   end
 
-  def handle_info({Chats, :message, message}, socket) do
+  def handle_info(
+        {Chats, :chat,
+         %Chat{id: chat_id, user_id_1: uid1, user_id_2: uid2, inserted_at: inserted_at}},
+        socket
+      ) do
+    %{screen_width: screen_width, version: version, location: location} = socket.assigns
+
+    [mate] = [uid1, uid2] -- [me_id(socket)]
+
+    if profile = Feeds.get_mate_feed_profile(mate, location) do
+      push(socket, "chat", %{
+        "chat" =>
+          render_chat(%{
+            id: chat_id,
+            inserted_at: inserted_at,
+            profile: profile,
+            screen_width: screen_width,
+            version: version
+          })
+      })
+    end
+
+    {:noreply, socket}
+  end
+
+  def handle_info({Chats, :message, %Message{chat_id: chat_id} = message}, socket) do
     %{screen_width: screen_width} = socket.assigns
-    %Chats.Message{chat_id: chat_id} = message
 
     push(socket, "message", %{
       "chat_id" => chat_id,
@@ -502,7 +527,7 @@ defmodule TWeb.FeedChannel do
 
   defp render_chats(chats, version, screen_width) do
     Enum.map(chats, fn chat ->
-      %Chats.Chat{
+      %Chat{
         id: chat_id,
         inserted_at: inserted_at,
         profile: profile,

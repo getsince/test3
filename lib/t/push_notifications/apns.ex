@@ -47,6 +47,7 @@ defmodule T.PushNotifications.APNS do
   @spec build_alert_payload(String.t(), map) :: map
   def build_alert_payload(template, data)
 
+  # TODO remove
   def build_alert_payload("match" = type, data) do
     alert = %{
       "title" => dgettext("apns", "Это новый мэтч!"),
@@ -56,6 +57,7 @@ defmodule T.PushNotifications.APNS do
     base_alert_payload(type, alert, data)
   end
 
+  # TODO remove
   def build_alert_payload(
         "match_about_to_expire" = type,
         %{"name" => name, "gender" => gender} = data
@@ -71,6 +73,7 @@ defmodule T.PushNotifications.APNS do
     base_alert_payload(type, alert, data)
   end
 
+  # TODO remove
   def build_alert_payload(
         "match_about_to_expire_please_reply" = type,
         %{"name" => name, "gender" => gender} = data
@@ -87,7 +90,17 @@ defmodule T.PushNotifications.APNS do
   end
 
   def build_alert_payload(type, %{"name_from" => name_from, "gender_from" => gender_from} = data)
-      when type in ["message", "drawing", "video", "audio", "spotify", "contact", "photo"] do
+      when type in [
+             "invite",
+             "acceptance",
+             "message",
+             "drawing",
+             "video",
+             "audio",
+             "spotify",
+             "contact",
+             "photo"
+           ] do
     verb_ending_ru =
       case gender_from do
         "F" -> "а"
@@ -97,6 +110,14 @@ defmodule T.PushNotifications.APNS do
 
     body =
       case type do
+        "invite" ->
+          dgettext("apns", "invited you to connect")
+
+        "acceptance" ->
+          dgettext("apns", "accepted%{verb_ending_ru} your invitation",
+            verb_ending_ru: verb_ending_ru
+          )
+
         "message" ->
           dgettext("apns", "sent%{verb_ending_ru} a message", verb_ending_ru: verb_ending_ru)
 
@@ -123,6 +144,7 @@ defmodule T.PushNotifications.APNS do
     base_alert_payload(type, alert, data)
   end
 
+  # TODO remove
   def build_alert_payload("invite" = type, data) do
     %{"user_id" => user_id, "name" => name} = data
     alert = %{"title" => dgettext("apns", "%{name} invited you to connect", name: name)}

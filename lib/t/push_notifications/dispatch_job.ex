@@ -11,6 +11,7 @@ defmodule T.PushNotifications.DispatchJob do
     handle_type(type, args)
   end
 
+  # TODO remove
   defp handle_type("match", args) do
     %{"match_id" => match_id} = args
 
@@ -27,6 +28,7 @@ defmodule T.PushNotifications.DispatchJob do
     end
   end
 
+  # TODO remove
   defp handle_type("match_about_to_expire", args) do
     %{"match_id" => match_id} = args
 
@@ -73,7 +75,17 @@ defmodule T.PushNotifications.DispatchJob do
   end
 
   defp handle_type(type, %{"from_user_id" => from_user_id, "to_user_id" => to_user_id} = args)
-       when type in ["message", "drawing", "video", "audio", "spotify", "contact", "photo"] do
+       when type in [
+              "invite",
+              "acceptance",
+              "message",
+              "drawing",
+              "video",
+              "audio",
+              "spotify",
+              "contact",
+              "photo"
+            ] do
     profile_from = profile_info(from_user_id)
 
     if profile_from do
@@ -85,6 +97,7 @@ defmodule T.PushNotifications.DispatchJob do
     :ok
   end
 
+  # TODO remove
   defp handle_type("invite" = type, args) do
     %{"by_user_id" => by_user_id, "user_id" => user_id} = args
 

@@ -157,25 +157,18 @@ defmodule T.Chats do
     broadcast_from_for_user(by_user_id, {__MODULE__, :deleted_chat, chat_id})
   end
 
-  defp get_chat_for_user!(chat_id, user_id) do
-    Chat
-    |> where(id: ^chat_id)
-    |> where([c], c.user_id_1 == ^user_id or c.user_id_2 == ^user_id)
-    |> Repo.one!()
-  end
-
-  @spec save_first_message(uuid, uuid, map) :: {:ok, map, map} | {:error, map}
-  def save_first_message(to_user_id, from_user_id, message_data) do
-    primary_rpc(__MODULE__, :local_save_first_message, [
+  @spec save_message(uuid, uuid, map) :: {:ok, map, map} | {:error, map}
+  def save_message(to_user_id, from_user_id, message_data) do
+    primary_rpc(__MODULE__, :local_save_message, [
       from_user_id,
       to_user_id,
       message_data
     ])
   end
 
-  @spec local_save_first_message(uuid, uuid, map) ::
+  @spec local_save_message(uuid, uuid, map) ::
           {:ok, map, map} | {:error, map}
-  def local_save_first_message(from_user_id, to_user_id, message_data) do
+  def local_save_message(from_user_id, to_user_id, message_data) do
     message_type =
       case message_data do
         %{"question" => question} ->
@@ -183,12 +176,20 @@ defmodule T.Chats do
             true -> "contact"
             false -> question
           end
+
+        _ ->
+          "text"
       end
 
     [user_id_1, user_id_2] = Enum.sort([from_user_id, to_user_id])
 
     Multi.new()
-    |> Multi.insert(:chat, %Chat{user_id_1: user_id_1, user_id_2: user_id_2})
+    |> Multi.run(:chat, fn repo, _changes ->
+      case repo.get_by(Chat, user_id_1: user_id_1, user_id_2: user_id_2) do
+        %Chat{} = chat -> {:ok, chat}
+        nil -> %Chat{user_id_1: user_id_1, user_id_2: user_id_2} |> repo.insert()
+      end
+    end)
     |> Multi.insert(:message, fn %{chat: %Chat{id: chat_id}} ->
       message_changeset(%{
         data: message_data,
@@ -199,7 +200,6 @@ defmodule T.Chats do
       })
     end)
     |> Multi.run(:push, fn _repo, %{message: %Message{chat_id: chat_id, id: message_id}} ->
-      # TODO pushes
       push_job =
         DispatchJob.new(%{
           "type" => message_type,
@@ -216,71 +216,6 @@ defmodule T.Chats do
       {:ok, %{chat: %Chat{} = chat, message: %Message{} = message}} ->
         broadcast_chat_message(message)
         {:ok, chat, message}
-
-      {:error, :message, %Ecto.Changeset{} = changeset, _changes} ->
-        {:error, changeset}
-    end
-  end
-
-  @spec save_message(uuid, uuid, map) :: {:ok, map} | {:error, map}
-  def save_message(chat_id, from_user_id, message_data) do
-    %Chat{id: chat_id, user_id_1: uid1, user_id_2: uid2} =
-      get_chat_for_user!(chat_id, from_user_id)
-
-    [to_user_id] = [uid1, uid2] -- [from_user_id]
-
-    primary_rpc(__MODULE__, :local_save_message, [
-      chat_id,
-      from_user_id,
-      to_user_id,
-      message_data
-    ])
-  end
-
-  @spec local_save_message(uuid, uuid, uuid, map) ::
-          {:ok, map} | {:error, map}
-  def local_save_message(chat_id, from_user_id, to_user_id, message_data) do
-    message_type =
-      case message_data do
-        %{"question" => question} ->
-          case question in T.Accounts.Profile.contacts() do
-            true -> "contact"
-            false -> question
-          end
-
-        _ ->
-          "text"
-      end
-
-    changeset =
-      message_changeset(%{
-        data: message_data,
-        chat_id: chat_id,
-        from_user_id: from_user_id,
-        to_user_id: to_user_id,
-        seen: false
-      })
-
-    Multi.new()
-    |> Multi.insert(:message, changeset)
-    |> Multi.run(:push, fn _repo, %{message: %Message{id: message_id}} ->
-      # TODO pushes
-      push_job =
-        DispatchJob.new(%{
-          "type" => message_type,
-          "chat_id" => chat_id,
-          "from_user_id" => from_user_id,
-          "to_user_id" => to_user_id,
-          "message_id" => message_id
-        })
-
-      Oban.insert(push_job)
-    end)
-    |> Repo.transaction()
-    |> case do
-      {:ok, %{message: %Message{} = message}} ->
-        broadcast_chat_message(message)
-        {:ok, message}
 
       {:error, :message, %Ecto.Changeset{} = changeset, _changes} ->
         {:error, changeset}

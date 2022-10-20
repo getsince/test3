@@ -2,14 +2,13 @@ defmodule TWeb.FeedChannelTest do
   use TWeb.ChannelCase, async: true
 
   alias T.{Accounts, Chats, Matches, Feeds}
-  alias Chats.Message
+  alias Chats.{Chat, Message}
   alias Matches.{Match, Interaction}
 
   setup do
     me = onboarded_user(location: moscow_location(), accept_genders: ["F", "N", "M"])
 
-    {:ok,
-     me: me, socket: connected_socket(me), socket_with_old_version: connected_socket(me, "6.9.0")}
+    {:ok, me: me, socket: connected_socket(me), socket_with_old_version: connected_socket(me, "6.9.0")}
   end
 
   describe "join" do
@@ -86,8 +85,7 @@ defmodule TWeb.FeedChannelTest do
     test "with feed if asked", %{socket: socket, me: me} do
       assert {:ok, %{}, _socket} = join(socket, "feed:" <> me.id)
 
-      assert {:ok, %{"feed" => feed}, _socket} =
-               join(socket, "feed:" <> me.id, %{"need_feed" => true})
+      assert {:ok, %{"feed" => feed}, _socket} = join(socket, "feed:" <> me.id, %{"need_feed" => true})
 
       assert feed == []
 
@@ -99,8 +97,7 @@ defmodule TWeb.FeedChannelTest do
 
       assert {:ok, %{}, _socket} = join(socket, "feed:" <> me.id)
 
-      assert {:ok, %{"feed" => feed}, _socket} =
-               join(socket, "feed:" <> me.id, %{"need_feed" => true})
+      assert {:ok, %{"feed" => feed}, _socket} = join(socket, "feed:" <> me.id, %{"need_feed" => true})
 
       assert feed == [
                %{
@@ -296,24 +293,24 @@ defmodule TWeb.FeedChannelTest do
       ]
 
       # second chat has one message
-      {:ok, %Message{id: message_id_1}} =
+      {:ok, %Chat{}, %Message{id: message_id_1}} =
         Chats.save_message(
-          c2.id,
+          p2.id,
           me.id,
           %{"question" => "text", "value" => "hey mama"}
         )
 
       # third match had two messages
-      {:ok, %Message{id: message_id_2}} =
+      {:ok, %Chat{}, %Message{id: message_id_2}} =
         Chats.save_message(
-          c3.id,
+          p3.id,
           me.id,
           %{"question" => "telegram", "answer" => "durov"}
         )
 
-      {:ok, %Message{id: message_id_3}} =
+      {:ok, %Chat{}, %Message{id: message_id_3}} =
         Chats.save_message(
-          c3.id,
+          p3.id,
           p3.id,
           %{"question" => "audio", "s3_key" => "abcd"}
         )
@@ -419,11 +416,9 @@ defmodule TWeb.FeedChannelTest do
       mate1 = onboarded_user(story: [], name: "mate-1", location: apple_location(), gender: "F")
       mate2 = onboarded_user(story: [], name: "mate-2", location: apple_location(), gender: "F")
 
-      assert {:ok, %{like: %Matches.Like{}}} =
-               Matches.like_user(mate1.id, me.id, default_location())
+      assert {:ok, %{like: %Matches.Like{}}} = Matches.like_user(mate1.id, me.id, default_location())
 
-      assert {:ok, %{like: %Matches.Like{}}} =
-               Matches.like_user(mate2.id, me.id, default_location())
+      assert {:ok, %{like: %Matches.Like{}}} = Matches.like_user(mate2.id, me.id, default_location())
 
       assert :ok = Matches.mark_like_seen(me.id, mate2.id)
 
@@ -519,8 +514,7 @@ defmodule TWeb.FeedChannelTest do
     end
 
     test "in onboarding mode with feed", %{socket: socket, me: me} do
-      assert {:ok, reply, _socket} =
-               join(socket, "feed:" <> me.id, %{"onboarding_mode" => true, "need_feed" => true})
+      assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id, %{"onboarding_mode" => true, "need_feed" => true})
 
       assert reply == %{"feed" => []}
     end
@@ -599,8 +593,7 @@ defmodule TWeb.FeedChannelTest do
 
       socket = connected_socket(me)
 
-      assert {:ok, _reply, socket} =
-               subscribe_and_join(socket, "feed:" <> me.id, %{"mode" => "normal"})
+      assert {:ok, _reply, socket} = subscribe_and_join(socket, "feed:" <> me.id, %{"mode" => "normal"})
 
       now = DateTime.utc_now()
 
@@ -680,8 +673,7 @@ defmodule TWeb.FeedChannelTest do
 
       socket = connected_socket(me)
 
-      assert {:ok, _reply, socket} =
-               subscribe_and_join(socket, "feed:" <> me.id, %{"mode" => "normal"})
+      assert {:ok, _reply, socket} = subscribe_and_join(socket, "feed:" <> me.id, %{"mode" => "normal"})
 
       [m1, m2] = [
         onboarded_user(
@@ -746,8 +738,7 @@ defmodule TWeb.FeedChannelTest do
 
       socket = connected_socket(me)
 
-      assert {:ok, _reply, socket} =
-               subscribe_and_join(socket, "feed:" <> me.id, %{"mode" => "normal"})
+      assert {:ok, _reply, socket} = subscribe_and_join(socket, "feed:" <> me.id, %{"mode" => "normal"})
 
       ref = push(socket, "more", %{"count" => 3})
       assert_reply(ref, :ok, %{"feed" => feed})

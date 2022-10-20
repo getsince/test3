@@ -297,24 +297,12 @@ defmodule TWeb.FeedChannel do
   def handle_in("send-message", %{"to_user_id" => to_user_id, "message" => message}, socket) do
     %{current_user: %{id: from_user_id}, screen_width: screen_width} = socket.assigns
 
-    case Chats.save_first_message(to_user_id, from_user_id, message) do
+    case Chats.save_message(to_user_id, from_user_id, message) do
       {:ok, chat, message} ->
         {:reply,
          {:ok,
           %{"chat" => render_chat(chat), "message" => render_message(message, screen_width)}},
          socket}
-
-      {:error, _changeset} ->
-        {:reply, :error, socket}
-    end
-  end
-
-  def handle_in("send-message", %{"chat_id" => chat_id, "message" => message}, socket) do
-    %{current_user: %{id: from_user_id}, screen_width: screen_width} = socket.assigns
-
-    case Chats.save_message(chat_id, from_user_id, message) do
-      {:ok, message} ->
-        {:reply, {:ok, %{"message" => render_message(message, screen_width)}}, socket}
 
       {:error, _changeset} ->
         {:reply, :error, socket}

@@ -22,15 +22,15 @@ defmodule T.ChatsTest do
         Ecto.Adapters.SQL.Sandbox.allow(Repo, parent, self())
 
         assert {:ok, %Chat{}, %Message{}} =
-                 Chats.save_first_message(p2_id, p1_id, %{"question" => "invitation"})
+                 Chats.save_message(p2_id, p1_id, %{"question" => "invitation"})
       end)
 
       assert_receive {Chats, :message, message}
       assert %{id: invite_id, from_user_id: from_user_id, chat_id: chat_id} = message
       assert from_user_id == p1_id
 
-      assert {:ok, %Message{id: acceptance_id}} =
-               Chats.save_message(chat_id, p2_id, %{"question" => "acceptance"})
+      assert {:ok, %Chat{}, %Message{id: acceptance_id}} =
+               Chats.save_message(p1_id, p2_id, %{"question" => "acceptance"})
 
       # for p1
       assert_receive {Chats, :message, %{chat_id: ^chat_id, from_user_id: ^p2_id}}

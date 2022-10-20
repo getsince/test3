@@ -5,74 +5,19 @@ defmodule T.Chats.MessagesTest do
   alias T.Chats
   alias T.Chats.{Chat, Message}
 
-  describe "save_message/3 for invalid chat" do
-    setup [:with_profiles]
-
-    @message %{"question" => "text", "value" => "you can get a few more "}
-
-    test "with non-existent chat", %{profiles: [p1, _]} do
-      chat = Ecto.UUID.generate()
-
-      assert_raise Ecto.NoResultsError, fn ->
-        Chats.save_message(chat, p1.user_id, @message)
-      end
-    end
-
-    test "with chat we are not part of", %{profiles: [p1, p2]} do
-      p3 = insert(:profile, hidden?: false)
-      chat = insert(:chat, user_id_1: p1.user_id, user_id_2: p2.user_id)
-
-      assert_raise Ecto.NoResultsError, fn ->
-        Chats.save_message(chat.id, p3.user_id, @message)
-      end
-    end
-  end
-
-  describe "save_first_message/3" do
-    setup [:with_profiles]
-
-    test "invitation", %{profiles: [p1, p2]} do
-      Chats.subscribe_for_user(p1.user_id)
-      Chats.subscribe_for_user(p2.user_id)
-
-      # invite from p1 to p2
-      assert {:ok, %Chat{}, %Message{} = message} =
-               Chats.save_first_message(p2.user_id, p1.user_id, %{"question" => "invitation"})
-
-      from_user_id = p1.user_id
-      to_user_id = p2.user_id
-
-      assert %{
-               data: %{"question" => "invitation"},
-               from_user_id: ^from_user_id,
-               to_user_id: ^to_user_id,
-               chat_id: chat_id
-             } = message
-
-      assert [i1] = Message |> where(chat_id: ^chat_id) |> T.Repo.all()
-      assert i1.from_user_id == p1.user_id
-      assert i1.to_user_id == p2.user_id
-      assert i1.chat_id == chat_id
-      assert i1.data == %{"question" => "invitation"}
-
-      assert_received {Chats, :message, ^i1}
-      assert_received {Chats, :message, ^i1}
-    end
-  end
-
   describe "save_message/3" do
     setup [:with_profiles, :with_chat]
 
-    test "with empty message", %{profiles: [p1, _], chat: chat} do
+    test "with empty message", %{profiles: [p1, p2]} do
       assert {:error, %Ecto.Changeset{valid?: false} = changeset} =
-               Chats.save_message(chat.id, p1.user_id, %{"" => ""})
+               Chats.save_message(p2.user_id, p1.user_id, %{"" => ""})
 
       assert errors_on(changeset) == %{message: ["unrecognized message type"]}
     end
 
-    test "with unsupported message", %{profiles: [p1, _], chat: chat} do
+    test "with unsupported message", %{profiles: [p1, p2]} do
       assert {:error, %Ecto.Changeset{valid?: false} = changeset} =
-               Chats.save_message(chat.id, p1.user_id, %{"question" => "interests"})
+               Chats.save_message(p2.user_id, p1.user_id, %{"question" => "interests"})
 
       assert errors_on(changeset) == %{message: ["unsupported message type"]}
     end
@@ -84,8 +29,8 @@ defmodule T.Chats.MessagesTest do
       Chats.subscribe_for_user(p2.user_id)
 
       # text message from p1 to p2
-      assert {:ok, %Message{} = message} =
-               Chats.save_message(chat.id, p1.user_id, %{
+      assert {:ok, %Chat{}, %Message{} = message} =
+               Chats.save_message(p2.user_id, p1.user_id, %{
                  "question" => "text",
                  "value" => "helloy"
                })
@@ -109,8 +54,8 @@ defmodule T.Chats.MessagesTest do
       assert_received {Chats, :message, ^i1}
 
       # text message from p2 to p1
-      assert {:ok, %Message{} = message} =
-               Chats.save_message(chat.id, p2.user_id, %{
+      assert {:ok, %Chat{}, %Message{} = message} =
+               Chats.save_message(p1.user_id, p2.user_id, %{
                  "value" => "W3sicG9pbnRzIfV0=",
                  "question" => "text"
                })
@@ -131,8 +76,8 @@ defmodule T.Chats.MessagesTest do
       assert_received {Chats, :message, ^i2}
 
       # spotify message from p2 to p1
-      assert {:ok, %Message{}} =
-               Chats.save_message(chat.id, p2.user_id, %{"question" => "spotify"})
+      assert {:ok, %Chat{}, %Message{}} =
+               Chats.save_message(p1.user_id, p2.user_id, %{"question" => "spotify"})
     end
   end
 
@@ -223,12 +168,12 @@ defmodule T.Chats.MessagesTest do
     {:ok, chat: insert(:chat, user_id_1: p1.user_id, user_id_2: p2.user_id)}
   end
 
-  defp with_text_message(%{profiles: [p1, _p2], chat: chat}) do
+  defp with_text_message(%{profiles: [p1, p2]}) do
     message = %{"question" => "text", "value" => "helloy"}
 
-    assert {:ok, %Message{} = message} =
+    assert {:ok, %Chat{}, %Message{} = message} =
              Chats.save_message(
-               chat.id,
+               p2.user_id,
                p1.user_id,
                message
              )
@@ -236,12 +181,12 @@ defmodule T.Chats.MessagesTest do
     {:ok, message: message}
   end
 
-  defp with_contact_message(%{profiles: [p1, _p2], chat: chat}) do
+  defp with_contact_message(%{profiles: [p1, p2]}) do
     message = %{"question" => "telegram"}
 
-    assert {:ok, %Message{} = message} =
+    assert {:ok, %Chat{}, %Message{} = message} =
              Chats.save_message(
-               chat.id,
+               p2.user_id,
                p1.user_id,
                message
              )

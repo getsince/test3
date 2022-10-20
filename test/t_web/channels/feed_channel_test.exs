@@ -1,7 +1,8 @@
 defmodule TWeb.FeedChannelTest do
   use TWeb.ChannelCase, async: true
 
-  alias T.{Accounts, Matches, Feeds}
+  alias T.{Accounts, Chats, Matches, Feeds}
+  alias Chats.Message
   alias Matches.{Match, Interaction}
 
   setup do
@@ -42,6 +43,39 @@ defmodule TWeb.FeedChannelTest do
       insert(:match, user_id_1: me.id, user_id_2: stacy.id)
 
       assert {:ok, %{"matches" => [%{"profile" => %{story: [public, private]}}]}, _socket} =
+               join(socket, "feed:" <> me.id)
+
+      assert Map.keys(public) == ["background", "labels", "size"]
+      assert Map.keys(private) == ["background", "labels", "private", "size"]
+      assert %{"private" => true} = private
+    end
+
+    test "shows private pages of chats", %{socket: socket, me: me} do
+      stacy =
+        onboarded_user(
+          name: "Private Stacy",
+          location: apple_location(),
+          story: [
+            %{"background" => %{"s3_key" => "public1"}, "labels" => [], "size" => [400, 100]},
+            %{
+              "background" => %{"s3_key" => "private"},
+              "blurred" => %{"s3_key" => "blurred"},
+              "labels" => [
+                %{
+                  "value" => "some private info",
+                  "position" => [100, 100]
+                }
+              ],
+              "size" => [100, 400]
+            }
+          ],
+          gender: "F",
+          accept_genders: ["M"]
+        )
+
+      insert(:chat, user_id_1: me.id, user_id_2: stacy.id)
+
+      assert {:ok, %{"chats" => [%{"profile" => %{story: [public, private]}}]}, _socket} =
                join(socket, "feed:" <> me.id)
 
       assert Map.keys(public) == ["background", "labels", "size"]
@@ -244,6 +278,139 @@ defmodule TWeb.FeedChannelTest do
                  "expiration_date" => ~U[2021-10-01 12:16:05Z],
                  "seen" => true,
                  "interactions" => []
+               }
+             ]
+    end
+
+    test "with chats", %{socket: socket, me: me} do
+      [p1, p2, p3] = [
+        onboarded_user(story: [], name: "mate-1", location: apple_location(), gender: "F"),
+        onboarded_user(story: [], name: "mate-2", location: apple_location(), gender: "N"),
+        onboarded_user(story: [], name: "mate-3", location: apple_location(), gender: "M")
+      ]
+
+      [c1, c2, c3] = [
+        insert(:chat, user_id_1: me.id, user_id_2: p1.id, inserted_at: ~N[2021-09-30 12:16:05]),
+        insert(:chat, user_id_1: me.id, user_id_2: p2.id, inserted_at: ~N[2021-09-30 12:16:06]),
+        insert(:chat, user_id_1: me.id, user_id_2: p3.id, inserted_at: ~N[2021-09-30 12:16:07])
+      ]
+
+      # second chat has one message
+      {:ok, %Message{id: message_id_1}} =
+        Chats.save_message(
+          c2.id,
+          me.id,
+          %{"question" => "text", "value" => "hey mama"}
+        )
+
+      # third match had two messages
+      {:ok, %Message{id: message_id_2}} =
+        Chats.save_message(
+          c3.id,
+          me.id,
+          %{"question" => "telegram", "answer" => "durov"}
+        )
+
+      {:ok, %Message{id: message_id_3}} =
+        Chats.save_message(
+          c3.id,
+          p3.id,
+          %{"question" => "audio", "s3_key" => "abcd"}
+        )
+
+      assert {:ok, %{"chats" => chats}, _socket} = join(socket, "feed:" <> me.id)
+
+      assert chats == [
+               %{
+                 "id" => c3.id,
+                 "profile" => %{
+                   name: "mate-3",
+                   story: [],
+                   user_id: p3.id,
+                   gender: "M",
+                   distance: 9510,
+                   address: %{
+                     "en_US" => %{
+                       "city" => "Buenos Aires",
+                       "state" => "Autonomous City of Buenos Aires",
+                       "country" => "Argentina",
+                       "iso_country_code" => "AR"
+                     }
+                   }
+                 },
+                 "inserted_at" => ~U[2021-09-30 12:16:07Z],
+                 "messages" => [
+                   %{
+                     "from_user_id" => me.id,
+                     "id" => message_id_2,
+                     "inserted_at" => datetime(message_id_2),
+                     "message" => %{
+                       "answer" => "durov",
+                       "question" => "telegram",
+                       "url" => "https://t.me/durov"
+                     },
+                     "seen" => false
+                   },
+                   %{
+                     "from_user_id" => p3.id,
+                     "id" => message_id_3,
+                     "inserted_at" => datetime(message_id_3),
+                     "message" => %{
+                       "question" => "audio",
+                       "s3_key" => "abcd",
+                       "url" => "https://d6666.cloudfront.net/abcd"
+                     },
+                     "seen" => false
+                   }
+                 ]
+               },
+               %{
+                 "id" => c2.id,
+                 "profile" => %{
+                   name: "mate-2",
+                   story: [],
+                   user_id: p2.id,
+                   gender: "N",
+                   distance: 9510,
+                   address: %{
+                     "en_US" => %{
+                       "city" => "Buenos Aires",
+                       "state" => "Autonomous City of Buenos Aires",
+                       "country" => "Argentina",
+                       "iso_country_code" => "AR"
+                     }
+                   }
+                 },
+                 "inserted_at" => ~U[2021-09-30 12:16:06Z],
+                 "messages" => [
+                   %{
+                     "from_user_id" => me.id,
+                     "id" => message_id_1,
+                     "inserted_at" => datetime(message_id_1),
+                     "message" => %{"question" => "text", "value" => "hey mama"},
+                     "seen" => false
+                   }
+                 ]
+               },
+               %{
+                 "id" => c1.id,
+                 "profile" => %{
+                   name: "mate-1",
+                   story: [],
+                   user_id: p1.id,
+                   gender: "F",
+                   distance: 9510,
+                   address: %{
+                     "en_US" => %{
+                       "city" => "Buenos Aires",
+                       "state" => "Autonomous City of Buenos Aires",
+                       "country" => "Argentina",
+                       "iso_country_code" => "AR"
+                     }
+                   }
+                 },
+                 "inserted_at" => ~U[2021-09-30 12:16:05Z],
+                 "messages" => []
                }
              ]
     end

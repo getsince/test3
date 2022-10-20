@@ -78,6 +78,7 @@ defmodule T.PushNotifications.DispatchJob do
        when type in [
               "invite",
               "acceptance",
+              "text",
               "message",
               "drawing",
               "video",

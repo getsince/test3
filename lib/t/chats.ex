@@ -122,7 +122,7 @@ defmodule T.Chats do
         notify_delete_chat(by_user_id, mate, chat_id)
         _deleted_chat? = true
 
-      {:error, :unmatch, :chat_not_found, _changes} ->
+      {:error, :delete_chat, :chat_not_found, _changes} ->
         _deleted_chat? = false
     end
   end
@@ -166,7 +166,7 @@ defmodule T.Chats do
 
   @spec save_first_message(uuid, uuid, map) :: {:ok, map, map} | {:error, map}
   def save_first_message(to_user_id, from_user_id, message_data) do
-    primary_rpc(__MODULE__, :local_save_message, [
+    primary_rpc(__MODULE__, :local_save_first_message, [
       from_user_id,
       to_user_id,
       message_data
@@ -217,7 +217,7 @@ defmodule T.Chats do
         broadcast_chat_message(message)
         {:ok, chat, message}
 
-      {:error, :interaction, %Ecto.Changeset{} = changeset, _changes} ->
+      {:error, :message, %Ecto.Changeset{} = changeset, _changes} ->
         {:error, changeset}
     end
   end
@@ -247,6 +247,9 @@ defmodule T.Chats do
             true -> "contact"
             false -> question
           end
+
+        _ ->
+          "text"
       end
 
     changeset =
@@ -279,7 +282,7 @@ defmodule T.Chats do
         broadcast_chat_message(message)
         {:ok, message}
 
-      {:error, :interaction, %Ecto.Changeset{} = changeset, _changes} ->
+      {:error, :message, %Ecto.Changeset{} = changeset, _changes} ->
         {:error, changeset}
     end
   end
@@ -288,8 +291,8 @@ defmodule T.Chats do
     %Message{}
     |> cast(attrs, [:data, :chat_id, :from_user_id, :to_user_id, :seen])
     |> validate_required([:data, :chat_id, :from_user_id, :to_user_id, :seen])
-    |> validate_change(:data, fn :data, interaction_data ->
-      case interaction_data do
+    |> validate_change(:data, fn :data, message_data ->
+      case message_data do
         %{"question" => question} ->
           case question in ([
                               "invitation",
@@ -306,10 +309,10 @@ defmodule T.Chats do
           end
 
         nil ->
-          [interaction: "unrecognized message type"]
+          [message: "unrecognized message type"]
 
         _ ->
-          [interaction: "unrecognized message type"]
+          [message: "unrecognized message type"]
       end
     end)
   end

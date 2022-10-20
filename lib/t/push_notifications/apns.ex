@@ -93,6 +93,7 @@ defmodule T.PushNotifications.APNS do
       when type in [
              "invite",
              "acceptance",
+             "text",
              "message",
              "drawing",
              "video",
@@ -117,6 +118,9 @@ defmodule T.PushNotifications.APNS do
           dgettext("apns", "accepted%{verb_ending_ru} your invitation",
             verb_ending_ru: verb_ending_ru
           )
+
+        "text" ->
+          dgettext("apns", "sent%{verb_ending_ru} a message", verb_ending_ru: verb_ending_ru)
 
         "message" ->
           dgettext("apns", "sent%{verb_ending_ru} a message", verb_ending_ru: verb_ending_ru)

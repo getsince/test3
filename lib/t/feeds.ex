@@ -129,7 +129,7 @@ defmodule T.Feeds do
         "recommended" ->
           fetch_recommended_feed(user_id, location, gender, feeded_ids_q, feed_filter)
 
-        true ->
+        _ ->
           fetch_category_feed(user_id, location, gender, feed_category, feeded_ids_q, feed_filter)
       end
 
@@ -151,7 +151,6 @@ defmodule T.Feeds do
             [p],
             p.user_id in subquery(filtered_profiles_ids_q(user_id, gender, feed_filter.genders))
           )
-          |> not_seen_profiles_q(user_id)
           |> select([p], p.user_id)
           |> Repo.all()
 
@@ -247,7 +246,7 @@ defmodule T.Feeds do
          feeded_ids_q,
          feed_filter
        ) do
-    feed_profiles_q(user_id, gender, feed_filter.gender_preference)
+    feed_profiles_q(user_id, gender, feed_filter.genders)
     |> where([p], p.user_id not in subquery(feeded_ids_q))
     |> join(:left, [p, g], s in SeenProfile, on: [user_id: p.user_id, by_user_id: ^user_id])
     |> maybe_filter_by_sticker(feed_category)

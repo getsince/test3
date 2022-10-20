@@ -313,7 +313,7 @@ defmodule TWeb.FeedChannelTest do
 
       {:ok, %Chat{}, %Message{id: message_id_3}} =
         Chats.save_message(
-          p3.id,
+          me.id,
           p3.id,
           %{"question" => "audio", "s3_key" => "abcd"}
         )

@@ -3,7 +3,7 @@ defmodule T.Chats.MessagesTest do
   use Oban.Testing, repo: T.Repo
 
   alias T.Chats
-  alias T.Chats.{Chat, Message}
+  alias T.Chats.Message
 
   describe "save_message/3" do
     setup [:with_profiles, :with_chat]
@@ -29,7 +29,7 @@ defmodule T.Chats.MessagesTest do
       Chats.subscribe_for_user(p2.user_id)
 
       # text message from p1 to p2
-      assert {:ok, %Chat{}, %Message{} = message} =
+      assert {:ok, %Message{} = message} =
                Chats.save_message(p2.user_id, p1.user_id, %{
                  "question" => "text",
                  "value" => "helloy"
@@ -54,7 +54,7 @@ defmodule T.Chats.MessagesTest do
       assert_received {Chats, :message, ^i1}
 
       # text message from p2 to p1
-      assert {:ok, %Chat{}, %Message{} = message} =
+      assert {:ok, %Message{} = message} =
                Chats.save_message(p1.user_id, p2.user_id, %{
                  "value" => "W3sicG9pbnRzIfV0=",
                  "question" => "text"
@@ -76,7 +76,7 @@ defmodule T.Chats.MessagesTest do
       assert_received {Chats, :message, ^i2}
 
       # spotify message from p2 to p1
-      assert {:ok, %Chat{}, %Message{}} =
+      assert {:ok, %Message{}} =
                Chats.save_message(p1.user_id, p2.user_id, %{"question" => "spotify"})
     end
   end
@@ -171,7 +171,7 @@ defmodule T.Chats.MessagesTest do
   defp with_text_message(%{profiles: [p1, p2]}) do
     message = %{"question" => "text", "value" => "helloy"}
 
-    assert {:ok, %Chat{}, %Message{} = message} =
+    assert {:ok, %Message{} = message} =
              Chats.save_message(
                p2.user_id,
                p1.user_id,
@@ -184,7 +184,7 @@ defmodule T.Chats.MessagesTest do
   defp with_contact_message(%{profiles: [p1, p2]}) do
     message = %{"question" => "telegram"}
 
-    assert {:ok, %Chat{}, %Message{} = message} =
+    assert {:ok, %Message{} = message} =
              Chats.save_message(
                p2.user_id,
                p1.user_id,

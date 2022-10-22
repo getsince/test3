@@ -94,36 +94,68 @@ defmodule T.Chats do
   # TODO decline invitation
 
   @spec delete_chat(uuid, uuid) :: boolean
-  def delete_chat(by_user_id, chat_id) do
-    primary_rpc(__MODULE__, :local_delete_chat, [by_user_id, chat_id])
+  def delete_chat(by_user_id, with_user_id) do
+    primary_rpc(__MODULE__, :local_delete_chat, [by_user_id, with_user_id])
   end
 
   @doc false
-  def local_delete_chat(by_user_id, chat_id) do
-    Logger.warn("#{by_user_id} deletes chat-id=#{chat_id}")
+  def local_delete_chat(by_user_id, with_user_id) do
+    Logger.warn("#{by_user_id} deletes with user #{with_user_id}")
+
+    [user_id_1, user_id_2] = Enum.sort([by_user_id, with_user_id])
 
     Multi.new()
     |> Multi.run(:delete_chat, fn _repo, _changes ->
       Chat
-      |> where(id: ^chat_id)
-      |> where([c], c.user_id_1 == ^by_user_id or c.user_id_2 == ^by_user_id)
-      |> select([c], [c.user_id_1, c.user_id_2])
+      |> where([c], c.user_id_1 == ^user_id_1 and c.user_id_2 == ^user_id_2)
       |> Repo.delete_all()
       |> case do
-        {1, [user_ids]} -> {:ok, user_ids}
+        {1, _} -> {:ok, [user_id_1, user_id_2]}
         {0, _} -> {:error, :chat_not_found}
       end
     end)
     |> mark_chatters_seen_m()
     |> Repo.transaction()
     |> case do
-      {:ok, %{delete_chat: user_ids}} when is_list(user_ids) ->
-        [mate] = user_ids -- [by_user_id]
-        notify_delete_chat(by_user_id, mate, chat_id)
+      {:ok, _} ->
+        notify_delete_chat(by_user_id, with_user_id)
         _deleted_chat? = true
 
       {:error, :delete_chat, :chat_not_found, _changes} ->
         _deleted_chat? = false
+    end
+  end
+
+  @spec delete_chat_multi(Multi.t(), uuid, uuid) :: Multi.t()
+  def delete_chat_multi(multi, by_user_id, mate) do
+    [user_id_1, user_id_2] = Enum.sort([by_user_id, mate])
+
+    Multi.run(multi, :delete_chat, fn _repo, _changes ->
+      chat_id =
+        Chat
+        |> where(user_id_1: ^user_id_1)
+        |> where(user_id_2: ^user_id_2)
+        |> select([c], c.id)
+        |> Repo.one()
+
+      if chat_id do
+        {1, _} =
+          Chat
+          |> where(id: ^chat_id)
+          |> Repo.delete_all()
+
+        {:ok, fn -> notify_delete_chat(by_user_id, mate) end}
+      else
+        {:ok, nil}
+      end
+    end)
+  end
+
+  # called from accounts on report
+  def notify_delete_chat_changes(%{delete_chat: chat}) do
+    case chat do
+      notify_delete_chat when is_function(notify_delete_chat, 0) -> notify_delete_chat.()
+      nil -> :ok
     end
   end
 
@@ -152,12 +184,12 @@ defmodule T.Chats do
     end)
   end
 
-  defp notify_delete_chat(by_user_id, mate_id, chat_id) do
-    broadcast_for_user(mate_id, {__MODULE__, :deleted_chat, chat_id})
-    broadcast_from_for_user(by_user_id, {__MODULE__, :deleted_chat, chat_id})
+  defp notify_delete_chat(by_user_id, with_user_id) do
+    broadcast_for_user(with_user_id, {__MODULE__, :deleted_chat, by_user_id})
+    broadcast_from_for_user(by_user_id, {__MODULE__, :deleted_chat, with_user_id})
   end
 
-  @spec save_message(uuid, uuid, map) :: {:ok, map, map} | {:error, map}
+  @spec save_message(uuid, uuid, map) :: {:ok, map} | {:error, map}
   def save_message(to_user_id, from_user_id, message_data) do
     primary_rpc(__MODULE__, :local_save_message, [
       from_user_id,
@@ -167,7 +199,7 @@ defmodule T.Chats do
   end
 
   @spec local_save_message(uuid, uuid, map) ::
-          {:ok, map, map} | {:error, map}
+          {:ok, map} | {:error, map}
   def local_save_message(from_user_id, to_user_id, message_data) do
     message_type =
       case message_data do
@@ -221,11 +253,11 @@ defmodule T.Chats do
       {:ok, %{chat_new?: {%Chat{} = chat, true}, message: %Message{} = message}} ->
         chat_with_message = %Chat{chat | messages: [message]}
         broadcast_chat(chat_with_message)
-        {:ok, chat, message}
+        {:ok, message}
 
-      {:ok, %{chat_new?: {%Chat{} = chat, false}, message: %Message{} = message}} ->
+      {:ok, %{chat_new?: {%Chat{}, false}, message: %Message{} = message}} ->
         broadcast_chat_message(message)
-        {:ok, chat, message}
+        {:ok, message}
 
       {:error, :message, %Ecto.Changeset{} = changeset, _changes} ->
         {:error, changeset}

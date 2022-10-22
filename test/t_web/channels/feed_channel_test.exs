@@ -2,7 +2,7 @@ defmodule TWeb.FeedChannelTest do
   use TWeb.ChannelCase, async: true
 
   alias T.{Accounts, Chats, Matches, Feeds}
-  alias Chats.{Chat, Message}
+  alias Chats.Message
   alias Matches.{Match, Interaction}
 
   setup do
@@ -296,7 +296,7 @@ defmodule TWeb.FeedChannelTest do
       ]
 
       # second chat has one message
-      {:ok, %Chat{}, %Message{id: message_id_1}} =
+      {:ok, %Message{id: message_id_1}} =
         Chats.save_message(
           p2.id,
           me.id,
@@ -304,14 +304,14 @@ defmodule TWeb.FeedChannelTest do
         )
 
       # third match had two messages
-      {:ok, %Chat{}, %Message{id: message_id_2}} =
+      {:ok, %Message{id: message_id_2}} =
         Chats.save_message(
           p3.id,
           me.id,
           %{"question" => "telegram", "answer" => "durov"}
         )
 
-      {:ok, %Chat{}, %Message{id: message_id_3}} =
+      {:ok, %Message{id: message_id_3}} =
         Chats.save_message(
           me.id,
           p3.id,

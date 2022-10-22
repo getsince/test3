@@ -255,8 +255,8 @@ defmodule TWeb.FeedChannel do
     {:reply, :ok, socket}
   end
 
-  def handle_in("decline-invitation", %{"chat_id" => chat_id}, socket) do
-    Chats.delete_chat(me_id(socket), chat_id)
+  def handle_in("decline-invitation", %{"from_user_id" => from_user_id}, socket) do
+    Chats.delete_chat(me_id(socket), from_user_id)
     {:reply, :ok, socket}
   end
 
@@ -299,11 +299,8 @@ defmodule TWeb.FeedChannel do
     %{current_user: %{id: from_user_id}, screen_width: screen_width} = socket.assigns
 
     case Chats.save_message(to_user_id, from_user_id, message) do
-      {:ok, chat, message} ->
-        {:reply,
-         {:ok,
-          %{"chat" => render_chat(chat), "message" => render_message(message, screen_width)}},
-         socket}
+      {:ok, message} ->
+        {:reply, {:ok, %{"message" => render_message(message, screen_width)}}, socket}
 
       {:error, _changeset} ->
         {:reply, :error, socket}
@@ -410,41 +407,30 @@ defmodule TWeb.FeedChannel do
     {:noreply, socket}
   end
 
-  def handle_info({Chats, :deleted_chat, chat_id}, socket) when is_binary(chat_id) do
-    push(socket, "deleted_chat", %{"chat_id" => chat_id})
+  def handle_info({Chats, :deleted_chat, with_user_id}, socket) when is_binary(with_user_id) do
+    push(socket, "deleted_chat", %{"with_user_id" => with_user_id})
     {:noreply, socket}
   end
 
-  def handle_info(
-        {Chats, :chat,
-         %Chat{id: chat_id, user_id_1: uid1, user_id_2: uid2, inserted_at: inserted_at}},
-        socket
-      ) do
+  def handle_info({Chats, :chat, %Chat{user_id_1: uid1, user_id_2: uid2} = chat}, socket) do
     %{screen_width: screen_width, version: version, location: location} = socket.assigns
 
     [mate] = [uid1, uid2] -- [me_id(socket)]
 
     if profile = Feeds.get_mate_feed_profile(mate, location) do
       push(socket, "chat", %{
-        "chat" =>
-          render_chat(%{
-            id: chat_id,
-            inserted_at: inserted_at,
-            profile: profile,
-            screen_width: screen_width,
-            version: version
-          })
+        "chat" => render_chat(%Chat{chat | profile: profile}, version, screen_width)
       })
     end
 
     {:noreply, socket}
   end
 
-  def handle_info({Chats, :message, %Message{chat_id: chat_id} = message}, socket) do
+  def handle_info({Chats, :message, %Message{from_user_id: from_user_id} = message}, socket) do
     %{screen_width: screen_width} = socket.assigns
 
     push(socket, "message", %{
-      "chat_id" => chat_id,
+      "from_user_id" => from_user_id,
       "message" => render_message(message, screen_width)
     })
 
@@ -526,23 +512,7 @@ defmodule TWeb.FeedChannel do
   end
 
   defp render_chats(chats, version, screen_width) do
-    Enum.map(chats, fn chat ->
-      %Chat{
-        id: chat_id,
-        inserted_at: inserted_at,
-        profile: profile,
-        messages: messages
-      } = chat
-
-      render_chat(%{
-        id: chat_id,
-        inserted_at: inserted_at,
-        profile: profile,
-        screen_width: screen_width,
-        version: version,
-        messages: messages
-      })
-    end)
+    Enum.map(chats, fn chat -> render_chat(chat, version, screen_width) end)
   end
 
   # TODO remove
@@ -550,7 +520,18 @@ defmodule TWeb.FeedChannel do
     render(MatchView, "match.json", assigns)
   end
 
-  defp render_chat(assigns) do
+  defp render_chat(chat, version, screen_width) do
+    %Chat{id: chat_id, inserted_at: inserted_at, profile: profile, messages: messages} = chat
+
+    assigns = %{
+      id: chat_id,
+      inserted_at: inserted_at,
+      profile: profile,
+      screen_width: screen_width,
+      version: version,
+      messages: messages
+    }
+
     render(ChatView, "chat.json", assigns)
   end
 

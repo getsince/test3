@@ -385,6 +385,18 @@ defmodule T.Feeds do
     UserReport |> where(from_user_id: ^user_id) |> select([r], r.on_user_id)
   end
 
+  defp not_reported_profiles_q(query \\ not_hidden_profiles_q(), user_id) do
+    where(query, [p], p.user_id not in subquery(reported_user_ids_q(user_id)))
+  end
+
+  defp reporter_user_ids_q(user_id) do
+    UserReport |> where(on_user_id: ^user_id) |> select([r], r.from_user_id)
+  end
+
+  defp not_reporter_profiles_q(query, user_id) do
+    where(query, [p], p.user_id not in subquery(reporter_user_ids_q(user_id)))
+  end
+
   defp liked_user_ids_q(user_id) do
     Like |> where(by_user_id: ^user_id) |> select([l], l.user_id)
   end
@@ -422,10 +434,6 @@ defmodule T.Feeds do
     where(FeedProfile, hidden?: false)
   end
 
-  defp not_reported_profiles_q(query \\ not_hidden_profiles_q(), user_id) do
-    where(query, [p], p.user_id not in subquery(reported_user_ids_q(user_id)))
-  end
-
   defp profiles_that_accept_gender_q(query, gender) do
     if gender do
       join(query, :inner, [p], gp in GenderPreference,
@@ -445,6 +453,7 @@ defmodule T.Feeds do
   defp filtered_profiles_q(user_id, gender, gender_preference) do
     not_hidden_profiles_q()
     |> not_reported_profiles_q(user_id)
+    |> not_reporter_profiles_q(user_id)
     |> not_liked_profiles_q(user_id)
     |> not_liker_profiles_q(user_id)
     |> not_chatters_profiles_q(user_id)

@@ -84,14 +84,13 @@ defmodule T.Chats do
     messages =
       Message
       |> where([m], m.chat_id in ^chat_ids)
+      |> order_by(:id)
       |> Repo.all()
 
     Enum.map(chats, fn chat ->
       %Chat{chat | messages: Enum.filter(messages, fn m -> m.chat_id == chat.id end)}
     end)
   end
-
-  # TODO decline invitation
 
   @spec delete_chat(uuid, uuid) :: boolean
   def delete_chat(by_user_id, with_user_id) do
@@ -216,7 +215,6 @@ defmodule T.Chats do
     [user_id_1, user_id_2] = Enum.sort([from_user_id, to_user_id])
 
     Multi.new()
-    # TODO :needs_chat multi
     |> Multi.run(:chat_new?, fn repo, _changes ->
       case repo.get_by(Chat, user_id_1: user_id_1, user_id_2: user_id_2) do
         %Chat{} = chat ->

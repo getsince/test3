@@ -14,6 +14,7 @@ defmodule TWeb.ChatView do
     %Message{
       id: id,
       from_user_id: from_user_id,
+      to_user_id: to_user_id,
       data: sticker,
       seen: seen
     } = message
@@ -23,6 +24,7 @@ defmodule TWeb.ChatView do
       "message" => ViewHelpers.process_sticker(sticker, screen_width),
       "inserted_at" => datetime(id),
       "from_user_id" => from_user_id,
+      "to_user_id" => to_user_id,
       "seen" => seen
     }
   end

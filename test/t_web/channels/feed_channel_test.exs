@@ -342,6 +342,7 @@ defmodule TWeb.FeedChannelTest do
                  "messages" => [
                    %{
                      "from_user_id" => me.id,
+                     "to_user_id" => p3.id,
                      "id" => message_id_2,
                      "inserted_at" => datetime(message_id_2),
                      "message" => %{
@@ -353,6 +354,7 @@ defmodule TWeb.FeedChannelTest do
                    },
                    %{
                      "from_user_id" => p3.id,
+                     "to_user_id" => me.id,
                      "id" => message_id_3,
                      "inserted_at" => datetime(message_id_3),
                      "message" => %{
@@ -385,6 +387,7 @@ defmodule TWeb.FeedChannelTest do
                  "messages" => [
                    %{
                      "from_user_id" => me.id,
+                     "to_user_id" => p2.id,
                      "id" => message_id_1,
                      "inserted_at" => datetime(message_id_1),
                      "message" => %{"question" => "text", "value" => "hey mama"},

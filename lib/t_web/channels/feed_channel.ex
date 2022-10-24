@@ -437,6 +437,25 @@ defmodule TWeb.FeedChannel do
     {:noreply, socket}
   end
 
+  def handle_info({Chats, :chat_match, users}, socket) do
+    %{screen_width: screen_width, version: version, location: location} = socket.assigns
+
+    [mate] = users -- [me_id(socket)]
+
+    if profile = Feeds.get_mate_feed_profile(mate, location) do
+      push(socket, "chat_match", %{
+        "profile" =>
+          render_chat_match_profile(%{
+            profile: profile,
+            version: version,
+            screen_width: screen_width
+          })
+      })
+    end
+
+    {:noreply, socket}
+  end
+
   def handle_info({Accounts, :feed_filter_updated, feed_filter}, socket) do
     %{current_user: user, feed_filter: old_feed_filter} = socket.assigns
 
@@ -521,7 +540,13 @@ defmodule TWeb.FeedChannel do
   end
 
   defp render_chat(chat, version, screen_width) do
-    %Chat{id: chat_id, inserted_at: inserted_at, profile: profile, messages: messages} = chat
+    %Chat{
+      id: chat_id,
+      inserted_at: inserted_at,
+      profile: profile,
+      messages: messages,
+      matched: matched
+    } = chat
 
     assigns = %{
       id: chat_id,
@@ -529,10 +554,15 @@ defmodule TWeb.FeedChannel do
       profile: profile,
       screen_width: screen_width,
       version: version,
-      messages: messages
+      messages: messages,
+      matched: matched
     }
 
     render(ChatView, "chat.json", assigns)
+  end
+
+  defp render_chat_match_profile(assigns) do
+    render(FeedView, "feed_profile_with_distance.json", assigns)
   end
 
   # TODO remove

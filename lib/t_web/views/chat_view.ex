@@ -4,7 +4,8 @@ defmodule TWeb.ChatView do
   alias T.Chats.Message
 
   def render("chat.json", %{id: id} = assigns) do
-    %{"id" => id, "profile" => render(FeedView, "feed_profile_with_distance.json", assigns)}
+    %{"id" => id}
+    |> put_profile(assigns)
     |> maybe_put("inserted_at", ensure_utc(assigns[:inserted_at]))
     |> render_messages(assigns[:messages], assigns[:screen_width])
   end
@@ -38,6 +39,12 @@ defmodule TWeb.ChatView do
   end
 
   defp render_messages(map, _messages, _screen_width), do: map
+
+  defp put_profile(map, %{matched: true} = assigns),
+    do: Map.put(map, "profile", render(FeedView, "feed_profile_with_distance.json", assigns))
+
+  defp put_profile(map, %{matched: false} = assigns),
+    do: Map.merge(map, render(FeedView, "feed_item.json", assigns))
 
   defp datetime(<<_::288>> = uuid) do
     datetime(Ecto.Bigflake.UUID.dump!(uuid))

@@ -439,6 +439,7 @@ defmodule T.Accounts do
 
     Multi.new()
     |> unmatch_all(user_id)
+    |> delete_all_chats(user_id)
     |> Multi.run(:session_tokens, fn _repo, _changes ->
       tokens = UserToken |> where(user_id: ^user_id) |> select([ut], ut.token) |> Repo.all()
       {:ok, tokens}

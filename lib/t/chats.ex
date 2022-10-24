@@ -234,6 +234,30 @@ defmodule T.Chats do
         seen: false
       })
     end)
+    |> Multi.run(:newly_matched?, fn repo,
+                                     %{chat_new?: {%Chat{id: chat_id, matched: matched}, _new}} ->
+      case matched do
+        true ->
+          {:ok, false}
+
+        false ->
+          message_exchange =
+            Message
+            |> where(chat_id: ^chat_id)
+            |> where(from_user_id: ^to_user_id)
+            |> repo.exists?()
+
+          {:ok, message_exchange}
+      end
+    end)
+    |> Multi.run(:maybe_match, fn repo,
+                                  %{chat_new?: {chat, _new}, newly_matched?: newly_matched?} ->
+      if newly_matched? do
+        chat |> cast(%{matched: true}, [:matched]) |> repo.update()
+      else
+        {:ok, false}
+      end
+    end)
     |> Multi.run(:push, fn _repo, %{message: %Message{chat_id: chat_id, id: message_id}} ->
       push_job =
         DispatchJob.new(%{
@@ -253,8 +277,14 @@ defmodule T.Chats do
         broadcast_chat(chat_with_message)
         {:ok, message}
 
-      {:ok, %{chat_new?: {%Chat{}, false}, message: %Message{} = message}} ->
+      {:ok,
+       %{
+         chat_new?: {%Chat{} = chat, false},
+         message: %Message{} = message,
+         newly_matched?: newly_matched?
+       }} ->
         broadcast_chat_message(message)
+        if newly_matched?, do: broadcast_matched(chat)
         {:ok, message}
 
       {:error, :message, %Ecto.Changeset{} = changeset, _changes} ->
@@ -305,6 +335,13 @@ defmodule T.Chats do
     message = {__MODULE__, :message, chat_message}
     broadcast_for_user(from, message)
     broadcast_for_user(to, message)
+    :ok
+  end
+
+  defp broadcast_matched(%Chat{user_id_1: uid1, user_id_2: uid2}) do
+    message = {__MODULE__, :chat_match, [uid1, uid2]}
+    broadcast_for_user(uid1, message)
+    broadcast_for_user(uid2, message)
     :ok
   end
 

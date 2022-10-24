@@ -37,6 +37,10 @@ defmodule T.ChatsTest do
       assert_receive {Chats, :message, %{chat_id: ^chat_id, from_user_id: ^p2_id}}
       assert_receive {Chats, :message, %{chat_id: ^chat_id, from_user_id: ^p2_id}}
 
+      user_ids = Enum.sort([p1_id, p2_id])
+      assert_receive {Chats, :chat_match, ^user_ids}
+      assert_receive {Chats, :chat_match, ^user_ids}
+
       assert [%Chat{id: ^chat_id, profile: %FeedProfile{user_id: ^p2_id}}] =
                Chats.list_chats(p1_id, default_location())
 

@@ -12,6 +12,7 @@ defmodule T.Chats.Chat do
     field :profile, :map, virtual: true
 
     field :messages, {:array, :map}, virtual: true
+    field :matched, :boolean, default: false
 
     timestamps(updated_at: false)
   end

@@ -50,7 +50,7 @@ defmodule TWeb.FeedChannelTest do
       assert %{"private" => true} = private
     end
 
-    test "shows private pages of chats", %{socket: socket, me: me} do
+    test "shows private pages of matched chats", %{socket: socket, me: me} do
       stacy =
         onboarded_user(
           name: "Private Stacy",
@@ -73,7 +73,7 @@ defmodule TWeb.FeedChannelTest do
           accept_genders: ["M"]
         )
 
-      insert(:chat, user_id_1: me.id, user_id_2: stacy.id)
+      insert(:chat, user_id_1: me.id, user_id_2: stacy.id, matched: true)
 
       assert {:ok, %{"chats" => [%{"profile" => %{story: [public, private]}}]}, _socket} =
                join(socket, "feed:" <> me.id)
@@ -303,7 +303,7 @@ defmodule TWeb.FeedChannelTest do
           %{"question" => "text", "value" => "hey mama"}
         )
 
-      # third match had two messages
+      # third chat had two messages
       {:ok, %Message{id: message_id_2}} =
         Chats.save_message(
           p3.id,

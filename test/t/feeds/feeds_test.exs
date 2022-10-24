@@ -303,11 +303,6 @@ defmodule T.FeedsTest do
 
       irrelevant_users_count = irrelevant_users_count + 1
 
-      # user who we seen
-      uid = calculated_ids |> Enum.at(3)
-      Repo.insert(%SeenProfile{user_id: uid, by_user_id: me.id})
-      irrelevant_users_count = irrelevant_users_count + 1
-
       # users joins and receive feed: partially calculated and partially regular
       feed =
         Feeds.fetch_feed(

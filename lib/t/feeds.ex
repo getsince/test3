@@ -12,6 +12,7 @@ defmodule T.Feeds do
   alias T.Repo
 
   alias T.Accounts.{Profile, UserReport, GenderPreference}
+  alias T.Chats.Chat
   alias T.Matches.{Match, Like}
 
   alias T.Feeds.{
@@ -149,7 +150,7 @@ defmodule T.Feeds do
           |> where([p], p.user_id not in subquery(feeded_ids_q))
           |> where(
             [p],
-            p.user_id in subquery(filtered_profiles_ids_q(user_id, gender, feed_filter.genders))
+            p.user_id in subquery(feed_profiles_ids_q(user_id, gender, feed_filter.genders))
           )
           |> select([p], p.user_id)
           |> Repo.all()
@@ -188,7 +189,7 @@ defmodule T.Feeds do
   end
 
   defp first_time_user_feed(user_id, location, gender, feed_filter, count) do
-    filtered_profiles_q(user_id, gender, feed_filter.genders)
+    feed_profiles_q(user_id, gender, feed_filter.genders)
     |> where([p], p.times_liked >= ^@quality_likes_count_treshold)
     |> where([p], fragment("jsonb_array_length(?) > 2", p.story))
     |> order_by(fragment("location <-> ?::geometry", ^location))
@@ -376,8 +377,24 @@ defmodule T.Feeds do
     |> where([p], p.last_active > ^treshold_date)
   end
 
+  defp feed_profiles_ids_q(user_id, gender, gender_preference) do
+    feed_profiles_q(user_id, gender, gender_preference) |> select([p], p.user_id)
+  end
+
   defp reported_user_ids_q(user_id) do
     UserReport |> where(from_user_id: ^user_id) |> select([r], r.on_user_id)
+  end
+
+  defp not_reported_profiles_q(query \\ not_hidden_profiles_q(), user_id) do
+    where(query, [p], p.user_id not in subquery(reported_user_ids_q(user_id)))
+  end
+
+  defp reporter_user_ids_q(user_id) do
+    UserReport |> where(on_user_id: ^user_id) |> select([r], r.from_user_id)
+  end
+
+  defp not_reporter_profiles_q(query, user_id) do
+    where(query, [p], p.user_id not in subquery(reporter_user_ids_q(user_id)))
   end
 
   defp liked_user_ids_q(user_id) do
@@ -396,12 +413,25 @@ defmodule T.Feeds do
     where(query, [p], p.user_id not in subquery(liker_user_ids_q(user_id)))
   end
 
-  defp not_hidden_profiles_q do
-    where(FeedProfile, hidden?: false)
+  defp chatter_user_ids_q(user_id) do
+    binary_uuid = Ecto.Bigflake.UUID.dump!(user_id)
+
+    Chat
+    |> where([c], c.user_id_1 == ^user_id or c.user_id_2 == ^user_id)
+    |> select(
+      fragment(
+        "CASE WHEN user_id_1 = ?::uuid THEN user_id_2 ELSE user_id_1 END",
+        ^binary_uuid
+      )
+    )
   end
 
-  defp not_reported_profiles_q(query \\ not_hidden_profiles_q(), user_id) do
-    where(query, [p], p.user_id not in subquery(reported_user_ids_q(user_id)))
+  defp not_chatters_profiles_q(query, user_id) do
+    where(query, [p], p.user_id not in subquery(chatter_user_ids_q(user_id)))
+  end
+
+  defp not_hidden_profiles_q do
+    where(FeedProfile, hidden?: false)
   end
 
   defp profiles_that_accept_gender_q(query, gender) do
@@ -423,14 +453,12 @@ defmodule T.Feeds do
   defp filtered_profiles_q(user_id, gender, gender_preference) do
     not_hidden_profiles_q()
     |> not_reported_profiles_q(user_id)
+    |> not_reporter_profiles_q(user_id)
     |> not_liked_profiles_q(user_id)
     |> not_liker_profiles_q(user_id)
+    |> not_chatters_profiles_q(user_id)
     |> profiles_that_accept_gender_q(gender)
     |> maybe_gender_preferenced_q(gender_preference)
-  end
-
-  defp filtered_profiles_ids_q(user_id, gender, gender_preference) do
-    filtered_profiles_q(user_id, gender, gender_preference) |> select([p], p.user_id)
   end
 
   ### Onboarding Feed

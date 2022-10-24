@@ -1,9 +1,10 @@
 defmodule T.Accounts.BlockingTest do
   use T.DataCase, async: true
   use Oban.Testing, repo: Repo
-  alias T.{Accounts, Matches}
+  alias T.{Accounts, Matches, Chats}
   alias T.Accounts.UserReport
   alias T.Matches.Match
+  alias T.Chats.{Chat, Message}
 
   # TODO move to reporting test
   describe "report_user/3" do
@@ -52,6 +53,31 @@ defmodule T.Accounts.BlockingTest do
       assert [] == Matches.list_matches(reported.id, default_location())
       assert [] == Matches.list_matches(reporter.id, default_location())
     end
+
+    test "deletes chat if there is a chat", %{reporter: reporter, reported: reported} do
+      Chats.subscribe_for_user(reporter.id)
+      Chats.subscribe_for_user(reported.id)
+
+      assert {:ok, %Message{}} =
+               Chats.save_message(reported.id, reporter.id, %{"question" => "invitation"})
+
+      assert {:ok, %Message{}} =
+               Chats.save_message(reporter.id, reported.id, %{"question" => "acceptance"})
+
+      assert_receive {Chats, :chat, %Chat{}}
+      assert_receive {Chats, :chat, %Chat{}}
+
+      assert_receive {Chats, :message, %Message{}}
+      assert_receive {Chats, :message, %Message{}}
+
+      assert :ok == Accounts.report_user(reporter.id, reported.id, "he show dicky")
+      reporter_id = reporter.id
+      # reported receives push about deleted_chat with reporter
+      assert_receive {Chats, :deleted_chat, ^reporter_id}
+
+      assert [] == Chats.list_chats(reported.id, default_location())
+      assert [] == Chats.list_chats(reporter.id, default_location())
+    end
   end
 
   describe "block_user/1" do
@@ -82,6 +108,24 @@ defmodule T.Accounts.BlockingTest do
 
       assert [] == Matches.list_matches(user.id, default_location())
       assert [] == Matches.list_matches(other.id, default_location())
+    end
+
+    test "deletes chats if there are chats", %{user: user} do
+      other = onboarded_user()
+
+      assert {:ok, %Message{}} =
+               Chats.save_message(other.id, user.id, %{"question" => "invitation"})
+
+      Chats.subscribe_for_user(user.id)
+      Chats.subscribe_for_user(other.id)
+
+      assert :ok == Accounts.block_user(user.id)
+
+      user_id = user.id
+      assert_receive {Chats, :deleted_chat, ^user_id}
+
+      assert [] == Chats.list_chats(user.id, default_location())
+      assert [] == Chats.list_chats(other.id, default_location())
     end
 
     test "blocked user is hidden", %{user: user} do

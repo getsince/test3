@@ -260,6 +260,11 @@ defmodule TWeb.FeedChannel do
     {:reply, :ok, socket}
   end
 
+  def handle_in("delete-chat", %{"with_user_id" => with_user_id}, socket) do
+    Chats.delete_chat(me_id(socket), with_user_id)
+    {:reply, :ok, socket}
+  end
+
   # TODO remove
   def handle_in("unmatch", params, socket) do
     unmatched? =

@@ -76,7 +76,7 @@ defmodule T.PushNotifications.DispatchJob do
 
   defp handle_type(type, %{"from_user_id" => from_user_id, "to_user_id" => to_user_id} = args)
        when type in [
-              "invite",
+              "invitation",
               "acceptance",
               "text",
               "message",

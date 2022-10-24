@@ -91,7 +91,7 @@ defmodule T.PushNotifications.APNS do
 
   def build_alert_payload(type, %{"name_from" => name_from, "gender_from" => gender_from} = data)
       when type in [
-             "invite",
+             "invitation",
              "acceptance",
              "text",
              "message",
@@ -111,7 +111,7 @@ defmodule T.PushNotifications.APNS do
 
     body =
       case type do
-        "invite" ->
+        "invitation" ->
           dgettext("apns", "invited you to connect")
 
         "acceptance" ->

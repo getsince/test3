@@ -66,14 +66,16 @@ defmodule T.ChatsTest do
           "type" => "acceptance",
           "to_user_id" => p1_id,
           "chat_id" => chat_id,
-          "message_id" => acceptance_id
+          "message_id" => acceptance_id,
+          "data" => %{"question" => "acceptance"}
         },
         %{
           "from_user_id" => p1_id,
           "type" => "invitation",
           "to_user_id" => p2_id,
           "chat_id" => chat_id,
-          "message_id" => invite_id
+          "message_id" => invite_id,
+          "data" => %{"question" => "invitation"}
         }
       ]
 

@@ -9,7 +9,12 @@ defmodule T.Repo.Migrations.MigrateMatchesToChats do
   def change do
     Match
     |> Repo.all()
-    |> Enum.each(fn %Match{id: match_id, user_id_1: uid1, user_id_2: uid2} ->
+    |> Enum.each(fn %Match{
+                      id: match_id,
+                      user_id_1: uid1,
+                      user_id_2: uid2,
+                      inserted_at: inserted_at
+                    } ->
       Interaction
       |> where(match_id: ^match_id)
       |> Repo.all()
@@ -23,7 +28,8 @@ defmodule T.Repo.Migrations.MigrateMatchesToChats do
             id: match_id,
             user_id_1: uid1,
             user_id_2: uid2,
-            matched: true
+            matched: true,
+            inserted_at: inserted_at
           })
           |> Multi.insert_all(
             :messages,

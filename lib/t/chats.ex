@@ -347,6 +347,10 @@ defmodule T.Chats do
   end
 
   def notify_private_page_available(for_user_id, of_user_id) do
+    primary_rpc(__MODULE__, :local_notify_private_page_available, [for_user_id, of_user_id])
+  end
+
+  def local_notify_private_page_available(for_user_id, of_user_id) do
     push_job =
       DispatchJob.new(%{
         "type" => "private_page_available",

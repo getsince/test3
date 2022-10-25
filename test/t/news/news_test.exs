@@ -10,7 +10,7 @@ defmodule T.NewsTest do
     test "to old user" do
       old_uid = "0000017c-14c7-9745-0242-ac1100020000"
       news = News.list_news(old_uid, @current_version)
-      assert length(news) == 2
+      assert length(news) == 0
     end
 
     test "to just registered user" do
@@ -22,7 +22,7 @@ defmodule T.NewsTest do
     test "to users of previous version" do
       old_uid = "0000017c-14c7-9745-0242-ac1100020000"
       news = News.list_news(old_uid, @previous_version)
-      assert length(news) == 1
+      assert length(news) == 0
     end
   end
 end

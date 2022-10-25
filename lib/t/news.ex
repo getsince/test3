@@ -18,7 +18,10 @@ defmodule T.News do
   end
 
   defp last_id do
-    List.last(news()).id
+    case List.last(news()) do
+      nil -> 0
+      last_news -> last_news.id
+    end
   end
 
   @spec list_news(Ecto.Bigflake.UUID.t(), Version.t()) :: [%{id: pos_integer(), story: [map]}]

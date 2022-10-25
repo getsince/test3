@@ -98,6 +98,22 @@ defmodule T.PushNotifications.DispatchJob do
     :ok
   end
 
+  defp handle_type(
+         "private_page_available" = type,
+         %{
+           "for_user_id" => for_user_id,
+           "of_user_id" => of_user_id
+         } = args
+       ) do
+    profile_of = profile_info(of_user_id)
+
+    if profile_of do
+      {name_of, gender_of} = profile_of
+      data = args |> Map.merge(%{"name_of" => name_of, "gender_of" => gender_of})
+      for_user_id |> Accounts.list_apns_devices() |> schedule_apns(type, data)
+    end
+  end
+
   # TODO remove
   defp handle_type("invite" = type, args) do
     %{"by_user_id" => by_user_id, "user_id" => user_id} = args

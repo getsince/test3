@@ -448,6 +448,10 @@ defmodule TWeb.FeedChannel do
     [mate] = users -- [me_id(socket)]
 
     if profile = Feeds.get_mate_feed_profile(mate, location) do
+      has_private_page = profile.story |> Enum.any?(fn page -> Map.has_key?(page, "blurred") end)
+      # TODO? refactor (logic shouldn't be in channel)
+      if has_private_page, do: Chats.notify_private_page_available(me_id(socket), mate)
+
       push(socket, "chat_match", %{
         "profile" =>
           render_chat_match_profile(%{

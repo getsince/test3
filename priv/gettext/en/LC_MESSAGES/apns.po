@@ -21,7 +21,7 @@ msgstr "Come look!"
 msgid "Это новый мэтч!"
 msgstr "That's a match!"
 
-#: lib/t/push_notifications/apns.ex:154
+#: lib/t/push_notifications/apns.ex:180
 #, elixir-autogen, elixir-format
 msgid "%{name} invited you to connect"
 msgstr ""
@@ -32,22 +32,22 @@ msgstr ""
 msgid "Match with %{name} is about to expire"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:160
+#: lib/t/push_notifications/apns.ex:186
 #, elixir-autogen, elixir-format
 msgid "Hey, create your own cool profile ✨"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:161
+#: lib/t/push_notifications/apns.ex:187
 #, elixir-autogen, elixir-format
 msgid "Meet interesting people ✌️"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:170
+#: lib/t/push_notifications/apns.ex:196
 #, elixir-autogen, elixir-format
 msgid "The current version is no longer supported 🙃"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:169
+#: lib/t/push_notifications/apns.ex:195
 #, elixir-autogen, elixir-format
 msgid "Update the app in the App Store ✨"
 msgstr ""
@@ -82,7 +82,7 @@ msgstr "sent a video message"
 msgid "sent%{verb_ending_ru} a voice message"
 msgstr "sent a voice message"
 
-#: lib/t/push_notifications/apns.ex:176
+#: lib/t/push_notifications/apns.ex:202
 #, elixir-autogen, elixir-format
 msgid "her TO"
 msgstr "her"
@@ -97,27 +97,27 @@ msgstr "Last chance to reply to %{pronoun_belonging_to} message ✨"
 msgid "Last chance to send %{pronoun_to} a message ✨"
 msgstr "Last chance to send %{pronoun_to} a message ✨"
 
-#: lib/t/push_notifications/apns.ex:180
+#: lib/t/push_notifications/apns.ex:206
 #, elixir-autogen, elixir-format
 msgid "her BELONGING TO"
 msgstr "her"
 
-#: lib/t/push_notifications/apns.ex:177
+#: lib/t/push_notifications/apns.ex:203
 #, elixir-autogen, elixir-format
 msgid "him TO"
 msgstr "him"
 
-#: lib/t/push_notifications/apns.ex:181
+#: lib/t/push_notifications/apns.ex:207
 #, elixir-autogen, elixir-format
 msgid "his BELONGING TO"
 msgstr "his"
 
-#: lib/t/push_notifications/apns.ex:182
+#: lib/t/push_notifications/apns.ex:208
 #, elixir-autogen, elixir-format
 msgid "their BELONGING TO"
 msgstr "their"
 
-#: lib/t/push_notifications/apns.ex:178
+#: lib/t/push_notifications/apns.ex:204
 #, elixir-autogen, elixir-format
 msgid "them TO"
 msgstr "them"
@@ -136,3 +136,13 @@ msgstr "accepted your invitation"
 #, elixir-autogen, elixir-format, fuzzy
 msgid "invited you to connect"
 msgstr ""
+
+#: lib/t/push_notifications/apns.ex:169
+#, elixir-autogen, elixir-format
+msgid "Now you can see %{pronoun_belonging_to} private pages"
+msgstr "Now you can see %{pronoun_belonging_to} private pages"
+
+#: lib/t/push_notifications/apns.ex:163
+#, elixir-autogen, elixir-format, fuzzy
+msgid "%{name_of} replied%{verb_ending_ru} to you"
+msgstr "%{name_of} replied to you"

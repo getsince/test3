@@ -19,8 +19,6 @@ defmodule TWeb.FeedChannel do
         user_id = String.downcase(user_id)
 
         :ok = Chats.subscribe_for_user(user_id)
-        # TODO remove
-        :ok = Matches.subscribe_for_user(user_id)
         :ok = Accounts.subscribe_for_user(user_id)
         :ok = Feeds.subscribe_for_user(user_id)
 
@@ -177,26 +175,12 @@ defmodule TWeb.FeedChannel do
   end
 
   # TODO remove
-  def handle_in("seen-match", %{"match_id" => match_id} = params, socket) do
-    me = me_id(socket)
-
-    if timings = params["timings"] do
-      Events.save_seen_timings(:match, me, match_id, timings)
-    end
-
-    Matches.mark_match_seen(me, match_id)
+  def handle_in("seen-match", _params, socket) do
     {:reply, :ok, socket}
   end
 
   # TODO remove
-  def handle_in("seen-like", %{"user_id" => by_user_id} = params, socket) do
-    me = me_id(socket)
-
-    if timings = params["timings"] do
-      Events.save_seen_timings(:like, me, by_user_id, timings)
-    end
-
-    Matches.mark_like_seen(me, by_user_id)
+  def handle_in("seen-like", _params, socket) do
     {:reply, :ok, socket}
   end
 
@@ -206,53 +190,25 @@ defmodule TWeb.FeedChannel do
   end
 
   # TODO remove
-  def handle_in("like", %{"user_id" => liked}, socket) do
-    %{
-      current_user: %{id: liker},
-      screen_width: screen_width,
-      version: version,
-      location: location
-    } = socket.assigns
+  def handle_in("like", _params, socket) do
+    alert =
+      alert(
+        dgettext("alerts", "Deprecation warning"),
+        dgettext("alerts", "Your app version is no longer supported, please upgrade.")
+      )
 
-    Events.save_like(liker, liked)
-
-    reply =
-      case Matches.like_user(liker, liked, location) do
-        {:ok, %{match: _no_match = nil}} ->
-          :ok
-
-        {:ok,
-         %{
-           match: %{id: match_id, inserted_at: inserted_at},
-           mutual: profile
-         }} ->
-          # TODO return these timestamps from like_user
-          expiration_date = NaiveDateTime.add(inserted_at, Matches.match_ttl())
-
-          rendered =
-            render_match(%{
-              id: match_id,
-              profile: profile,
-              screen_width: screen_width,
-              version: version,
-              expiration_date: expiration_date,
-              inserted_at: inserted_at
-            })
-            |> Map.put("match_id", match_id)
-
-          {:ok, rendered}
-
-        {:error, _step, _reason, _changes} ->
-          :ok
-      end
-
-    {:reply, reply, socket}
+    {:reply, {:error, %{alert: alert}}, socket}
   end
 
   # TODO remove
-  def handle_in("decline", %{"user_id" => liker}, socket) do
-    Matches.decline_like(me_id(socket), liker)
-    {:reply, :ok, socket}
+  def handle_in("decline", _params, socket) do
+    alert =
+      alert(
+        dgettext("alerts", "Deprecation warning"),
+        dgettext("alerts", "Your app version is no longer supported, please upgrade.")
+      )
+
+    {:reply, {:error, %{alert: alert}}, socket}
   end
 
   def handle_in("decline-invitation", %{"from_user_id" => from_user_id}, socket) do
@@ -266,39 +222,32 @@ defmodule TWeb.FeedChannel do
   end
 
   # TODO remove
-  def handle_in("unmatch", params, socket) do
-    unmatched? =
-      case params do
-        %{"user_id" => user_id} -> Matches.unmatch_with_user(me_id(socket), user_id)
-        %{"match_id" => match_id} -> Matches.unmatch_match(me_id(socket), match_id)
-      end
+  def handle_in("unmatch", _params, socket) do
+    alert =
+      alert(
+        dgettext("alerts", "Deprecation warning"),
+        dgettext("alerts", "Your app version is no longer supported, please upgrade.")
+      )
 
-    {:reply, {:ok, %{"unmatched?" => unmatched?}}, socket}
+    {:reply, {:error, %{alert: alert}}, socket}
   end
 
   def handle_in("report", params, socket) do
-    # TODO adapt
     report(socket, params)
   end
 
-  # messages
-
   # TODO remove
-  def handle_in(
-        "send-interaction",
-        %{"match_id" => match_id, "interaction" => interaction},
-        socket
-      ) do
-    %{current_user: %{id: from_user_id}} = socket.assigns
+  def handle_in("send-interaction", _params, socket) do
+    alert =
+      alert(
+        dgettext("alerts", "Deprecation warning"),
+        dgettext("alerts", "Your app version is no longer supported, please upgrade.")
+      )
 
-    case Matches.save_interaction(match_id, from_user_id, interaction) do
-      {:ok, interaction} ->
-        {:reply, {:ok, %{"interaction" => render_interaction(interaction)}}, socket}
-
-      {:error, _changeset} ->
-        {:reply, :error, socket}
-    end
+    {:reply, {:error, %{alert: alert}}, socket}
   end
+
+  # messages
 
   def handle_in("send-message", %{"to_user_id" => to_user_id, "message" => message}, socket) do
     %{current_user: %{id: from_user_id}, screen_width: screen_width} = socket.assigns
@@ -313,11 +262,8 @@ defmodule TWeb.FeedChannel do
   end
 
   # TODO remove
-  def handle_in("seen-interaction", %{"interaction_id" => interaction_id}, socket) do
-    %{current_user: %{id: by_user_id}} = socket.assigns
-
-    reply = Matches.mark_interaction_seen(by_user_id, interaction_id)
-    {:reply, reply, socket}
+  def handle_in("seen-interaction", _params, socket) do
+    {:reply, :ok, socket}
   end
 
   def handle_in("seen-message", %{"message_id" => message_id}, socket) do
@@ -340,78 +286,7 @@ defmodule TWeb.FeedChannel do
     {:reply, reply, socket}
   end
 
-  # TODO remove
   @impl true
-  def handle_info({Matches, :liked, like}, socket) do
-    %{screen_width: screen_width, version: version, location: location} = socket.assigns
-    %{by_user_id: by_user_id} = like
-
-    if profile = Feeds.get_mate_feed_profile(by_user_id, location) do
-      rendered = render_feed_item(profile, version, screen_width)
-      push(socket, "invite", rendered)
-    end
-
-    {:noreply, socket}
-  end
-
-  # TODO remove
-  def handle_info({Matches, :matched, match}, socket) do
-    %{screen_width: screen_width, version: version, location: location} = socket.assigns
-
-    %{
-      id: match_id,
-      inserted_at: inserted_at,
-      expiration_date: expiration_date,
-      mate: mate_id
-    } = match
-
-    if profile = Feeds.get_mate_feed_profile(mate_id, location) do
-      push(socket, "matched", %{
-        "match" =>
-          render_match(%{
-            id: match_id,
-            profile: profile,
-            screen_width: screen_width,
-            version: version,
-            inserted_at: inserted_at,
-            expiration_date: expiration_date
-          })
-      })
-    end
-
-    {:noreply, socket}
-  end
-
-  # TODO remove
-  def handle_info({Matches, :unmatched, match_id}, socket) when is_binary(match_id) do
-    push(socket, "unmatched", %{"match_id" => match_id})
-    {:noreply, socket}
-  end
-
-  # TODO remove
-  def handle_info({Matches, :expired, match_id}, socket) when is_binary(match_id) do
-    push(socket, "match_expired", %{"match_id" => match_id})
-    {:noreply, socket}
-  end
-
-  # TODO remove
-  def handle_info({Matches, :expiration_reset, match_id}, socket) when is_binary(match_id) do
-    push(socket, "match_expiration_reset", %{"match_id" => match_id})
-    {:noreply, socket}
-  end
-
-  # TODO remove
-  def handle_info({Matches, :interaction, interaction}, socket) do
-    %Matches.Interaction{match_id: match_id} = interaction
-
-    push(socket, "interaction", %{
-      "match_id" => match_id,
-      "interaction" => render_interaction(interaction)
-    })
-
-    {:noreply, socket}
-  end
-
   def handle_info({Chats, :deleted_chat, with_user_id}, socket) when is_binary(with_user_id) do
     push(socket, "deleted_chat", %{"with_user_id" => with_user_id})
     {:noreply, socket}
@@ -568,11 +443,6 @@ defmodule TWeb.FeedChannel do
 
   defp render_chat_match_profile(assigns) do
     render(FeedView, "feed_profile_with_distance.json", assigns)
-  end
-
-  # TODO remove
-  defp render_interaction(interaction) do
-    render(MatchView, "interaction.json", interaction: interaction)
   end
 
   defp render_message(message, screen_width) do

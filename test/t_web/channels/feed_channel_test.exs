@@ -1126,19 +1126,18 @@ defmodule TWeb.FeedChannelTest do
     end
   end
 
-  # TODO chats
-  describe "interactions" do
+  describe "chats" do
     setup :joined
 
-    test "send-interaction", %{me: me, socket: socket} do
+    test "send-message", %{me: me, socket: socket} do
       mate = onboarded_user()
-      match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
+      chat = insert(:chat, user_id_1: me.id, user_id_2: mate.id)
 
-      # save normal interaction
+      # save normal chat
       ref =
-        push(socket, "send-interaction", %{
-          "match_id" => match.id,
-          "interaction" => %{"size" => [375, 667], "sticker" => %{"value" => "hello moto"}}
+        push(socket, "send-message", %{
+          "to_user_id" => mate.id,
+          "message" => %{"value" => "hello moto", "quesiton" => "text"}
         })
 
       assert_reply(ref, :ok, _reply)

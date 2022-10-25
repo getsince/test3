@@ -54,7 +54,7 @@ defmodule T.Repo.Migrations.MigrateMatchesToChats do
 
               message_data =
                 case sticker["question"] do
-                  nil -> sticker |> Map.take(["value"])
+                  nil -> sticker |> Map.take(["value"]) |> Map.put("question", "text")
                   _ -> sticker |> Map.drop(["zoom", "position", "rotation"])
                 end
 

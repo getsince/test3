@@ -1,9 +1,8 @@
 defmodule TWeb.FeedChannelTest do
   use TWeb.ChannelCase, async: true
 
-  alias T.{Accounts, Chats, Matches, Feeds}
+  alias T.{Accounts, Chats, Feeds}
   alias Chats.Message
-  alias Matches.{Match, Interaction}
 
   setup do
     me = onboarded_user(location: moscow_location(), accept_genders: ["F", "N", "M"])
@@ -119,165 +118,6 @@ defmodule TWeb.FeedChannelTest do
                    story: [],
                    user_id: p.id
                  }
-               }
-             ]
-    end
-
-    test "with matches", %{socket: socket, me: me} do
-      [p1, p2, p3] = [
-        onboarded_user(story: [], name: "mate-1", location: apple_location(), gender: "F"),
-        onboarded_user(story: [], name: "mate-2", location: apple_location(), gender: "N"),
-        onboarded_user(story: [], name: "mate-3", location: apple_location(), gender: "M")
-      ]
-
-      [m1, m2, m3] = [
-        insert(:match, user_id_1: me.id, user_id_2: p1.id, inserted_at: ~N[2021-09-30 12:16:05]),
-        insert(:match, user_id_1: me.id, user_id_2: p2.id, inserted_at: ~N[2021-09-30 12:16:06]),
-        insert(:match, user_id_1: me.id, user_id_2: p3.id, inserted_at: ~N[2021-09-30 12:16:07])
-      ]
-
-      # first and second matches are seen
-      :ok = Matches.mark_match_seen(me.id, m1.id)
-      :ok = Matches.mark_match_seen(me.id, m2.id)
-
-      # second match has one interaction
-      {:ok, %Interaction{id: interaction_id_1}} =
-        Matches.save_interaction(
-          m2.id,
-          me.id,
-          %{
-            "size" => [100, 100],
-            "sticker" => %{"value" => "hey mama"}
-          }
-        )
-
-      # third match had interaction exchanged
-      {:ok, %Interaction{id: interaction_id_2}} =
-        Matches.save_interaction(
-          m3.id,
-          me.id,
-          %{
-            "size" => [100, 100],
-            "sticker" => %{"question" => "telegram", "answer" => "durov"}
-          }
-        )
-
-      {:ok, %Interaction{id: interaction_id_3}} =
-        Matches.save_interaction(
-          m3.id,
-          p3.id,
-          %{
-            "size" => [100, 100],
-            "sticker" => %{"question" => "audio", "s3_key" => "abcd"}
-          }
-        )
-
-      assert {:ok, %{"matches" => matches}, _socket} = join(socket, "feed:" <> me.id)
-
-      assert matches == [
-               %{
-                 "id" => m3.id,
-                 "profile" => %{
-                   name: "mate-3",
-                   story: [],
-                   user_id: p3.id,
-                   gender: "M",
-                   distance: 9510,
-                   address: %{
-                     "en_US" => %{
-                       "city" => "Buenos Aires",
-                       "state" => "Autonomous City of Buenos Aires",
-                       "country" => "Argentina",
-                       "iso_country_code" => "AR"
-                     }
-                   }
-                 },
-                 "inserted_at" => ~U[2021-09-30 12:16:07Z],
-                 "interactions" => [
-                   %{
-                     "from_user_id" => me.id,
-                     "id" => interaction_id_2,
-                     "inserted_at" => datetime(interaction_id_2),
-                     "interaction" => %{
-                       "size" => [100, 100],
-                       "sticker" => %{
-                         "answer" => "durov",
-                         "question" => "telegram",
-                         "url" => "https://t.me/durov"
-                       }
-                     },
-                     "seen" => false
-                   },
-                   %{
-                     "from_user_id" => p3.id,
-                     "id" => interaction_id_3,
-                     "inserted_at" => datetime(interaction_id_3),
-                     "interaction" => %{
-                       "size" => [100, 100],
-                       "sticker" => %{
-                         "question" => "audio",
-                         "s3_key" => "abcd",
-                         "url" => "https://d6666.cloudfront.net/abcd"
-                       }
-                     },
-                     "seen" => false
-                   }
-                 ]
-               },
-               %{
-                 "id" => m2.id,
-                 "profile" => %{
-                   name: "mate-2",
-                   story: [],
-                   user_id: p2.id,
-                   gender: "N",
-                   distance: 9510,
-                   address: %{
-                     "en_US" => %{
-                       "city" => "Buenos Aires",
-                       "state" => "Autonomous City of Buenos Aires",
-                       "country" => "Argentina",
-                       "iso_country_code" => "AR"
-                     }
-                   }
-                 },
-                 "inserted_at" => ~U[2021-09-30 12:16:06Z],
-                 "expiration_date" => ~U[2021-10-01 12:16:06Z],
-                 "seen" => true,
-                 "interactions" => [
-                   %{
-                     "from_user_id" => me.id,
-                     "id" => interaction_id_1,
-                     "inserted_at" => datetime(interaction_id_1),
-                     "interaction" => %{
-                       "size" => [100, 100],
-                       "sticker" => %{"value" => "hey mama"}
-                     },
-                     "seen" => false
-                   }
-                 ]
-               },
-               %{
-                 "id" => m1.id,
-                 "profile" => %{
-                   name: "mate-1",
-                   story: [],
-                   user_id: p1.id,
-                   gender: "F",
-                   distance: 9510,
-                   address: %{
-                     "en_US" => %{
-                       "city" => "Buenos Aires",
-                       "state" => "Autonomous City of Buenos Aires",
-                       "country" => "Argentina",
-                       "iso_country_code" => "AR"
-                     }
-                   }
-                 },
-                 "inserted_at" => ~U[2021-09-30 12:16:05Z],
-                 "expiration_date" => ~U[2021-10-01 12:16:05Z],
-                 "seen" => true,
-                 "interactions" => []
                }
              ]
     end
@@ -416,61 +256,6 @@ defmodule TWeb.FeedChannelTest do
                  "messages" => []
                }
              ]
-    end
-
-    test "with likes", %{socket: socket, me: me} do
-      mate1 = onboarded_user(story: [], name: "mate-1", location: apple_location(), gender: "F")
-      mate2 = onboarded_user(story: [], name: "mate-2", location: apple_location(), gender: "F")
-
-      assert {:ok, %{like: %Matches.Like{}}} =
-               Matches.like_user(mate1.id, me.id, default_location())
-
-      assert {:ok, %{like: %Matches.Like{}}} =
-               Matches.like_user(mate2.id, me.id, default_location())
-
-      assert :ok = Matches.mark_like_seen(me.id, mate2.id)
-
-      assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id, %{"mode" => "normal"})
-
-      assert reply == %{
-               "likes" => [
-                 %{
-                   "profile" => %{
-                     name: "mate-1",
-                     story: [],
-                     user_id: mate1.id,
-                     gender: "F",
-                     distance: 9510,
-                     address: %{
-                       "en_US" => %{
-                         "city" => "Buenos Aires",
-                         "state" => "Autonomous City of Buenos Aires",
-                         "country" => "Argentina",
-                         "iso_country_code" => "AR"
-                       }
-                     }
-                   }
-                 },
-                 %{
-                   "profile" => %{
-                     name: "mate-2",
-                     story: [],
-                     user_id: mate2.id,
-                     gender: "F",
-                     distance: 9510,
-                     address: %{
-                       "en_US" => %{
-                         "city" => "Buenos Aires",
-                         "state" => "Autonomous City of Buenos Aires",
-                         "country" => "Argentina",
-                         "iso_country_code" => "AR"
-                       }
-                     }
-                   },
-                   "seen" => true
-                 }
-               ]
-             }
     end
 
     test "with no news", %{socket: socket, me: me} do
@@ -812,244 +597,7 @@ defmodule TWeb.FeedChannelTest do
     end
   end
 
-  describe "like" do
-    setup :joined
-
-    setup do
-      stacy =
-        onboarded_user(
-          name: "Private Stacy",
-          location: apple_location(),
-          story: [
-            %{"background" => %{"s3_key" => "public1"}, "labels" => [], "size" => [400, 100]},
-            %{
-              "background" => %{"s3_key" => "private"},
-              "blurred" => %{"s3_key" => "blurred"},
-              "labels" => [
-                %{
-                  "value" => "some private info",
-                  "position" => [100, 100]
-                }
-              ],
-              "size" => [100, 400]
-            }
-          ],
-          gender: "F",
-          accept_genders: ["M"]
-        )
-
-      {:ok, mate: stacy}
-    end
-
-    setup :joined_mate
-
-    test "when already liked by mate", ctx do
-      %{
-        me: me,
-        socket: socket,
-        mate: mate,
-        mate_socket: mate_socket
-      } = ctx
-
-      # mate likes us
-      ref = push(mate_socket, "like", %{"user_id" => me.id})
-      assert_reply(ref, :ok, reply)
-      assert reply == %{}
-
-      # assert bump_likes works
-      me_from_db = Repo.get!(T.Feeds.FeedProfile, me.id)
-      assert me_from_db.like_ratio == 1.0
-
-      # we got notified of like
-      assert_push("invite", %{"profile" => %{story: [public, private] = story}} = invite)
-
-      assert invite == %{
-               "profile" => %{
-                 gender: "F",
-                 name: "Private Stacy",
-                 story: story,
-                 user_id: mate.id,
-                 distance: 9510,
-                 address: %{
-                   "en_US" => %{
-                     "city" => "Buenos Aires",
-                     "state" => "Autonomous City of Buenos Aires",
-                     "country" => "Argentina",
-                     "iso_country_code" => "AR"
-                   }
-                 }
-               }
-             }
-
-      # when we get notified of like, we are not showing private pages of the liker
-      assert Map.keys(public) == ["background", "labels", "size"]
-      assert Map.keys(private) == ["blurred", "private"]
-
-      assert %{
-               "blurred" => %{"s3_key" => "blurred", "proxy" => "https://" <> _},
-               "private" => true
-             } = private
-
-      # now it's our turn
-      ref = push(socket, "like", %{"user_id" => mate.id})
-
-      assert_reply(ref, :ok, %{
-        "match_id" => match_id,
-        "expiration_date" => expiration_date,
-        "profile" => %{story: [public, private]}
-      })
-
-      assert expiration_date
-      assert is_binary(match_id)
-
-      assert_push("matched", _payload)
-
-      # when we are matched, we can see private pages of the liker (now mate)
-      assert Map.keys(public) == ["background", "labels", "size"]
-      assert Map.keys(private) == ["background", "labels", "private", "size"]
-      assert %{"private" => true} = private
-    end
-
-    test "when not yet liked by mate", ctx do
-      %{
-        me: me,
-        socket: socket,
-        mate: mate,
-        mate_socket: mate_socket
-      } = ctx
-
-      # we like mate
-      ref = push(socket, "like", %{"user_id" => mate.id})
-      assert_reply(ref, :ok, reply)
-      assert reply == %{}
-
-      # now mate likes us
-      ref = push(mate_socket, "like", %{"user_id" => me.id})
-      assert_reply(ref, :ok, %{"match_id" => match_id})
-      assert is_binary(match_id)
-
-      assert_push("matched", %{"match" => match} = push)
-
-      now = DateTime.utc_now()
-      expected_expiration_date = DateTime.add(now, Matches.match_ttl())
-      assert expiration_date = match["expiration_date"]
-      assert abs(DateTime.diff(expiration_date, expected_expiration_date)) <= 1
-
-      assert %DateTime{} = inserted_at = match["inserted_at"]
-      assert abs(DateTime.diff(now, inserted_at)) <= 1
-
-      assert %{"match" => %{"profile" => %{story: [public, private] = story}}} = push
-
-      assert push == %{
-               "match" => %{
-                 "id" => match_id,
-                 "profile" => %{
-                   name: "Private Stacy",
-                   story: story,
-                   user_id: mate.id,
-                   gender: "F",
-                   distance: 9510,
-                   address: %{
-                     "en_US" => %{
-                       "city" => "Buenos Aires",
-                       "state" => "Autonomous City of Buenos Aires",
-                       "country" => "Argentina",
-                       "iso_country_code" => "AR"
-                     }
-                   }
-                 },
-                 "expiration_date" => expiration_date,
-                 "inserted_at" => inserted_at
-               }
-             }
-
-      # when we are matched, we can see private pages
-      assert Map.keys(public) == ["background", "labels", "size"]
-      assert Map.keys(private) == ["background", "labels", "private", "size"]
-      assert %{"private" => true} = private
-    end
-
-    test "seen-like", ctx do
-      import Ecto.Query
-
-      %{me: me, socket: socket, mate: mate} = ctx
-
-      # mate likes us
-      {:ok, _} = Matches.like_user(mate.id, me.id, default_location())
-
-      # we see mate's like
-      ref = push(socket, "seen-like", %{"user_id" => mate.id})
-      assert_reply(ref, :ok, _reply)
-
-      assert %Matches.Like{seen: true} =
-               Matches.Like
-               |> where(by_user_id: ^mate.id)
-               |> where(user_id: ^me.id)
-               |> Repo.one!()
-    end
-  end
-
-  describe "seen-match" do
-    setup :joined
-
-    test "marks match as seen", %{me: me, socket: socket} do
-      mate = onboarded_user()
-      match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
-
-      ref = push(socket, "seen-match", %{"match_id" => match.id})
-      assert_reply(ref, :ok, _reply)
-
-      assert [%Match{seen: true}] = Matches.list_matches(me.id, default_location())
-    end
-  end
-
-  describe "unmatch success" do
-    setup :joined
-
-    setup do
-      {:ok, mate: onboarded_user(story: [], location: apple_location(), name: "mate")}
-    end
-
-    setup :joined_mate
-
-    # match
-    setup %{me: me, socket: socket, mate: mate, mate_socket: mate_socket} do
-      # mate likes us
-      ref = push(mate_socket, "like", %{"user_id" => me.id})
-      assert_reply(ref, :ok, reply)
-      assert reply == %{}
-
-      # now it's our turn
-      ref = push(socket, "like", %{"user_id" => mate.id})
-      assert_reply(ref, :ok, %{"match_id" => match_id})
-
-      {:ok, match_id: match_id}
-    end
-
-    test "with match_id", %{socket: socket, match_id: match_id} do
-      ref = push(socket, "unmatch", %{"match_id" => match_id})
-      assert_reply(ref, :ok, %{"unmatched?" => true})
-
-      # mate gets unmatched message
-      assert_push("unmatched", push)
-      assert push == %{"match_id" => match_id}
-
-      refute Repo.get(Match, match_id)
-    end
-
-    test "with user_id", %{socket: socket, mate: mate, match_id: match_id} do
-      ref = push(socket, "unmatch", %{"user_id" => mate.id})
-      assert_reply(ref, :ok, %{"unmatched?" => true})
-
-      # mate gets unmatched message
-      assert_push("unmatched", push)
-      assert push == %{"match_id" => match_id}
-
-      refute Repo.get(Match, match_id)
-    end
-  end
-
-  describe "report without match" do
+  describe "report without chat" do
     setup :joined
 
     setup do
@@ -1074,21 +622,19 @@ defmodule TWeb.FeedChannelTest do
     end
   end
 
-  # TODO report with chatter
-  describe "report with match" do
+  describe "report with chat" do
     setup :joined
 
     setup %{me: me} do
       mate = onboarded_user(story: [], location: apple_location(), name: "mate")
-      match = insert(:match, user_id_1: me.id, user_id_2: mate.id)
-      {:ok, mate: mate, match: match}
+      chat = insert(:chat, user_id_1: me.id, user_id_2: mate.id)
+      {:ok, mate: mate, chat: chat}
     end
 
     setup :joined_mate
 
-    test "reports mate and notifies of unmatch", %{
+    test "reports mate and notifies of deleted_chat", %{
       socket: socket,
-      match: match,
       mate: mate,
       me: me
     } do
@@ -1100,9 +646,9 @@ defmodule TWeb.FeedChannelTest do
 
       assert_reply(ref, :ok, _reply)
 
-      # mate gets unmatch message
-      assert_push("unmatched", push)
-      assert push == %{"match_id" => match.id}
+      # mate gets deleted_chat message
+      assert_push("deleted_chat", push)
+      assert push == %{"with_user_id" => me.id}
 
       assert %Accounts.UserReport{} =
                report = Repo.get_by(Accounts.UserReport, from_user_id: me.id, on_user_id: mate.id)
@@ -1129,15 +675,14 @@ defmodule TWeb.FeedChannelTest do
   describe "chats" do
     setup :joined
 
-    test "send-message", %{me: me, socket: socket} do
+    test "send-message", %{socket: socket} do
       mate = onboarded_user()
-      chat = insert(:chat, user_id_1: me.id, user_id_2: mate.id)
 
-      # save normal chat
+      # save normal message
       ref =
         push(socket, "send-message", %{
           "to_user_id" => mate.id,
-          "message" => %{"value" => "hello moto", "quesiton" => "text"}
+          "message" => %{"value" => "hello moto", "question" => "text"}
         })
 
       assert_reply(ref, :ok, _reply)
@@ -1198,11 +743,11 @@ defmodule TWeb.FeedChannelTest do
              } = private
     end
 
-    test "matched: private story becomes visible", %{me: me, stacy: stacy} do
-      Matches.like_user(me.id, stacy.id, default_location())
-      Matches.like_user(stacy.id, me.id, default_location())
+    test "chat match: private story becomes visible", %{me: me, stacy: stacy} do
+      Chats.save_message(stacy.id, me.id, %{"question" => "invitation"})
+      Chats.save_message(me.id, stacy.id, %{"question" => "acceptance"})
 
-      assert_push("matched", %{"match" => %{"profile" => %{story: [public, private]}}})
+      assert_push("chat_match", %{"profile" => %{story: [public, private]}})
       assert Map.keys(public) == ["background", "labels", "size"]
       assert Map.keys(private) == ["background", "labels", "private", "size"]
       assert %{"private" => true} = private

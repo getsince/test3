@@ -2,8 +2,8 @@ defmodule T.Accounts.DeletionTest do
   use T.DataCase, async: true
   use Oban.Testing, repo: Repo
 
-  alias T.{Accounts, Matches}
-  alias Matches.Match
+  alias T.{Accounts, Chats}
+  alias Chats.{Chat, Message}
 
   describe "delete_user/1" do
     setup do
@@ -25,37 +25,34 @@ defmodule T.Accounts.DeletionTest do
       assert [] == Repo.all(Accounts.UserToken)
     end
 
-    test "current match is unmatched", %{user: user} do
+    test "current chat is deleted", %{user: user} do
       p2 = insert(:profile)
 
-      Matches.subscribe_for_user(user.id)
-      Matches.subscribe_for_user(p2.user_id)
+      Chats.subscribe_for_user(user.id)
+      Chats.subscribe_for_user(p2.user_id)
 
-      assert {:ok, %{match: nil}} = Matches.like_user(p2.user_id, user.id, default_location())
+      assert {:ok, %Message{chat_id: chat_id, inserted_at: inserted_at} = message1} =
+               Chats.save_message(p2.user_id, user.id, %{"question" => "invitation"})
 
-      assert {:ok, %{match: %Match{id: match_id, inserted_at: inserted_at}}} =
-               Matches.like_user(user.id, p2.user_id, default_location())
-
-      expiration_date =
-        inserted_at
-        |> DateTime.from_naive!("Etc/UTC")
-        |> DateTime.add(Matches.match_ttl())
-
-      assert_receive {Matches, :matched, match}
+      assert_receive {Chats, :chat, chat}
       user_id = user.id
+      mate_id = p2.user_id
 
-      assert match == %{
-               id: match_id,
-               mate: user_id,
-               expiration_date: expiration_date,
-               inserted_at: inserted_at
-             }
+      assert %Chat{
+               id: ^chat_id,
+               user_id_1: ^user_id,
+               user_id_2: ^mate_id,
+               matched: false,
+               inserted_at: ^inserted_at,
+               messages: [^message1],
+               profile: nil
+             } = chat
 
-      assert {:ok, %{delete_user: true, unmatch: [true]}} =
+      assert {:ok, %{delete_user: true, delete_chats: [true]}} =
                Accounts.delete_user(user.id, "reason")
 
-      assert_receive {Matches, :unmatched, ^match_id}
-      assert [] == Matches.list_matches(p2.user_id, default_location())
+      assert_receive {Chats, :deleted_chat, ^user_id}
+      assert [] == Chats.list_chats(p2.user_id, default_location())
     end
   end
 end

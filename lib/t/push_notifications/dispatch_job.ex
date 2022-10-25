@@ -16,7 +16,6 @@ defmodule T.PushNotifications.DispatchJob do
               "invitation",
               "acceptance",
               "text",
-              "message",
               "drawing",
               "video",
               "audio",

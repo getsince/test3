@@ -52,7 +52,6 @@ defmodule T.PushNotifications.APNS do
              "invitation",
              "acceptance",
              "text",
-             "message",
              "drawing",
              "video",
              "audio",
@@ -78,9 +77,6 @@ defmodule T.PushNotifications.APNS do
           )
 
         "text" ->
-          dgettext("apns", "sent%{verb_ending_ru} a message", verb_ending_ru: verb_ending_ru)
-
-        "message" ->
           dgettext("apns", "sent%{verb_ending_ru} a message", verb_ending_ru: verb_ending_ru)
 
         "drawing" ->

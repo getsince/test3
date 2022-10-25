@@ -11,68 +11,67 @@ msgstr ""
 "Language: en\n"
 "Plural-Forms: nplurals=2\n"
 
-#: lib/t/push_notifications/apns.ex:111
+#: lib/t/push_notifications/apns.ex:107
 #, elixir-autogen, elixir-format
 msgid "Hey, create your own cool profile ✨"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:112
+#: lib/t/push_notifications/apns.ex:108
 #, elixir-autogen, elixir-format
 msgid "Meet interesting people ✌️"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:121
+#: lib/t/push_notifications/apns.ex:117
 #, elixir-autogen, elixir-format
 msgid "The current version is no longer supported 🙃"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:120
+#: lib/t/push_notifications/apns.ex:116
 #, elixir-autogen, elixir-format
 msgid "Update the app in the App Store ✨"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:99
+#: lib/t/push_notifications/apns.ex:95
 #, elixir-autogen, elixir-format
 msgid "sent%{verb_ending_ru} a contact"
 msgstr "sent a contact"
 
-#: lib/t/push_notifications/apns.ex:87
+#: lib/t/push_notifications/apns.ex:83
 #, elixir-autogen, elixir-format
 msgid "sent%{verb_ending_ru} a drawing"
 msgstr "sent a drawing"
 
-#: lib/t/push_notifications/apns.ex:81
-#: lib/t/push_notifications/apns.ex:84
+#: lib/t/push_notifications/apns.ex:80
 #, elixir-autogen, elixir-format
 msgid "sent%{verb_ending_ru} a message"
 msgstr "sent a message"
 
-#: lib/t/push_notifications/apns.ex:96
+#: lib/t/push_notifications/apns.ex:92
 #, elixir-autogen, elixir-format
 msgid "sent%{verb_ending_ru} a music track"
 msgstr "sent a music track"
 
-#: lib/t/push_notifications/apns.ex:90
+#: lib/t/push_notifications/apns.ex:86
 #, elixir-autogen, elixir-format
 msgid "sent%{verb_ending_ru} a video message"
 msgstr "sent a video message"
 
-#: lib/t/push_notifications/apns.ex:93
+#: lib/t/push_notifications/apns.ex:89
 #, elixir-autogen, elixir-format
 msgid "sent%{verb_ending_ru} a voice message"
 msgstr "sent a voice message"
 
-#: lib/t/push_notifications/apns.ex:102
+#: lib/t/push_notifications/apns.ex:98
 #, elixir-autogen, elixir-format
 msgid "sent%{verb_ending_ru} a photo"
 msgstr "sent a photo"
 
-#: lib/t/push_notifications/apns.ex:76
+#: lib/t/push_notifications/apns.ex:75
 #, elixir-autogen, elixir-format, fuzzy
 msgid "accepted%{verb_ending_ru} your invitation"
 msgstr "accepted your invitation"
 
-#: lib/t/push_notifications/apns.ex:73
+#: lib/t/push_notifications/apns.ex:72
 #, elixir-autogen, elixir-format, fuzzy
 msgid "invited you to connect"
 msgstr ""

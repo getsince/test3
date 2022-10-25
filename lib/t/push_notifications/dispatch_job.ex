@@ -4,74 +4,11 @@ defmodule T.PushNotifications.DispatchJob do
 
   use Oban.Worker, queue: :apns
   import Ecto.Query
-  alias T.{Repo, Matches, Accounts, PushNotifications}
+  alias T.{Repo, Accounts, PushNotifications}
 
   @impl true
   def perform(%Oban.Job{args: %{"type" => type} = args}) do
     handle_type(type, args)
-  end
-
-  # TODO remove
-  defp handle_type("match", args) do
-    %{"match_id" => match_id} = args
-
-    if match = alive_match(match_id) do
-      %Matches.Match{user_id_1: uid1, user_id_2: uid2} = match
-
-      data = %{"match_id" => match_id}
-      uid1 |> Accounts.list_apns_devices() |> schedule_apns("match", data)
-      uid2 |> Accounts.list_apns_devices() |> schedule_apns("match", data)
-
-      :ok
-    else
-      :discard
-    end
-  end
-
-  # TODO remove
-  defp handle_type("match_about_to_expire", args) do
-    %{"match_id" => match_id} = args
-
-    if match = alive_match(match_id) do
-      unless Matches.has_undying_events?(match_id) do
-        %Matches.Match{user_id_1: uid1, user_id_2: uid2} = match
-        profile1 = profile_info(uid1)
-        profile2 = profile_info(uid2)
-
-        if profile1 && profile2 do
-          {name1, gender1} = profile1
-          {name2, gender2} = profile2
-          data1 = %{"match_id" => match_id, "name" => name2, "gender" => gender2}
-          data2 = %{"match_id" => match_id, "name" => name1, "gender" => gender1}
-
-          case Matches.has_interaction?(match_id) do
-            nil ->
-              uid1
-              |> Accounts.list_apns_devices()
-              |> schedule_apns("match_about_to_expire", data1)
-
-              uid2
-              |> Accounts.list_apns_devices()
-              |> schedule_apns("match_about_to_expire", data2)
-
-            %Matches.Interaction{to_user_id: to_user_id} ->
-              case to_user_id do
-                ^uid1 ->
-                  uid1
-                  |> Accounts.list_apns_devices()
-                  |> schedule_apns("match_about_to_expire_please_reply", data1)
-
-                ^uid2 ->
-                  uid2
-                  |> Accounts.list_apns_devices()
-                  |> schedule_apns("match_about_to_expire_please_reply", data2)
-              end
-          end
-        end
-      end
-    end
-
-    :ok
   end
 
   defp handle_type(type, %{"from_user_id" => from_user_id, "to_user_id" => to_user_id} = args)
@@ -98,26 +35,6 @@ defmodule T.PushNotifications.DispatchJob do
     :ok
   end
 
-  # TODO remove
-  defp handle_type("invite" = type, args) do
-    %{"by_user_id" => by_user_id, "user_id" => user_id} = args
-
-    if profile = profile_info(by_user_id) do
-      {name, _gender} = profile
-
-      data = %{"user_id" => by_user_id, "name" => name}
-
-      user_id |> Accounts.list_apns_devices() |> schedule_apns(type, data)
-    end
-
-    :ok
-  end
-
-  # TODO remove
-  defp handle_type("feed_limit_reset", _args) do
-    :ok
-  end
-
   defp handle_type("complete_onboarding" = type, %{"user_id" => user_id} = args) do
     unless has_story?(user_id) do
       user_id |> Accounts.list_apns_devices() |> schedule_apns(type, args)
@@ -138,12 +55,6 @@ defmodule T.PushNotifications.DispatchJob do
     Accounts.Profile
     |> where(user_id: ^user_id)
     |> select([p], {p.name, p.gender})
-    |> Repo.one()
-  end
-
-  defp alive_match(match_id) do
-    Matches.Match
-    |> where(id: ^match_id)
     |> Repo.one()
   end
 

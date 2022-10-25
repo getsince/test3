@@ -62,7 +62,6 @@ msgstr "прислал%{verb_ending_ru} контакт"
 msgid "sent%{verb_ending_ru} a drawing"
 msgstr "прислал%{verb_ending_ru} рисунок"
 
-#: lib/t/push_notifications/apns.ex:123
 #: lib/t/push_notifications/apns.ex:126
 #, elixir-autogen, elixir-format
 msgid "sent%{verb_ending_ru} a message"

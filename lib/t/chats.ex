@@ -265,7 +265,8 @@ defmodule T.Chats do
           "chat_id" => chat_id,
           "from_user_id" => from_user_id,
           "to_user_id" => to_user_id,
-          "message_id" => message_id
+          "message_id" => message_id,
+          "data" => message_data
         })
 
       Oban.insert(push_job)

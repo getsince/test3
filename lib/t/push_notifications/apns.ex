@@ -120,7 +120,7 @@ defmodule T.PushNotifications.APNS do
           )
 
         "text" ->
-          dgettext("apns", "sent%{verb_ending_ru} a message", verb_ending_ru: verb_ending_ru)
+          data["data"]["value"]
 
         "message" ->
           dgettext("apns", "sent%{verb_ending_ru} a message", verb_ending_ru: verb_ending_ru)

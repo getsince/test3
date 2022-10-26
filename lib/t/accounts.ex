@@ -11,7 +11,7 @@ defmodule T.Accounts do
 
   import T.Cluster, only: [primary_rpc: 3]
 
-  alias T.{Repo, Media, Bot, Matches, Chats}
+  alias T.{Repo, Media, Bot, Chats}
 
   alias T.Accounts.{
     User,
@@ -244,12 +244,10 @@ defmodule T.Accounts do
 
     Multi.new()
     |> Multi.insert(:report, report_changeset)
-    |> Matches.unmatch_multi(from_user_id, on_user_id)
     |> Chats.delete_chat_multi(from_user_id, on_user_id)
     |> Repo.transaction()
     |> case do
       {:ok, changes} ->
-        Matches.notify_unmatch_changes(changes)
         Chats.notify_delete_chat_changes(changes)
         :ok
 
@@ -280,7 +278,6 @@ defmodule T.Accounts do
 
       {:ok, nil}
     end)
-    |> unmatch_all(user_id)
     |> delete_all_chats(user_id)
     |> Repo.transaction()
     |> case do
@@ -318,22 +315,6 @@ defmodule T.Accounts do
     |> case do
       {:ok, _profile} -> :ok
     end
-  end
-
-  # TODO remove
-  defp unmatch_all(multi, user_id) do
-    Multi.run(multi, :unmatch, fn repo, _changes ->
-      unmatches =
-        T.Matches.Match
-        |> where([m], m.user_id_1 == ^user_id or m.user_id_2 == ^user_id)
-        |> select([m], m.id)
-        |> repo.all()
-        |> Enum.map(fn match_id ->
-          T.Matches.unmatch_match(user_id, match_id)
-        end)
-
-      {:ok, unmatches}
-    end)
   end
 
   defp delete_all_chats(multi, user_id) do
@@ -439,7 +420,6 @@ defmodule T.Accounts do
     Bot.async_post_silent_message(m)
 
     Multi.new()
-    |> unmatch_all(user_id)
     |> delete_all_chats(user_id)
     |> Multi.run(:session_tokens, fn _repo, _changes ->
       tokens = UserToken |> where(user_id: ^user_id) |> select([ut], ut.token) |> Repo.all()

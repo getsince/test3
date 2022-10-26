@@ -11,138 +11,87 @@ msgstr ""
 "Language: ru\n"
 "Plural-Forms: nplurals=3\n"
 
-#: lib/t/push_notifications/apns.ex:54
-#, elixir-autogen, elixir-format
-msgid "Скорее заходи!"
-msgstr ""
-
-#: lib/t/push_notifications/apns.ex:53
-#, elixir-autogen, elixir-format
-msgid "Это новый мэтч!"
-msgstr ""
-
-#: lib/t/push_notifications/apns.ex:180
-#, elixir-autogen, elixir-format
-msgid "%{name} invited you to connect"
-msgstr "%{name} хочет познакомиться"
-
-#: lib/t/push_notifications/apns.ex:66
-#: lib/t/push_notifications/apns.ex:82
-#, elixir-autogen, elixir-format
-msgid "Match with %{name} is about to expire"
-msgstr "Мэтч c %{name} почти истек"
-
-#: lib/t/push_notifications/apns.ex:186
+#: lib/t/push_notifications/apns.ex:133
 #, elixir-autogen, elixir-format
 msgid "Hey, create your own cool profile ✨"
 msgstr "Привет, создай свой классный профиль ✨"
 
-#: lib/t/push_notifications/apns.ex:187
+#: lib/t/push_notifications/apns.ex:134
 #, elixir-autogen, elixir-format
 msgid "Meet interesting people ✌️"
 msgstr "Знакомься с интересными людьми ✌️"
 
-#: lib/t/push_notifications/apns.ex:196
+#: lib/t/push_notifications/apns.ex:143
 #, elixir-autogen, elixir-format
 msgid "The current version is no longer supported 🙃"
 msgstr "Текущая версия больше не поддерживается 🙃"
 
-#: lib/t/push_notifications/apns.ex:195
+#: lib/t/push_notifications/apns.ex:142
 #, elixir-autogen, elixir-format
 msgid "Update the app in the App Store ✨"
 msgstr "Обнови приложение в App Store ✨"
 
-#: lib/t/push_notifications/apns.ex:141
+#: lib/t/push_notifications/apns.ex:95
 #, elixir-autogen, elixir-format
 msgid "sent%{verb_ending_ru} a contact"
 msgstr "прислал%{verb_ending_ru} контакт"
 
-#: lib/t/push_notifications/apns.ex:129
+#: lib/t/push_notifications/apns.ex:83
 #, elixir-autogen, elixir-format
 msgid "sent%{verb_ending_ru} a drawing"
 msgstr "прислал%{verb_ending_ru} рисунок"
 
-#: lib/t/push_notifications/apns.ex:126
-#, elixir-autogen, elixir-format
-msgid "sent%{verb_ending_ru} a message"
-msgstr "прислал%{verb_ending_ru} сообщение"
-
-#: lib/t/push_notifications/apns.ex:138
+#: lib/t/push_notifications/apns.ex:92
 #, elixir-autogen, elixir-format
 msgid "sent%{verb_ending_ru} a music track"
 msgstr "прислал%{verb_ending_ru} музыкальный трек"
 
-#: lib/t/push_notifications/apns.ex:132
+#: lib/t/push_notifications/apns.ex:86
 #, elixir-autogen, elixir-format
 msgid "sent%{verb_ending_ru} a video message"
 msgstr "прислал%{verb_ending_ru} видео сообщение"
 
-#: lib/t/push_notifications/apns.ex:135
+#: lib/t/push_notifications/apns.ex:89
 #, elixir-autogen, elixir-format
 msgid "sent%{verb_ending_ru} a voice message"
 msgstr "прислал%{verb_ending_ru} голосовое сообщение"
 
-#: lib/t/push_notifications/apns.ex:202
-#, elixir-autogen, elixir-format
-msgid "her TO"
-msgstr "ей"
-
-#: lib/t/push_notifications/apns.ex:84
-#, elixir-autogen, elixir-format
-msgid "Last chance to reply to %{pronoun_belonging_to} message ✨"
-msgstr "Последний шанс ответить на %{pronoun_belonging_to} сообщение ✨"
-
-#: lib/t/push_notifications/apns.ex:68
-#, elixir-autogen, elixir-format
-msgid "Last chance to send %{pronoun_to} a message ✨"
-msgstr "Последний шанс отправить %{pronoun_to} сообщение ✨"
-
-#: lib/t/push_notifications/apns.ex:206
-#, elixir-autogen, elixir-format
-msgid "her BELONGING TO"
-msgstr "её"
-
-#: lib/t/push_notifications/apns.ex:203
-#, elixir-autogen, elixir-format
-msgid "him TO"
-msgstr "ему"
-
-#: lib/t/push_notifications/apns.ex:207
-#, elixir-autogen, elixir-format
-msgid "his BELONGING TO"
-msgstr "его"
-
-#: lib/t/push_notifications/apns.ex:208
-#, elixir-autogen, elixir-format
-msgid "their BELONGING TO"
-msgstr "их"
-
-#: lib/t/push_notifications/apns.ex:204
-#, elixir-autogen, elixir-format
-msgid "them TO"
-msgstr "им"
-
-#: lib/t/push_notifications/apns.ex:144
+#: lib/t/push_notifications/apns.ex:98
 #, elixir-autogen, elixir-format
 msgid "sent%{verb_ending_ru} a photo"
 msgstr "прислал%{verb_ending_ru} фото"
 
-#: lib/t/push_notifications/apns.ex:118
+#: lib/t/push_notifications/apns.ex:75
 #, elixir-autogen, elixir-format, fuzzy
 msgid "accepted%{verb_ending_ru} your invitation"
 msgstr "принял%{verb_ending_ru} твоё приглашение"
 
-#: lib/t/push_notifications/apns.ex:115
+#: lib/t/push_notifications/apns.ex:72
 #, elixir-autogen, elixir-format, fuzzy
 msgid "invited you to connect"
 msgstr "хочет познакомиться"
 
-#: lib/t/push_notifications/apns.ex:169
+#: lib/t/push_notifications/apns.ex:123
 #, elixir-autogen, elixir-format
 msgid "Now you can see %{pronoun_belonging_to} private pages"
 msgstr "Теперь ты можешь смотреть %{pronoun_belonging_to} приватные страницы"
 
-#: lib/t/push_notifications/apns.ex:163
+#: lib/t/push_notifications/apns.ex:117
 #, elixir-autogen, elixir-format, fuzzy
 msgid "%{name_of} replied%{verb_ending_ru} to you"
 msgstr "%{name_of} ответил%{verb_ending_ru} тебе"
+
+#: lib/t/push_notifications/apns.ex:149
+#, elixir-autogen, elixir-format
+msgid "her BELONGING TO"
+msgstr "её"
+
+#: lib/t/push_notifications/apns.ex:150
+#, elixir-autogen, elixir-format
+msgid "his BELONGING TO"
+msgstr "его"
+
+#: lib/t/push_notifications/apns.ex:151
+#, elixir-autogen, elixir-format
+msgid "their BELONGING TO"
+msgstr "их"

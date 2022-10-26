@@ -47,54 +47,11 @@ defmodule T.PushNotifications.APNS do
   @spec build_alert_payload(String.t(), map) :: map
   def build_alert_payload(template, data)
 
-  # TODO remove
-  def build_alert_payload("match" = type, data) do
-    alert = %{
-      "title" => dgettext("apns", "Это новый мэтч!"),
-      "body" => dgettext("apns", "Скорее заходи!")
-    }
-
-    base_alert_payload(type, alert, data)
-  end
-
-  # TODO remove
-  def build_alert_payload(
-        "match_about_to_expire" = type,
-        %{"name" => name, "gender" => gender} = data
-      ) do
-    alert = %{
-      "title" => dgettext("apns", "Match with %{name} is about to expire", name: name),
-      "body" =>
-        dgettext("apns", "Last chance to send %{pronoun_to} a message ✨",
-          pronoun_to: pronoun_to(gender)
-        )
-    }
-
-    base_alert_payload(type, alert, data)
-  end
-
-  # TODO remove
-  def build_alert_payload(
-        "match_about_to_expire_please_reply" = type,
-        %{"name" => name, "gender" => gender} = data
-      ) do
-    alert = %{
-      "title" => dgettext("apns", "Match with %{name} is about to expire", name: name),
-      "body" =>
-        dgettext("apns", "Last chance to reply to %{pronoun_belonging_to} message ✨",
-          pronoun_belonging_to: pronoun_belonging_to(gender)
-        )
-    }
-
-    base_alert_payload(type, alert, data)
-  end
-
   def build_alert_payload(type, %{"name_from" => name_from, "gender_from" => gender_from} = data)
       when type in [
              "invitation",
              "acceptance",
              "text",
-             "message",
              "drawing",
              "video",
              "audio",
@@ -121,9 +78,6 @@ defmodule T.PushNotifications.APNS do
 
         "text" ->
           data["data"]["value"]
-
-        "message" ->
-          dgettext("apns", "sent%{verb_ending_ru} a message", verb_ending_ru: verb_ending_ru)
 
         "drawing" ->
           dgettext("apns", "sent%{verb_ending_ru} a drawing", verb_ending_ru: verb_ending_ru)
@@ -174,13 +128,6 @@ defmodule T.PushNotifications.APNS do
     base_alert_payload(type, alert, data)
   end
 
-  # TODO remove
-  def build_alert_payload("invite" = type, data) do
-    %{"user_id" => user_id, "name" => name} = data
-    alert = %{"title" => dgettext("apns", "%{name} invited you to connect", name: name)}
-    base_alert_payload(type, alert, %{"user_id" => user_id})
-  end
-
   def build_alert_payload("complete_onboarding" = type, _data) do
     alert = %{
       "title" => dgettext("apns", "Hey, create your own cool profile ✨"),
@@ -198,10 +145,6 @@ defmodule T.PushNotifications.APNS do
 
     base_alert_payload(type, alert)
   end
-
-  defp pronoun_to("F"), do: dgettext("apns", "her TO")
-  defp pronoun_to("M"), do: dgettext("apns", "him TO")
-  defp pronoun_to(_), do: dgettext("apns", "them TO")
 
   defp pronoun_belonging_to("F"), do: dgettext("apns", "her BELONGING TO")
   defp pronoun_belonging_to("M"), do: dgettext("apns", "his BELONGING TO")

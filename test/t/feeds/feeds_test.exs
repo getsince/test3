@@ -290,9 +290,9 @@ defmodule T.FeedsTest do
       FeedProfile |> where(user_id: ^uid) |> Repo.update_all(set: [hidden?: true])
       irrelevant_users_count = irrelevant_users_count + 1
 
-      # user who liked us
+      # user who invited us
       uid = calculated_ids |> Enum.at(1)
-      %T.Matches.Like{by_user_id: uid, user_id: me.id} |> Repo.insert()
+      T.Chats.save_message(me.id, uid, %{"question" => "invitation"})
       irrelevant_users_count = irrelevant_users_count + 1
 
       # user who we reported

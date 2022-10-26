@@ -397,22 +397,6 @@ defmodule T.Feeds do
     where(query, [p], p.user_id not in subquery(reporter_user_ids_q(user_id)))
   end
 
-  defp liked_user_ids_q(user_id) do
-    Like |> where(by_user_id: ^user_id) |> select([l], l.user_id)
-  end
-
-  defp not_liked_profiles_q(query, user_id) do
-    where(query, [p], p.user_id not in subquery(liked_user_ids_q(user_id)))
-  end
-
-  defp liker_user_ids_q(user_id) do
-    Like |> where(user_id: ^user_id) |> select([l], l.by_user_id)
-  end
-
-  defp not_liker_profiles_q(query, user_id) do
-    where(query, [p], p.user_id not in subquery(liker_user_ids_q(user_id)))
-  end
-
   defp chatter_user_ids_q(user_id) do
     binary_uuid = Ecto.Bigflake.UUID.dump!(user_id)
 
@@ -454,8 +438,6 @@ defmodule T.Feeds do
     not_hidden_profiles_q()
     |> not_reported_profiles_q(user_id)
     |> not_reporter_profiles_q(user_id)
-    |> not_liked_profiles_q(user_id)
-    |> not_liker_profiles_q(user_id)
     |> not_chatters_profiles_q(user_id)
     |> profiles_that_accept_gender_q(gender)
     |> maybe_gender_preferenced_q(gender_preference)
@@ -524,7 +506,7 @@ defmodule T.Feeds do
 
   ### Likes
 
-  # TODO accept cursor
+  # TODO remove
   @spec list_received_likes(Ecto.UUID.t(), Geo.Point.t()) :: [
           %{profile: %FeedProfile{}, seen: boolean()}
         ]

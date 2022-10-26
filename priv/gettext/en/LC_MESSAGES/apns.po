@@ -11,22 +11,22 @@ msgstr ""
 "Language: en\n"
 "Plural-Forms: nplurals=2\n"
 
-#: lib/t/push_notifications/apns.ex:107
+#: lib/t/push_notifications/apns.ex:133
 #, elixir-autogen, elixir-format
 msgid "Hey, create your own cool profile ✨"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:108
+#: lib/t/push_notifications/apns.ex:134
 #, elixir-autogen, elixir-format
 msgid "Meet interesting people ✌️"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:117
+#: lib/t/push_notifications/apns.ex:143
 #, elixir-autogen, elixir-format
 msgid "The current version is no longer supported 🙃"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:116
+#: lib/t/push_notifications/apns.ex:142
 #, elixir-autogen, elixir-format
 msgid "Update the app in the App Store ✨"
 msgstr ""
@@ -40,11 +40,6 @@ msgstr "sent a contact"
 #, elixir-autogen, elixir-format
 msgid "sent%{verb_ending_ru} a drawing"
 msgstr "sent a drawing"
-
-#: lib/t/push_notifications/apns.ex:80
-#, elixir-autogen, elixir-format
-msgid "sent%{verb_ending_ru} a message"
-msgstr "sent a message"
 
 #: lib/t/push_notifications/apns.ex:92
 #, elixir-autogen, elixir-format
@@ -76,12 +71,27 @@ msgstr "accepted your invitation"
 msgid "invited you to connect"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:169
+#: lib/t/push_notifications/apns.ex:123
 #, elixir-autogen, elixir-format
 msgid "Now you can see %{pronoun_belonging_to} private pages"
 msgstr "Now you can see %{pronoun_belonging_to} private pages"
 
-#: lib/t/push_notifications/apns.ex:163
+#: lib/t/push_notifications/apns.ex:117
 #, elixir-autogen, elixir-format, fuzzy
 msgid "%{name_of} replied%{verb_ending_ru} to you"
 msgstr "%{name_of} replied to you"
+
+#: lib/t/push_notifications/apns.ex:149
+#, elixir-autogen, elixir-format
+msgid "her BELONGING TO"
+msgstr "her"
+
+#: lib/t/push_notifications/apns.ex:150
+#, elixir-autogen, elixir-format
+msgid "his BELONGING TO"
+msgstr "his"
+
+#: lib/t/push_notifications/apns.ex:151
+#, elixir-autogen, elixir-format
+msgid "their BELONGING TO"
+msgstr "their"

@@ -145,4 +145,8 @@ defmodule T.PushNotifications.APNS do
 
     base_alert_payload(type, alert)
   end
+
+  defp pronoun_belonging_to("F"), do: dgettext("apns", "her BELONGING TO")
+  defp pronoun_belonging_to("M"), do: dgettext("apns", "his BELONGING TO")
+  defp pronoun_belonging_to(_), do: dgettext("apns", "their BELONGING TO")
 end

@@ -3,14 +3,14 @@ defmodule T.NewsTest do
 
   alias T.News
 
-  @previous_version "7.0.0"
-  @current_version "7.0.1"
+  @previous_version "7.1.8"
+  @current_version "8.0.0"
 
   describe "list_news/1" do
     test "to old user" do
       old_uid = "0000017c-14c7-9745-0242-ac1100020000"
       news = News.list_news(old_uid, @current_version)
-      assert length(news) == 0
+      assert length(news) == 1
     end
 
     test "to just registered user" do

@@ -12,214 +12,53 @@ defmodule T.News do
       "ru" ->
         [
           %{
-            id: 14,
-            timestamp: ~U[2022-06-20 15:00:00Z],
-            version: "7.0.0",
+            id: 17,
+            timestamp: ~U[2022-10-26 14:00:00Z],
+            version: "8.0.0",
             story: [
-              %{
-                "size" => [390, 844],
-                "labels" => [
-                  %{
-                    "zoom" => 1.0812157246656098,
-                    "value" => "Перелистывай истории \nв ленте с помощью тапа ✨",
-                    "position" => [38.14852564901551, 380.1806040902553],
-                    "rotation" => 0,
-                    "alignment" => 0,
-                    "text_color" => "#FFFFFF",
-                    "corner_radius" => 0,
-                    "background_fill" => "#49BDB5"
-                  },
-                  %{
-                    "zoom" => 1.0987303955681236,
-                    "value" => "Привет! Это новый \nклассный апдейт 🥳",
-                    "position" => [38.64531142113411, 271.8490633969193],
-                    "rotation" => -0.00000000000000035810350722516816,
-                    "alignment" => 0,
-                    "text_color" => "#FFFFFF",
-                    "corner_radius" => 0,
-                    "background_fill" => "#49BDB5"
-                  },
-                  %{
-                    "zoom" => 1.4972990066668805,
-                    "value" => "👉👉👉",
-                    "position" => [30.465989802747984, 469.64680159039864],
-                    "rotation" => 0,
-                    "alignment" => 1,
-                    "text_color" => "#FFFFFF",
-                    "corner_radius" => 1,
-                    "background_fill" => "#49BDB5"
-                  }
-                ],
-                "background" => %{"color" => "#49BDB5"}
-              },
-              %{
-                "size" => [390, 844],
-                "labels" => [
-                  %{
-                    "zoom" => 0.9485222716761664,
-                    "value" =>
-                      "Новая навигация и меню: \nперемещайся между \nмэтчами, своим профилем \nи лентой с помощью \nсвайпа 👇",
-                    "position" => [19.631320479591352, 227.4821780775087],
-                    "rotation" => 0,
-                    "alignment" => 0,
-                    "text_color" => "#FFFFFF",
-                    "corner_radius" => 0,
-                    "background_fill" => "#5F5DAE"
-                  },
-                  %{
-                    "zoom" => 1.4977121395875672,
-                    "value" => "😍😍😍",
-                    "position" => [120.85984412806306, 541.1371082255515],
-                    "rotation" => 0,
-                    "alignment" => 1,
-                    "text_color" => "#FFFFFF",
-                    "corner_radius" => 1,
-                    "background_fill" => "#5F5DAE"
-                  }
-                ],
-                "background" => %{
-                  "zoom" => 1,
-                  "color" => "#5F5DAE",
-                  "s3_key" => "8f7f2005-cafd-4b1d-b332-b4f37b5af7ac",
-                  "position" => [0, 0],
-                  "rotation" => 0
-                }
-              },
-              %{
-                "size" => [390, 844],
-                "labels" => [
-                  %{
-                    "zoom" => 0.8237025697440704,
-                    "value" =>
-                      "И на десерт: теперь ты \nможешь общаться со \nсвоими мэтчами прямо \nв приложении 🤤",
-                    "position" => [15.074231765088683, 78.23749460803225],
-                    "rotation" => 0,
-                    "alignment" => 0,
-                    "text_color" => "#FFFFFF",
-                    "corner_radius" => 0,
-                    "background_fill" => "#ED3D90"
-                  },
-                  %{
-                    "zoom" => 1.4898863139654077,
-                    "value" => "🍒🍒🍒",
-                    "position" => [245.1057095085913, 148.8210151276723],
-                    "rotation" => 0,
-                    "alignment" => 1,
-                    "text_color" => "#FFFFFF",
-                    "corner_radius" => 1,
-                    "background_fill" => "#ED3D90"
-                  },
-                  %{
-                    "zoom" => 0.8406568001204867,
-                    "value" =>
-                      "Делайте это креативно \nи свободно, создавайте \nвместе общий холст 🧚‍♀️",
-                    "position" => [9.842383519760205, 646.051423479797],
-                    "rotation" => 0,
-                    "alignment" => 0,
-                    "text_color" => "#FFFFFF",
-                    "corner_radius" => 0,
-                    "background_fill" => "#ED3D90"
-                  }
-                ],
-                "background" => %{
-                  "zoom" => 0.50020345634647,
-                  "color" => "#ED3D90",
-                  "s3_key" => "2e26a82b-12c6-4e79-80bd-429dba391f2b",
-                  "position" => [97.46032601243834, 210.91414142178965],
-                  "rotation" => 11.15822197434413,
-                  "video_s3_key" => "1a0d39a0-df6a-4f26-8c4d-3ea4212273f1"
-                }
-              }
-            ]
-          },
-          %{
-            id: 15,
-            timestamp: ~U[2022-06-27 17:00:00Z],
-            version: "7.0.1",
-            story: [
-              %{
-                "size" => [390, 844],
-                "labels" => [
-                  %{
-                    "zoom" => 0.8977998910358647,
-                    "value" =>
-                      "Привет 👋 В этом апдейте: \n\n• Фотостикеры в нашем \nновом чате 🥳  Попробуйте \nподелиться своими фото \nс мэтчем в новом режиме!",
-                    "position" => [17.175305093383827, 94.32840021792822],
-                    "rotation" => 0,
-                    "alignment" => 0,
-                    "text_color" => "#FFFFFF",
-                    "corner_radius" => 0,
-                    "background_fill" => "#FE7760"
-                  }
-                ],
-                "background" => %{
-                  "zoom" => 1.0136904675816325,
-                  "color" => "#5C443B",
-                  "s3_key" => "cb44b620-6231-4fad-ac10-6f67dee646fc",
-                  "position" => [-2.6696411784183454, -5.777377319448931],
-                  "rotation" => 0
-                }
-              },
               %{
                 "size" => [390, 844],
                 "labels" => [
                   %{
                     "zoom" => 1,
-                    "value" => "• Новый выбор \nмузыкального трека 👀",
-                    "position" => [10.000000000000028, 170.33333333333334],
+                    "value" => "Привет 👋 \nМы с обновлениями",
+                    "center" => [156.0298520249221, 119.9119914330218],
+                    "position" => [43.696518691588764, 81.24532476635514],
                     "rotation" => 0,
                     "alignment" => 0,
-                    "text_color" => "#FFFFFF",
-                    "corner_radius" => 1,
-                    "background_fill" => "#FE7760"
-                  }
-                ],
-                "background" => %{
-                  "zoom" => 1,
-                  "color" => "#B78A81",
-                  "s3_key" => "60d0a4fd-abfd-41ba-a9fc-585bf994c443",
-                  "position" => [0, 0],
-                  "rotation" => 0
-                }
-              }
-            ]
-          },
-          %{
-            id: 16,
-            timestamp: ~U[2022-09-14 15:00:00Z],
-            version: "7.1.6",
-            story: [
-              %{
-                "size" => [428, 926],
-                "labels" => [
-                  %{
-                    "zoom" => 1,
-                    "value" => "Привет 👋 ",
-                    "center" => [213.94016666666664, 230.66667175292966],
-                    "position" => [141.77349999999996, 205.000005086263],
-                    "rotation" => 0,
-                    "alignment" => 1,
                     "text_color" => "#111010",
                     "corner_radius" => 1,
                     "background_fill" => "#FFFFFF"
                   },
                   %{
-                    "zoom" => 1,
-                    "value" => "Фильтры для ленты \nвозвращаются\n👇👇👇",
-                    "center" => [214.33333333333331, 408],
-                    "position" => [91.99999999999999, 349.3333333333333],
+                    "zoom" => 0.9528107916219694,
+                    "value" => "🥳 новая лента \nс удобными фильтрами",
+                    "center" => [242.93051830361503, 714.9797487948225],
+                    "position" => [120.43051830361503, 678.1464154614891],
                     "rotation" => 0,
-                    "alignment" => 1,
+                    "alignment" => 0,
                     "text_color" => "#111010",
                     "corner_radius" => 1,
                     "background_fill" => "#FFFFFF"
-                  },
+                  }
+                ],
+                "background" => %{
+                  "zoom" => 0.6512980860487045,
+                  "color" => "#FF782D",
+                  "s3_key" => "36812f07-ce1b-41ac-b01b-a08a05141aa7",
+                  "position" => [67.99687322050262, 147.15220768744666],
+                  "rotation" => 12.871057923604639,
+                  "video_s3_key" => "3ff36b6e-6a25-4202-894f-17558ac95ffd"
+                }
+              },
+              %{
+                "size" => [390, 844],
+                "labels" => [
                   %{
-                    "zoom" => 1,
-                    "value" => "настроить фильтры",
-                    "action" => "edit_filters",
-                    "center" => [213.8913333333333, 610.3333129882811],
-                    "position" => [69.05799999999996, 584.6666463216145],
+                    "zoom" => 1.0199362917254977,
+                    "value" => "✨ новый чат",
+                    "center" => [114.29958691798977, 158.60118978049866],
+                    "position" => [35.1329202513231, 134.60118978049866],
                     "rotation" => 0,
                     "alignment" => 1,
                     "text_color" => "#111010",
@@ -227,7 +66,40 @@ defmodule T.News do
                     "background_fill" => "#FFFFFF"
                   }
                 ],
-                "background" => %{"color" => "#0DAA8B"}
+                "background" => %{
+                  "zoom" => 0.6573384605739353,
+                  "color" => "#FF782D",
+                  "s3_key" => "46f258d4-1e4a-4755-9577-6a5cf0a9ec6a",
+                  "position" => [66.81900018808261, 144.60316963779928],
+                  "rotation" => 17.634181896700753
+                }
+              },
+              %{
+                "size" => [390, 844],
+                "labels" => [
+                  %{
+                    "zoom" => 1,
+                    "value" => "✍️ сейчас можно написать \nинтересному человеку \nсразу",
+                    "center" => [195.22797897196264, 178.51755062305293],
+                    "position" => [48.3946456386293, 124.85088395638627],
+                    "rotation" => 0,
+                    "alignment" => 0,
+                    "text_color" => "#111010",
+                    "corner_radius" => 1,
+                    "background_fill" => "#FFFFFF"
+                  }
+                ],
+                "drawing" => %{
+                  "lines" =>
+                    "W3sicG9pbnRzIjpbWzIwOS42NjY2NTY0OTQxNDA2Miw3NzMuMzMzMzI4MjQ3MDcwMzFdLFsyMTEuNjY2NjU2NDk0MTQwNjIsNzY2LjMzMzMyODI0NzA3MDMxXSxbMjE1LjY2NjY1NjQ5NDE0MDYyLDc1OS42NjY2NTY0OTQxNDA2Ml0sWzIxOCw3NTYuNjY2NjU2NDk0MTQwNjJdLFsyMjAsNzUzLjMzMzMyODI0NzA3MDMxXSxbMjIzLjY2NjY1NjQ5NDE0MDYyLDc0N10sWzIyNy42NjY2NTY0OTQxNDA2Miw3NDAuMzMzMzI4MjQ3MDcwMzFdLFsyMzEuMzMzMzI4MjQ3MDcwMzEsNzMzLjMzMzMyODI0NzA3MDMxXSxbMjM0LjY2NjY1NjQ5NDE0MDYyLDcyNy4zMzMzMjgyNDcwNzAzMV0sWzIzOC4zMzMzMjgyNDcwNzAzMSw3MjEuMzMzMzI4MjQ3MDcwMzFdLFsyNDEuMzMzMzI4MjQ3MDcwMzEsNzE2XSxbMjQzLjMzMzMyODI0NzA3MDMxLDcxMl0sWzI0NSw3MDkuMzMzMzI4MjQ3MDcwMzFdLFsyNDUuNjY2NjU2NDk0MTQwNjIsNzA4LjMzMzMyODI0NzA3MDMxXSxbMjQ1LjY2NjY1NjQ5NDE0MDYyLDcwOF0sWzI0NS4zMzMzMjgyNDcwNzAzMSw3MDcuNjY2NjU2NDk0MTQwNjJdLFsyNDUsNzA3LjMzMzMyODI0NzA3MDMxXSxbMjQ0LjY2NjY1NjQ5NDE0MDYyLDcwN10sWzI0NC42NjY2NTY0OTQxNDA2Miw3MDYuNjY2NjU2NDk0MTQwNjJdLFsyNDQuMzMzMzI4MjQ3MDcwMzEsNzA2LjY2NjY1NjQ5NDE0MDYyXSxbMjQ0LDcwNi42NjY2NTY0OTQxNDA2Ml0sWzI0Mi42NjY2NTY0OTQxNDA2Miw3MDYuNjY2NjU2NDk0MTQwNjJdLFsyNDEsNzA3LjY2NjY1NjQ5NDE0MDYyXSxbMjM3LjY2NjY1NjQ5NDE0MDYyLDcxMV0sWzIzNCw3MTQuMzMzMzI4MjQ3MDcwMzFdLFsyMzEuMzMzMzI4MjQ3MDcwMzEsNzE3LjMzMzMyODI0NzA3MDMxXSxbMjI5LDcxOS4zMzMzMjgyNDcwNzAzMV0sWzIyNy42NjY2NTY0OTQxNDA2Miw3MjAuNjY2NjU2NDk0MTQwNjJdLFsyMjcuMzMzMzI4MjQ3MDcwMzEsNzIxLjMzMzMyODI0NzA3MDMxXSxbMjI3LjY2NjY1NjQ5NDE0MDYyLDcyMS4zMzMzMjgyNDcwNzAzMV0sWzIzMC42NjY2NTY0OTQxNDA2Miw3MTldLFsyMzQuMzMzMzI4MjQ3MDcwMzEsNzE1LjMzMzMyODI0NzA3MDMxXSxbMjM5LjMzMzMyODI0NzA3MDMxLDcxMS4zMzMzMjgyNDcwNzAzMV0sWzI0My4zMzMzMjgyNDcwNzAzMSw3MDcuNjY2NjU2NDk0MTQwNjJdLFsyNDYuNjY2NjU2NDk0MTQwNjIsNzA1XSxbMjQ5LDcwMy42NjY2NTY0OTQxNDA2Ml0sWzI0OS42NjY2NTY0OTQxNDA2Miw3MDMuNjY2NjU2NDk0MTQwNjJdLFsyNTAsNzAzLjY2NjY1NjQ5NDE0MDYyXSxbMjUwLDcwNS42NjY2NTY0OTQxNDA2Ml0sWzI1MCw3MTBdLFsyNTAsNzE2XSxbMjUwLDcyMy42NjY2NTY0OTQxNDA2Ml0sWzI1MSw3MzddXSwic3Ryb2tlX2NvbG9yIjoiIzExMTAxMCIsInN0cm9rZV93aWR0aCI6NX1d"
+                },
+                "background" => %{
+                  "zoom" => 0.6430794317308413,
+                  "color" => "#FF782D",
+                  "s3_key" => "be5c3b2e-4964-4630-84db-50cebed8a11e",
+                  "position" => [208.79853243745788, 451.8614394287551],
+                  "rotation" => 10.207734167975927
+                }
               }
             ]
           }
@@ -236,121 +108,43 @@ defmodule T.News do
       _ ->
         [
           %{
-            id: 14,
-            timestamp: ~U[2022-06-20 15:00:00Z],
-            version: "7.0.0",
+            id: 17,
+            timestamp: ~U[2022-10-26 14:00:00Z],
+            version: "8.0.0",
             story: [
-              %{
-                "size" => [390, 844],
-                "labels" => [
-                  %{
-                    "zoom" => 1.122901464489404,
-                    "value" => "👀\nUse tap to navigate between\npages in feed ✨",
-                    "position" => [31.827809420050784, 331.4042855292705],
-                    "rotation" => 0,
-                    "alignment" => 0,
-                    "text_color" => "#FFFFFF",
-                    "corner_radius" => 1,
-                    "background_fill" => "#49BDB5"
-                  },
-                  %{
-                    "zoom" => 1.2139971013916773,
-                    "value" => "Hey! It’s the coolest \nupdate 🥳",
-                    "position" => [27.98991657618899, 216.7254504991182],
-                    "rotation" => 0,
-                    "alignment" => 0,
-                    "text_color" => "#FFFFFF",
-                    "corner_radius" => 1,
-                    "background_fill" => "#49BDB5"
-                  }
-                ],
-                "background" => %{"color" => "#49BDB5"}
-              },
               %{
                 "size" => [390, 844],
                 "labels" => [
                   %{
                     "zoom" => 1,
-                    "value" =>
-                      "New navigation & menu: \nnavigate between matches, \nyour profile, and feed \nwith a swipe 👇",
-                    "position" => [28.707509156149115, 310.99998982747394],
+                    "value" => "Hey 👋 \nIt’s a new update",
+                    "center" => [147.72517642582665, 124.03600160554782],
+                    "position" => [53.725176425826646, 85.36933493888117],
                     "rotation" => 0,
                     "alignment" => 0,
-                    "text_color" => "#FFFFFF",
+                    "text_color" => "#111010",
                     "corner_radius" => 1,
-                    "background_fill" => "#5F5DAE"
+                    "background_fill" => "#FFFFFF"
                   },
                   %{
-                    "zoom" => 1.4945521250066083,
-                    "value" => "😍😍😍",
-                    "position" => [19.491721440141504, 556.0446891858799],
-                    "rotation" => 0,
-                    "alignment" => 1,
-                    "text_color" => "#FFFFFF",
-                    "corner_radius" => 1,
-                    "background_fill" => "#5F5DAE"
-                  }
-                ],
-                "background" => %{
-                  "zoom" => 0.8422531778339764,
-                  "color" => "#5F5DAE",
-                  "s3_key" => "93cec1c6-590d-466c-b233-48371c22de3e",
-                  "position" => [30.760630322374624, 66.569158954062],
-                  "rotation" => 0
-                }
-              },
-              %{
-                "size" => [390, 844],
-                "labels" => [
-                  %{
-                    "zoom" => 0.7771570124471355,
-                    "value" =>
-                      "🍒🍒🍒\nAnd the most delicious part: \nnow you can chat with you match\nright in the app\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nBe creative & make your \ncommon canvas 🧚‍♀️",
-                    "position" => [10, 74.12400000000008],
+                    "zoom" => 1,
+                    "value" => "🥳 new feed\n with handy filters",
+                    "center" => [239.92479750778813, 721.9119914330217],
+                    "position" => [141.0914641744548, 683.2453247663551],
                     "rotation" => 0,
                     "alignment" => 0,
-                    "text_color" => "#FFFFFF",
+                    "text_color" => "#111010",
                     "corner_radius" => 1,
-                    "background_fill" => "#ED3D90"
+                    "background_fill" => "#FFFFFF"
                   }
                 ],
                 "background" => %{
-                  "zoom" => 0.5015777747655887,
-                  "color" => "#ED3D90",
-                  "s3_key" => "2b402c22-919f-4e50-9797-1fd80854abbb",
-                  "position" => [97.1923339207102, 210.33417904892156],
-                  "rotation" => 6.608296500916767,
-                  "video_s3_key" => "d8857711-08cf-4291-9df1-5d9af2aacf69"
-                }
-              }
-            ]
-          },
-          %{
-            id: 15,
-            timestamp: ~U[2022-06-27 17:00:00Z],
-            version: "7.0.1",
-            story: [
-              %{
-                "size" => [390, 844],
-                "labels" => [
-                  %{
-                    "zoom" => 0.9181634582418595,
-                    "value" =>
-                      "Hey 👋 In this update:\n\n• Photo stickers in our new \nchat 🥳  Try to share your \nphotos in a new way!",
-                    "position" => [9.965899868131203, 83.96953658166471],
-                    "rotation" => 0.000000000000000021118111604764806,
-                    "alignment" => 0,
-                    "text_color" => "#FFFFFF",
-                    "corner_radius" => 0,
-                    "background_fill" => "#FE7760"
-                  }
-                ],
-                "background" => %{
-                  "zoom" => 1.0275840532757667,
-                  "color" => "#5C443B",
-                  "s3_key" => "dd04652f-d162-43d1-9f7f-c7d3377e954c",
-                  "position" => [-5.378890388774522, -11.640470482373587],
-                  "rotation" => 0
+                  "zoom" => 0.6437926802213981,
+                  "color" => "#FF782D",
+                  "s3_key" => "55d40835-fed3-4dbe-85e9-3e9f37546807",
+                  "position" => [69.46042735682737, 150.31948894657],
+                  "rotation" => 14.509230027169107,
+                  "video_s3_key" => "11b0438a-1382-441e-b944-a340da614f6e"
                 }
               },
               %{
@@ -358,69 +152,50 @@ defmodule T.News do
                 "labels" => [
                   %{
                     "zoom" => 1,
-                    "value" => "• Updated music track \nselection  👀",
-                    "position" => [20.74560055177851, 164.66667683919272],
+                    "value" => "✨ new chat",
+                    "center" => [114.35048525040752, 141.97001998264398],
+                    "position" => [42.183818583740845, 118.47001998264398],
                     "rotation" => 0,
-                    "alignment" => 0,
-                    "text_color" => "#FFFFFF",
+                    "alignment" => 1,
+                    "text_color" => "#111010",
                     "corner_radius" => 1,
-                    "background_fill" => "#FE7760"
+                    "background_fill" => "#FFFFFF"
                   }
                 ],
                 "background" => %{
-                  "zoom" => 1,
-                  "color" => "#B78A81",
-                  "s3_key" => "07dc05e1-3161-4039-a6c5-e6312919c5fe",
-                  "position" => [0, 0],
-                  "rotation" => 0
+                  "zoom" => 0.6283846238912895,
+                  "color" => "#FF782D",
+                  "s3_key" => "71aa72d8-e833-4d8f-8d0d-0ce1311a6ee8",
+                  "position" => [144.92999668239713, 313.64337743575174],
+                  "rotation" => 13.038451156159331
                 }
-              }
-            ]
-          },
-          %{
-            id: 16,
-            timestamp: ~U[2022-09-14 15:00:00Z],
-            version: "7.1.6",
-            story: [
+              },
               %{
-                "size" => [428, 926],
+                "size" => [390, 844],
                 "labels" => [
                   %{
                     "zoom" => 1,
-                    "value" => "Hey 👋 ",
-                    "center" => [213.99808333333334, 231.6666564941406],
-                    "position" => [160.49808333333334, 205.99998982747394],
+                    "value" => "✍️ now you can connect \nwith interesting person\n straightaway",
+                    "center" => [159.47804008507669, 162.97487887012323],
+                    "position" => [28.811373418410028, 109.30821220345658],
                     "rotation" => 0,
-                    "alignment" => 1,
-                    "text_color" => "#111010",
-                    "corner_radius" => 1,
-                    "background_fill" => "#FFFFFF"
-                  },
-                  %{
-                    "zoom" => 1,
-                    "value" => "Feed filters are back!\n👇👇👇",
-                    "center" => [214.0271666666667, 416.00000508626306],
-                    "position" => [90.36050000000002, 373.8333384195964],
-                    "rotation" => 0,
-                    "alignment" => 1,
-                    "text_color" => "#111010",
-                    "corner_radius" => 1,
-                    "background_fill" => "#FFFFFF"
-                  },
-                  %{
-                    "zoom" => 1,
-                    "value" => "configure filters",
-                    "action" => "edit_filters",
-                    "center" => [213.72400000000005, 620.0000152587891],
-                    "position" => [97.05733333333337, 594.3333485921224],
-                    "rotation" => 0,
-                    "alignment" => 1,
+                    "alignment" => 0,
                     "text_color" => "#111010",
                     "corner_radius" => 1,
                     "background_fill" => "#FFFFFF"
                   }
                 ],
-                "background" => %{"color" => "#90CD36"}
+                "drawing" => %{
+                  "lines" =>
+                    "W3sicG9pbnRzIjpbWzIxMC4zMzMzMjgyNDcwNzAzMSw3NjkuMzMzMzI4MjQ3MDcwMzFdLFsyMDkuMzMzMzI4MjQ3MDcwMzEsNzY3LjMzMzMyODI0NzA3MDMxXSxbMjE0LDc2MC42NjY2NTY0OTQxNDA2Ml0sWzIxOS4zMzMzMjgyNDcwNzAzMSw3NTIuNjY2NjU2NDk0MTQwNjJdLFsyMjQuMzMzMzI4MjQ3MDcwMzEsNzQzLjY2NjY1NjQ5NDE0MDYyXSxbMjI4LjY2NjY1NjQ5NDE0MDYyLDczNS4zMzMzMjgyNDcwNzAzMV0sWzIzMi4zMzMzMjgyNDcwNzAzMSw3MjguMzMzMzI4MjQ3MDcwMzFdLFsyMzYuMzMzMzI4MjQ3MDcwMzEsNzIyLjMzMzMyODI0NzA3MDMxXSxbMjM5LDcxNy42NjY2NTY0OTQxNDA2Ml0sWzI0MC42NjY2NTY0OTQxNDA2Miw3MTUuMzMzMzI4MjQ3MDcwMzFdLFsyNDEsNzE1LjMzMzMyODI0NzA3MDMxXSxbMjQxLDcxNS42NjY2NTY0OTQxNDA2Ml0sWzIzOS42NjY2NTY0OTQxNDA2Miw3MTcuNjY2NjU2NDk0MTQwNjJdLFsyMzYsNzIwXSxbMjMxLjY2NjY1NjQ5NDE0MDYyLDcyMi42NjY2NTY0OTQxNDA2Ml0sWzIyNyw3MjUuMzMzMzI4MjQ3MDcwMzFdLFsyMjIuNjY2NjU2NDk0MTQwNjIsNzI3LjY2NjY1NjQ5NDE0MDYyXSxbMjE5LDczMF0sWzIxNS42NjY2NTY0OTQxNDA2Miw3MzJdLFsyMTMuMzMzMzI4MjQ3MDcwMzEsNzM0XSxbMjEyLjMzMzMyODI0NzA3MDMxLDczNC42NjY2NTY0OTQxNDA2Ml0sWzIxMi4zMzMzMjgyNDcwNzAzMSw3MzVdLFsyMTMuMzMzMzI4MjQ3MDcwMzEsNzM1XSxbMjE3LjY2NjY1NjQ5NDE0MDYyLDczMS42NjY2NTY0OTQxNDA2Ml0sWzIyMi4zMzMzMjgyNDcwNzAzMSw3MjhdLFsyMjcuNjY2NjU2NDk0MTQwNjIsNzIzLjY2NjY1NjQ5NDE0MDYyXSxbMjMyLjY2NjY1NjQ5NDE0MDYyLDcyMC4zMzMzMjgyNDcwNzAzMV0sWzIzNyw3MTcuNjY2NjU2NDk0MTQwNjJdLFsyMzkuNjY2NjU2NDk0MTQwNjIsNzE3XSxbMjQwLjMzMzMyODI0NzA3MDMxLDcxN10sWzI0MC42NjY2NTY0OTQxNDA2Miw3MTkuMzMzMzI4MjQ3MDcwMzFdLFsyNDAuNjY2NjU2NDk0MTQwNjIsNzM0LjMzMzMyODI0NzA3MDMxXSxbMjQwLjY2NjY1NjQ5NDE0MDYyLDc0NS42NjY2NTY0OTQxNDA2Ml1dLCJzdHJva2VfY29sb3IiOiIjMTExMDEwIiwic3Ryb2tlX3dpZHRoIjo1fV0="
+                },
+                "background" => %{
+                  "zoom" => 0.6749995342860374,
+                  "color" => "#FF782D",
+                  "s3_key" => "facc75fa-de98-4ee5-9807-398b6d0faec7",
+                  "position" => [126.75018162844538, 274.30039306258436],
+                  "rotation" => 15.128312665369187
+                }
               }
             ]
           }
@@ -429,7 +204,10 @@ defmodule T.News do
   end
 
   defp last_id do
-    List.last(news()).id
+    case List.last(news()) do
+      nil -> 0
+      last_news -> last_news.id
+    end
   end
 
   @spec list_news(Ecto.Bigflake.UUID.t(), Version.t()) :: [%{id: pos_integer(), story: [map]}]

@@ -75,3 +75,13 @@ msgstr "принял%{verb_ending_ru} твоё приглашение"
 #, elixir-autogen, elixir-format, fuzzy
 msgid "invited you to connect"
 msgstr "хочет познакомиться"
+
+#: lib/t/push_notifications/apns.ex:169
+#, elixir-autogen, elixir-format
+msgid "Now you can see %{pronoun_belonging_to} private pages"
+msgstr "Теперь ты можешь смотреть %{pronoun_belonging_to} приватные страницы"
+
+#: lib/t/push_notifications/apns.ex:163
+#, elixir-autogen, elixir-format, fuzzy
+msgid "%{name_of} replied%{verb_ending_ru} to you"
+msgstr "%{name_of} ответил%{verb_ending_ru} тебе"

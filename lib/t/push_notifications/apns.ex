@@ -77,7 +77,7 @@ defmodule T.PushNotifications.APNS do
           )
 
         "text" ->
-          dgettext("apns", "sent%{verb_ending_ru} a message", verb_ending_ru: verb_ending_ru)
+          data["data"]["value"]
 
         "drawing" ->
           dgettext("apns", "sent%{verb_ending_ru} a drawing", verb_ending_ru: verb_ending_ru)
@@ -99,6 +99,32 @@ defmodule T.PushNotifications.APNS do
       end
 
     alert = %{"title" => name_from, "body" => body}
+    base_alert_payload(type, alert, data)
+  end
+
+  def build_alert_payload(
+        "private_page_available" = type,
+        %{"name_of" => name_of, "gender_of" => gender_of} = data
+      ) do
+    verb_ending_ru =
+      case gender_of do
+        "F" -> "а"
+        "N" -> "и"
+        "M" -> ""
+      end
+
+    title =
+      dgettext("apns", "%{name_of} replied%{verb_ending_ru} to you",
+        name_of: name_of,
+        verb_ending_ru: verb_ending_ru
+      )
+
+    body =
+      dgettext("apns", "Now you can see %{pronoun_belonging_to} private pages",
+        pronoun_belonging_to: pronoun_belonging_to(gender_of)
+      )
+
+    alert = %{"title" => title, "body" => body}
     base_alert_payload(type, alert, data)
   end
 

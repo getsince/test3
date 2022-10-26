@@ -74,3 +74,13 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "invited you to connect"
 msgstr ""
+
+#: lib/t/push_notifications/apns.ex:169
+#, elixir-autogen, elixir-format
+msgid "Now you can see %{pronoun_belonging_to} private pages"
+msgstr ""
+
+#: lib/t/push_notifications/apns.ex:163
+#, elixir-autogen, elixir-format
+msgid "%{name_of} replied%{verb_ending_ru} to you"
+msgstr ""

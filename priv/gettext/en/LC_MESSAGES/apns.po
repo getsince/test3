@@ -75,3 +75,13 @@ msgstr "accepted your invitation"
 #, elixir-autogen, elixir-format, fuzzy
 msgid "invited you to connect"
 msgstr ""
+
+#: lib/t/push_notifications/apns.ex:169
+#, elixir-autogen, elixir-format
+msgid "Now you can see %{pronoun_belonging_to} private pages"
+msgstr "Now you can see %{pronoun_belonging_to} private pages"
+
+#: lib/t/push_notifications/apns.ex:163
+#, elixir-autogen, elixir-format, fuzzy
+msgid "%{name_of} replied%{verb_ending_ru} to you"
+msgstr "%{name_of} replied to you"

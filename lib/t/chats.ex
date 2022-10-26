@@ -265,7 +265,8 @@ defmodule T.Chats do
           "chat_id" => chat_id,
           "from_user_id" => from_user_id,
           "to_user_id" => to_user_id,
-          "message_id" => message_id
+          "message_id" => message_id,
+          "data" => message_data
         })
 
       Oban.insert(push_job)
@@ -343,6 +344,21 @@ defmodule T.Chats do
     broadcast_for_user(uid1, message)
     broadcast_for_user(uid2, message)
     :ok
+  end
+
+  def notify_private_page_available(for_user_id, of_user_id) do
+    primary_rpc(__MODULE__, :local_notify_private_page_available, [for_user_id, of_user_id])
+  end
+
+  def local_notify_private_page_available(for_user_id, of_user_id) do
+    push_job =
+      DispatchJob.new(%{
+        "type" => "private_page_available",
+        "for_user_id" => for_user_id,
+        "of_user_id" => of_user_id
+      })
+
+    Oban.insert(push_job)
   end
 
   @spec mark_message_seen(uuid, uuid) :: :ok | :error

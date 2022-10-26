@@ -394,6 +394,7 @@ defmodule T.Accounts do
       %{"city" => city} -> city
       %{"state" => state} -> state
       %{"country" => country} -> country
+      %{"name" => name} -> name
       a -> a
     end
   end

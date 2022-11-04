@@ -10,87 +10,102 @@
 msgid ""
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:133
+#: lib/t/push_notifications/apns.ex:145
 #, elixir-autogen, elixir-format
 msgid "Hey, create your own cool profile ✨"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:134
+#: lib/t/push_notifications/apns.ex:146
 #, elixir-autogen, elixir-format
 msgid "Meet interesting people ✌️"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:143
+#: lib/t/push_notifications/apns.ex:155
 #, elixir-autogen, elixir-format
 msgid "The current version is no longer supported 🙃"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:142
+#: lib/t/push_notifications/apns.ex:154
 #, elixir-autogen, elixir-format
 msgid "Update the app in the App Store ✨"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:95
+#: lib/t/push_notifications/apns.ex:107
 #, elixir-autogen, elixir-format
 msgid "sent%{verb_ending_ru} a contact"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:83
+#: lib/t/push_notifications/apns.ex:95
 #, elixir-autogen, elixir-format
 msgid "sent%{verb_ending_ru} a drawing"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:92
+#: lib/t/push_notifications/apns.ex:104
 #, elixir-autogen, elixir-format
 msgid "sent%{verb_ending_ru} a music track"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:86
+#: lib/t/push_notifications/apns.ex:98
 #, elixir-autogen, elixir-format
 msgid "sent%{verb_ending_ru} a video message"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:89
+#: lib/t/push_notifications/apns.ex:101
 #, elixir-autogen, elixir-format
 msgid "sent%{verb_ending_ru} a voice message"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:98
+#: lib/t/push_notifications/apns.ex:110
 #, elixir-autogen, elixir-format
 msgid "sent%{verb_ending_ru} a photo"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:75
+#: lib/t/push_notifications/apns.ex:78
 #, elixir-autogen, elixir-format
 msgid "accepted%{verb_ending_ru} your invitation"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:72
+#: lib/t/push_notifications/apns.ex:75
 #, elixir-autogen, elixir-format
 msgid "invited you to connect"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:123
+#: lib/t/push_notifications/apns.ex:135
 #, elixir-autogen, elixir-format
 msgid "Now you can see %{pronoun_belonging_to} private pages"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:117
+#: lib/t/push_notifications/apns.ex:129
 #, elixir-autogen, elixir-format
 msgid "%{name_of} replied%{verb_ending_ru} to you"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:149
+#: lib/t/push_notifications/apns.ex:161
 #, elixir-autogen, elixir-format
 msgid "her BELONGING TO"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:150
+#: lib/t/push_notifications/apns.ex:162
 #, elixir-autogen, elixir-format
 msgid "his BELONGING TO"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:151
+#: lib/t/push_notifications/apns.ex:163
 #, elixir-autogen, elixir-format
 msgid "their BELONGING TO"
+msgstr ""
+
+#: lib/t/push_notifications/apns.ex:86
+#, elixir-autogen, elixir-format
+msgid "approved your application to join the meeting"
+msgstr ""
+
+#: lib/t/push_notifications/apns.ex:89
+#, elixir-autogen, elixir-format
+msgid "declined your application to join the meeting"
+msgstr ""
+
+#: lib/t/push_notifications/apns.ex:83
+#, elixir-autogen, elixir-format
+msgid "wants to join your meeting"
 msgstr ""

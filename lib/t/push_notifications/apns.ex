@@ -51,6 +51,9 @@ defmodule T.PushNotifications.APNS do
       when type in [
              "invitation",
              "acceptance",
+             "meeting_application",
+             "meeting_approval",
+             "meeting_decline",
              "text",
              "drawing",
              "video",
@@ -75,6 +78,15 @@ defmodule T.PushNotifications.APNS do
           dgettext("apns", "accepted%{verb_ending_ru} your invitation",
             verb_ending_ru: verb_ending_ru
           )
+
+        "meeting_application" ->
+          dgettext("apns", "wants to join your meeting")
+
+        "meeting_approval" ->
+          dgettext("apns", "approved your application to join the meeting")
+
+        "meeting_decline" ->
+          dgettext("apns", "declined your application to join the meeting")
 
         "text" ->
           data["data"]["value"]

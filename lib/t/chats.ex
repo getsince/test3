@@ -303,6 +303,9 @@ defmodule T.Chats do
           case question in ([
                               "invitation",
                               "acceptance",
+                              "meeting_application",
+                              "meeting_approval",
+                              "meeting_decline",
                               "text",
                               "video",
                               "audio",

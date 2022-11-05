@@ -106,6 +106,15 @@ defmodule TWeb.FeedChannel do
         _ -> nil
       end
 
+    meetings =
+      case params["need_feed"] do
+        true ->
+          fetch_meetings(user_id, location, nil, version, screen_width)
+
+        _ ->
+          nil
+      end
+
     reply =
       %{}
       |> maybe_put("news", news)
@@ -115,6 +124,7 @@ defmodule TWeb.FeedChannel do
       |> maybe_put("matches", matches)
       |> maybe_put_with_empty_list("feed", feed)
       |> maybe_put_with_empty_list("feed_categories", feed_categories)
+      |> maybe_put_with_empty_list("meetings", meetings)
 
     {:ok, reply,
      assign(socket, feed_filter: feed_filter, location: location, gender: gender, mode: :normal)}
@@ -153,6 +163,20 @@ defmodule TWeb.FeedChannel do
       fetch_feed(user.id, location, gender, feed_filter, version, screen_width, false, category)
 
     {:reply, {:ok, %{"feed" => feed}}, socket}
+  end
+
+  @impl true
+  def handle_in("more-meetings", %{"cursor" => cursor} = _params, socket) do
+    %{
+      current_user: user,
+      screen_width: screen_width,
+      version: version,
+      location: location
+    } = socket.assigns
+
+    meetings = fetch_meetings(user.id, location, cursor, version, screen_width)
+
+    {:reply, {:ok, %{"meetings" => meetings}}, socket}
   end
 
   # TODO possibly batch
@@ -286,6 +310,35 @@ defmodule TWeb.FeedChannel do
     {:reply, reply, socket}
   end
 
+  def handle_in("add-meeting", %{"data" => meeting_data}, socket) do
+    %{
+      current_user: %{id: user_id},
+      version: version,
+      screen_width: screen_width,
+      location: location
+    } = socket.assigns
+
+    case Feeds.save_meeting(user_id, meeting_data) do
+      {:ok, meeting} ->
+        if profile = Feeds.get_mate_feed_profile(user_id, location) do
+          {:reply,
+           {:ok,
+            %{"meeting" => render_meeting(%{meeting | profile: profile}, version, screen_width)}},
+           socket}
+        end
+
+      {:error, _changeset} ->
+        {:reply, :error, socket}
+    end
+  end
+
+  def handle_in("delete-meeting", %{"id" => meeting_id}, socket) do
+    %{current_user: %{id: user_id}} = socket.assigns
+
+    reply = Feeds.delete_meeting(user_id, meeting_id)
+    {:reply, reply, socket}
+  end
+
   @impl true
   def handle_info({Chats, :deleted_chat, with_user_id}, socket) when is_binary(with_user_id) do
     push(socket, "deleted_chat", %{"with_user_id" => with_user_id})
@@ -365,6 +418,11 @@ defmodule TWeb.FeedChannel do
     render_feed(feed_reply, version, screen_width)
   end
 
+  defp fetch_meetings(user_id, location, cursor, version, screen_width) do
+    meetings_reply = Feeds.fetch_meetings(user_id, location, cursor)
+    render_meetings(meetings_reply, version, screen_width)
+  end
+
   defp render_feed_item(profile, version, screen_width) do
     assigns = [profile: profile, screen_width: screen_width, version: version]
     render(FeedView, "feed_item.json", assigns)
@@ -378,6 +436,10 @@ defmodule TWeb.FeedChannel do
     Enum.map(feed, fn %{profile: feed_item, categories: categories} ->
       render_feed_item(feed_item, version, screen_width) |> Map.put_new("categories", categories)
     end)
+  end
+
+  defp render_meetings(meetings, version, screen_width) do
+    Enum.map(meetings, fn meeting -> render_meeting(meeting, version, screen_width) end)
   end
 
   # TODO remove
@@ -421,6 +483,14 @@ defmodule TWeb.FeedChannel do
   # TODO remove
   defp render_match(assigns) do
     render(MatchView, "match.json", assigns)
+  end
+
+  defp render_meeting(meeting, version, screen_width) do
+    render(FeedView, "meeting.json",
+      meeting: meeting,
+      version: version,
+      screen_width: screen_width
+    )
   end
 
   defp render_chat(chat, version, screen_width) do

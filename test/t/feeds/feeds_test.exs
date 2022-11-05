@@ -3,7 +3,7 @@ defmodule T.FeedsTest do
   use Oban.Testing, repo: T.Repo
 
   alias T.Feeds
-  alias T.Feeds.{FeedProfile, FeedFilter, SeenProfile, CalculatedFeed}
+  alias T.Feeds.{FeedProfile, FeedFilter, SeenProfile, CalculatedFeed, Meeting}
 
   doctest Feeds, import: true
 
@@ -419,6 +419,92 @@ defmodule T.FeedsTest do
       for _ <- 1..10, do: onboarded_user()
 
       assert Feeds.fetch_onboarding_feed(nil, 0) == []
+    end
+  end
+
+  describe "fetch_meetings/3" do
+    setup do
+      me = onboarded_user(location: moscow_location())
+      {:ok, me: me}
+    end
+
+    test "with no data in db", %{me: me} do
+      assert [] == Feeds.fetch_meetings(me.id, me.profile.location, nil)
+    end
+
+    test "without cursor", %{me: me} do
+      for _ <- 1..3 do
+        user = onboarded_user()
+        insert(:meeting, user: user)
+      end
+
+      meetings = Feeds.fetch_meetings(me.id, me.profile.location, nil)
+      assert length(meetings) == 3
+    end
+
+    test "with cursor", %{me: me} do
+      for _ <- 1..15 do
+        user = onboarded_user()
+        insert(:meeting, user: user)
+      end
+
+      meetings = Feeds.fetch_meetings(me.id, me.profile.location, nil)
+      assert length(meetings) == 10
+
+      meetings = Feeds.fetch_meetings(me.id, me.profile.location, nil)
+      assert length(meetings) == 10
+
+      cursor = List.last(meetings).id
+
+      meetings = Feeds.fetch_meetings(me.id, me.profile.location, cursor)
+      assert length(meetings) == 5
+    end
+  end
+
+  describe "save_meeting/2" do
+    setup do
+      me = onboarded_user(location: moscow_location())
+      {:ok, me: me}
+    end
+
+    test "with invalid meeting_data", %{me: me} do
+      {:error, %Ecto.Changeset{valid?: false} = changeset} =
+        Feeds.save_meeting(me.id, %{"value" => "bread"})
+
+      assert errors_on(changeset) == %{meeting: ["unrecognized meeting type"]}
+    end
+
+    test "is available in feed", %{me: me} do
+      {:ok, %Meeting{id: id}} =
+        Feeds.save_meeting(me.id, %{"text" => "bread", "background" => %{"color" => "#A2ABEC"}})
+
+      [meeting] = Feeds.fetch_meetings(me.id, me.profile.location, nil)
+      assert meeting.id == id
+    end
+  end
+
+  describe "delete_meeting/2" do
+    setup do
+      me = onboarded_user(location: moscow_location())
+      {:ok, me: me}
+    end
+
+    test "with foreign meeting", %{me: me} do
+      user = onboarded_user()
+      m = insert(:meeting, user: user)
+
+      assert :error == Feeds.delete_meeting(me.id, m.id)
+    end
+
+    test "deletes meeting", %{me: me} do
+      m = insert(:meeting, user: me)
+
+      [meeting] = Feeds.fetch_meetings(me.id, me.profile.location, nil)
+      assert meeting.id == m.id
+
+      assert :ok == Feeds.delete_meeting(me.id, m.id)
+
+      assert [] == Feeds.fetch_meetings(me.id, me.profile.location, nil)
     end
   end
 end

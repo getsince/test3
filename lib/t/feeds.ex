@@ -9,7 +9,7 @@ defmodule T.Feeds do
 
   import T.Cluster, only: [primary_rpc: 3]
 
-  alias T.Repo
+  alias T.{Repo, Bot}
 
   alias T.Accounts.{Profile, UserReport, GenderPreference}
   alias T.Chats.Chat
@@ -20,7 +20,8 @@ defmodule T.Feeds do
     SeenProfile,
     FeededProfile,
     FeedFilter,
-    CalculatedFeed
+    CalculatedFeed,
+    Meeting
   }
 
   ### PubSub
@@ -590,5 +591,98 @@ defmodule T.Feeds do
     SeenProfile
     |> where([s], s.inserted_at < fragment("now() - ? * interval '1 day'", ^ttl_days))
     |> Repo.delete_all()
+  end
+
+  ### Meetings
+
+  def fetch_meetings(user_id, location, cursor) do
+    Meeting
+    |> maybe_apply_cursor(cursor)
+    |> join(:inner, [m], p in FeedProfile, on: p.user_id == m.user_id)
+    |> where([m, p], p.hidden? == false)
+    |> where([m, p], p.user_id not in subquery(reported_user_ids_q(user_id)))
+    |> where([m, p], p.user_id not in subquery(reporter_user_ids_q(user_id)))
+    |> order_by([m], desc: m.id)
+    |> limit(^@feed_fetch_count)
+    |> select([m, p], %{m | profile: %{p | distance: distance_km(^location, p.location)}})
+    |> Repo.all()
+  end
+
+  defp maybe_apply_cursor(query, cursor) do
+    if cursor do
+      query |> where([m], m.id < ^cursor)
+    else
+      query
+    end
+  end
+
+  def save_meeting(user_id, meeting_data) do
+    primary_rpc(__MODULE__, :local_save_meeting, [user_id, meeting_data])
+  end
+
+  def local_save_meeting(user_id, meeting_data) do
+    m = "new meeting #{meeting_data["text"]} from #{user_id}"
+    Logger.warn(m)
+    Bot.async_post_message(m)
+
+    Multi.new()
+    |> Multi.insert(:meeting, meeting_changeset(%{data: meeting_data, user_id: user_id}))
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{meeting: %Meeting{} = meeting}} ->
+        {:ok, meeting}
+
+      {:error, :meeting, %Ecto.Changeset{} = changeset, _changes} ->
+        {:error, changeset}
+    end
+  end
+
+  defp meeting_changeset(attrs) do
+    %Meeting{}
+    |> cast(attrs, [:data, :user_id])
+    |> validate_required([:data, :user_id])
+    |> validate_change(:data, fn :data, meeting_data ->
+      case meeting_data do
+        %{"text" => _text, "background" => background} ->
+          case background do
+            %{"color" => _color} -> []
+            %{"gradient" => [_color1, _color2]} -> []
+            false -> [meeting: "unsupported meeting type"]
+          end
+
+        nil ->
+          [meeting: "unrecognized meeting type"]
+
+        _ ->
+          [meeting: "unrecognized meeting type"]
+      end
+    end)
+  end
+
+  def delete_meeting(user_id, meeting_id) do
+    primary_rpc(__MODULE__, :local_delete_meeting, [user_id, meeting_id])
+  end
+
+  def local_delete_meeting(user_id, meeting_id) do
+    m = "meeting #{meeting_id} deleted by user #{user_id}"
+    Logger.warn(m)
+    Bot.async_post_message(m)
+
+    Multi.new()
+    |> Multi.run(:delete_meeting, fn _repo, _changes ->
+      Meeting
+      |> where([m], m.id == ^meeting_id)
+      |> where([m], m.user_id == ^user_id)
+      |> Repo.delete_all()
+      |> case do
+        {1, _} -> {:ok, meeting_id}
+        {0, _} -> {:error, :meeting_not_found}
+      end
+    end)
+    |> Repo.transaction()
+    |> case do
+      {:ok, _} -> :ok
+      {:error, :delete_meeting, _error, _changes} -> :error
+    end
   end
 end

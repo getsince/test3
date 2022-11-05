@@ -11,18 +11,18 @@ msgstr ""
 "Language: ru\n"
 "Plural-Forms: nplurals=3\n"
 
-#: lib/t_web/channels/feed_channel.ex:196
-#: lib/t_web/channels/feed_channel.ex:207
-#: lib/t_web/channels/feed_channel.ex:228
-#: lib/t_web/channels/feed_channel.ex:243
+#: lib/t_web/channels/feed_channel.ex:220
+#: lib/t_web/channels/feed_channel.ex:231
+#: lib/t_web/channels/feed_channel.ex:252
+#: lib/t_web/channels/feed_channel.ex:267
 #, elixir-autogen, elixir-format
 msgid "Deprecation warning"
 msgstr "Приложение устарело"
 
-#: lib/t_web/channels/feed_channel.ex:197
-#: lib/t_web/channels/feed_channel.ex:208
-#: lib/t_web/channels/feed_channel.ex:229
-#: lib/t_web/channels/feed_channel.ex:244
+#: lib/t_web/channels/feed_channel.ex:221
+#: lib/t_web/channels/feed_channel.ex:232
+#: lib/t_web/channels/feed_channel.ex:253
+#: lib/t_web/channels/feed_channel.ex:268
 #, elixir-autogen, elixir-format
 msgid "Your app version is no longer supported, please upgrade."
 msgstr "Твоя версия приложения больше не поддерживается, обнови её."

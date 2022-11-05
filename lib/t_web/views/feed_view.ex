@@ -1,7 +1,7 @@
 defmodule TWeb.FeedView do
   use TWeb, :view
   alias TWeb.ViewHelpers
-  alias T.Feeds.FeedProfile
+  alias T.Feeds.{FeedProfile, Meeting}
 
   def render("feed_item.json", %{profile: profile, version: version, screen_width: screen_width}) do
     profile =
@@ -42,6 +42,31 @@ defmodule TWeb.FeedView do
       screen_width,
       _env = :match
     )
+  end
+
+  def render("meeting.json", %{meeting: meeting, version: version, screen_width: screen_width}) do
+    %Meeting{
+      id: id,
+      user_id: user_id,
+      data: data,
+      profile: profile,
+      inserted_at: inserted_at
+    } = meeting
+
+    %{
+      "id" => id,
+      "user_id" => user_id,
+      "data" => data,
+      "inserted_at" => inserted_at,
+      "profile" =>
+        render_profile(
+          profile,
+          [:user_id, :name, :gender, :story, :distance, :address],
+          version,
+          screen_width,
+          _env = :feed
+        )
+    }
   end
 
   defp render_profile(%FeedProfile{} = profile, fields, version, screen_width, env) do

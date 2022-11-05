@@ -122,6 +122,48 @@ defmodule TWeb.FeedChannelTest do
              ]
     end
 
+    test "with meetings if asked", %{socket: socket, me: me} do
+      assert {:ok, %{}, _socket} = join(socket, "feed:" <> me.id)
+
+      assert {:ok, %{"meetings" => meetings}, _socket} =
+               join(socket, "feed:" <> me.id, %{"need_feed" => true})
+
+      assert meetings == []
+
+      p = onboarded_user(story: [], name: "mate", location: apple_location(), gender: "F")
+
+      m = insert(:meeting, user_id: p.id)
+
+      assert {:ok, %{}, _socket} = join(socket, "feed:" <> me.id)
+
+      assert {:ok, %{"meetings" => meetings}, _socket} =
+               join(socket, "feed:" <> me.id, %{"need_feed" => true})
+
+      assert meetings == [
+               %{
+                 "profile" => %{
+                   address: %{
+                     "en_US" => %{
+                       "city" => "Buenos Aires",
+                       "country" => "Argentina",
+                       "iso_country_code" => "AR",
+                       "state" => "Autonomous City of Buenos Aires"
+                     }
+                   },
+                   distance: 9510,
+                   gender: "F",
+                   name: "mate",
+                   story: [],
+                   user_id: p.id
+                 },
+                 "data" => %{"background" => %{"color" => "#A2ABEC"}, "text" => "hello"},
+                 "id" => m.id,
+                 "inserted_at" => m.inserted_at,
+                 "user_id" => p.id
+               }
+             ]
+    end
+
     test "with chats", %{socket: socket, me: me} do
       [p1, p2, p3] = [
         onboarded_user(story: [], name: "mate-1", location: apple_location(), gender: "F"),
@@ -594,6 +636,46 @@ defmodule TWeb.FeedChannelTest do
                  }
                }
              ]
+    end
+  end
+
+  describe "more-meetings" do
+    setup :joined
+
+    test "with no data in db", %{socket: socket} do
+      ref = push(socket, "more-meetings", %{"cursor" => nil})
+      assert_reply(ref, :ok, reply)
+      assert reply == %{"meetings" => []}
+    end
+
+    test "with nil cursor", %{socket: socket} do
+      for _ <- 1..3 do
+        user = onboarded_user()
+        insert(:meeting, user: user)
+      end
+
+      ref = push(socket, "more-meetings", %{"cursor" => nil})
+      assert_reply(ref, :ok, reply)
+      %{"meetings" => meetings} = reply
+      assert length(meetings) == 3
+    end
+
+    test "with cursor", %{socket: socket} do
+      for _ <- 1..3 do
+        user = onboarded_user()
+        insert(:meeting, user: user)
+      end
+
+      ref = push(socket, "more-meetings", %{"cursor" => nil})
+      assert_reply(ref, :ok, reply)
+      %{"meetings" => meetings} = reply
+      assert length(meetings) == 3
+
+      cursor = List.last(meetings)["id"]
+
+      ref = push(socket, "more-meetings", %{"cursor" => cursor})
+      assert_reply(ref, :ok, reply)
+      assert reply == %{"meetings" => []}
     end
   end
 

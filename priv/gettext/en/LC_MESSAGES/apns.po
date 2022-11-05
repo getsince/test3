@@ -96,17 +96,17 @@ msgstr "his"
 msgid "their BELONGING TO"
 msgstr "their"
 
+#: lib/t/push_notifications/apns.ex:83
+#, elixir-autogen, elixir-format
+msgid "wants to join your meeting"
+msgstr ""
+
 #: lib/t/push_notifications/apns.ex:86
 #, elixir-autogen, elixir-format
-msgid "approved your application to join the meeting"
+msgid "approved your request to join the meeting"
 msgstr ""
 
 #: lib/t/push_notifications/apns.ex:89
 #, elixir-autogen, elixir-format
-msgid "declined your application to join the meeting"
-msgstr ""
-
-#: lib/t/push_notifications/apns.ex:83
-#, elixir-autogen, elixir-format
-msgid "wants to join your meeting"
+msgid "declined your request to join the meeting"
 msgstr ""

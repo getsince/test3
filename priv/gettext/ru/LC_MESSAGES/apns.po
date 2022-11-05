@@ -96,17 +96,17 @@ msgstr "его"
 msgid "their BELONGING TO"
 msgstr "их"
 
-#: lib/t/push_notifications/apns.ex:86
-#, elixir-autogen, elixir-format
-msgid "approved your application to join the meeting"
-msgstr "принимает твой запрос присоединиться к встрече"
-
-#: lib/t/push_notifications/apns.ex:89
-#, elixir-autogen, elixir-format
-msgid "declined your application to join the meeting"
-msgstr "отклоняет твой запрос присоединиться к встрече"
-
 #: lib/t/push_notifications/apns.ex:83
 #, elixir-autogen, elixir-format
 msgid "wants to join your meeting"
 msgstr "хочет присоединиться к твоей встрече"
+
+#: lib/t/push_notifications/apns.ex:86
+#, elixir-autogen, elixir-format
+msgid "approved your request to join the meeting"
+msgstr "принимает твой запрос присоединиться к встрече"
+
+#: lib/t/push_notifications/apns.ex:89
+#, elixir-autogen, elixir-format
+msgid "declined your request to join the meeting"
+msgstr "отклоняет твой запрос присоединиться к встрече"

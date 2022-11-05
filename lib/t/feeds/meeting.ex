@@ -5,7 +5,7 @@ defmodule T.Feeds.Meeting do
   @primary_key {:id, Ecto.Bigflake.UUID, autogenerate: true}
   @foreign_key_type Ecto.Bigflake.UUID
   schema "meetings" do
-    field :user_id, Ecto.Bigflake.UUID
+    belongs_to :user, T.Accounts.User, primary_key: false
     field :data, :map
     # TODO ?
     field :profile, :map, virtual: true

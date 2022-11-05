@@ -9,7 +9,7 @@ defmodule T.Chats do
 
   import T.Cluster, only: [primary_rpc: 3]
 
-  alias T.Repo
+  alias T.{Repo, Bot}
   alias T.Chats.{Chat, Message}
   alias T.Feeds.{FeedProfile, SeenProfile}
   alias T.PushNotifications.DispatchJob
@@ -211,6 +211,10 @@ defmodule T.Chats do
         _ ->
           "text"
       end
+
+    m = "message type #{message_type} sent from #{from_user_id} to #{to_user_id}"
+    Logger.warn(m)
+    Bot.async_post_message(m)
 
     [user_id_1, user_id_2] = Enum.sort([from_user_id, to_user_id])
 

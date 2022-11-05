@@ -2,7 +2,7 @@ defmodule T.Factory do
   use ExMachina.Ecto, repo: T.Repo
 
   alias T.Accounts.{User, Profile, GenderPreference, APNSDevice, UserToken}
-  alias T.Feeds.{SeenProfile}
+  alias T.Feeds.{SeenProfile, Meeting}
   alias T.Chats.Chat
   alias T.Matches.{Match, MatchEvent}
 
@@ -23,6 +23,10 @@ defmodule T.Factory do
       hidden?: false,
       gender: "M"
     }
+  end
+
+  def meeting_factory do
+    %Meeting{data: %{"text" => "hello", "background" => %{"color" => "#A2ABEC"}}}
   end
 
   def match_factory do

@@ -212,9 +212,20 @@ defmodule T.Chats do
           "text"
       end
 
-    m = "message type #{message_type} sent from #{from_user_id} to #{to_user_id}"
-    Logger.warn(m)
-    Bot.async_post_message(m)
+    if message_type in [
+         "meeting_request",
+         "meeting_approval",
+         "meeting_decline",
+         "text",
+         "video",
+         "audio",
+         "spotify",
+         "photo"
+       ] do
+      m = "message type #{message_type} sent from #{from_user_id} to #{to_user_id}"
+      Logger.warn(m)
+      Bot.async_post_message(m)
+    end
 
     [user_id_1, user_id_2] = Enum.sort([from_user_id, to_user_id])
 

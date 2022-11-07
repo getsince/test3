@@ -106,7 +106,7 @@ defmodule T.News do
           %{
             id: 18,
             timestamp: ~U[2022-11-06 14:00:00Z],
-            version: "8.1.0",
+            version: "8.1.1",
             story: [
               %{
                 "size" => [390, 844],
@@ -245,7 +245,7 @@ defmodule T.News do
           %{
             id: 18,
             timestamp: ~U[2022-11-06 14:00:00Z],
-            version: "8.1.0",
+            version: "8.1.1",
             story: [
               %{
                 "size" => [390, 844],

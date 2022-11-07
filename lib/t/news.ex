@@ -102,6 +102,49 @@ defmodule T.News do
                 }
               }
             ]
+          },
+          %{
+            id: 18,
+            timestamp: ~U[2022-11-06 14:00:00Z],
+            version: "8.1.0",
+            story: [
+              %{
+                "size" => [390, 844],
+                "labels" => [
+                  %{
+                    "zoom" => 0.8633950233104907,
+                    "value" => "Привет 👋 Попробуй новую \nфункцию — Встречи для \nофлайн общения",
+                    "center" => [142.33333333333334, 154.66666666666666],
+                    "position" => [14.550869883380727, 108.33113374900367],
+                    "rotation" => 0,
+                    "alignment" => 0,
+                    "text_color" => "#111010",
+                    "corner_radius" => 0,
+                    "background_fill" => "#FFFFFF"
+                  },
+                  %{
+                    "zoom" => 1,
+                    "value" => "Попробовать ❤️‍🔥",
+                    "action" => "open_meetings",
+                    "center" => [195.09994548286605, 721.500010172526],
+                    "position" => [101.26661214953272, 698.000010172526],
+                    "rotation" => 0,
+                    "alignment" => 1,
+                    "text_color" => "#111010",
+                    "corner_radius" => 1,
+                    "background_fill" => "#FFFFFF"
+                  }
+                ],
+                "background" => %{
+                  "zoom" => 0.6500332858953728,
+                  "color" => "#6D42B1",
+                  "s3_key" => "46872d61-b739-40c0-990b-0f49cd619407",
+                  "position" => [68.24350925040231, 147.6859533521527],
+                  "rotation" => 9.786263824164644,
+                  "video_s3_key" => "84d03c18-0d03-4ee1-ace9-128ddca06db1"
+                }
+              }
+            ]
           }
         ]
 
@@ -195,6 +238,49 @@ defmodule T.News do
                   "s3_key" => "7e9dd14d-dab3-4182-bbb4-e11dbe51244c",
                   "position" => [66.94987036344722, 144.8863861198704],
                   "rotation" => 13.335573158989895
+                }
+              }
+            ]
+          },
+          %{
+            id: 18,
+            timestamp: ~U[2022-11-06 14:00:00Z],
+            version: "8.1.0",
+            story: [
+              %{
+                "size" => [390, 844],
+                "labels" => [
+                  %{
+                    "zoom" => 1.1090914151064903,
+                    "value" => "Try ❤️‍🔥",
+                    "action" => "open_meetings",
+                    "center" => [195, 726.1666666666666],
+                    "position" => [146.09277663280426, 700.0201126357427],
+                    "rotation" => 0,
+                    "alignment" => 1,
+                    "text_color" => "#111010",
+                    "corner_radius" => 1,
+                    "background_fill" => "#FFFFFF"
+                  },
+                  %{
+                    "zoom" => 0.9353689153331752,
+                    "value" => "Hey 👋 Try a new feature:\nMeetings to meet offline",
+                    "center" => [142, 156.33333333333334],
+                    "position" => [15.725196430021342, 120.1657352737839],
+                    "rotation" => 0,
+                    "alignment" => 0,
+                    "text_color" => "#111010",
+                    "corner_radius" => 0,
+                    "background_fill" => "#FFFFFF"
+                  }
+                ],
+                "background" => %{
+                  "zoom" => 0.6539308412568758,
+                  "color" => "#6D42B1",
+                  "s3_key" => "4dee4875-fcbb-4958-88d2-bb133c3f02cc",
+                  "position" => [67.48348595490921, 146.04118498959838],
+                  "rotation" => 10.439117091329278,
+                  "video_s3_key" => "bb085367-b597-46c8-85f0-9a1d8f1de4ad"
                 }
               }
             ]

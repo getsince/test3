@@ -216,7 +216,6 @@ defmodule T.Chats do
          "meeting_request",
          "meeting_approval",
          "meeting_decline",
-         "text",
          "video",
          "audio",
          "spotify",

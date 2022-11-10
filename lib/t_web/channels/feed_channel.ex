@@ -2,9 +2,10 @@ defmodule TWeb.FeedChannel do
   use TWeb, :channel
   import TWeb.ChannelHelpers
 
-  alias TWeb.{FeedView, ChatView, MatchView, ViewHelpers}
-  alias T.{Feeds, Chats, Matches, Accounts, Events, News, Todos}
+  alias TWeb.{FeedView, ChatView, MatchView, ViewHelpers, GameView}
+  alias T.{Feeds, Chats, Matches, Accounts, Events, News, Todos, Games}
   alias T.Chats.{Chat, Message}
+  alias T.Games.Compliment
 
   @impl true
   def join("feed:" <> user_id, params, socket) do
@@ -21,6 +22,7 @@ defmodule TWeb.FeedChannel do
         :ok = Chats.subscribe_for_user(user_id)
         :ok = Accounts.subscribe_for_user(user_id)
         :ok = Feeds.subscribe_for_user(user_id)
+        :ok = Games.subscribe_for_user(user_id)
 
         join_normal_mode(user_id, params, socket)
       end
@@ -70,6 +72,8 @@ defmodule TWeb.FeedChannel do
       |> Chats.list_chats(location)
       |> render_chats(version, screen_width)
 
+    compliments = user_id |> Games.list_complements() |> render_compliments()
+
     news =
       user_id
       |> News.list_news(version)
@@ -115,6 +119,8 @@ defmodule TWeb.FeedChannel do
           nil
       end
 
+    game = fetch_game(user_id, location, gender, feed_filter, version, screen_width)
+
     reply =
       %{}
       |> maybe_put("news", news)
@@ -125,6 +131,8 @@ defmodule TWeb.FeedChannel do
       |> maybe_put_with_empty_list("feed", feed)
       |> maybe_put_with_empty_list("feed_categories", feed_categories)
       |> maybe_put_with_empty_list("meetings", meetings)
+      |> maybe_put("game", game)
+      |> maybe_put("compliments", compliments)
 
     {:ok, reply,
      assign(socket, feed_filter: feed_filter, location: location, gender: gender, mode: :normal)}
@@ -144,6 +152,21 @@ defmodule TWeb.FeedChannel do
       fetch_feed(user.id, location, gender, feed_filter, version, screen_width, true, category)
 
     {:reply, {:ok, %{"feed" => feed}}, socket}
+  end
+
+  def handle_in("fetch-game", _params, socket) do
+    %{
+      current_user: user,
+      screen_width: screen_width,
+      version: version,
+      feed_filter: feed_filter,
+      gender: gender,
+      location: location
+    } = socket.assigns
+
+    game = fetch_game(user.id, location, gender, feed_filter, version, screen_width)
+
+    {:reply, {:ok, %{"game" => game}}, socket}
   end
 
   @impl true
@@ -297,6 +320,47 @@ defmodule TWeb.FeedChannel do
     {:reply, reply, socket}
   end
 
+  # compliments
+
+  def handle_in("send-compliment", %{"to_user_id" => to_user_id, "prompt" => prompt}, socket) do
+    %{
+      current_user: user,
+      screen_width: screen_width,
+      version: version,
+      feed_filter: feed_filter,
+      gender: gender,
+      location: location
+    } = socket.assigns
+
+    case Games.save_compliment(to_user_id, user.id, prompt) do
+      {:ok, %Compliment{} = compliment} ->
+        {:reply,
+         {:ok,
+          %{
+            "compliment" => render_compliment(compliment),
+            "game" => fetch_game(user.id, location, gender, feed_filter, version, screen_width)
+          }}, socket}
+
+      {:ok, %Chat{} = chat} ->
+        {:reply,
+         {:ok,
+          %{
+            "chat" => render_chat(chat, version, screen_width),
+            "game" => fetch_game(user.id, location, gender, feed_filter, version, screen_width)
+          }}, socket}
+
+      {:error, _changeset} ->
+        {:reply, :error, socket}
+    end
+  end
+
+  def handle_in("seen-compliment", %{"compliment_id" => compliment_id}, socket) do
+    %{current_user: %{id: by_user_id}} = socket.assigns
+
+    reply = Games.mark_compliment_seen(by_user_id, compliment_id)
+    {:reply, reply, socket}
+  end
+
   # onboarding events
 
   def handle_in(
@@ -393,6 +457,24 @@ defmodule TWeb.FeedChannel do
     {:noreply, socket}
   end
 
+  def handle_info({Games, :compliment, %Compliment{} = compliment}, socket) do
+    push(socket, "compliment", %{"compliment" => render_compliment(compliment)})
+  end
+
+  def handle_info({Games, :chat, %Chat{user_id_1: uid1, user_id_2: uid2} = chat}, socket) do
+    %{screen_width: screen_width, version: version, location: location} = socket.assigns
+
+    [mate] = [uid1, uid2] -- [me_id(socket)]
+
+    if profile = Feeds.get_mate_feed_profile(mate, location) do
+      push(socket, "chat", %{
+        "chat" => render_chat(%Chat{chat | profile: profile}, version, screen_width)
+      })
+    end
+
+    {:noreply, socket}
+  end
+
   def handle_info({Accounts, :feed_filter_updated, feed_filter}, socket) do
     %{current_user: user, feed_filter: old_feed_filter} = socket.assigns
 
@@ -421,6 +503,11 @@ defmodule TWeb.FeedChannel do
   defp fetch_meetings(user_id, location, cursor, version, screen_width) do
     meetings_reply = Feeds.fetch_meetings(user_id, location, cursor)
     render_meetings(meetings_reply, version, screen_width)
+  end
+
+  defp fetch_game(user_id, location, gender, feed_filter, version, screen_width) do
+    game = Games.fetch_game(user_id, location, gender, feed_filter)
+    render_game(game, version, screen_width)
   end
 
   defp render_feed_item(profile, version, screen_width) do
@@ -480,9 +567,23 @@ defmodule TWeb.FeedChannel do
     Enum.map(chats, fn chat -> render_chat(chat, version, screen_width) end)
   end
 
+  defp render_compliments(compliments) do
+    Enum.map(compliments, fn compliment -> render_compliment(compliment) end)
+  end
+
   # TODO remove
   defp render_match(assigns) do
     render(MatchView, "match.json", assigns)
+  end
+
+  defp render_game(nil = _game, _version, _screen_width), do: nil
+
+  defp render_game(game, version, screen_width) do
+    render(GameView, "game.json", game: game, version: version, screen_width: screen_width)
+  end
+
+  defp render_compliment(compliment) do
+    render(GameView, "compliment.json", compliment)
   end
 
   defp render_meeting(meeting, version, screen_width) do

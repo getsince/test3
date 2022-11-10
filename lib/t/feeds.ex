@@ -33,6 +33,7 @@ defmodule T.Feeds do
   @pubsub T.PubSub
   @topic "__f"
 
+  @spec subscribe_for_user(binary) :: :ok | {:error, {:already_registered, pid}}
   def subscribe_for_user(user_id) do
     Phoenix.PubSub.subscribe(@pubsub, pubsub_user_topic(user_id))
   end

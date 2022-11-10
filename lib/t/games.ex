@@ -4,7 +4,7 @@ defmodule T.Games do
   import Ecto.{Query, Changeset}
   alias Ecto.Multi
   import Geo.PostGIS
-
+  import T.Gettext
   require Logger
 
   import T.Cluster, only: [primary_rpc: 3]
@@ -52,16 +52,32 @@ defmodule T.Games do
 
   @feed_profiles_recency_limit 180 * 24 * 60 * 60
 
+  @prompts [{"☕️", "coffee_meet"}, {"⚡️", "bro_meet"}]
+
+  for {_emoji, tag} <- @prompts do
+    def render(unquote(tag)), do: dgettext("prompts", unquote(tag))
+  end
+
   ### Game
 
   def fetch_game(user_id, location, gender, feed_filter) do
-    feed_profiles_q(user_id, gender, feed_filter.genders)
-    |> order_by(fragment("location <-> ?::geometry", ^location))
-    |> maybe_apply_age_filters(feed_filter)
-    |> maybe_apply_distance_filter(location, feed_filter.distance)
-    |> limit(12)
-    |> select([p], %{p | distance: distance_km(^location, p.location)})
-    |> Repo.all()
+    {emoji, tag} = @prompts |> Enum.random()
+    random_prompt = {emoji, tag, render(tag)}
+
+    profiles =
+      feed_profiles_q(user_id, gender, feed_filter.genders)
+      |> order_by(fragment("location <-> ?::geometry", ^location))
+      |> maybe_apply_age_filters(feed_filter)
+      |> maybe_apply_distance_filter(location, feed_filter.distance)
+      |> limit(16)
+      |> select([p], %{p | distance: distance_km(^location, p.location)})
+      |> Repo.all()
+
+    if length(profiles) > 3 do
+      %{"prompt" => random_prompt, "profiles" => profiles}
+    else
+      nil
+    end
   end
 
   defp maybe_apply_age_filters(query, feed_filter) do
@@ -159,20 +175,26 @@ defmodule T.Games do
 
   ### Compliment
 
-  def save_compliment(to_user_id, from_user_id, compliment_data) do
+  def list_complements(user_id) do
+    Compliment
+    |> where(to_user_id: ^user_id)
+    |> order_by(desc: :inserted_at)
+    |> Repo.all()
+    |> Enum.map(fn c -> %Compliment{c | text: render(c.prompt)} end)
+  end
+
+  def save_compliment(to_user_id, from_user_id, prompt) do
     primary_rpc(__MODULE__, :local_save_compliment, [
       from_user_id,
       to_user_id,
-      compliment_data
+      prompt
     ])
   end
 
-  @spec local_save_compliment(uuid, uuid, map) ::
+  @spec local_save_compliment(uuid, uuid, String.t()) ::
           {:ok, map} | {:error, map}
-  def local_save_compliment(from_user_id, to_user_id, compliment_data) do
-    compliment_type = compliment_data["question"]
-
-    m = "compliment #{compliment_type} sent from #{from_user_id} to #{to_user_id}"
+  def local_save_compliment(from_user_id, to_user_id, prompt) do
+    m = "compliment #{prompt} sent from #{from_user_id} to #{to_user_id}"
     Logger.warn(m)
     Bot.async_post_message(m)
 
@@ -187,7 +209,7 @@ defmodule T.Games do
     end)
     |> Multi.insert(:compliment, fn %{compliment_exchange?: exchange} ->
       compliment_changeset(%{
-        data: compliment_data,
+        prompt: prompt,
         from_user_id: from_user_id,
         to_user_id: to_user_id,
         seen: false,
@@ -247,7 +269,7 @@ defmodule T.Games do
             "from_user_id" => from_user_id,
             "to_user_id" => to_user_id,
             "compliment_id" => compliment_id,
-            "data" => compliment_data
+            "prompt" => prompt
           })
         else
           DispatchJob.new(%{
@@ -255,7 +277,7 @@ defmodule T.Games do
             "from_user_id" => from_user_id,
             "to_user_id" => to_user_id,
             "compliment_id" => compliment_id,
-            "data" => compliment_data
+            "prompt" => prompt
           })
         end
 
@@ -279,18 +301,13 @@ defmodule T.Games do
 
   defp compliment_changeset(attrs) do
     %Compliment{}
-    |> cast(attrs, [:data, :from_user_id, :to_user_id, :seen, :revealed])
-    |> validate_required([:data, :from_user_id, :to_user_id, :seen, :revealed])
-    |> validate_change(:data, fn :data, compliment_data ->
-      case compliment_data do
-        %{"value" => _value} ->
-          []
-
-        nil ->
-          [compliment: "unrecognized compliment type"]
-
-        _ ->
-          [compliment: "unrecognized compliment type"]
+    |> cast(attrs, [:prompt, :from_user_id, :to_user_id, :seen, :revealed])
+    |> validate_required([:prompt, :from_user_id, :to_user_id, :seen, :revealed])
+    |> validate_change(:prompt, fn :prompt, prompt ->
+      if prompt in @prompts do
+        []
+      else
+        [compliment: "unrecognized prompt"]
       end
     end)
   end
@@ -299,12 +316,12 @@ defmodule T.Games do
          %Compliment{
            from_user_id: from_user_id,
            to_user_id: to_user_id,
-           data: compliment_data,
+           prompt: prompt,
            inserted_at: inserted_at
          },
          chat_id
        ) do
-    data = %{"question" => "compliment", "value" => compliment_data["value"]}
+    data = %{"question" => "compliment", "prompt" => prompt, "value" => render(prompt)}
 
     %Message{
       chat_id: chat_id,

@@ -1,7 +1,6 @@
 defmodule TWeb.GameView do
   use TWeb, :view
   alias TWeb.FeedView
-  alias T.Games.Compliment
 
   def render("game.json", %{game: game, version: version, screen_width: screen_width}) do
     %{"prompt" => prompt, "profiles" => profiles} = game
@@ -12,7 +11,7 @@ defmodule TWeb.GameView do
     }
   end
 
-  def render("compliment.json", %Compliment{
+  def render("compliment.json", %{
         id: id,
         prompt: prompt,
         text: text,
@@ -24,7 +23,7 @@ defmodule TWeb.GameView do
       "prompt" => prompt,
       "text" => text,
       "seen" => seen,
-      "inserted_at" => inserted_at
+      "inserted_at" => ensure_utc(inserted_at)
     }
   end
 
@@ -37,4 +36,8 @@ defmodule TWeb.GameView do
       screen_width: screen_width
     })
   end
+
+  defp ensure_utc(%DateTime{} = datetime), do: datetime
+  defp ensure_utc(%NaiveDateTime{} = naive), do: DateTime.from_naive!(naive, "Etc/UTC")
+  defp ensure_utc(nil), do: nil
 end

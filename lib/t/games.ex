@@ -50,13 +50,17 @@ defmodule T.Games do
     end
   end
 
-  @feed_profiles_recency_limit 180 * 24 * 60 * 60
+  @game_set_count 16
+  @game_profiles_recency_limit 180 * 24 * 60 * 60
 
   @prompts [{"☕️", "coffee_meet"}, {"⚡️", "bro_meet"}]
 
   for {_emoji, tag} <- @prompts do
     def render(unquote(tag)), do: dgettext("prompts", unquote(tag))
   end
+
+  def prompts, do: @prompts
+  def game_set_count, do: @game_set_count
 
   ### Game
 
@@ -70,12 +74,12 @@ defmodule T.Games do
     |> Multi.one(:count, filtered_q |> select([p], count(p.user_id)))
     |> Multi.run(:profiles, fn repo, %{count: count} ->
       if count > 0 do
-        offset = max(:rand.uniform(count) - 16, 0)
+        offset = max(:rand.uniform(count) - @game_set_count, 0)
 
         profiles =
           filtered_q
           |> offset(^offset)
-          |> limit(16)
+          |> limit(@game_set_count)
           |> order_by(fragment("location <-> ?::geometry", ^location))
           |> select([p], %{p | distance: distance_km(^location, p.location)})
           |> repo.all()
@@ -129,7 +133,7 @@ defmodule T.Games do
 
   defp feed_profiles_q(user_id, gender, gender_preference, feed_filter, location) do
     # TODO
-    treshold_date = DateTime.utc_now() |> DateTime.add(-@feed_profiles_recency_limit, :second)
+    treshold_date = DateTime.utc_now() |> DateTime.add(-@game_profiles_recency_limit, :second)
 
     filtered_profiles_q(user_id, gender, gender_preference)
     |> where([p], p.user_id != ^user_id)
@@ -193,7 +197,7 @@ defmodule T.Games do
 
   ### Compliment
 
-  def list_complements(user_id) do
+  def list_compliments(user_id) do
     Compliment
     |> where(to_user_id: ^user_id)
     |> order_by(desc: :inserted_at)
@@ -256,11 +260,13 @@ defmodule T.Games do
                                             } ->
       case {chat, exchange, compliment} do
         {%Chat{id: chat_id}, %Compliment{} = exchange, %Compliment{} = compliment} ->
-          [exchange, compliment]
-          |> Enum.map(fn c -> compliment_to_message_changeset(c, chat_id) end)
-          |> repo.insert_all(returning: true)
+          messages =
+            [exchange, compliment]
+            |> Enum.map(fn c -> compliment_to_message_changeset(c, chat_id) end)
+
+          repo.insert_all(Message, messages, returning: true)
           |> case do
-            [2, messages] -> {:ok, messages}
+            {2, messages} -> {:ok, messages}
             true -> {:error, :messages_not_inserted}
           end
 
@@ -307,12 +313,12 @@ defmodule T.Games do
         broadcast_compliment(compliment)
         {:ok, compliment}
 
-      {:ok, %{maybe_insert_chat: %Chat{} = chat}, maybe_insert_messages: messages} ->
+      {:ok, %{maybe_insert_chat: %Chat{} = chat, maybe_insert_messages: messages}} ->
         chat_with_messages = %Chat{chat | messages: messages}
         broadcast_chat(chat_with_messages)
         {:ok, chat_with_messages}
 
-      {:error, :message, %Ecto.Changeset{} = changeset, _changes} ->
+      {:error, :compliment, %Ecto.Changeset{} = changeset, _changes} ->
         {:error, changeset}
     end
   end
@@ -322,7 +328,7 @@ defmodule T.Games do
     |> cast(attrs, [:prompt, :from_user_id, :to_user_id, :seen, :revealed])
     |> validate_required([:prompt, :from_user_id, :to_user_id, :seen, :revealed])
     |> validate_change(:prompt, fn :prompt, prompt ->
-      if prompt in @prompts do
+      if prompt in (@prompts |> Enum.map(fn {_emoji, tag} -> tag end)) do
         []
       else
         [compliment: "unrecognized prompt"]
@@ -332,6 +338,7 @@ defmodule T.Games do
 
   defp compliment_to_message_changeset(
          %Compliment{
+           id: id,
            from_user_id: from_user_id,
            to_user_id: to_user_id,
            prompt: prompt,
@@ -341,7 +348,8 @@ defmodule T.Games do
        ) do
     data = %{"question" => "compliment", "prompt" => prompt, "value" => render(prompt)}
 
-    %Message{
+    %{
+      id: id,
       chat_id: chat_id,
       data: data,
       from_user_id: from_user_id,

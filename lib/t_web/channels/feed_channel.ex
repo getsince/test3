@@ -72,7 +72,7 @@ defmodule TWeb.FeedChannel do
       |> Chats.list_chats(location)
       |> render_chats(version, screen_width)
 
-    compliments = user_id |> Games.list_complements() |> render_compliments()
+    compliments = user_id |> Games.list_compliments() |> render_compliments()
 
     news =
       user_id
@@ -583,7 +583,13 @@ defmodule TWeb.FeedChannel do
   end
 
   defp render_compliment(compliment) do
-    render(GameView, "compliment.json", compliment)
+    render(GameView, "compliment.json", %{
+      id: compliment.id,
+      prompt: compliment.prompt,
+      text: compliment.text,
+      seen: compliment.seen,
+      inserted_at: compliment.inserted_at
+    })
   end
 
   defp render_meeting(meeting, version, screen_width) do

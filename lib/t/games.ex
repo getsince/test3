@@ -64,19 +64,35 @@ defmodule T.Games do
     {emoji, tag} = @prompts |> Enum.random()
     random_prompt = {emoji, tag, render(tag)}
 
-    profiles =
-      feed_profiles_q(user_id, gender, feed_filter.genders)
-      |> order_by(fragment("location <-> ?::geometry", ^location))
-      |> maybe_apply_age_filters(feed_filter)
-      |> maybe_apply_distance_filter(location, feed_filter.distance)
-      |> limit(16)
-      |> select([p], %{p | distance: distance_km(^location, p.location)})
-      |> Repo.all()
+    filtered_q = feed_profiles_q(user_id, gender, feed_filter.genders, feed_filter, location)
 
-    if length(profiles) > 3 do
-      %{"prompt" => random_prompt, "profiles" => profiles}
-    else
-      nil
+    Multi.new()
+    |> Multi.one(:count, filtered_q |> select([p], count(p.user_id)))
+    |> Multi.run(:profiles, fn repo, %{count: count} ->
+      if count > 0 do
+        offset = max(:rand.uniform(count) - 16, 0)
+
+        profiles =
+          filtered_q
+          |> offset(^offset)
+          |> limit(16)
+          |> order_by(fragment("location <-> ?::geometry", ^location))
+          |> select([p], %{p | distance: distance_km(^location, p.location)})
+          |> repo.all()
+
+        {:ok, profiles}
+      else
+        {:ok, []}
+      end
+    end)
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{profiles: profiles}} ->
+        if length(profiles) > 3 do
+          %{"prompt" => random_prompt, "profiles" => profiles}
+        else
+          nil
+        end
     end
   end
 
@@ -111,13 +127,15 @@ defmodule T.Games do
     end
   end
 
-  defp feed_profiles_q(user_id, gender, gender_preference) do
+  defp feed_profiles_q(user_id, gender, gender_preference, feed_filter, location) do
     # TODO
     treshold_date = DateTime.utc_now() |> DateTime.add(-@feed_profiles_recency_limit, :second)
 
     filtered_profiles_q(user_id, gender, gender_preference)
     |> where([p], p.user_id != ^user_id)
     |> where([p], p.last_active > ^treshold_date)
+    |> maybe_apply_age_filters(feed_filter)
+    |> maybe_apply_distance_filter(location, feed_filter.distance)
   end
 
   defp reported_user_ids_q(user_id) do

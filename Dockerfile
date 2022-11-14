@@ -37,7 +37,7 @@ RUN mix assets.deploy
 RUN mix release
 
 # prepare release image
-FROM alpine:3.16.2 AS app
+FROM alpine:3.16.3 AS app
 RUN apk add --no-cache --update bash openssl libgcc libstdc++
 
 WORKDIR /app

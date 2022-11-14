@@ -147,7 +147,7 @@ defmodule T.GamesTest do
     test "compliments have rendered text", %{me: me} do
       mate = onboarded_user(location: moscow_location())
 
-      {_e, random_prompt} = Games.prompts() |> Enum.random()
+      {random_prompt, _e} = Games.prompts() |> Enum.random()
 
       c =
         insert(:compliment,
@@ -186,7 +186,7 @@ defmodule T.GamesTest do
     end
 
     test "compliment exchange", %{me: me, mate: mate} do
-      {_e, random_prompt} = Games.prompts() |> Enum.random()
+      {random_prompt, _e} = Games.prompts() |> Enum.random()
       prompt_text = Games.render(random_prompt)
 
       Games.subscribe_for_user(me.id)

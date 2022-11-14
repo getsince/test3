@@ -15,6 +15,7 @@ defmodule TWeb.GameView do
         id: id,
         prompt: prompt,
         text: text,
+        emoji: emoji,
         seen: seen,
         inserted_at: inserted_at
       }) do
@@ -22,6 +23,7 @@ defmodule TWeb.GameView do
       "id" => id,
       "prompt" => prompt,
       "text" => text,
+      "emoji" => emoji,
       "seen" => seen,
       "inserted_at" => ensure_utc(inserted_at)
     }

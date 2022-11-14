@@ -333,7 +333,7 @@ defmodule TWeb.FeedChannelTest do
         onboarded_user(story: [], name: "mate-3", location: apple_location(), gender: "M")
       ]
 
-      {_e, random_prompt} = Games.prompts() |> Enum.random()
+      {random_prompt, emoji} = Games.prompts() |> Enum.random()
       prompt_text = Games.render(random_prompt)
 
       [c1, c2, c3] = [
@@ -364,6 +364,7 @@ defmodule TWeb.FeedChannelTest do
                  "id" => c3.id,
                  "prompt" => random_prompt,
                  "text" => prompt_text,
+                 "emoji" => emoji,
                  "inserted_at" => ~U[2021-09-30 12:16:07Z],
                  "seen" => false
                },
@@ -371,6 +372,7 @@ defmodule TWeb.FeedChannelTest do
                  "id" => c2.id,
                  "prompt" => random_prompt,
                  "text" => prompt_text,
+                 "emoji" => emoji,
                  "inserted_at" => ~U[2021-09-30 12:16:06Z],
                  "seen" => false
                },
@@ -378,6 +380,7 @@ defmodule TWeb.FeedChannelTest do
                  "id" => c1.id,
                  "prompt" => random_prompt,
                  "text" => prompt_text,
+                 "emoji" => emoji,
                  "inserted_at" => ~U[2021-09-30 12:16:05Z],
                  "seen" => false
                }
@@ -895,7 +898,7 @@ defmodule TWeb.FeedChannelTest do
     test "send-compliment", %{socket: socket} do
       mate = onboarded_user()
 
-      {_e, random_prompt} = Games.prompts() |> Enum.random()
+      {random_prompt, _e} = Games.prompts() |> Enum.random()
 
       ref = push(socket, "send-compliment", %{"to_user_id" => mate.id, "prompt" => random_prompt})
 

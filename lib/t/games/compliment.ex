@@ -10,6 +10,7 @@ defmodule T.Games.Compliment do
     belongs_to :to_user, User
     field :prompt, :string
     field :text, :string, virtual: true
+    field :emoji, :string, virtual: true
     field :seen, :boolean
     field :revealed, :boolean
     timestamps(updated_at: false)

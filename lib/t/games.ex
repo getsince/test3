@@ -53,9 +53,9 @@ defmodule T.Games do
   @game_set_count 16
   @game_profiles_recency_limit 180 * 24 * 60 * 60
 
-  @prompts [{"☕️", "coffee_meet"}, {"⚡️", "bro_meet"}]
+  @prompts %{"coffee_meet" => "☕️", "bro_meet" => "⚡️"}
 
-  for {_emoji, tag} <- @prompts do
+  for {tag, _emoji} <- @prompts do
     def render(unquote(tag)), do: dgettext("prompts", unquote(tag))
   end
 
@@ -65,7 +65,7 @@ defmodule T.Games do
   ### Game
 
   def fetch_game(user_id, location, gender, feed_filter) do
-    {emoji, tag} = @prompts |> Enum.random()
+    {tag, emoji} = @prompts |> Enum.random()
     random_prompt = {emoji, tag, render(tag)}
 
     filtered_q = feed_profiles_q(user_id, gender, feed_filter.genders, feed_filter, location)
@@ -202,7 +202,7 @@ defmodule T.Games do
     |> where(to_user_id: ^user_id)
     |> order_by(desc: :inserted_at)
     |> Repo.all()
-    |> Enum.map(fn c -> %Compliment{c | text: render(c.prompt)} end)
+    |> Enum.map(fn c -> %Compliment{c | text: render(c.prompt), emoji: @prompts[c.prompt]} end)
   end
 
   def save_compliment(to_user_id, from_user_id, prompt) do
@@ -328,7 +328,7 @@ defmodule T.Games do
     |> cast(attrs, [:prompt, :from_user_id, :to_user_id, :seen, :revealed])
     |> validate_required([:prompt, :from_user_id, :to_user_id, :seen, :revealed])
     |> validate_change(:prompt, fn :prompt, prompt ->
-      if prompt in (@prompts |> Enum.map(fn {_emoji, tag} -> tag end)) do
+      if prompt in Map.keys(@prompts) do
         []
       else
         [compliment: "unrecognized prompt"]
@@ -346,7 +346,12 @@ defmodule T.Games do
          },
          chat_id
        ) do
-    data = %{"question" => "compliment", "prompt" => prompt, "value" => render(prompt)}
+    data = %{
+      "question" => "compliment",
+      "prompt" => prompt,
+      "emoji" => @prompts[prompt],
+      "value" => render(prompt)
+    }
 
     %{
       id: id,

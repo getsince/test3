@@ -119,7 +119,14 @@ defmodule TWeb.FeedChannel do
           nil
       end
 
-    game = fetch_game(user_id, location, gender, feed_filter, version, screen_width)
+    game =
+      case params["need_feed"] do
+        true ->
+          fetch_game(user_id, location, gender, feed_filter, version, screen_width)
+
+        _ ->
+          nil
+      end
 
     reply =
       %{}
@@ -587,6 +594,7 @@ defmodule TWeb.FeedChannel do
       id: compliment.id,
       prompt: compliment.prompt,
       text: compliment.text,
+      emoji: compliment.emoji,
       seen: compliment.seen,
       inserted_at: compliment.inserted_at
     })

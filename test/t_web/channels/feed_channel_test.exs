@@ -335,6 +335,7 @@ defmodule TWeb.FeedChannelTest do
 
       {random_prompt, emoji} = Games.prompts() |> Enum.random()
       prompt_text = Games.render(random_prompt)
+      prompt_push_text = Games.render(random_prompt <> "_push")
 
       [c1, c2, c3] = [
         insert(:compliment,
@@ -364,6 +365,7 @@ defmodule TWeb.FeedChannelTest do
                  "id" => c3.id,
                  "prompt" => random_prompt,
                  "text" => prompt_text,
+                 "push_text" => prompt_push_text,
                  "emoji" => emoji,
                  "inserted_at" => ~U[2021-09-30 12:16:07Z],
                  "seen" => false
@@ -372,6 +374,7 @@ defmodule TWeb.FeedChannelTest do
                  "id" => c2.id,
                  "prompt" => random_prompt,
                  "text" => prompt_text,
+                 "push_text" => prompt_push_text,
                  "emoji" => emoji,
                  "inserted_at" => ~U[2021-09-30 12:16:06Z],
                  "seen" => false
@@ -380,6 +383,7 @@ defmodule TWeb.FeedChannelTest do
                  "id" => c1.id,
                  "prompt" => random_prompt,
                  "text" => prompt_text,
+                 "push_text" => prompt_push_text,
                  "emoji" => emoji,
                  "inserted_at" => ~U[2021-09-30 12:16:05Z],
                  "seen" => false

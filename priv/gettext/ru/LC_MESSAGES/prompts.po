@@ -11,12 +11,22 @@ msgstr ""
 "Language: ru\n"
 "Plural-Forms: nplurals=3\n"
 
-#: lib/t/games.ex:58
+#: lib/t/games.ex:59
 #, elixir-autogen, elixir-format
 msgid "bro_meet"
 msgstr "С каким бро встретишься?"
 
-#: lib/t/games.ex:58
+#: lib/t/games.ex:59
 #, elixir-autogen, elixir-format
 msgid "coffee_meet"
 msgstr "С кем кофеёк попьёшь?"
+
+#: lib/t/games.ex:61
+#, elixir-autogen, elixir-format, fuzzy
+msgid "bro_meet_push"
+msgstr "хочет встретиться с тобой как с бро"
+
+#: lib/t/games.ex:61
+#, elixir-autogen, elixir-format, fuzzy
+msgid "coffee_meet_push"
+msgstr "хочет попить с тобой кофеёк"

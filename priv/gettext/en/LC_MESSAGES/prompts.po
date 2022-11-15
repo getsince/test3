@@ -11,12 +11,22 @@ msgstr ""
 "Language: en\n"
 "Plural-Forms: nplurals=2\n"
 
-#: lib/t/games.ex:58
+#: lib/t/games.ex:59
 #, elixir-autogen, elixir-format
 msgid "bro_meet"
 msgstr "Which bro would you meet?"
 
-#: lib/t/games.ex:58
+#: lib/t/games.ex:59
 #, elixir-autogen, elixir-format
 msgid "coffee_meet"
 msgstr "Whom coffee with?"
+
+#: lib/t/games.ex:61
+#, elixir-autogen, elixir-format, fuzzy
+msgid "bro_meet_push"
+msgstr "wants to meet you as a bro"
+
+#: lib/t/games.ex:61
+#, elixir-autogen, elixir-format, fuzzy
+msgid "coffee_meet_push"
+msgstr "wants to drink coffee with you"

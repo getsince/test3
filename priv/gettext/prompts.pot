@@ -10,12 +10,22 @@
 msgid ""
 msgstr ""
 
-#: lib/t/games.ex:58
+#: lib/t/games.ex:59
 #, elixir-autogen, elixir-format
 msgid "bro_meet"
 msgstr ""
 
-#: lib/t/games.ex:58
+#: lib/t/games.ex:59
 #, elixir-autogen, elixir-format
 msgid "coffee_meet"
+msgstr ""
+
+#: lib/t/games.ex:61
+#, elixir-autogen, elixir-format
+msgid "bro_meet_push"
+msgstr ""
+
+#: lib/t/games.ex:61
+#, elixir-autogen, elixir-format
+msgid "coffee_meet_push"
 msgstr ""

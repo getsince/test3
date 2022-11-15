@@ -57,6 +57,8 @@ defmodule T.Games do
 
   for {tag, _emoji} <- @prompts do
     def render(unquote(tag)), do: dgettext("prompts", unquote(tag))
+    push_tag = tag <> "_push"
+    def render(unquote(push_tag)), do: dgettext("prompts", unquote(push_tag))
   end
 
   def prompts, do: @prompts
@@ -202,7 +204,14 @@ defmodule T.Games do
     |> where(to_user_id: ^user_id)
     |> order_by(desc: :inserted_at)
     |> Repo.all()
-    |> Enum.map(fn c -> %Compliment{c | text: render(c.prompt), emoji: @prompts[c.prompt]} end)
+    |> Enum.map(fn c ->
+      %Compliment{
+        c
+        | text: render(c.prompt),
+          emoji: @prompts[c.prompt],
+          push_text: render(c.prompt <> "_push")
+      }
+    end)
   end
 
   def save_compliment(to_user_id, from_user_id, prompt) do
@@ -350,7 +359,8 @@ defmodule T.Games do
       "question" => "compliment",
       "prompt" => prompt,
       "emoji" => @prompts[prompt],
-      "value" => render(prompt)
+      "value" => render(prompt),
+      "push_text" => render(prompt <> "_push")
     }
 
     %{

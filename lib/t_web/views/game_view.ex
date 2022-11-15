@@ -16,6 +16,7 @@ defmodule TWeb.GameView do
         prompt: prompt,
         text: text,
         emoji: emoji,
+        push_text: push_text,
         seen: seen,
         inserted_at: inserted_at
       }) do
@@ -23,6 +24,7 @@ defmodule TWeb.GameView do
       "id" => id,
       "prompt" => prompt,
       "text" => text,
+      "push_text" => push_text,
       "emoji" => emoji,
       "seen" => seen,
       "inserted_at" => ensure_utc(inserted_at)
@@ -32,7 +34,7 @@ defmodule TWeb.GameView do
   defp render_prompt({emoji, tag, text}), do: %{"emoji" => emoji, "tag" => tag, "text" => text}
 
   defp render_profile(profile, version, screen_width) do
-    render(FeedView, "feed_profile_with_distance.json", %{
+    render(FeedView, "feed_profile.json", %{
       profile: profile,
       version: version,
       screen_width: screen_width

@@ -594,6 +594,7 @@ defmodule TWeb.FeedChannel do
       id: compliment.id,
       prompt: compliment.prompt,
       text: compliment.text,
+      push_text: compliment.push_text,
       emoji: compliment.emoji,
       seen: compliment.seen,
       inserted_at: compliment.inserted_at
@@ -631,7 +632,7 @@ defmodule TWeb.FeedChannel do
   end
 
   defp render_chat_match_profile(assigns) do
-    render(FeedView, "feed_profile_with_distance.json", assigns)
+    render(FeedView, "match_profile.json", assigns)
   end
 
   defp render_message(message, screen_width) do

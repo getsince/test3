@@ -349,12 +349,14 @@ defmodule TWeb.FeedChannel do
           }}, socket}
 
       {:ok, %Chat{} = chat} ->
-        {:reply,
-         {:ok,
-          %{
-            "chat" => render_chat(chat, version, screen_width),
-            "game" => fetch_game(user.id, location, gender, feed_filter, version, screen_width)
-          }}, socket}
+        if profile = Feeds.get_mate_feed_profile(to_user_id, location) do
+          {:reply,
+           {:ok,
+            %{
+              "chat" => render_chat(%{chat | profile: profile}, version, screen_width),
+              "game" => fetch_game(user.id, location, gender, feed_filter, version, screen_width)
+            }}, socket}
+        end
 
       {:error, _changeset} ->
         {:reply, :error, socket}

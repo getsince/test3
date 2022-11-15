@@ -73,15 +73,26 @@ defmodule T.Games do
     filtered_q = feed_profiles_q(user_id, gender, feed_filter.genders, feed_filter, location)
 
     Multi.new()
+    |> Multi.all(
+      :complimenters,
+      Compliment
+      |> where(to_user_id: ^user_id)
+      |> where(revealed: false)
+      |> order_by(fragment("random()"))
+      |> limit(4)
+      |> join(:inner, [c], p in FeedProfile, on: c.from_user_id == p.user_id)
+      |> select([c, p], %{p | distance: distance_km(^location, p.location)})
+    )
     |> Multi.one(:count, filtered_q |> select([p], count(p.user_id)))
-    |> Multi.run(:profiles, fn repo, %{count: count} ->
+    |> Multi.run(:profiles, fn repo, %{complimenters: complimenters, count: count} ->
       if count > 0 do
-        offset = max(:rand.uniform(count) - @game_set_count, 0)
+        required_count = @game_set_count - length(complimenters)
+        offset = max(:rand.uniform(count) - required_count, 0)
 
         profiles =
           filtered_q
           |> offset(^offset)
-          |> limit(@game_set_count)
+          |> limit(^required_count)
           |> order_by(fragment("location <-> ?::geometry", ^location))
           |> select([p], %{p | distance: distance_km(^location, p.location)})
           |> repo.all()
@@ -93,9 +104,11 @@ defmodule T.Games do
     end)
     |> Repo.transaction()
     |> case do
-      {:ok, %{profiles: profiles}} ->
-        if length(profiles) > 3 do
-          %{"prompt" => random_prompt, "profiles" => profiles}
+      {:ok, %{profiles: profiles, complimenters: complimenters}} ->
+        all_profiles = Enum.shuffle(profiles ++ complimenters)
+
+        if length(all_profiles) > 3 do
+          %{"prompt" => random_prompt, "profiles" => all_profiles}
         else
           nil
         end
@@ -188,6 +201,14 @@ defmodule T.Games do
     where(query, [p], p.user_id not in subquery(complimented_user_ids_q(user_id)))
   end
 
+  defp complimenter_user_ids_q(user_id) do
+    Compliment |> where(to_user_id: ^user_id) |> select([c], c.from_user_id)
+  end
+
+  defp not_complimenter_profiles_q(query, user_id) do
+    where(query, [p], p.user_id not in subquery(complimenter_user_ids_q(user_id)))
+  end
+
   defp filtered_profiles_q(user_id, gender, gender_preference) do
     not_hidden_profiles_q()
     |> not_reported_profiles_q(user_id)
@@ -195,6 +216,7 @@ defmodule T.Games do
     |> profiles_that_accept_gender_q(gender)
     |> maybe_gender_preferenced_q(gender_preference)
     |> not_complimented_profiles_q(user_id)
+    |> not_complimenter_profiles_q(user_id)
   end
 
   ### Compliment
@@ -359,7 +381,7 @@ defmodule T.Games do
       "question" => "compliment",
       "prompt" => prompt,
       "emoji" => @prompts[prompt],
-      "value" => render(prompt),
+      "text" => render(prompt),
       "push_text" => render(prompt <> "_push")
     }
 

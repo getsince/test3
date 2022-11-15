@@ -186,8 +186,9 @@ defmodule T.GamesTest do
     end
 
     test "compliment exchange", %{me: me, mate: mate} do
-      {random_prompt, _e} = Games.prompts() |> Enum.random()
+      {random_prompt, emoji} = Games.prompts() |> Enum.random()
       prompt_text = Games.render(random_prompt)
+      prompt_push_text = Games.render(random_prompt <> "_push")
 
       Games.subscribe_for_user(me.id)
       Games.subscribe_for_user(mate.id)
@@ -212,12 +213,22 @@ defmodule T.GamesTest do
                %Message{
                  from_user_id: ^me_id,
                  to_user_id: ^mate_id,
-                 data: %{"question" => "compliment", "value" => ^prompt_text}
+                 data: %{
+                   "question" => "compliment",
+                   "text" => ^prompt_text,
+                   "emoji" => ^emoji,
+                   "push_text" => ^prompt_push_text
+                 }
                },
                %Message{
                  from_user_id: ^mate_id,
                  to_user_id: ^me_id,
-                 data: %{"question" => "compliment", "value" => ^prompt_text}
+                 data: %{
+                   "question" => "compliment",
+                   "text" => ^prompt_text,
+                   "emoji" => ^emoji,
+                   "push_text" => ^prompt_push_text
+                 }
                }
              ] = chat.messages
     end

@@ -53,7 +53,28 @@ defmodule T.Games do
   @game_set_count 16
   @game_profiles_recency_limit 180 * 24 * 60 * 60
 
-  @prompts %{"coffee_meet" => "☕️", "bro_meet" => "⚡️"}
+  @prompts %{
+    "meet_for_coffee" => "☕️",
+    "potential_friend" => "⚡",
+    "party_with" => " 🎉",
+    "invite_home" => "🏠",
+    "plane_trip" => "✈️",
+    "best_smile" => "😌",
+    "beautiful_profile" => "🖼",
+    "road_trip" => "🚙",
+    "best_dressed" => "👄",
+    "smells_good" => "✨",
+    "human_golden_retriever" => "🐶",
+    "eat_pizza" => "🍕",
+    "museum_together" => "🤓",
+    "yoga_with" => "💪",
+    "jazz_together" => "🎶",
+    "stand_up_together" => "🎙",
+    "cinema_with" => "🎬",
+    "show_baby_photos" => "📷",
+    "bar_with" => "🍸",
+    "tell_about_childhood" => "👶"
+  }
 
   for {tag, _emoji} <- @prompts do
     def render(unquote(tag)), do: dgettext("prompts", unquote(tag))

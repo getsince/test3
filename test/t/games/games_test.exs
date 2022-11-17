@@ -132,6 +132,38 @@ defmodule T.GamesTest do
 
       assert length(profiles) == Games.game_set_count()
     end
+
+    test "with complimenters", %{me: me} do
+      mates = Enum.map(0..10, fn _i -> onboarded_user(location: moscow_location()) end)
+
+      for mate <- mates do
+        {random_prompt, _e} = Games.prompts() |> Enum.random()
+        insert(:compliment, from_user_id: mate.id, to_user_id: me.id, prompt: random_prompt)
+      end
+
+      others = insert_list(Games.game_set_count(), :profile, gender: "F")
+      for profile <- others, do: insert(:gender_preference, user_id: profile.user_id, gender: "M")
+
+      %{"profiles" => profiles, "prompt" => _prompt} =
+        Games.fetch_game(
+          me.id,
+          me.profile.location,
+          _gender = "M",
+          _feed_filter = %FeedFilter{
+            genders: ["F"],
+            min_age: nil,
+            max_age: nil,
+            distance: nil
+          }
+        )
+
+      assert length(profiles) == Games.game_set_count()
+
+      complimenters =
+        profiles |> Enum.filter(fn p -> p.user_id in Enum.map(mates, fn m -> m.id end) end)
+
+      assert length(complimenters) == 4
+    end
   end
 
   describe "list_compliments/1" do
@@ -211,6 +243,7 @@ defmodule T.GamesTest do
 
       assert [
                %Message{
+                 id: message_id,
                  from_user_id: ^me_id,
                  to_user_id: ^mate_id,
                  data: %{
@@ -221,6 +254,7 @@ defmodule T.GamesTest do
                  }
                },
                %Message{
+                 id: message_id_1,
                  from_user_id: ^mate_id,
                  to_user_id: ^me_id,
                  data: %{
@@ -231,6 +265,30 @@ defmodule T.GamesTest do
                  }
                }
              ] = chat.messages
+
+      assert [
+               %Oban.Job{
+                 args: %{
+                   "compliment_id" => ^message_id_1,
+                   "from_user_id" => ^mate_id,
+                   "to_user_id" => ^me_id,
+                   "type" => "compliment_revealed",
+                   "prompt" => ^random_prompt,
+                   "emoji" => ^emoji
+                 }
+               },
+               %Oban.Job{
+                 args: %{
+                   "compliment_id" => ^message_id,
+                   "to_user_id" => ^mate_id,
+                   "type" => "compliment",
+                   "prompt" => ^random_prompt,
+                   "emoji" => ^emoji
+                 }
+               },
+               %Oban.Job{args: %{"type" => "complete_onboarding"}},
+               %Oban.Job{args: %{"type" => "complete_onboarding"}}
+             ] = all_enqueued(worker: T.PushNotifications.DispatchJob)
     end
   end
 

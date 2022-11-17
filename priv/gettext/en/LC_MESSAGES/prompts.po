@@ -14,7 +14,7 @@ msgstr ""
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
 msgid "bar_with"
-msgstr "With whom would you spend time at the bar?"
+msgstr "Whom would you spend time at the bar with?"
 
 #: lib/t/games.ex:82
 #, elixir-autogen, elixir-format

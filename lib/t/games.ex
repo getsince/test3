@@ -363,9 +363,17 @@ defmodule T.Games do
     end)
     |> Repo.transaction()
     |> case do
-      {:ok, %{compliment_exchange?: nil, compliment: %Compliment{} = compliment}} ->
-        broadcast_compliment(compliment)
-        {:ok, compliment}
+      {:ok, %{compliment_exchange?: nil, compliment: %Compliment{prompt: prompt} = compliment}} ->
+        full_compliment = %Compliment{
+          compliment
+          | text: render(prompt),
+            emoji: @prompts[prompt],
+            push_text: render(prompt <> "_push")
+        }
+
+        broadcast_compliment(full_compliment)
+
+        {:ok, full_compliment}
 
       {:ok,
        %{

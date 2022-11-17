@@ -468,6 +468,7 @@ defmodule TWeb.FeedChannel do
 
   def handle_info({Games, :compliment, %Compliment{} = compliment}, socket) do
     push(socket, "compliment", %{"compliment" => render_compliment(compliment)})
+    {:noreply, socket}
   end
 
   def handle_info({Games, :chat, %Chat{user_id_1: uid1, user_id_2: uid2} = chat}, socket) do

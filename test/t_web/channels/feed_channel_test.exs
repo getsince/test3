@@ -1,7 +1,7 @@
 defmodule TWeb.FeedChannelTest do
   use TWeb.ChannelCase, async: true
 
-  alias T.{Accounts, Chats, Feeds}
+  alias T.{Accounts, Chats, Feeds, Games}
   alias Chats.Message
 
   setup do
@@ -164,6 +164,32 @@ defmodule TWeb.FeedChannelTest do
              ]
     end
 
+    test "with game", %{socket: socket, me: me} do
+      assert {:ok, %{}, _socket} = join(socket, "feed:" <> me.id)
+
+      assert {:ok, reply, _socket} = join(socket, "feed:" <> me.id, %{"need_feed" => true})
+
+      assert reply["game"] == nil
+
+      [p1, p2, p3, p4] = [
+        onboarded_user(story: [], name: "mate", location: apple_location(), gender: "F"),
+        onboarded_user(story: [], name: "mate", location: apple_location(), gender: "F"),
+        onboarded_user(story: [], name: "mate", location: apple_location(), gender: "F"),
+        onboarded_user(story: [], name: "mate", location: apple_location(), gender: "F")
+      ]
+
+      assert {:ok, %{"game" => game}, _socket} =
+               join(socket, "feed:" <> me.id, %{"need_feed" => true})
+
+      assert %{
+               "prompt" => %{"emoji" => _emoji, "tag" => _tag, "text" => _text},
+               "profiles" => profiles
+             } = game
+
+      assert MapSet.new([p1.id, p2.id, p3.id, p4.id]) ==
+               MapSet.new(profiles |> Enum.map(fn p -> p.user_id end))
+    end
+
     test "with chats", %{socket: socket, me: me} do
       [p1, p2, p3] = [
         onboarded_user(story: [], name: "mate-1", location: apple_location(), gender: "F"),
@@ -296,6 +322,71 @@ defmodule TWeb.FeedChannelTest do
                  },
                  "inserted_at" => ~U[2021-09-30 12:16:05Z],
                  "messages" => []
+               }
+             ]
+    end
+
+    test "with compliments", %{socket: socket, me: me} do
+      [p1, p2, p3] = [
+        onboarded_user(story: [], name: "mate-1", location: apple_location(), gender: "F"),
+        onboarded_user(story: [], name: "mate-2", location: apple_location(), gender: "N"),
+        onboarded_user(story: [], name: "mate-3", location: apple_location(), gender: "M")
+      ]
+
+      {random_prompt, emoji} = Games.prompts() |> Enum.random()
+      prompt_text = Games.render(random_prompt)
+      prompt_push_text = Games.render(random_prompt <> "_push")
+
+      [c1, c2, c3] = [
+        insert(:compliment,
+          to_user_id: me.id,
+          from_user_id: p1.id,
+          prompt: random_prompt,
+          inserted_at: ~N[2021-09-30 12:16:05]
+        ),
+        insert(:compliment,
+          to_user_id: me.id,
+          from_user_id: p2.id,
+          prompt: random_prompt,
+          inserted_at: ~N[2021-09-30 12:16:06]
+        ),
+        insert(:compliment,
+          to_user_id: me.id,
+          from_user_id: p3.id,
+          prompt: random_prompt,
+          inserted_at: ~N[2021-09-30 12:16:07]
+        )
+      ]
+
+      assert {:ok, %{"compliments" => compliments}, _socket} = join(socket, "feed:" <> me.id)
+
+      assert compliments == [
+               %{
+                 "id" => c3.id,
+                 "prompt" => random_prompt,
+                 "text" => prompt_text,
+                 "push_text" => prompt_push_text,
+                 "emoji" => emoji,
+                 "inserted_at" => ~U[2021-09-30 12:16:07Z],
+                 "seen" => false
+               },
+               %{
+                 "id" => c2.id,
+                 "prompt" => random_prompt,
+                 "text" => prompt_text,
+                 "push_text" => prompt_push_text,
+                 "emoji" => emoji,
+                 "inserted_at" => ~U[2021-09-30 12:16:06Z],
+                 "seen" => false
+               },
+               %{
+                 "id" => c1.id,
+                 "prompt" => random_prompt,
+                 "text" => prompt_text,
+                 "push_text" => prompt_push_text,
+                 "emoji" => emoji,
+                 "inserted_at" => ~U[2021-09-30 12:16:05Z],
+                 "seen" => false
                }
              ]
     end
@@ -679,6 +770,40 @@ defmodule TWeb.FeedChannelTest do
     end
   end
 
+  describe "fetch-game" do
+    setup :joined
+
+    test "with no data in db", %{socket: socket} do
+      ref = push(socket, "fetch-game", %{})
+      assert_reply(ref, :ok, reply)
+      assert reply == %{"game" => nil}
+    end
+
+    test "with not enough users", %{socket: socket} do
+      for _ <- 1..3, do: onboarded_user()
+
+      ref = push(socket, "fetch-game", %{})
+      assert_reply(ref, :ok, reply)
+      assert %{"game" => nil} == reply
+    end
+
+    test "with enough users", %{socket: socket} do
+      for _ <- 1..5, do: onboarded_user()
+
+      ref = push(socket, "fetch-game", %{})
+      assert_reply(ref, :ok, reply)
+
+      %{
+        "game" => %{
+          "prompt" => %{"tag" => _p, "emoji" => _e, "text" => _t},
+          "profiles" => profiles
+        }
+      } = reply
+
+      assert length(profiles) == 5
+    end
+  end
+
   describe "report without chat" do
     setup :joined
 
@@ -766,6 +891,20 @@ defmodule TWeb.FeedChannelTest do
           "to_user_id" => mate.id,
           "message" => %{"value" => "hello moto", "question" => "text"}
         })
+
+      assert_reply(ref, :ok, _reply)
+    end
+  end
+
+  describe "games" do
+    setup :joined
+
+    test "send-compliment", %{socket: socket} do
+      mate = onboarded_user()
+
+      {random_prompt, _e} = Games.prompts() |> Enum.random()
+
+      ref = push(socket, "send-compliment", %{"to_user_id" => mate.id, "prompt" => random_prompt})
 
       assert_reply(ref, :ok, _reply)
     end

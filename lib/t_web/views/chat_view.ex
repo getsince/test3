@@ -43,7 +43,7 @@ defmodule TWeb.ChatView do
   defp render_messages(map, _messages, _screen_width), do: map
 
   defp put_profile(map, %{matched: true} = assigns),
-    do: Map.put(map, "profile", render(FeedView, "feed_profile_with_distance.json", assigns))
+    do: Map.put(map, "profile", render(FeedView, "match_profile.json", assigns))
 
   defp put_profile(map, %{matched: false} = assigns),
     do: Map.merge(map, render(FeedView, "feed_item.json", assigns))

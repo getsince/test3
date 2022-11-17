@@ -2,6 +2,7 @@ defmodule T.PushNotifications.APNS do
   @moduledoc false
 
   alias T.Accounts.APNSDevice
+  alias T.Games
   import T.Gettext
   require Logger
 
@@ -111,6 +112,37 @@ defmodule T.PushNotifications.APNS do
       end
 
     alert = %{"title" => name_from, "body" => body}
+    base_alert_payload(type, alert, data)
+  end
+
+  def build_alert_payload(
+        "compliment_revealed" = type,
+        %{"name_from" => name_from, "gender_from" => gender_from, "emoji" => emoji} = data
+      ) do
+    title = emoji <> " " <> dgettext("apns", "This is a match!")
+
+    verb_ending_ru =
+      case gender_from do
+        "F" -> "а"
+        "N" -> "и"
+        "M" -> ""
+      end
+
+    body =
+      dgettext("apns", "%{name} chose%{verb_ending_ru} you in the game",
+        name: name_from,
+        verb_ending_ru: verb_ending_ru
+      )
+
+    alert = %{"title" => title, "body" => body}
+    base_alert_payload(type, alert, data)
+  end
+
+  def build_alert_payload("compliment" = type, %{"prompt" => prompt, "emoji" => emoji} = data) do
+    title = emoji <> " " <> dgettext("apns", "Someone ") <> Games.render(prompt <> "_push")
+    body = dgettext("apns", "Play the game to find out")
+
+    alert = %{"title" => title, "body" => body}
     base_alert_payload(type, alert, data)
   end
 

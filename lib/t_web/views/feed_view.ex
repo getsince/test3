@@ -23,14 +23,14 @@ defmodule TWeb.FeedView do
       }) do
     render_profile(
       profile,
-      [:user_id, :name, :gender, :story],
+      [:user_id, :name, :gender, :story, :distance, :address],
       version,
       screen_width,
-      _env = :match
+      _env = :feed
     )
   end
 
-  def render("feed_profile_with_distance.json", %{
+  def render("match_profile.json", %{
         profile: profile,
         version: version,
         screen_width: screen_width

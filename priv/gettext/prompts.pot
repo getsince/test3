@@ -1,0 +1,211 @@
+## This file is a PO Template file.
+##
+## "msgid"s here are often extracted from source code.
+## Add new translations manually only if they're dynamic
+## translations that can't be statically extracted.
+##
+## Run "mix gettext.extract" to bring this file up to
+## date. Leave "msgstr"s empty as changing them here has no
+## effect: edit them in PO (.po) files instead.
+msgid ""
+msgstr ""
+
+#: lib/t/games.ex:80
+#, elixir-autogen, elixir-format
+msgid "bar_with"
+msgstr ""
+
+#: lib/t/games.ex:82
+#, elixir-autogen, elixir-format
+msgid "bar_with_push"
+msgstr ""
+
+#: lib/t/games.ex:80
+#, elixir-autogen, elixir-format
+msgid "beautiful_profile"
+msgstr ""
+
+#: lib/t/games.ex:82
+#, elixir-autogen, elixir-format
+msgid "beautiful_profile_push"
+msgstr ""
+
+#: lib/t/games.ex:80
+#, elixir-autogen, elixir-format
+msgid "best_dressed"
+msgstr ""
+
+#: lib/t/games.ex:82
+#, elixir-autogen, elixir-format
+msgid "best_dressed_push"
+msgstr ""
+
+#: lib/t/games.ex:80
+#, elixir-autogen, elixir-format
+msgid "best_smile"
+msgstr ""
+
+#: lib/t/games.ex:82
+#, elixir-autogen, elixir-format
+msgid "best_smile_push"
+msgstr ""
+
+#: lib/t/games.ex:80
+#, elixir-autogen, elixir-format
+msgid "cinema_with"
+msgstr ""
+
+#: lib/t/games.ex:82
+#, elixir-autogen, elixir-format
+msgid "cinema_with_push"
+msgstr ""
+
+#: lib/t/games.ex:80
+#, elixir-autogen, elixir-format
+msgid "eat_pizza"
+msgstr ""
+
+#: lib/t/games.ex:82
+#, elixir-autogen, elixir-format
+msgid "eat_pizza_push"
+msgstr ""
+
+#: lib/t/games.ex:80
+#, elixir-autogen, elixir-format
+msgid "human_golden_retriever"
+msgstr ""
+
+#: lib/t/games.ex:82
+#, elixir-autogen, elixir-format
+msgid "human_golden_retriever_push"
+msgstr ""
+
+#: lib/t/games.ex:80
+#, elixir-autogen, elixir-format
+msgid "invite_home"
+msgstr ""
+
+#: lib/t/games.ex:82
+#, elixir-autogen, elixir-format
+msgid "invite_home_push"
+msgstr ""
+
+#: lib/t/games.ex:80
+#, elixir-autogen, elixir-format
+msgid "jazz_together"
+msgstr ""
+
+#: lib/t/games.ex:82
+#, elixir-autogen, elixir-format
+msgid "jazz_together_push"
+msgstr ""
+
+#: lib/t/games.ex:80
+#, elixir-autogen, elixir-format
+msgid "meet_for_coffee"
+msgstr ""
+
+#: lib/t/games.ex:82
+#, elixir-autogen, elixir-format
+msgid "meet_for_coffee_push"
+msgstr ""
+
+#: lib/t/games.ex:80
+#, elixir-autogen, elixir-format
+msgid "museum_together"
+msgstr ""
+
+#: lib/t/games.ex:82
+#, elixir-autogen, elixir-format
+msgid "museum_together_push"
+msgstr ""
+
+#: lib/t/games.ex:80
+#, elixir-autogen, elixir-format
+msgid "party_with"
+msgstr ""
+
+#: lib/t/games.ex:82
+#, elixir-autogen, elixir-format
+msgid "party_with_push"
+msgstr ""
+
+#: lib/t/games.ex:80
+#, elixir-autogen, elixir-format
+msgid "plane_trip"
+msgstr ""
+
+#: lib/t/games.ex:82
+#, elixir-autogen, elixir-format
+msgid "plane_trip_push"
+msgstr ""
+
+#: lib/t/games.ex:80
+#, elixir-autogen, elixir-format
+msgid "potential_friend"
+msgstr ""
+
+#: lib/t/games.ex:82
+#, elixir-autogen, elixir-format
+msgid "potential_friend_push"
+msgstr ""
+
+#: lib/t/games.ex:80
+#, elixir-autogen, elixir-format
+msgid "road_trip"
+msgstr ""
+
+#: lib/t/games.ex:82
+#, elixir-autogen, elixir-format
+msgid "road_trip_push"
+msgstr ""
+
+#: lib/t/games.ex:80
+#, elixir-autogen, elixir-format
+msgid "show_baby_photos"
+msgstr ""
+
+#: lib/t/games.ex:82
+#, elixir-autogen, elixir-format
+msgid "show_baby_photos_push"
+msgstr ""
+
+#: lib/t/games.ex:80
+#, elixir-autogen, elixir-format
+msgid "smells_good"
+msgstr ""
+
+#: lib/t/games.ex:82
+#, elixir-autogen, elixir-format
+msgid "smells_good_push"
+msgstr ""
+
+#: lib/t/games.ex:80
+#, elixir-autogen, elixir-format
+msgid "stand_up_together"
+msgstr ""
+
+#: lib/t/games.ex:82
+#, elixir-autogen, elixir-format
+msgid "stand_up_together_push"
+msgstr ""
+
+#: lib/t/games.ex:80
+#, elixir-autogen, elixir-format
+msgid "tell_about_childhood"
+msgstr ""
+
+#: lib/t/games.ex:82
+#, elixir-autogen, elixir-format
+msgid "tell_about_childhood_push"
+msgstr ""
+
+#: lib/t/games.ex:80
+#, elixir-autogen, elixir-format
+msgid "yoga_with"
+msgstr ""
+
+#: lib/t/games.ex:82
+#, elixir-autogen, elixir-format
+msgid "yoga_with_push"
+msgstr ""

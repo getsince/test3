@@ -5,6 +5,7 @@ defmodule T.Factory do
   alias T.Feeds.{SeenProfile, Meeting}
   alias T.Chats.Chat
   alias T.Matches.{Match, MatchEvent}
+  alias T.Games.Compliment
 
   alias T.News
 
@@ -27,6 +28,10 @@ defmodule T.Factory do
 
   def meeting_factory do
     %Meeting{data: %{"text" => "hello", "background" => %{"color" => "#A2ABEC"}}}
+  end
+
+  def compliment_factory do
+    %Compliment{}
   end
 
   def match_factory do

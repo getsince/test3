@@ -11,102 +11,122 @@ msgstr ""
 "Language: en\n"
 "Plural-Forms: nplurals=2\n"
 
-#: lib/t/push_notifications/apns.ex:145
+#: lib/t/push_notifications/apns.ex:177
 #, elixir-autogen, elixir-format
 msgid "Hey, create your own cool profile ✨"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:146
+#: lib/t/push_notifications/apns.ex:178
 #, elixir-autogen, elixir-format
 msgid "Meet interesting people ✌️"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:155
+#: lib/t/push_notifications/apns.ex:187
 #, elixir-autogen, elixir-format
 msgid "The current version is no longer supported 🙃"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:154
+#: lib/t/push_notifications/apns.ex:186
 #, elixir-autogen, elixir-format
 msgid "Update the app in the App Store ✨"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:107
+#: lib/t/push_notifications/apns.ex:108
 #, elixir-autogen, elixir-format
 msgid "sent%{verb_ending_ru} a contact"
 msgstr "sent a contact"
 
-#: lib/t/push_notifications/apns.ex:95
+#: lib/t/push_notifications/apns.ex:96
 #, elixir-autogen, elixir-format
 msgid "sent%{verb_ending_ru} a drawing"
 msgstr "sent a drawing"
 
-#: lib/t/push_notifications/apns.ex:104
+#: lib/t/push_notifications/apns.ex:105
 #, elixir-autogen, elixir-format
 msgid "sent%{verb_ending_ru} a music track"
 msgstr "sent a music track"
 
-#: lib/t/push_notifications/apns.ex:98
+#: lib/t/push_notifications/apns.ex:99
 #, elixir-autogen, elixir-format
 msgid "sent%{verb_ending_ru} a video message"
 msgstr "sent a video message"
 
-#: lib/t/push_notifications/apns.ex:101
+#: lib/t/push_notifications/apns.ex:102
 #, elixir-autogen, elixir-format
 msgid "sent%{verb_ending_ru} a voice message"
 msgstr "sent a voice message"
 
-#: lib/t/push_notifications/apns.ex:110
+#: lib/t/push_notifications/apns.ex:111
 #, elixir-autogen, elixir-format
 msgid "sent%{verb_ending_ru} a photo"
 msgstr "sent a photo"
 
-#: lib/t/push_notifications/apns.ex:78
+#: lib/t/push_notifications/apns.ex:79
 #, elixir-autogen, elixir-format, fuzzy
 msgid "accepted%{verb_ending_ru} your invitation"
 msgstr "accepted your invitation"
 
-#: lib/t/push_notifications/apns.ex:75
+#: lib/t/push_notifications/apns.ex:76
 #, elixir-autogen, elixir-format, fuzzy
 msgid "invited you to connect"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:135
+#: lib/t/push_notifications/apns.ex:167
 #, elixir-autogen, elixir-format
 msgid "Now you can see %{pronoun_belonging_to} private pages"
 msgstr "Now you can see %{pronoun_belonging_to} private pages"
 
-#: lib/t/push_notifications/apns.ex:129
+#: lib/t/push_notifications/apns.ex:161
 #, elixir-autogen, elixir-format, fuzzy
 msgid "%{name_of} replied%{verb_ending_ru} to you"
 msgstr "%{name_of} replied to you"
 
-#: lib/t/push_notifications/apns.ex:161
+#: lib/t/push_notifications/apns.ex:193
 #, elixir-autogen, elixir-format
 msgid "her BELONGING TO"
 msgstr "her"
 
-#: lib/t/push_notifications/apns.ex:162
+#: lib/t/push_notifications/apns.ex:194
 #, elixir-autogen, elixir-format
 msgid "his BELONGING TO"
 msgstr "his"
 
-#: lib/t/push_notifications/apns.ex:163
+#: lib/t/push_notifications/apns.ex:195
 #, elixir-autogen, elixir-format
 msgid "their BELONGING TO"
 msgstr "their"
 
-#: lib/t/push_notifications/apns.ex:83
+#: lib/t/push_notifications/apns.ex:84
 #, elixir-autogen, elixir-format
 msgid "wants to join your meeting"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:86
+#: lib/t/push_notifications/apns.ex:87
 #, elixir-autogen, elixir-format
 msgid "approved your request to join the meeting"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:89
+#: lib/t/push_notifications/apns.ex:90
 #, elixir-autogen, elixir-format
 msgid "declined your request to join the meeting"
+msgstr ""
+
+#: lib/t/push_notifications/apns.ex:132
+#, elixir-autogen, elixir-format
+msgid "%{name} chose%{verb_ending_ru} you in the game"
+msgstr "%{name} chose you in the game"
+
+#: lib/t/push_notifications/apns.ex:143
+#, elixir-autogen, elixir-format
+msgid "Play the game to find out"
+msgstr ""
+
+#: lib/t/push_notifications/apns.ex:142
+#, elixir-autogen, elixir-format
+msgid "Someone "
+msgstr ""
+
+#: lib/t/push_notifications/apns.ex:122
+#, elixir-autogen, elixir-format
+msgid "This is a match!"
 msgstr ""

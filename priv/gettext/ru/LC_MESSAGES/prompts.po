@@ -79,7 +79,7 @@ msgstr "Голден-ретривер среди людей"
 #: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "human_golden_retriever_push"
-msgstr "думает, что ты голден-ретривер среди людей"
+msgstr "сказал, что ты голден-ретривер среди людей"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format

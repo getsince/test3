@@ -272,8 +272,9 @@ defmodule T.Games do
     |> Multi.run(:maybe_insert_chat, fn repo, %{compliment_exchange?: exchange} ->
       if exchange do
         case repo.get_by(Chat, user_id_1: user_id_1, user_id_2: user_id_2) do
-          %Chat{} = chat ->
-            {:ok, chat}
+          %Chat{id: chat_id} = chat ->
+            messages = Message |> where(chat_id: ^chat_id) |> repo.all
+            {:ok, %Chat{chat | messages: messages}}
 
           nil ->
             chat = %Chat{user_id_1: user_id_1, user_id_2: user_id_2} |> repo.insert!()
@@ -324,15 +325,16 @@ defmodule T.Games do
             "from_user_id" => from_user_id,
             "to_user_id" => to_user_id,
             "compliment_id" => compliment_id,
-            "prompt" => prompt
+            "prompt" => prompt,
+            "emoji" => @prompts[prompt]
           })
         else
           DispatchJob.new(%{
             "type" => "compliment",
-            "from_user_id" => from_user_id,
             "to_user_id" => to_user_id,
             "compliment_id" => compliment_id,
-            "prompt" => prompt
+            "prompt" => prompt,
+            "emoji" => @prompts[prompt]
           })
         end
 
@@ -344,8 +346,21 @@ defmodule T.Games do
         broadcast_compliment(compliment)
         {:ok, compliment}
 
-      {:ok, %{maybe_insert_chat: %Chat{} = chat, maybe_insert_messages: messages}} ->
-        chat_with_messages = %Chat{chat | messages: messages}
+      {:ok,
+       %{
+         maybe_insert_chat: %Chat{messages: maybe_previous_messages} = chat,
+         maybe_insert_messages: messages
+       }} ->
+        m = "compliments exchanged between #{from_user_id} and #{to_user_id}"
+        Logger.warn(m)
+        Bot.async_post_message(m)
+
+        chat_with_messages =
+          case maybe_previous_messages do
+            nil -> %Chat{chat | messages: messages}
+            _ -> %Chat{chat | messages: maybe_previous_messages ++ messages}
+          end
+
         broadcast_chat(chat_with_messages)
         {:ok, chat_with_messages}
 

@@ -38,6 +38,27 @@ defmodule T.PushNotifications.DispatchJob do
   end
 
   defp handle_type(
+         "compliment_revealed" = type,
+         %{"from_user_id" => from_user_id, "to_user_id" => to_user_id} = args
+       ) do
+    profile_from = profile_info(from_user_id)
+
+    if profile_from do
+      {name_from, gender_from} = profile_from
+      data = args |> Map.merge(%{"name_from" => name_from, "gender_from" => gender_from})
+      to_user_id |> Accounts.list_apns_devices() |> schedule_apns(type, data)
+    end
+
+    :ok
+  end
+
+  defp handle_type("compliment" = type, %{"to_user_id" => to_user_id} = args) do
+    to_user_id |> Accounts.list_apns_devices() |> schedule_apns(type, args)
+
+    :ok
+  end
+
+  defp handle_type(
          "private_page_available" = type,
          %{
            "for_user_id" => for_user_id,

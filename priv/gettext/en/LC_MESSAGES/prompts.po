@@ -19,7 +19,7 @@ msgstr "With whom would you spend time at the bar?"
 #: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "bar_with_push"
-msgstr "would like to spend time with you at the bar"
+msgstr "wants to spend time with you at the bar"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
@@ -29,7 +29,7 @@ msgstr "The most beautiful profile"
 #: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "beautiful_profile_push"
-msgstr "thinks you have the most beautiful profile"
+msgstr "says you have the most beautiful profile"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
@@ -39,7 +39,7 @@ msgstr "Best dressed"
 #: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "best_dressed_push"
-msgstr "thinks you are the best dressed"
+msgstr "says you are the best dressed"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
@@ -49,7 +49,7 @@ msgstr "Best smile"
 #: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "best_smile_push"
-msgstr "thinks you have the best smile"
+msgstr "says you have the best smile"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
@@ -59,7 +59,7 @@ msgstr "Who would you go to the cinema with?"
 #: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "cinema_with_push"
-msgstr "would like to go to the cinema with you"
+msgstr "wants to go to the cinema with you"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
@@ -69,7 +69,7 @@ msgstr "I would eat pizza with…"
 #: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "eat_pizza_push"
-msgstr "would like to eat pizza with you"
+msgstr "wants to eat pizza with you"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
@@ -79,7 +79,7 @@ msgstr "Human Golden Retriever"
 #: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "human_golden_retriever_push"
-msgstr "thinks that you are a human golden retriever"
+msgstr "says you are a Human Golden Retriever"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
@@ -99,7 +99,7 @@ msgstr "We would listen to jazz together"
 #: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "jazz_together_push"
-msgstr "would like to listen to jazz with you"
+msgstr "wants to listen to jazz with you"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
@@ -109,7 +109,7 @@ msgstr "Who would you meet for coffee?"
 #: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "meet_for_coffee_push"
-msgstr "would like to meet you for coffee"
+msgstr "wants to meet you for coffee"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
@@ -119,7 +119,7 @@ msgstr "We would go to the museum together"
 #: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "museum_together_push"
-msgstr "would like to go to the museum with you"
+msgstr "wants to go to the museum with you"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
@@ -129,7 +129,7 @@ msgstr "Who would you go to a party with?"
 #: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "party_with_push"
-msgstr "would like to go to a party with you"
+msgstr "wants to go to a party with you"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
@@ -139,7 +139,7 @@ msgstr "I would go on a trip with…"
 #: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "plane_trip_push"
-msgstr "would like to go on a trip with you"
+msgstr "wants to go on a trip with you"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
@@ -149,7 +149,7 @@ msgstr "Who looks like your potential friend?"
 #: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "potential_friend_push"
-msgstr "thinks you look like a potential friend"
+msgstr "says you look like a potential friend"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
@@ -159,7 +159,7 @@ msgstr "I would go on a trip with…"
 #: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "road_trip_push"
-msgstr "would like to go on a trip with you"
+msgstr "wants to go on a trip with you"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
@@ -169,7 +169,7 @@ msgstr "Who would you show your baby photos to?"
 #: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "show_baby_photos_push"
-msgstr "would like to show you their baby photos"
+msgstr "would show you their baby photos"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
@@ -179,7 +179,7 @@ msgstr "Probably smells good"
 #: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "smells_good_push"
-msgstr "thinks that you probably smells good"
+msgstr "says that you probably smell good"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
@@ -189,7 +189,7 @@ msgstr "We would go to stand-up together"
 #: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "stand_up_together_push"
-msgstr "would like to go to stand-up with you"
+msgstr "wants to go to stand-up with you"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
@@ -199,7 +199,7 @@ msgstr "Who would you tell about your childhood?"
 #: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "tell_about_childhood_push"
-msgstr "would like to tell you about their childhood"
+msgstr "would tell you about their childhood"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
@@ -209,4 +209,4 @@ msgstr "I would go to yoga with…"
 #: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "yoga_with_push"
-msgstr "would like to go to yoga with you"
+msgstr "wants to go to yoga with you"

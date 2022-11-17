@@ -14,12 +14,12 @@ msgstr ""
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
 msgid "bar_with"
-msgstr "С кем бы провел время в баре?"
+msgstr "С кем бы сходил в бар?"
 
 #: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "bar_with_push"
-msgstr "хочет провести с тобой время в баре"
+msgstr "хочет сходить с тобой в бар"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
@@ -29,7 +29,7 @@ msgstr "Самый красивый профиль"
 #: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "beautiful_profile_push"
-msgstr "думает, что у тебя самый красивый профиль"
+msgstr "сказал, что у тебя самый красивый профиль"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
@@ -39,7 +39,7 @@ msgstr "Классный стиль в одежде"
 #: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "best_dressed_push"
-msgstr "думает, что у тебя классный стиль в одежде"
+msgstr "сказал, что у тебя классный стиль в одежде"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
@@ -49,7 +49,7 @@ msgstr "Лучшая улыбка"
 #: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "best_smile_push"
-msgstr "думает, что у тебя лучшая улыбка"
+msgstr "сказал, что у тебя лучшая улыбка"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
@@ -89,7 +89,7 @@ msgstr "Пригласил бы к себе в гости"
 #: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "invite_home_push"
-msgstr "хочет пригласить тебя в гости"
+msgstr "пригласил бы тебя в гости"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
@@ -144,12 +144,12 @@ msgstr "хочет поехать с тобой в путешествие"
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
 msgid "potential_friend"
-msgstr "выглядит как твой потенциальный друг?"
+msgstr "Кто выглядит как твой потенциальный друг?"
 
 #: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "potential_friend_push"
-msgstr "думает, что ты выглядишь как потенциальный друг"
+msgstr "сказал, что ты выглядишь как потенциальный друг"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
@@ -179,7 +179,7 @@ msgstr "Возможно, очень вкусно пахнет"
 #: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "smells_good_push"
-msgstr "думает, что ты, возможно, вкусно пахнешь"
+msgstr "сказал, что ты, возможно, вкусно пахнешь"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
@@ -199,7 +199,7 @@ msgstr "Кому бы ты рассказал о своем детстве?"
 #: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "tell_about_childhood_push"
-msgstr "хочет рассказать тебе о своем детстве"
+msgstr "рассказал бы тебе о своем детстве"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format

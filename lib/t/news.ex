@@ -13,7 +13,7 @@ defmodule T.News do
         [
           %{
             id: 19,
-            timestamp: ~U[2022-10-18 14:00:00Z],
+            timestamp: ~U[2022-11-18 14:00:00Z],
             version: "8.2.0",
             story: [
               %{
@@ -53,7 +53,7 @@ defmodule T.News do
         [
           %{
             id: 19,
-            timestamp: ~U[2022-10-18 14:00:00Z],
+            timestamp: ~U[2022-11-18 14:00:00Z],
             version: "8.2.0",
             story: [
               %{

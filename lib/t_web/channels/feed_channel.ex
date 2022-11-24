@@ -2,8 +2,8 @@ defmodule TWeb.FeedChannel do
   use TWeb, :channel
   import TWeb.ChannelHelpers
 
-  alias TWeb.{FeedView, ChatView, MatchView, ViewHelpers, GameView}
-  alias T.{Feeds, Chats, Matches, Accounts, Events, News, Todos, Games}
+  alias TWeb.{FeedView, ChatView, ViewHelpers, GameView}
+  alias T.{Feeds, Chats, Accounts, Events, News, Todos, Games}
   alias T.Chats.{Chat, Message}
   alias T.Games.Compliment
 
@@ -54,18 +54,6 @@ defmodule TWeb.FeedChannel do
 
     location = socket.assigns.location || old_location
     %{screen_width: screen_width, version: version} = socket.assigns
-
-    # TODO remove
-    likes =
-      user_id
-      |> Feeds.list_received_likes(location)
-      |> render_likes(version, screen_width)
-
-    # TODO remove
-    matches =
-      user_id
-      |> Matches.list_matches(location)
-      |> render_matches(version, screen_width)
 
     chats =
       user_id
@@ -133,8 +121,6 @@ defmodule TWeb.FeedChannel do
       |> maybe_put("news", news)
       |> maybe_put("todos", todos)
       |> maybe_put("chats", chats)
-      |> maybe_put("likes", likes)
-      |> maybe_put("matches", matches)
       |> maybe_put_with_empty_list("feed", feed)
       |> maybe_put_with_empty_list("feed_categories", feed_categories)
       |> maybe_put_with_empty_list("meetings", meetings)
@@ -228,43 +214,6 @@ defmodule TWeb.FeedChannel do
     {:reply, :ok, socket}
   end
 
-  # TODO remove
-  def handle_in("seen-match", _params, socket) do
-    {:reply, :ok, socket}
-  end
-
-  # TODO remove
-  def handle_in("seen-like", _params, socket) do
-    {:reply, :ok, socket}
-  end
-
-  # TODO remove
-  def handle_in("reached-limit", _params, socket) do
-    {:reply, :ok, socket}
-  end
-
-  # TODO remove
-  def handle_in("like", _params, socket) do
-    alert =
-      alert(
-        dgettext("alerts", "Deprecation warning"),
-        dgettext("alerts", "Your app version is no longer supported, please upgrade.")
-      )
-
-    {:reply, {:error, %{alert: alert}}, socket}
-  end
-
-  # TODO remove
-  def handle_in("decline", _params, socket) do
-    alert =
-      alert(
-        dgettext("alerts", "Deprecation warning"),
-        dgettext("alerts", "Your app version is no longer supported, please upgrade.")
-      )
-
-    {:reply, {:error, %{alert: alert}}, socket}
-  end
-
   def handle_in("decline-invitation", %{"from_user_id" => from_user_id}, socket) do
     Chats.delete_chat(me_id(socket), from_user_id)
     {:reply, :ok, socket}
@@ -275,30 +224,8 @@ defmodule TWeb.FeedChannel do
     {:reply, :ok, socket}
   end
 
-  # TODO remove
-  def handle_in("unmatch", _params, socket) do
-    alert =
-      alert(
-        dgettext("alerts", "Deprecation warning"),
-        dgettext("alerts", "Your app version is no longer supported, please upgrade.")
-      )
-
-    {:reply, {:error, %{alert: alert}}, socket}
-  end
-
   def handle_in("report", params, socket) do
     report(socket, params)
-  end
-
-  # TODO remove
-  def handle_in("send-interaction", _params, socket) do
-    alert =
-      alert(
-        dgettext("alerts", "Deprecation warning"),
-        dgettext("alerts", "Your app version is no longer supported, please upgrade.")
-      )
-
-    {:reply, {:error, %{alert: alert}}, socket}
   end
 
   # messages
@@ -313,11 +240,6 @@ defmodule TWeb.FeedChannel do
       {:error, _changeset} ->
         {:reply, :error, socket}
     end
-  end
-
-  # TODO remove
-  def handle_in("seen-interaction", _params, socket) do
-    {:reply, :ok, socket}
   end
 
   def handle_in("seen-message", %{"message_id" => message_id}, socket) do
@@ -539,51 +461,12 @@ defmodule TWeb.FeedChannel do
     Enum.map(meetings, fn meeting -> render_meeting(meeting, version, screen_width) end)
   end
 
-  # TODO remove
-  defp render_likes(likes, version, screen_width) do
-    Enum.map(likes, fn %{profile: profile, seen: seen} ->
-      profile
-      |> render_feed_item(version, screen_width)
-      |> maybe_put("seen", seen)
-    end)
-  end
-
-  # TODO remove
-  defp render_matches(matches, version, screen_width) do
-    Enum.map(matches, fn match ->
-      %Matches.Match{
-        id: match_id,
-        inserted_at: inserted_at,
-        profile: profile,
-        expiration_date: expiration_date,
-        seen: seen,
-        interactions: interactions
-      } = match
-
-      render_match(%{
-        id: match_id,
-        inserted_at: inserted_at,
-        profile: profile,
-        screen_width: screen_width,
-        version: version,
-        expiration_date: expiration_date,
-        seen: seen,
-        interactions: interactions
-      })
-    end)
-  end
-
   defp render_chats(chats, version, screen_width) do
     Enum.map(chats, fn chat -> render_chat(chat, version, screen_width) end)
   end
 
   defp render_compliments(compliments) do
     Enum.map(compliments, fn compliment -> render_compliment(compliment) end)
-  end
-
-  # TODO remove
-  defp render_match(assigns) do
-    render(MatchView, "match.json", assigns)
   end
 
   defp render_game(nil = _game, _version, _screen_width), do: nil

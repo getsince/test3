@@ -385,7 +385,7 @@ defmodule T.Feeds do
     UserReport |> where(from_user_id: ^user_id) |> select([r], r.on_user_id)
   end
 
-  defp not_reported_profiles_q(query \\ not_hidden_profiles_q(), user_id) do
+  defp not_reported_profiles_q(query, user_id) do
     where(query, [p], p.user_id not in subquery(reported_user_ids_q(user_id)))
   end
 

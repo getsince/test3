@@ -13,7 +13,6 @@ defmodule T.Feeds do
 
   alias T.Accounts.{Profile, UserReport, GenderPreference}
   alias T.Chats.Chat
-  alias T.Matches.{Match, Like}
 
   alias T.Feeds.{
     FeedProfile,
@@ -503,45 +502,6 @@ defmodule T.Feeds do
     |> order_by(fragment("location <-> ?::geometry", ^location))
     |> limit(^count)
     |> Repo.all()
-  end
-
-  ### Likes
-
-  # TODO remove
-  @spec list_received_likes(Ecto.UUID.t(), Geo.Point.t()) :: [
-          %{profile: %FeedProfile{}, seen: boolean()}
-        ]
-  def list_received_likes(user_id, location) do
-    profiles_q = not_reported_profiles_q(user_id)
-
-    Like
-    |> where(user_id: ^user_id)
-    |> where([l], is_nil(l.declined))
-    |> not_match1_profiles_q(user_id)
-    |> not_match2_profiles_q(user_id)
-    |> order_by(desc: :inserted_at)
-    |> join(:inner, [l], p in subquery(profiles_q), on: p.user_id == l.by_user_id)
-    |> select([l, p], %{
-      profile: %{p | distance: distance_km(^location, p.location)},
-      seen: l.seen
-    })
-    |> Repo.all()
-  end
-
-  defp match_user1_ids_q(user_id) do
-    Match |> where(user_id_1: ^user_id) |> select([m], m.user_id_2)
-  end
-
-  defp match_user2_ids_q(user_id) do
-    Match |> where(user_id_2: ^user_id) |> select([m], m.user_id_1)
-  end
-
-  defp not_match1_profiles_q(query, user_id) do
-    where(query, [p], p.by_user_id not in subquery(match_user1_ids_q(user_id)))
-  end
-
-  defp not_match2_profiles_q(query, user_id) do
-    where(query, [p], p.by_user_id not in subquery(match_user2_ids_q(user_id)))
   end
 
   @doc "mark_profile_seen(user_id, by: <user-id>)"

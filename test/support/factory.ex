@@ -4,7 +4,6 @@ defmodule T.Factory do
   alias T.Accounts.{User, Profile, GenderPreference, APNSDevice, UserToken}
   alias T.Feeds.{SeenProfile, Meeting}
   alias T.Chats.Chat
-  alias T.Matches.{Match, MatchEvent}
   alias T.Games.Compliment
 
   alias T.News
@@ -34,16 +33,8 @@ defmodule T.Factory do
     %Compliment{}
   end
 
-  def match_factory do
-    %Match{}
-  end
-
   def chat_factory do
     %Chat{}
-  end
-
-  def match_event_factory do
-    %MatchEvent{}
   end
 
   def gender_preference_factory do

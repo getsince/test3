@@ -16,39 +16,6 @@ defmodule TWeb.FeedChannelTest do
       assert {:error, %{"error" => "forbidden"}} = join(socket, "feed:" <> Ecto.UUID.generate())
     end
 
-    test "shows private pages of matches", %{socket: socket, me: me} do
-      stacy =
-        onboarded_user(
-          name: "Private Stacy",
-          location: apple_location(),
-          story: [
-            %{"background" => %{"s3_key" => "public1"}, "labels" => [], "size" => [400, 100]},
-            %{
-              "background" => %{"s3_key" => "private"},
-              "blurred" => %{"s3_key" => "blurred"},
-              "labels" => [
-                %{
-                  "value" => "some private info",
-                  "position" => [100, 100]
-                }
-              ],
-              "size" => [100, 400]
-            }
-          ],
-          gender: "F",
-          accept_genders: ["M"]
-        )
-
-      insert(:match, user_id_1: me.id, user_id_2: stacy.id)
-
-      assert {:ok, %{"matches" => [%{"profile" => %{story: [public, private]}}]}, _socket} =
-               join(socket, "feed:" <> me.id)
-
-      assert Map.keys(public) == ["background", "labels", "size"]
-      assert Map.keys(private) == ["background", "labels", "private", "size"]
-      assert %{"private" => true} = private
-    end
-
     test "shows private pages of matched chats", %{socket: socket, me: me} do
       stacy =
         onboarded_user(

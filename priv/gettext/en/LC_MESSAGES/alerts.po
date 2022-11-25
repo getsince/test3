@@ -10,19 +10,3 @@ msgid ""
 msgstr ""
 "Language: en\n"
 "Plural-Forms: nplurals=2\n"
-
-#: lib/t_web/channels/feed_channel.ex:250
-#: lib/t_web/channels/feed_channel.ex:261
-#: lib/t_web/channels/feed_channel.ex:282
-#: lib/t_web/channels/feed_channel.ex:297
-#, elixir-autogen, elixir-format
-msgid "Deprecation warning"
-msgstr ""
-
-#: lib/t_web/channels/feed_channel.ex:251
-#: lib/t_web/channels/feed_channel.ex:262
-#: lib/t_web/channels/feed_channel.ex:283
-#: lib/t_web/channels/feed_channel.ex:298
-#, elixir-autogen, elixir-format
-msgid "Your app version is no longer supported, please upgrade."
-msgstr ""

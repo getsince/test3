@@ -292,6 +292,32 @@ defmodule TWeb.FeedChannel do
     {:reply, reply, socket}
   end
 
+  def handle_in("like", %{"user_id" => to_user_id}, socket) do
+    %{
+      current_user: user,
+      screen_width: screen_width,
+      version: version,
+      location: location
+    } = socket.assigns
+
+    case Games.save_compliment(to_user_id, user.id, "like") do
+      {:ok, %Compliment{}} ->
+        {:reply, :ok, socket}
+
+      {:ok, %Chat{} = chat} ->
+        if profile = Feeds.get_mate_feed_profile(to_user_id, location) do
+          {:reply,
+           {:ok,
+            %{
+              "chat" => render_chat(%{chat | profile: profile}, version, screen_width)
+            }}, socket}
+        end
+
+      {:error, _changeset} ->
+        {:reply, :error, socket}
+    end
+  end
+
   # onboarding events
 
   def handle_in(

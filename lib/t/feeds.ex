@@ -95,44 +95,22 @@ defmodule T.Feeds do
     "психолог" => "mindfulness"
   }
 
-  @feed_categories [
-    "recommended",
-    "new",
-    "recent",
-    "close",
-    "creatives",
-    "communication",
-    "sports",
-    "tech",
-    "networking",
-    "mindfulness"
-  ]
-
   def feed_fetch_count, do: @feed_fetch_count
   def feed_limit_period, do: @feed_limit_period
   def quality_likes_count_treshold, do: @quality_likes_count_treshold
-  def feed_categories, do: @feed_categories
 
   def fetch_feed(
         user_id,
         location,
         gender,
         feed_filter,
-        first_fetch,
-        feed_category \\ "recommended"
+        first_fetch
       ) do
     if first_fetch, do: empty_feeded_profiles(user_id)
 
     feeded_ids_q = FeededProfile |> where(for_user_id: ^user_id) |> select([f], f.user_id)
 
-    feed =
-      case feed_category do
-        "recommended" ->
-          fetch_recommended_feed(user_id, location, gender, feeded_ids_q, feed_filter)
-
-        _ ->
-          fetch_category_feed(user_id, location, gender, feed_category, feeded_ids_q, feed_filter)
-      end
+    feed = fetch_recommended_feed(user_id, location, gender, feeded_ids_q, feed_filter)
 
     mark_profiles_feeded(user_id, feed)
     feed
@@ -237,59 +215,6 @@ defmodule T.Feeds do
 
   defp not_seen_profiles_q(query, user_id) do
     where(query, [p], p.user_id not in subquery(seen_user_ids_q(user_id)))
-  end
-
-  defp fetch_category_feed(
-         user_id,
-         location,
-         gender,
-         feed_category,
-         feeded_ids_q,
-         feed_filter
-       ) do
-    feed_profiles_q(user_id, gender, feed_filter.genders)
-    |> where([p], p.user_id not in subquery(feeded_ids_q))
-    |> join(:left, [p, g], s in SeenProfile, on: [user_id: p.user_id, by_user_id: ^user_id])
-    |> maybe_filter_by_sticker(feed_category)
-    |> order_by_feed_category(feed_category, location)
-    |> maybe_apply_age_filters(feed_filter)
-    |> maybe_apply_distance_filter(location, feed_filter.distance)
-    |> limit(^@feed_fetch_count)
-    |> select([p, g, s], %{p | distance: distance_km(^location, p.location)})
-    |> Repo.all()
-  end
-
-  defp maybe_filter_by_sticker(query, feed_category)
-       when feed_category in ["recommended", "new", "recent", "close"],
-       do: query
-
-  defp maybe_filter_by_sticker(query, feed_category) do
-    category_stickers =
-      @onboarding_categories_stickers
-      |> Map.filter(fn {_key, value} -> value == feed_category end)
-      |> Map.keys()
-
-    query |> where(fragment("stickers && ?", ^category_stickers))
-  end
-
-  defp order_by_feed_category(query, "new", _location) do
-    query |> order_by(desc: :user_id)
-  end
-
-  defp order_by_feed_category(query, "recent", _location) do
-    query |> order_by(desc: :last_active)
-  end
-
-  defp order_by_feed_category(query, "close", location) do
-    query |> order_by(fragment("location <-> ?::geometry", ^location))
-  end
-
-  defp order_by_feed_category(query, _feed_category, location) do
-    query
-    |> order_by([p, g, s], [
-      fragment("? IS NOT NULL", s.by_user_id),
-      fragment("location <-> ?::geometry", ^location)
-    ])
   end
 
   defp maybe_apply_age_filters(query, feed_filter) do

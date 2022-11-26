@@ -214,6 +214,7 @@ defmodule TWeb.FeedChannel do
     {:reply, :ok, socket}
   end
 
+  # TODO deprecate
   def handle_in("decline-invitation", %{"from_user_id" => from_user_id}, socket) do
     Chats.delete_chat(me_id(socket), from_user_id)
     {:reply, :ok, socket}
@@ -290,6 +291,32 @@ defmodule TWeb.FeedChannel do
 
     reply = Games.mark_compliment_seen(by_user_id, compliment_id)
     {:reply, reply, socket}
+  end
+
+  def handle_in("like", %{"user_id" => to_user_id}, socket) do
+    %{
+      current_user: user,
+      screen_width: screen_width,
+      version: version,
+      location: location
+    } = socket.assigns
+
+    case Games.save_compliment(to_user_id, user.id, "like") do
+      {:ok, %Compliment{}} ->
+        {:reply, :ok, socket}
+
+      {:ok, %Chat{} = chat} ->
+        if profile = Feeds.get_mate_feed_profile(to_user_id, location) do
+          {:reply,
+           {:ok,
+            %{
+              "chat" => render_chat(%{chat | profile: profile}, version, screen_width)
+            }}, socket}
+        end
+
+      {:error, _changeset} ->
+        {:reply, :error, socket}
+    end
   end
 
   # onboarding events

@@ -82,6 +82,9 @@ defmodule T.Games do
     def render(unquote(push_tag)), do: dgettext("prompts", unquote(push_tag))
   end
 
+  def render("like"), do: dgettext("prompts", "like")
+  def render("like_push"), do: dgettext("prompts", "like_push")
+
   def prompts, do: @prompts
   def game_set_count, do: @game_set_count
 
@@ -251,7 +254,7 @@ defmodule T.Games do
       %Compliment{
         c
         | text: render(c.prompt),
-          emoji: @prompts[c.prompt],
+          emoji: @prompts[c.prompt] || "❤️",
           push_text: render(c.prompt <> "_push")
       }
     end)
@@ -270,7 +273,6 @@ defmodule T.Games do
   def local_save_compliment(from_user_id, to_user_id, prompt) do
     m = "compliment #{prompt} sent from #{from_user_id} to #{to_user_id}"
     Logger.warn(m)
-    Bot.async_post_message(m)
 
     [user_id_1, user_id_2] = Enum.sort([from_user_id, to_user_id])
 
@@ -367,7 +369,7 @@ defmodule T.Games do
         full_compliment = %Compliment{
           compliment
           | text: render(prompt),
-            emoji: @prompts[prompt],
+            emoji: @prompts[prompt] || "❤️",
             push_text: render(prompt <> "_push")
         }
 
@@ -403,7 +405,7 @@ defmodule T.Games do
     |> cast(attrs, [:prompt, :from_user_id, :to_user_id, :seen, :revealed])
     |> validate_required([:prompt, :from_user_id, :to_user_id, :seen, :revealed])
     |> validate_change(:prompt, fn :prompt, prompt ->
-      if prompt in Map.keys(@prompts) do
+      if prompt in (Map.keys(@prompts) ++ ["like"]) do
         []
       else
         [compliment: "unrecognized prompt"]
@@ -424,7 +426,7 @@ defmodule T.Games do
     data = %{
       "question" => "compliment",
       "prompt" => prompt,
-      "emoji" => @prompts[prompt],
+      "emoji" => @prompts[prompt] || "❤️",
       "text" => render(prompt),
       "push_text" => render(prompt <> "_push")
     }

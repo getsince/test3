@@ -13,6 +13,7 @@ defmodule T.Feeds do
 
   alias T.Accounts.{Profile, UserReport, GenderPreference}
   alias T.Chats.Chat
+  alias T.Games.Compliment
 
   alias T.Feeds.{
     FeedProfile,
@@ -434,6 +435,14 @@ defmodule T.Feeds do
     where(query, [p], p.gender in ^gender_preference)
   end
 
+  defp complimented_user_ids_q(user_id) do
+    Compliment |> where(from_user_id: ^user_id) |> select([c], c.to_user_id)
+  end
+
+  defp not_complimented_profiles_q(query, user_id) do
+    where(query, [p], p.user_id not in subquery(complimented_user_ids_q(user_id)))
+  end
+
   defp filtered_profiles_q(user_id, gender, gender_preference) do
     not_hidden_profiles_q()
     |> not_reported_profiles_q(user_id)
@@ -441,6 +450,7 @@ defmodule T.Feeds do
     |> not_chatters_profiles_q(user_id)
     |> profiles_that_accept_gender_q(gender)
     |> maybe_gender_preferenced_q(gender_preference)
+    |> not_complimented_profiles_q(user_id)
   end
 
   ### Onboarding Feed

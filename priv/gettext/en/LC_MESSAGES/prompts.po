@@ -210,3 +210,13 @@ msgstr "I would go to yoga with…"
 #, elixir-autogen, elixir-format
 msgid "yoga_with_push"
 msgstr "wants to go to yoga with you"
+
+#: lib/t/games.ex:85
+#, elixir-autogen, elixir-format
+msgid "like"
+msgstr "Like"
+
+#: lib/t/games.ex:86
+#, elixir-autogen, elixir-format
+msgid "like_push"
+msgstr "liked you"

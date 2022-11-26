@@ -278,9 +278,16 @@ defmodule T.Games do
 
     Multi.new()
     |> Multi.run(:compliment_exchange?, fn repo, _changes ->
-      case repo.get_by(Compliment, from_user_id: to_user_id, to_user_id: from_user_id) do
-        %Compliment{} = compliment -> {:ok, compliment}
-        nil -> {:ok, nil}
+      previous_compliment =
+        Compliment
+        |> where(from_user_id: ^to_user_id)
+        |> where(to_user_id: ^from_user_id)
+        |> limit(1)
+        |> repo.all()
+
+      case previous_compliment do
+        [%Compliment{} = compliment] -> {:ok, compliment}
+        [] -> {:ok, nil}
       end
     end)
     |> Multi.insert(:compliment, fn %{compliment_exchange?: exchange} ->

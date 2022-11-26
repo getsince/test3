@@ -369,7 +369,7 @@ defmodule T.Games do
         full_compliment = %Compliment{
           compliment
           | text: render(prompt),
-            emoji: @prompts[prompt],
+            emoji: @prompts[prompt] || "❤️",
             push_text: render(prompt <> "_push")
         }
 

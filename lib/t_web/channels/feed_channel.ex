@@ -214,6 +214,7 @@ defmodule TWeb.FeedChannel do
     {:reply, :ok, socket}
   end
 
+  # TODO deprecate
   def handle_in("decline-invitation", %{"from_user_id" => from_user_id}, socket) do
     Chats.delete_chat(me_id(socket), from_user_id)
     {:reply, :ok, socket}

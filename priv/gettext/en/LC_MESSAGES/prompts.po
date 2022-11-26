@@ -217,6 +217,6 @@ msgid "like"
 msgstr "Like"
 
 #: lib/t/games.ex:86
-#, elixir-autogen, elixir-format, fuzzy
+#, elixir-autogen, elixir-format
 msgid "like_push"
 msgstr "liked you"

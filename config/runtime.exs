@@ -87,6 +87,14 @@ if config_env() == :prod and not smoke? do
       }
     ]
 
+  config :t, AppStore,
+    key: %{
+      key: System.fetch_env!("APP_STORE_KEY"),
+      key_id: System.fetch_env!("APP_STORE_KEY_ID"),
+      issuer_id: System.fetch_env!("APP_STORE_ISSUER_ID"),
+      topic: apns_topic
+    }
+
   config :t, run_migrations_on_start?: true
 
   config :t, T.Repo,
@@ -179,6 +187,14 @@ if config_env() == :dev do
         env: :dev
       }
     ]
+
+  config :t, AppStore,
+    key: %{
+      key: System.fetch_env!("APP_STORE_KEY"),
+      key_id: System.fetch_env!("APP_STORE_KEY_ID"),
+      issuer_id: System.fetch_env!("APP_STORE_ISSUER_ID"),
+      topic: System.fetch_env!("APNS_TOPIC")
+    }
 
   config :t, T.PushNotifications.APNS, default_topic: System.fetch_env!("APNS_TOPIC")
 

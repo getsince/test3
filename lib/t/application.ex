@@ -12,6 +12,7 @@ defmodule T.Application do
         {Task.Supervisor, name: T.TaskSupervisor},
         maybe_events(),
         APNS.Token,
+        AppStore.Token,
         T.Spotify,
         maybe_finch(),
         maybe_cluster(),

@@ -176,7 +176,7 @@ defmodule T.Application do
   defp maybe_app_store_notifications() do
     if T.Cluster.is_primary() do
       Logger.info("Fetching App Store Notifications")
-      AppStore.Notificator
+      unless_disabled(AppStore.Notificator)
     end
   end
 

@@ -320,6 +320,7 @@ if config_env() == :test do
   config :t, T.PushNotifications.APNS, default_topic: "app.topic"
   config :t, T.Periodics, disabled?: true
   config :t, Finch, disabled?: false
+  config :t, AppStore.Notificator, disabled?: true
 
   # TODO
   config :t, primary_prefix: "nohost"
@@ -336,6 +337,7 @@ if config_env() == :bench do
   config :t, T.Periodics, disabled?: true
   config :t, T.Workflows, disabled?: true
   config :t, Finch, disabled?: true
+  config :t, AppStore.Notificator, disabled?: true
 
   # TODO
   config :t, primary_prefix: "nohost"

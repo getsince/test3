@@ -31,6 +31,8 @@ defmodule T.Accounts.Profile do
     field :name, :string
     field :gender, :string
     field :birthdate, :date
+
+    field :premium, :boolean
   end
 
   def changeset(profile, attrs, opts \\ []) do

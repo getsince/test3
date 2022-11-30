@@ -25,6 +25,7 @@ defmodule T.Application do
         maybe_periodics(),
         maybe_workflows(),
         maybe_endpoint(),
+        maybe_app_store_notifications(),
         TWeb.Telemetry,
         Supervisor.child_spec({Task, &T.Release.mark_ready/0}, id: :readiness_notifier)
       ]
@@ -169,6 +170,13 @@ defmodule T.Application do
   defp maybe_cluster do
     if topologies = Application.get_env(:libcluster, :topologies) do
       {Cluster.Supervisor, [topologies, [name: T.Cluster.Supervisor]]}
+    end
+  end
+
+  defp maybe_app_store_notifications() do
+    if T.Cluster.is_primary() do
+      Logger.info("Fetching App Store Notifications")
+      AppStore.Notificator
     end
   end
 

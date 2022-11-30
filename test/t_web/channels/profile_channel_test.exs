@@ -26,7 +26,8 @@ defmodule TWeb.ProfileChannelTest do
                gender: nil,
                name: nil,
                birthdate: nil,
-               address: nil
+               address: nil,
+               premium: false
              }
     end
   end
@@ -185,7 +186,8 @@ defmodule TWeb.ProfileChannelTest do
                    "country" => "Argentina",
                    "iso_country_code" => "AR"
                  }
-               }
+               },
+               premium: false
              }
     end
   end
@@ -292,7 +294,8 @@ defmodule TWeb.ProfileChannelTest do
                      "country" => "Argentina",
                      "iso_country_code" => "AR"
                    }
-                 }
+                 },
+                 premium: false
                }
              }
 

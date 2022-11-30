@@ -833,10 +833,10 @@ defmodule T.Accounts do
     end)
   end
 
-  def get_location_gender_hidden?(user_id) do
+  def get_location_gender_premium_hidden?(user_id) do
     Profile
     |> where(user_id: ^user_id)
-    |> select([p], {p.location, p.gender, p.hidden?})
+    |> select([p], {p.location, p.gender, p.premium, p.hidden?})
     |> Repo.one!()
   end
 

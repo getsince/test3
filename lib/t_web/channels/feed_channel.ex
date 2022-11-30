@@ -50,7 +50,9 @@ defmodule TWeb.FeedChannel do
 
   defp join_normal_mode(user_id, params, socket) do
     feed_filter = Feeds.get_feed_filter(user_id)
-    {old_location, gender, hidden?} = Accounts.get_location_gender_hidden?(user_id)
+
+    {old_location, gender, premium, hidden?} =
+      Accounts.get_location_gender_premium_hidden?(user_id)
 
     location = socket.assigns.location || old_location
     %{screen_width: screen_width, version: version} = socket.assigns
@@ -128,7 +130,13 @@ defmodule TWeb.FeedChannel do
       |> maybe_put("compliments", compliments)
 
     {:ok, reply,
-     assign(socket, feed_filter: feed_filter, location: location, gender: gender, mode: :normal)}
+     assign(socket,
+       feed_filter: feed_filter,
+       location: location,
+       gender: gender,
+       premium: premium,
+       mode: :normal
+     )}
   end
 
   def handle_in("fetch-category", %{"category" => category}, socket) do

@@ -10,16 +10,16 @@ defmodule AppStore.Token do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
-  @spec current_token() :: String.t()
-  def current_token() do
-    lookup_token() || refresh_token()
+  @spec current_env_and_token() :: {atom(), String.t()}
+  def current_env_and_token() do
+    lookup_env_and_token() || refresh_token()
   end
 
-  @spec lookup_token() :: String.t() | nil
-  defp lookup_token() do
-    case :ets.lookup(__MODULE__, "token") do
-      [{_, token}] -> if token_age(token) < 59 * 60, do: token
-      [] -> nil
+  @spec lookup_env_and_token() :: {atom(), String.t()} | nil
+  defp lookup_env_and_token() do
+    case :ets.first(__MODULE__) do
+      [{env, token}] -> if token_age(token) < 59 * 60, do: {env, token}
+      _ -> nil
     end
   end
 
@@ -29,7 +29,7 @@ defmodule AppStore.Token do
     |> Keyword.fetch!(:key)
   end
 
-  @spec refresh_token() :: String.t()
+  @spec refresh_token() :: {atom(), String.t()}
   defp refresh_token() do
     if key = find_app_store_key() do
       GenServer.call(__MODULE__, {:refresh_token, key})
@@ -46,14 +46,16 @@ defmodule AppStore.Token do
 
   @impl true
   def handle_call({:refresh_token, key}, _from, state) do
-    %{key: key, key_id: key_id, issuer_id: issuer_id, topic: topic} = key
+    %{key: key, key_id: key_id, issuer_id: issuer_id, topic: topic, env: env} = key
 
-    if token = lookup_token() do
-      {:reply, token, state}
-    else
-      token = generate_jwt_token(key, key_id, issuer_id, topic)
-      :ets.insert(__MODULE__, {"token", token})
-      {:reply, token, state}
+    case lookup_env_and_token() do
+      {env, token} ->
+        {:reply, {env, token}, state}
+
+      nil ->
+        token = generate_jwt_token(key, key_id, issuer_id, topic)
+        :ets.insert(__MODULE__, {env, token})
+        {:reply, {env, token}, state}
     end
   end
 
@@ -63,8 +65,6 @@ defmodule AppStore.Token do
     jwk = JWK.from_pem(key)
     jws = JWS.from_map(%{"alg" => "ES256", "kid" => key_id, "typ" => "JWT"})
 
-    Logger.warn(jws)
-
     payload = %{
       "aud" => "appstoreconnect-v1",
       "iss" => issuer_id,
@@ -72,8 +72,6 @@ defmodule AppStore.Token do
       "exp" => now + 3600,
       "bid" => topic
     }
-
-    Logger.warn(payload)
 
     jwt = JWT.sign(jwk, jws, payload)
 

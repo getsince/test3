@@ -92,7 +92,8 @@ if config_env() == :prod and not smoke? do
       key: System.fetch_env!("APP_STORE_KEY"),
       key_id: System.fetch_env!("APP_STORE_KEY_ID"),
       issuer_id: System.fetch_env!("APP_STORE_ISSUER_ID"),
-      topic: apns_topic
+      topic: apns_topic,
+      env: :prod
     }
 
   config :t, run_migrations_on_start?: true
@@ -193,7 +194,8 @@ if config_env() == :dev do
       key: System.fetch_env!("APP_STORE_KEY"),
       key_id: System.fetch_env!("APP_STORE_KEY_ID"),
       issuer_id: System.fetch_env!("APP_STORE_ISSUER_ID"),
-      topic: System.fetch_env!("APNS_TOPIC")
+      topic: System.fetch_env!("APNS_TOPIC"),
+      env: :dev
     }
 
   config :t, T.PushNotifications.APNS, default_topic: System.fetch_env!("APNS_TOPIC")

@@ -11,7 +11,7 @@ defmodule T.Games do
 
   alias T.{Repo, Bot}
 
-  alias T.Accounts.{UserReport, GenderPreference}
+  alias T.Accounts.{Profile, UserReport, GenderPreference}
   alias T.Chats.{Chat, Message}
   alias T.Games.Compliment
   alias T.Feeds.FeedProfile
@@ -78,12 +78,17 @@ defmodule T.Games do
 
   for {tag, _emoji} <- @prompts do
     def render(unquote(tag)), do: dgettext("prompts", unquote(tag))
-    push_tag = tag <> "_push"
-    def render(unquote(push_tag)), do: dgettext("prompts", unquote(push_tag))
+
+    for gender <- ["F", "M", "N"] do
+      push_tag = tag <> "_push_" <> gender
+      def render(unquote(push_tag)), do: dgettext("prompts", unquote(push_tag))
+    end
   end
 
   def render("like"), do: dgettext("prompts", "like")
-  def render("like_push"), do: dgettext("prompts", "like_push")
+  def render("like_push_F"), do: dgettext("prompts", "like_push_F")
+  def render("like_push_M"), do: dgettext("prompts", "like_push_M")
+  def render("like_push_N"), do: dgettext("prompts", "like_push_N")
 
   def prompts, do: @prompts
   def game_set_count, do: @game_set_count
@@ -245,20 +250,34 @@ defmodule T.Games do
 
   ### Compliment
 
-  def list_compliments(user_id) do
+  def list_compliments(user_id, premium) do
     Compliment
     |> where(to_user_id: ^user_id)
     |> order_by(desc: :inserted_at)
+    |> join(:inner, [c], p in FeedProfile, on: p.user_id == c.from_user_id)
+    |> select([c, p], {c, p})
     |> Repo.all()
-    |> Enum.map(fn c ->
+    |> Enum.map(fn {compliment, profile} ->
       %Compliment{
-        c
-        | text: render(c.prompt),
-          emoji: @prompts[c.prompt] || "❤️",
-          push_text: render(c.prompt <> "_push")
+        compliment
+        | text: render(compliment.prompt),
+          emoji: @prompts[compliment.prompt] || "❤️",
+          push_text: push_text(compliment, premium, profile)
       }
+      |> maybe_add_profile(premium, profile)
     end)
   end
+
+  defp push_text(compliment, false = _premium, _profile),
+    do: render(compliment.prompt <> "_push_M")
+
+  defp push_text(compliment, true = _premium, profile),
+    do: render(compliment.prompt <> "_push_" <> profile.gender)
+
+  defp maybe_add_profile(compliment, false = _premium, _profile), do: compliment
+
+  defp maybe_add_profile(compliment, true = _premium, profile),
+    do: %Compliment{compliment | profile: profile}
 
   def save_compliment(to_user_id, from_user_id, prompt) do
     primary_rpc(__MODULE__, :local_save_compliment, [
@@ -314,17 +333,29 @@ defmodule T.Games do
         {:ok, nil}
       end
     end)
+    |> Multi.run(:profiles, fn repo, _changes ->
+      profiles = Profile |> where([p], p.user_id in [^from_user_id, ^to_user_id]) |> repo.all()
+
+      to_user_profile = profiles |> Enum.find(fn p -> p.user_id == to_user_id end)
+      from_user_profile = profiles |> Enum.find(fn p -> p.user_id == from_user_id end)
+      {:ok, %{to_user_profile: to_user_profile, from_user_profile: from_user_profile}}
+    end)
     |> Multi.run(:maybe_insert_messages, fn repo,
                                             %{
                                               maybe_insert_chat: chat,
                                               compliment_exchange?: exchange,
-                                              compliment: compliment
+                                              compliment: compliment,
+                                              profiles: %{
+                                                to_user_profile: to_user_profile,
+                                                from_user_profile: from_user_profile
+                                              }
                                             } ->
       case {chat, exchange, compliment} do
         {%Chat{id: chat_id}, %Compliment{} = exchange, %Compliment{} = compliment} ->
-          messages =
-            [exchange, compliment]
-            |> Enum.map(fn c -> compliment_to_message_changeset(c, chat_id) end)
+          messages = [
+            compliment_to_message_changeset(exchange, chat_id, to_user_profile),
+            compliment_to_message_changeset(compliment, chat_id, from_user_profile)
+          ]
 
           repo.insert_all(Message, messages, returning: true)
           |> case do
@@ -346,7 +377,11 @@ defmodule T.Games do
     |> Multi.run(:push, fn _repo,
                            %{
                              compliment_exchange?: exchange,
-                             compliment: %Compliment{id: compliment_id}
+                             compliment: %Compliment{id: compliment_id},
+                             profiles: %{
+                               to_user_profile: to_user_profile,
+                               from_user_profile: from_user_profile
+                             }
                            } ->
       push_job =
         if exchange do
@@ -364,7 +399,10 @@ defmodule T.Games do
             "to_user_id" => to_user_id,
             "compliment_id" => compliment_id,
             "prompt" => prompt,
-            "emoji" => @prompts[prompt]
+            "emoji" => @prompts[prompt],
+            "premium" => to_user_profile.premium,
+            "from_user_name" => from_user_profile.name,
+            "from_user_gender" => from_user_profile.gender
           })
         end
 
@@ -372,12 +410,17 @@ defmodule T.Games do
     end)
     |> Repo.transaction()
     |> case do
-      {:ok, %{compliment_exchange?: nil, compliment: %Compliment{prompt: prompt} = compliment}} ->
+      {:ok,
+       %{
+         compliment_exchange?: nil,
+         compliment: %Compliment{prompt: prompt} = compliment,
+         profiles: %{to_user_profile: to_user_profile, from_user_profile: from_user_profile}
+       }} ->
         full_compliment = %Compliment{
           compliment
           | text: render(prompt),
             emoji: @prompts[prompt] || "❤️",
-            push_text: render(prompt <> "_push")
+            push_text: push_text(compliment, to_user_profile.premium, from_user_profile)
         }
 
         broadcast_compliment(full_compliment)
@@ -427,15 +470,16 @@ defmodule T.Games do
            to_user_id: to_user_id,
            prompt: prompt,
            inserted_at: inserted_at
-         },
-         chat_id
+         } = compliment,
+         chat_id,
+         from_user_profile
        ) do
     data = %{
       "question" => "compliment",
       "prompt" => prompt,
       "emoji" => @prompts[prompt] || "❤️",
       "text" => render(prompt),
-      "push_text" => render(prompt <> "_push")
+      "push_text" => push_text(compliment, true, from_user_profile)
     }
 
     %{

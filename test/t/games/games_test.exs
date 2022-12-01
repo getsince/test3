@@ -173,7 +173,7 @@ defmodule T.GamesTest do
     end
 
     test "no compliments", %{me: me} do
-      assert [] == Games.list_compliments(me.id)
+      assert [] == Games.list_compliments(me.id, false)
     end
 
     test "compliments have rendered text", %{me: me} do
@@ -188,7 +188,7 @@ defmodule T.GamesTest do
           prompt: random_prompt
         )
 
-      [%Compliment{} = compliment] = Games.list_compliments(me.id)
+      [%Compliment{} = compliment] = Games.list_compliments(me.id, false)
 
       assert compliment.id == c.id
       assert compliment.inserted_at == c.inserted_at
@@ -220,7 +220,7 @@ defmodule T.GamesTest do
     test "compliment exchange", %{me: me, mate: mate} do
       {random_prompt, emoji} = Games.prompts() |> Enum.random()
       prompt_text = Games.render(random_prompt)
-      prompt_push_text = Games.render(random_prompt <> "_push")
+      prompt_push_text = Games.render(random_prompt <> "_push_M")
 
       Games.subscribe_for_user(me.id)
       Games.subscribe_for_user(mate.id)

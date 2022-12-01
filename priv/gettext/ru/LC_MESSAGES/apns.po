@@ -11,22 +11,22 @@ msgstr ""
 "Language: ru\n"
 "Plural-Forms: nplurals=3\n"
 
-#: lib/t/push_notifications/apns.ex:177
+#: lib/t/push_notifications/apns.ex:202
 #, elixir-autogen, elixir-format
 msgid "Hey, create your own cool profile ✨"
 msgstr "Привет, создай свой классный профиль ✨"
 
-#: lib/t/push_notifications/apns.ex:178
+#: lib/t/push_notifications/apns.ex:203
 #, elixir-autogen, elixir-format
 msgid "Meet interesting people ✌️"
 msgstr "Знакомься с интересными людьми ✌️"
 
-#: lib/t/push_notifications/apns.ex:187
+#: lib/t/push_notifications/apns.ex:212
 #, elixir-autogen, elixir-format
 msgid "The current version is no longer supported 🙃"
 msgstr "Текущая версия больше не поддерживается 🙃"
 
-#: lib/t/push_notifications/apns.ex:186
+#: lib/t/push_notifications/apns.ex:211
 #, elixir-autogen, elixir-format
 msgid "Update the app in the App Store ✨"
 msgstr "Обнови приложение в App Store ✨"
@@ -71,27 +71,27 @@ msgstr "принял%{verb_ending_ru} твоё приглашение"
 msgid "invited you to connect"
 msgstr "хочет познакомиться"
 
-#: lib/t/push_notifications/apns.ex:167
+#: lib/t/push_notifications/apns.ex:192
 #, elixir-autogen, elixir-format
 msgid "Now you can see %{pronoun_belonging_to} private pages"
 msgstr "Теперь ты можешь смотреть %{pronoun_belonging_to} приватные страницы"
 
-#: lib/t/push_notifications/apns.ex:161
+#: lib/t/push_notifications/apns.ex:186
 #, elixir-autogen, elixir-format, fuzzy
 msgid "%{name_of} replied%{verb_ending_ru} to you"
 msgstr "%{name_of} ответил%{verb_ending_ru} тебе"
 
-#: lib/t/push_notifications/apns.ex:193
+#: lib/t/push_notifications/apns.ex:218
 #, elixir-autogen, elixir-format
 msgid "her BELONGING TO"
 msgstr "её"
 
-#: lib/t/push_notifications/apns.ex:194
+#: lib/t/push_notifications/apns.ex:219
 #, elixir-autogen, elixir-format
 msgid "his BELONGING TO"
 msgstr "его"
 
-#: lib/t/push_notifications/apns.ex:195
+#: lib/t/push_notifications/apns.ex:220
 #, elixir-autogen, elixir-format
 msgid "their BELONGING TO"
 msgstr "их"
@@ -111,17 +111,12 @@ msgstr "принимает твой запрос присоединиться к
 msgid "declined your request to join the meeting"
 msgstr "отклоняет твой запрос присоединиться к встрече"
 
-#: lib/t/push_notifications/apns.ex:132
+#: lib/t/push_notifications/apns.ex:133
 #, elixir-autogen, elixir-format
 msgid "%{name} chose%{verb_ending_ru} you in the game"
 msgstr "%{name} выбрал%{verb_ending_ru} тебя в игре"
 
-#: lib/t/push_notifications/apns.ex:143
-#, elixir-autogen, elixir-format
-msgid "Play the game to find out"
-msgstr "Сыграй в игру, чтобы узнать"
-
-#: lib/t/push_notifications/apns.ex:142
+#: lib/t/push_notifications/apns.ex:157
 #, elixir-autogen, elixir-format
 msgid "Someone "
 msgstr "Кто-то "
@@ -130,3 +125,28 @@ msgstr "Кто-то "
 #, elixir-autogen, elixir-format
 msgid "This is a match!"
 msgstr "Это мэтч!"
+
+#: lib/t/push_notifications/apns.ex:222
+#, elixir-autogen, elixir-format
+msgid "her HAVING"
+msgstr "её"
+
+#: lib/t/push_notifications/apns.ex:223
+#, elixir-autogen, elixir-format
+msgid "him HAVING"
+msgstr "его"
+
+#: lib/t/push_notifications/apns.ex:224
+#, elixir-autogen, elixir-format
+msgid "them HAVING"
+msgstr "их"
+
+#: lib/t/push_notifications/apns.ex:162
+#, elixir-autogen, elixir-format
+msgid "Check %{pronoun_having} out!"
+msgstr "Посмотри %{pronoun_having} профиль!"
+
+#: lib/t/push_notifications/apns.ex:166
+#, elixir-autogen, elixir-format
+msgid "Play the game to find out!"
+msgstr "Сыграй в игру, чтобы узнать!"

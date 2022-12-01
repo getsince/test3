@@ -11,22 +11,22 @@ msgstr ""
 "Language: en\n"
 "Plural-Forms: nplurals=2\n"
 
-#: lib/t/push_notifications/apns.ex:177
+#: lib/t/push_notifications/apns.ex:202
 #, elixir-autogen, elixir-format
 msgid "Hey, create your own cool profile ✨"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:178
+#: lib/t/push_notifications/apns.ex:203
 #, elixir-autogen, elixir-format
 msgid "Meet interesting people ✌️"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:187
+#: lib/t/push_notifications/apns.ex:212
 #, elixir-autogen, elixir-format
 msgid "The current version is no longer supported 🙃"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:186
+#: lib/t/push_notifications/apns.ex:211
 #, elixir-autogen, elixir-format
 msgid "Update the app in the App Store ✨"
 msgstr ""
@@ -71,27 +71,27 @@ msgstr "accepted your invitation"
 msgid "invited you to connect"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:167
+#: lib/t/push_notifications/apns.ex:192
 #, elixir-autogen, elixir-format
 msgid "Now you can see %{pronoun_belonging_to} private pages"
 msgstr "Now you can see %{pronoun_belonging_to} private pages"
 
-#: lib/t/push_notifications/apns.ex:161
+#: lib/t/push_notifications/apns.ex:186
 #, elixir-autogen, elixir-format, fuzzy
 msgid "%{name_of} replied%{verb_ending_ru} to you"
 msgstr "%{name_of} replied to you"
 
-#: lib/t/push_notifications/apns.ex:193
+#: lib/t/push_notifications/apns.ex:218
 #, elixir-autogen, elixir-format
 msgid "her BELONGING TO"
 msgstr "her"
 
-#: lib/t/push_notifications/apns.ex:194
+#: lib/t/push_notifications/apns.ex:219
 #, elixir-autogen, elixir-format
 msgid "his BELONGING TO"
 msgstr "his"
 
-#: lib/t/push_notifications/apns.ex:195
+#: lib/t/push_notifications/apns.ex:220
 #, elixir-autogen, elixir-format
 msgid "their BELONGING TO"
 msgstr "their"
@@ -111,17 +111,12 @@ msgstr ""
 msgid "declined your request to join the meeting"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:132
+#: lib/t/push_notifications/apns.ex:133
 #, elixir-autogen, elixir-format
 msgid "%{name} chose%{verb_ending_ru} you in the game"
 msgstr "%{name} chose you in the game"
 
-#: lib/t/push_notifications/apns.ex:143
-#, elixir-autogen, elixir-format
-msgid "Play the game to find out"
-msgstr ""
-
-#: lib/t/push_notifications/apns.ex:142
+#: lib/t/push_notifications/apns.ex:157
 #, elixir-autogen, elixir-format
 msgid "Someone "
 msgstr ""
@@ -129,4 +124,29 @@ msgstr ""
 #: lib/t/push_notifications/apns.ex:122
 #, elixir-autogen, elixir-format
 msgid "This is a match!"
+msgstr ""
+
+#: lib/t/push_notifications/apns.ex:222
+#, elixir-autogen, elixir-format
+msgid "her HAVING"
+msgstr "her"
+
+#: lib/t/push_notifications/apns.ex:223
+#, elixir-autogen, elixir-format
+msgid "him HAVING"
+msgstr "him"
+
+#: lib/t/push_notifications/apns.ex:224
+#, elixir-autogen, elixir-format
+msgid "them HAVING"
+msgstr "them"
+
+#: lib/t/push_notifications/apns.ex:162
+#, elixir-autogen, elixir-format
+msgid "Check %{pronoun_having} out!"
+msgstr "Check %{pronoun_having} out!"
+
+#: lib/t/push_notifications/apns.ex:166
+#, elixir-autogen, elixir-format
+msgid "Play the game to find out!"
 msgstr ""

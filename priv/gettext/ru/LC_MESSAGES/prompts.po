@@ -16,207 +16,417 @@ msgstr ""
 msgid "bar_with"
 msgstr "С кем бы сходил в бар?"
 
-#: lib/t/games.ex:82
-#, elixir-autogen, elixir-format
-msgid "bar_with_push"
-msgstr "хочет сходить с тобой в бар"
-
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
 msgid "beautiful_profile"
 msgstr "Самый красивый профиль"
-
-#: lib/t/games.ex:82
-#, elixir-autogen, elixir-format
-msgid "beautiful_profile_push"
-msgstr "сказал, что у тебя самый красивый профиль"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
 msgid "best_dressed"
 msgstr "Классный стиль в одежде"
 
-#: lib/t/games.ex:82
-#, elixir-autogen, elixir-format
-msgid "best_dressed_push"
-msgstr "сказал, что у тебя классный стиль в одежде"
-
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
 msgid "best_smile"
 msgstr "Лучшая улыбка"
-
-#: lib/t/games.ex:82
-#, elixir-autogen, elixir-format
-msgid "best_smile_push"
-msgstr "сказал, что у тебя лучшая улыбка"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
 msgid "cinema_with"
 msgstr "С кем бы сходил на вечерний кинопоказ?"
 
-#: lib/t/games.ex:82
-#, elixir-autogen, elixir-format
-msgid "cinema_with_push"
-msgstr "сходил бы с тобой на вечерний кинопоказ"
-
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
 msgid "eat_pizza"
 msgstr "Съел бы по пицце с…"
-
-#: lib/t/games.ex:82
-#, elixir-autogen, elixir-format
-msgid "eat_pizza_push"
-msgstr "хочет съесть с тобой по пицце"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
 msgid "human_golden_retriever"
 msgstr "Голден-ретривер среди людей"
 
-#: lib/t/games.ex:82
-#, elixir-autogen, elixir-format
-msgid "human_golden_retriever_push"
-msgstr "сказал, что ты голден-ретривер среди людей"
-
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
 msgid "invite_home"
 msgstr "Пригласил бы к себе в гости"
-
-#: lib/t/games.ex:82
-#, elixir-autogen, elixir-format
-msgid "invite_home_push"
-msgstr "пригласил бы тебя в гости"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
 msgid "jazz_together"
 msgstr "Послушали бы джаз вместе"
 
-#: lib/t/games.ex:82
-#, elixir-autogen, elixir-format
-msgid "jazz_together_push"
-msgstr "хочет послушать джаз с тобой"
-
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
 msgid "meet_for_coffee"
 msgstr "С кем ты бы встретился за кофе?"
-
-#: lib/t/games.ex:82
-#, elixir-autogen, elixir-format
-msgid "meet_for_coffee_push"
-msgstr "хочет встретиться с тобой за кофе"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
 msgid "museum_together"
 msgstr "Сходили бы вместе в музей"
 
-#: lib/t/games.ex:82
-#, elixir-autogen, elixir-format
-msgid "museum_together_push"
-msgstr "хочет сходить вместе в музей"
-
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
 msgid "party_with"
 msgstr "С кем бы ты пошел на вечеринку?"
-
-#: lib/t/games.ex:82
-#, elixir-autogen, elixir-format
-msgid "party_with_push"
-msgstr "хочет пойти на вечеринку с тобой"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
 msgid "plane_trip"
 msgstr "Ты бы поехал в путешествие с…"
 
-#: lib/t/games.ex:82
-#, elixir-autogen, elixir-format
-msgid "plane_trip_push"
-msgstr "хочет поехать с тобой в путешествие"
-
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
 msgid "potential_friend"
 msgstr "Кто выглядит как твой потенциальный друг?"
-
-#: lib/t/games.ex:82
-#, elixir-autogen, elixir-format
-msgid "potential_friend_push"
-msgstr "сказал, что ты выглядишь как потенциальный друг"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
 msgid "road_trip"
 msgstr "Поехал бы в роадтрип с…"
 
-#: lib/t/games.ex:82
-#, elixir-autogen, elixir-format
-msgid "road_trip_push"
-msgstr "хочет поехать с тобой в роадтрип"
-
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
 msgid "show_baby_photos"
 msgstr "Кому бы ты показал свои детские фото?"
-
-#: lib/t/games.ex:82
-#, elixir-autogen, elixir-format
-msgid "show_baby_photos_push"
-msgstr "показал бы тебе свои детские фото"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
 msgid "smells_good"
 msgstr "Возможно, очень вкусно пахнет"
 
-#: lib/t/games.ex:82
-#, elixir-autogen, elixir-format
-msgid "smells_good_push"
-msgstr "сказал, что ты, возможно, вкусно пахнешь"
-
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
 msgid "stand_up_together"
 msgstr "Сходили бы вместе на стендап"
-
-#: lib/t/games.ex:82
-#, elixir-autogen, elixir-format
-msgid "stand_up_together_push"
-msgstr "хочет сходить вместе на стендап"
 
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
 msgid "tell_about_childhood"
 msgstr "Кому бы ты рассказал о своем детстве?"
 
-#: lib/t/games.ex:82
-#, elixir-autogen, elixir-format
-msgid "tell_about_childhood_push"
-msgstr "рассказал бы тебе о своем детстве"
-
 #: lib/t/games.ex:80
 #, elixir-autogen, elixir-format
 msgid "yoga_with"
 msgstr "Сходили бы на йогу"
 
-#: lib/t/games.ex:82
-#, elixir-autogen, elixir-format
-msgid "yoga_with_push"
-msgstr "хочет сходить вместе на йогу"
-
-#: lib/t/games.ex:85
+#: lib/t/games.ex:88
 #, elixir-autogen, elixir-format
 msgid "like"
 msgstr "Лайк"
 
-#: lib/t/games.ex:86
+#: lib/t/games.ex:84
 #, elixir-autogen, elixir-format
-msgid "like_push"
+msgid "bar_with_push_F"
+msgstr "хочет сходить с тобой в бар"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "bar_with_push_M"
+msgstr "хочет сходить с тобой в бар"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "bar_with_push_N"
+msgstr "хочет сходить с тобой в бар"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "beautiful_profile_push_F"
+msgstr "сказала, что у тебя самый красивый профиль"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "beautiful_profile_push_M"
+msgstr "сказал, что у тебя самый красивый профиль"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "beautiful_profile_push_N"
+msgstr "сказали, что у тебя самый красивый профиль"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "best_dressed_push_F"
+msgstr "сказала, что у тебя классный стиль в одежде"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "best_dressed_push_M"
+msgstr "сказал, что у тебя классный стиль в одежде"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "best_dressed_push_N"
+msgstr "сказали, что у тебя классный стиль в одежде"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "best_smile_push_F"
+msgstr "сказала, что у тебя лучшая улыбка"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "best_smile_push_M"
+msgstr "сказал, что у тебя лучшая улыбка"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "best_smile_push_N"
+msgstr "сказали, что у тебя лучшая улыбка"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "cinema_with_push_F"
+msgstr "сходила бы с тобой на вечерний кинопоказ"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "cinema_with_push_M"
+msgstr "сходил бы с тобой на вечерний кинопоказ"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "cinema_with_push_N"
+msgstr "сходили бы с тобой на вечерний кинопоказ"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "eat_pizza_push_F"
+msgstr "хочет съесть с тобой по пицце"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "eat_pizza_push_M"
+msgstr "хочет съесть с тобой по пицце"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "eat_pizza_push_N"
+msgstr "хочет съесть с тобой по пицце"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "human_golden_retriever_push_F"
+msgstr "сказала, что ты голден-ретривер среди людей"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "human_golden_retriever_push_M"
+msgstr "сказал, что ты голден-ретривер среди людей"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "human_golden_retriever_push_N"
+msgstr "сказали, что ты голден-ретривер среди людей"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "invite_home_push_F"
+msgstr "пригласила бы тебя в гости"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "invite_home_push_M"
+msgstr "пригласил бы тебя в гости"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "invite_home_push_N"
+msgstr "пригласили бы тебя в гости"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "jazz_together_push_F"
+msgstr "хочет послушать джаз с тобой"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "jazz_together_push_M"
+msgstr "хочет послушать джаз с тобой"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "jazz_together_push_N"
+msgstr "хочет послушать джаз с тобой"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "meet_for_coffee_push_F"
+msgstr "хочет встретиться с тобой за кофе"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "meet_for_coffee_push_M"
+msgstr "хочет встретиться с тобой за кофе"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "meet_for_coffee_push_N"
+msgstr "хочет встретиться с тобой за кофе"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "museum_together_push_F"
+msgstr "хочет сходить вместе в музей"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "museum_together_push_M"
+msgstr "хочет сходить вместе в музей"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "museum_together_push_N"
+msgstr "хочет сходить вместе в музей"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "party_with_push_F"
+msgstr "хочет пойти на вечеринку с тобой"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "party_with_push_M"
+msgstr "хочет пойти на вечеринку с тобой"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "party_with_push_N"
+msgstr "хочет пойти на вечеринку с тобой"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "plane_trip_push_F"
+msgstr "хочет поехать с тобой в путешествие"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "plane_trip_push_M"
+msgstr "хочет поехать с тобой в путешествие"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "plane_trip_push_N"
+msgstr "хочет поехать с тобой в путешествие"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "potential_friend_push_F"
+msgstr "сказала, что ты выглядишь как потенциальный друг"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "potential_friend_push_M"
+msgstr "сказал, что ты выглядишь как потенциальный друг"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "potential_friend_push_N"
+msgstr "сказали, что ты выглядишь как потенциальный друг"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "road_trip_push_F"
+msgstr "хочет поехать с тобой в роадтрип"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "road_trip_push_M"
+msgstr "хочет поехать с тобой в роадтрип"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "road_trip_push_N"
+msgstr "хочет поехать с тобой в роадтрип"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "show_baby_photos_push_F"
+msgstr "показала бы тебе свои детские фото"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "show_baby_photos_push_M"
+msgstr "показал бы тебе свои детские фото"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "show_baby_photos_push_N"
+msgstr "показали бы тебе свои детские фото"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "smells_good_push_F"
+msgstr "сказала, что ты, возможно, вкусно пахнешь"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "smells_good_push_M"
+msgstr "сказал, что ты, возможно, вкусно пахнешь"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "smells_good_push_N"
+msgstr "сказали, что ты, возможно, вкусно пахнешь"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "stand_up_together_push_F"
+msgstr "хочет сходить вместе на стендап"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "stand_up_together_push_M"
+msgstr "хочет сходить вместе на стендап"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "stand_up_together_push_N"
+msgstr "хочет сходить вместе на стендап"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "tell_about_childhood_push_F"
+msgstr "рассказала бы тебе о своем детстве"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "tell_about_childhood_push_M"
+msgstr "рассказал бы тебе о своем детстве"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "tell_about_childhood_push_N"
+msgstr "рассказали бы тебе о своем детстве"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "yoga_with_push_F"
+msgstr "хочет сходить вместе на йогу"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "yoga_with_push_M"
+msgstr "хочет сходить вместе на йогу"
+
+#: lib/t/games.ex:84
+#, elixir-autogen, elixir-format
+msgid "yoga_with_push_N"
+msgstr "хочет сходить вместе на йогу"
+
+#: lib/t/games.ex:89
+#, elixir-autogen, elixir-format
+msgid "like_push_F"
+msgstr "поставила тебе лайк"
+
+#: lib/t/games.ex:90
+#, elixir-autogen, elixir-format
+msgid "like_push_M"
 msgstr "поставил тебе лайк"
+
+#: lib/t/games.ex:91
+#, elixir-autogen, elixir-format
+msgid "like_push_N"
+msgstr "поставили тебе лайк"

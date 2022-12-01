@@ -128,6 +128,7 @@ defmodule T.PushNotifications.APNS do
         "M" -> ""
       end
 
+    # TODO "like" case
     body =
       dgettext("apns", "%{name} chose%{verb_ending_ru} you in the game",
         name: name_from,
@@ -138,14 +139,37 @@ defmodule T.PushNotifications.APNS do
     base_alert_payload(type, alert, data)
   end
 
-  def build_alert_payload("compliment" = type, %{"prompt" => prompt, "emoji" => emoji} = data) do
-    title = emoji <> " " <> dgettext("apns", "Someone ") <> Games.render(prompt <> "_push")
-    body = dgettext("apns", "Play the game to find out")
+  def build_alert_payload(
+        "compliment" = type,
+        %{
+          "prompt" => prompt,
+          "emoji" => emoji,
+          "premium" => premium,
+          "from_user_name" => from_user_name,
+          "from_user_gender" => from_user_gender
+        } = data
+      ) do
+    title =
+      if premium do
+        emoji <> " " <> from_user_name <> Games.render(prompt <> "_push_" <> from_user_gender)
+      else
+        emoji <> " " <> dgettext("apns", "Someone ") <> Games.render(prompt <> "_push_M")
+      end
+
+    body =
+      if premium do
+        dgettext("apns", "Check %{pronoun_having} out!",
+          pronoun_having: pronoun_having(from_user_gender)
+        )
+      else
+        dgettext("apns", "Play the game to find out!")
+      end
 
     alert = %{"title" => title, "body" => body}
     base_alert_payload(type, alert, data)
   end
 
+  # TODO remove
   def build_alert_payload(
         "private_page_available" = type,
         %{"name_of" => name_of, "gender_of" => gender_of} = data
@@ -193,4 +217,8 @@ defmodule T.PushNotifications.APNS do
   defp pronoun_belonging_to("F"), do: dgettext("apns", "her BELONGING TO")
   defp pronoun_belonging_to("M"), do: dgettext("apns", "his BELONGING TO")
   defp pronoun_belonging_to(_), do: dgettext("apns", "their BELONGING TO")
+
+  defp pronoun_having("F"), do: dgettext("apns", "her HAVING")
+  defp pronoun_having("M"), do: dgettext("apns", "him HAVING")
+  defp pronoun_having(_), do: dgettext("apns", "them HAVING")
 end

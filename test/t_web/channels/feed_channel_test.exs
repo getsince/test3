@@ -302,7 +302,7 @@ defmodule TWeb.FeedChannelTest do
 
       {random_prompt, emoji} = Games.prompts() |> Enum.random()
       prompt_text = Games.render(random_prompt)
-      prompt_push_text = Games.render(random_prompt <> "_push")
+      prompt_push_text = Games.render(random_prompt <> "_push_M")
 
       [c1, c2, c3] = [
         insert(:compliment,

@@ -11,6 +11,7 @@ defmodule T.Games.Compliment do
     field :prompt, :string
     field :text, :string, virtual: true
     field :emoji, :string, virtual: true
+    field :profile, :map, virtual: true
     field :push_text, :string, virtual: true
     field :seen, :boolean
     field :revealed, :boolean

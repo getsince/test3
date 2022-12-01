@@ -62,7 +62,8 @@ defmodule TWeb.FeedChannel do
       |> Chats.list_chats(location)
       |> render_chats(version, screen_width)
 
-    compliments = user_id |> Games.list_compliments() |> render_compliments()
+    compliments =
+      user_id |> Games.list_compliments(premium) |> render_compliments(version, screen_width)
 
     news =
       user_id
@@ -275,7 +276,7 @@ defmodule TWeb.FeedChannel do
         {:reply,
          {:ok,
           %{
-            "compliment" => render_compliment(compliment),
+            "compliment" => render_compliment(compliment, version, screen_width),
             "game" => fetch_game(user.id, location, gender, feed_filter, version, screen_width)
           }}, socket}
 
@@ -369,6 +370,12 @@ defmodule TWeb.FeedChannel do
     {:reply, reply, socket}
   end
 
+  def handle_in("fetch-premium-compliments", _params, socket) do
+    %{current_user: %{id: user_id}} = socket.assigns
+    reply = Games.list_compliments(user_id, true)
+    {:reply, reply, socket}
+  end
+
   @impl true
   def handle_info({Chats, :deleted_chat, with_user_id}, socket) when is_binary(with_user_id) do
     push(socket, "deleted_chat", %{"with_user_id" => with_user_id})
@@ -424,7 +431,12 @@ defmodule TWeb.FeedChannel do
   end
 
   def handle_info({Games, :compliment, %Compliment{} = compliment}, socket) do
-    push(socket, "compliment", %{"compliment" => render_compliment(compliment)})
+    %{screen_width: screen_width, version: version} = socket.assigns
+
+    push(socket, "compliment", %{
+      "compliment" => render_compliment(compliment, version, screen_width)
+    })
+
     {:noreply, socket}
   end
 
@@ -500,8 +512,10 @@ defmodule TWeb.FeedChannel do
     Enum.map(chats, fn chat -> render_chat(chat, version, screen_width) end)
   end
 
-  defp render_compliments(compliments) do
-    Enum.map(compliments, fn compliment -> render_compliment(compliment) end)
+  defp render_compliments(compliments, version, screen_width) do
+    Enum.map(compliments, fn compliment ->
+      render_compliment(compliment, version, screen_width)
+    end)
   end
 
   defp render_game(nil = _game, _version, _screen_width), do: nil
@@ -510,15 +524,18 @@ defmodule TWeb.FeedChannel do
     render(GameView, "game.json", game: game, version: version, screen_width: screen_width)
   end
 
-  defp render_compliment(compliment) do
+  defp render_compliment(compliment, version, screen_width) do
     render(GameView, "compliment.json", %{
       id: compliment.id,
       prompt: compliment.prompt,
       text: compliment.text,
       push_text: compliment.push_text,
       emoji: compliment.emoji,
+      profile: compliment.profile,
       seen: compliment.seen,
-      inserted_at: compliment.inserted_at
+      inserted_at: compliment.inserted_at,
+      version: version,
+      screen_width: screen_width
     })
   end
 

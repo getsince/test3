@@ -16,9 +16,12 @@ defmodule TWeb.GameView do
         prompt: prompt,
         text: text,
         emoji: emoji,
+        profile: profile,
         push_text: push_text,
         seen: seen,
-        inserted_at: inserted_at
+        inserted_at: inserted_at,
+        version: version,
+        screen_width: screen_width
       }) do
     %{
       "id" => id,
@@ -29,6 +32,7 @@ defmodule TWeb.GameView do
       "seen" => seen,
       "inserted_at" => ensure_utc(inserted_at)
     }
+    |> maybe_put_profile(profile, version, screen_width)
   end
 
   defp render_prompt({emoji, tag, text}), do: %{"emoji" => emoji, "tag" => tag, "text" => text}
@@ -40,6 +44,11 @@ defmodule TWeb.GameView do
       screen_width: screen_width
     })
   end
+
+  defp maybe_put_profile(map, nil, _version, _screen_width), do: map
+
+  defp maybe_put_profile(map, profile, version, screen_width),
+    do: map |> Map.put("profile", render_profile(profile, version, screen_width))
 
   defp ensure_utc(%DateTime{} = datetime), do: datetime
   defp ensure_utc(%NaiveDateTime{} = naive), do: DateTime.from_naive!(naive, "Etc/UTC")

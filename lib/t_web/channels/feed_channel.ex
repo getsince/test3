@@ -63,7 +63,9 @@ defmodule TWeb.FeedChannel do
       |> render_chats(version, screen_width)
 
     compliments =
-      user_id |> Games.list_compliments(premium) |> render_compliments(version, screen_width)
+      user_id
+      |> Games.list_compliments(location, premium)
+      |> render_compliments(version, screen_width)
 
     news =
       user_id
@@ -371,9 +373,10 @@ defmodule TWeb.FeedChannel do
   end
 
   def handle_in("fetch-premium-compliments", _params, socket) do
-    %{current_user: %{id: user_id}} = socket.assigns
-    reply = Games.list_compliments(user_id, true)
-    {:reply, reply, socket}
+    %{current_user: %{id: user_id}, location: location} = socket.assigns
+    Accounts.set_premium(user_id, true)
+    reply = Games.list_compliments(user_id, location, true)
+    {:reply, {:ok, reply}, assign(socket, premium: true)}
   end
 
   @impl true

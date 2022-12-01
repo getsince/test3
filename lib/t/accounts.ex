@@ -145,6 +145,14 @@ defmodule T.Accounts do
     end
   end
 
+  def set_premium(user_id, premium) do
+    primary_rpc(__MODULE__, :local_set_premium, [user_id, premium])
+  end
+
+  def local_set_premium(user_id, premium) do
+    %Profile{user_id: user_id} |> Ecto.Changeset.change(premium: premium) |> Repo.update!()
+  end
+
   def save_acquisition_channel(user_id, channel) do
     primary_rpc(__MODULE__, :local_save_acquisition_channel, [user_id, channel])
   end

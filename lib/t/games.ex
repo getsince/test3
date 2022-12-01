@@ -11,7 +11,7 @@ defmodule T.Games do
 
   alias T.{Repo, Bot}
 
-  alias T.Accounts.{Profile, UserReport, GenderPreference}
+  alias T.Accounts.{UserReport, GenderPreference}
   alias T.Chats.{Chat, Message}
   alias T.Games.Compliment
   alias T.Feeds.FeedProfile
@@ -250,12 +250,12 @@ defmodule T.Games do
 
   ### Compliment
 
-  def list_compliments(user_id, premium) do
+  def list_compliments(user_id, location, premium) do
     Compliment
     |> where(to_user_id: ^user_id)
     |> order_by(desc: :inserted_at)
     |> join(:inner, [c], p in FeedProfile, on: p.user_id == c.from_user_id)
-    |> select([c, p], {c, p})
+    |> select([c, p], {c, %{p | distance: distance_km(^location, p.location)}})
     |> Repo.all()
     |> Enum.map(fn {compliment, profile} ->
       %Compliment{
@@ -334,10 +334,15 @@ defmodule T.Games do
       end
     end)
     |> Multi.run(:profiles, fn repo, _changes ->
-      profiles = Profile |> where([p], p.user_id in [^from_user_id, ^to_user_id]) |> repo.all()
+      to_user_profile = FeedProfile |> where(user_id: ^to_user_id) |> repo.one!()
+      to_user_location = to_user_profile.location
 
-      to_user_profile = profiles |> Enum.find(fn p -> p.user_id == to_user_id end)
-      from_user_profile = profiles |> Enum.find(fn p -> p.user_id == from_user_id end)
+      from_user_profile =
+        FeedProfile
+        |> where(user_id: ^from_user_id)
+        |> select([p], %{p | distance: distance_km(^to_user_location, p.location)})
+        |> repo.one!()
+
       {:ok, %{to_user_profile: to_user_profile, from_user_profile: from_user_profile}}
     end)
     |> Multi.run(:maybe_insert_messages, fn repo,
@@ -416,12 +421,14 @@ defmodule T.Games do
          compliment: %Compliment{prompt: prompt} = compliment,
          profiles: %{to_user_profile: to_user_profile, from_user_profile: from_user_profile}
        }} ->
-        full_compliment = %Compliment{
-          compliment
-          | text: render(prompt),
-            emoji: @prompts[prompt] || "❤️",
-            push_text: push_text(compliment, to_user_profile.premium, from_user_profile)
-        }
+        full_compliment =
+          %Compliment{
+            compliment
+            | text: render(prompt),
+              emoji: @prompts[prompt] || "❤️",
+              push_text: push_text(compliment, to_user_profile.premium, from_user_profile)
+          }
+          |> maybe_add_profile(to_user_profile.premium, from_user_profile)
 
         broadcast_compliment(full_compliment)
 

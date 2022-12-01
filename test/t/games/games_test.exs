@@ -173,7 +173,7 @@ defmodule T.GamesTest do
     end
 
     test "no compliments", %{me: me} do
-      assert [] == Games.list_compliments(me.id, false)
+      assert [] == Games.list_compliments(me.id, me.profile.location, false)
     end
 
     test "compliments have rendered text", %{me: me} do
@@ -188,7 +188,7 @@ defmodule T.GamesTest do
           prompt: random_prompt
         )
 
-      [%Compliment{} = compliment] = Games.list_compliments(me.id, false)
+      [%Compliment{} = compliment] = Games.list_compliments(me.id, me.profile.location, false)
 
       assert compliment.id == c.id
       assert compliment.inserted_at == c.inserted_at

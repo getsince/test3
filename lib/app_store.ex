@@ -4,8 +4,7 @@ defmodule AppStore do
 
   import Ecto.{Query, Changeset}
 
-  alias T.{Repo, Bot}
-  alias T.Accounts.Profile
+  alias T.{Repo, Bot, Accounts}
   alias AppStore.Notification
 
   @type env :: :dev | :prod
@@ -208,7 +207,7 @@ defmodule AppStore do
         Logger.warn(m)
         Bot.async_post_message(m)
 
-        %Profile{user_id: user_id} |> Ecto.Changeset.change(premium: premium) |> Repo.update!()
+        Accounts.set_premium(user_id, premium)
 
       _ ->
         :ok

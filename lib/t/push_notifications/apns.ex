@@ -117,7 +117,12 @@ defmodule T.PushNotifications.APNS do
 
   def build_alert_payload(
         "compliment_revealed" = type,
-        %{"name_from" => name_from, "gender_from" => gender_from, "emoji" => emoji} = data
+        %{
+          "prompt" => prompt,
+          "name_from" => name_from,
+          "gender_from" => gender_from,
+          "emoji" => emoji
+        } = data
       ) do
     title = emoji <> " " <> dgettext("apns", "This is a match!")
 
@@ -128,12 +133,18 @@ defmodule T.PushNotifications.APNS do
         "M" -> ""
       end
 
-    # TODO "like" case
     body =
-      dgettext("apns", "%{name} chose%{verb_ending_ru} you in the game",
-        name: name_from,
-        verb_ending_ru: verb_ending_ru
-      )
+      if prompt == "like" do
+        dgettext("apns", "%{name} liked%{verb_ending_ru} you back",
+          name: name_from,
+          verb_ending_ru: verb_ending_ru
+        )
+      else
+        dgettext("apns", "%{name} chose%{verb_ending_ru} you in the game",
+          name: name_from,
+          verb_ending_ru: verb_ending_ru
+        )
+      end
 
     alert = %{"title" => title, "body" => body}
     base_alert_payload(type, alert, data)

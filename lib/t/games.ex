@@ -253,6 +253,8 @@ defmodule T.Games do
   def list_compliments(user_id, location, premium) do
     Compliment
     |> where(to_user_id: ^user_id)
+    |> not_reported_complimenters(user_id)
+    |> not_reporter_complimenters(user_id)
     |> order_by(desc: :inserted_at)
     |> join(:inner, [c], p in FeedProfile, on: p.user_id == c.from_user_id)
     |> select([c, p], {c, %{p | distance: distance_km(^location, p.location)}})
@@ -267,6 +269,12 @@ defmodule T.Games do
       |> maybe_add_profile(premium, profile)
     end)
   end
+
+  defp not_reported_complimenters(query, user_id),
+    do: where(query, [c], c.from_user_id not in subquery(reported_user_ids_q(user_id)))
+
+  defp not_reporter_complimenters(query, user_id),
+    do: where(query, [c], c.from_user_id not in subquery(reporter_user_ids_q(user_id)))
 
   defp push_text(compliment, false = _premium, _profile),
     do: render(compliment.prompt <> "_push_M")

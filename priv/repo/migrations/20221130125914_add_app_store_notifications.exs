@@ -19,5 +19,6 @@ defmodule T.Repo.Migrations.AddAppStoreNotifications do
     end
 
     create index(:app_store_notifications, ["signed_date desc"])
+    create index(:app_store_notifications, [:user_id])
   end
 end

@@ -370,7 +370,11 @@ defmodule T.Games do
             compliment_to_message_changeset(compliment, chat_id, from_user_profile)
           ]
 
-          repo.insert_all(Message, messages, returning: true)
+          repo.insert_all(Message, messages,
+            returning: true,
+            on_conflict: {:replace, [:chat_id, :data, :from_user_id, :to_user_id, :inserted_at]},
+            conflict_target: [:id]
+          )
           |> case do
             {2, messages} -> {:ok, messages}
             true -> {:error, :messages_not_inserted}
@@ -404,7 +408,7 @@ defmodule T.Games do
             "to_user_id" => to_user_id,
             "compliment_id" => compliment_id,
             "prompt" => prompt,
-            "emoji" => @prompts[prompt]
+            "emoji" => @prompts[prompt] || "❤️"
           })
         else
           DispatchJob.new(%{
@@ -412,7 +416,7 @@ defmodule T.Games do
             "to_user_id" => to_user_id,
             "compliment_id" => compliment_id,
             "prompt" => prompt,
-            "emoji" => @prompts[prompt],
+            "emoji" => @prompts[prompt] || "❤️",
             "premium" => to_user_profile.premium,
             "from_user_name" => from_user_profile.name,
             "from_user_gender" => from_user_profile.gender

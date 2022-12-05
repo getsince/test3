@@ -81,17 +81,17 @@ msgstr "Теперь ты можешь смотреть %{pronoun_belonging_to} 
 msgid "%{name_of} replied%{verb_ending_ru} to you"
 msgstr "%{name_of} ответил%{verb_ending_ru} тебе"
 
-#: lib/t/push_notifications/apns.ex:228
+#: lib/t/push_notifications/apns.ex:240
 #, elixir-autogen, elixir-format
 msgid "her BELONGING TO"
 msgstr "её"
 
-#: lib/t/push_notifications/apns.ex:229
+#: lib/t/push_notifications/apns.ex:241
 #, elixir-autogen, elixir-format
 msgid "his BELONGING TO"
 msgstr "его"
 
-#: lib/t/push_notifications/apns.ex:230
+#: lib/t/push_notifications/apns.ex:242
 #, elixir-autogen, elixir-format
 msgid "their BELONGING TO"
 msgstr "их"
@@ -126,17 +126,17 @@ msgstr "Кто-то "
 msgid "This is a match!"
 msgstr "Это мэтч!"
 
-#: lib/t/push_notifications/apns.ex:232
+#: lib/t/push_notifications/apns.ex:244
 #, elixir-autogen, elixir-format
 msgid "her HAVING"
 msgstr "её"
 
-#: lib/t/push_notifications/apns.ex:233
+#: lib/t/push_notifications/apns.ex:245
 #, elixir-autogen, elixir-format
 msgid "him HAVING"
 msgstr "его"
 
-#: lib/t/push_notifications/apns.ex:234
+#: lib/t/push_notifications/apns.ex:246
 #, elixir-autogen, elixir-format
 msgid "them HAVING"
 msgstr "их"
@@ -155,3 +155,13 @@ msgstr "Сыграй в игру, чтобы узнать!"
 #, elixir-autogen, elixir-format
 msgid "%{name} liked%{verb_ending_ru} you back"
 msgstr "%{name} поставил%{verb_ending_ru} тебе лайк"
+
+#: lib/t/push_notifications/apns.ex:229
+#, elixir-autogen, elixir-format
+msgid "You can start matching up again ✨"
+msgstr "Ты можешь снова лайкать интересных людей ✨"
+
+#: lib/t/push_notifications/apns.ex:235
+#, elixir-autogen, elixir-format
+msgid "You can start playing the game again ✨"
+msgstr "Ты можешь снова выбирать людей в игре ✨"

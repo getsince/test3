@@ -875,6 +875,41 @@ defmodule TWeb.FeedChannelTest do
 
       assert_reply(ref, :ok, _reply)
     end
+
+    test "compliment_limit", %{socket: socket, me: me} do
+      p = onboarded_user(story: [], name: "mate", location: apple_location(), gender: "F")
+
+      now = DateTime.utc_now() |> DateTime.truncate(:second)
+      insert(:compliment_limit, user_id: me.id, timestamp: now |> DateTime.to_naive())
+
+      ref = push(socket, "send-compliment", %{"to_user_id" => p.id, "prompt" => "like"})
+      assert_reply(ref, :error, %{"limit_expiration" => limit_expiration})
+
+      assert limit_expiration == now |> DateTime.add(T.Games.compliment_limit_period())
+    end
+
+    test "compliment_limit_reset, compliment can be made", %{socket: socket, me: me} do
+      now = DateTime.utc_now() |> DateTime.truncate(:second)
+      compliment_limit_period_ago = DateTime.add(now, -Games.compliment_limit_period() - 1)
+      _limit = Games.insert_compliment_limit(me.id, "like", compliment_limit_period_ago)
+
+      # trigger scheduled FeedLimitResetJob
+      assert %{success: 1} =
+               Oban.drain_queue(queue: :default, with_safety: false, with_scheduled: true)
+
+      p = onboarded_user(story: [], name: "mate", location: apple_location(), gender: "F")
+
+      ref = push(socket, "send-compliment", %{"to_user_id" => p.id, "prompt" => "like"})
+      assert_reply(ref, :ok, %{"compliment" => compliment})
+
+      assert %{
+               "emoji" => "❤️",
+               "prompt" => "like",
+               "push_text" => "liked you",
+               "seen" => false,
+               "text" => "Like"
+             } = compliment
+    end
   end
 
   describe "private stories" do

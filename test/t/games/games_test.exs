@@ -28,6 +28,16 @@ defmodule T.GamesTest do
                )
     end
 
+    test "with compliment_limit reached", %{me: me} do
+      for _ <- 1..Games.compliment_limit() do
+        u = onboarded_user()
+        assert {:ok, %Compliment{}} = Games.save_compliment(u.id, me.id, "like")
+      end
+
+      p = onboarded_user()
+      assert {:error, %DateTime{}} = Games.save_compliment(p.id, me.id, "like")
+    end
+
     test "with no active users", %{me: me} do
       insert_list(3, :profile, gender: "F")
 

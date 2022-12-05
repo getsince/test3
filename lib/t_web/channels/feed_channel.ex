@@ -292,6 +292,9 @@ defmodule TWeb.FeedChannel do
             }}, socket}
         end
 
+      {:error, %DateTime{} = limit_expiration} ->
+        {:reply, {:error, %{"limit_expiration" => limit_expiration}}, socket}
+
       {:error, _changeset} ->
         {:reply, :error, socket}
     end
@@ -324,6 +327,9 @@ defmodule TWeb.FeedChannel do
               "chat" => render_chat(%{chat | profile: profile}, version, screen_width)
             }}, socket}
         end
+
+      {:error, %DateTime{} = limit_expiration} ->
+        {:reply, {:error, %{"limit_expiration" => limit_expiration}}, socket}
 
       {:error, _changeset} ->
         {:reply, :error, socket}
@@ -385,7 +391,7 @@ defmodule TWeb.FeedChannel do
     compliments =
       Games.list_compliments(user_id, location, true) |> render_compliments(version, screen_width)
 
-    {:reply, {:ok, compliments}, assign(socket, premium: true)}
+    {:reply, {:ok, %{"compliments" => compliments}}, assign(socket, premium: true)}
   end
 
   @impl true

@@ -10,422 +10,422 @@
 msgid ""
 msgstr ""
 
-#: lib/t/games.ex:80
+#: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "bar_with"
 msgstr ""
 
-#: lib/t/games.ex:80
+#: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "beautiful_profile"
 msgstr ""
 
-#: lib/t/games.ex:80
+#: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "best_dressed"
 msgstr ""
 
-#: lib/t/games.ex:80
+#: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "best_smile"
 msgstr ""
 
-#: lib/t/games.ex:80
+#: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "cinema_with"
 msgstr ""
 
-#: lib/t/games.ex:80
+#: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "eat_pizza"
 msgstr ""
 
-#: lib/t/games.ex:80
+#: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "human_golden_retriever"
 msgstr ""
 
-#: lib/t/games.ex:80
+#: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "invite_home"
 msgstr ""
 
-#: lib/t/games.ex:80
+#: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "jazz_together"
 msgstr ""
 
-#: lib/t/games.ex:80
+#: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "meet_for_coffee"
 msgstr ""
 
-#: lib/t/games.ex:80
+#: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "museum_together"
 msgstr ""
 
-#: lib/t/games.ex:80
+#: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "party_with"
 msgstr ""
 
-#: lib/t/games.ex:80
+#: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "plane_trip"
 msgstr ""
 
-#: lib/t/games.ex:80
+#: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "potential_friend"
 msgstr ""
 
-#: lib/t/games.ex:80
+#: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "road_trip"
 msgstr ""
 
-#: lib/t/games.ex:80
+#: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "show_baby_photos"
 msgstr ""
 
-#: lib/t/games.ex:80
+#: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "smells_good"
 msgstr ""
 
-#: lib/t/games.ex:80
+#: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "stand_up_together"
 msgstr ""
 
-#: lib/t/games.ex:80
+#: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "tell_about_childhood"
 msgstr ""
 
-#: lib/t/games.ex:80
+#: lib/t/games.ex:82
 #, elixir-autogen, elixir-format
 msgid "yoga_with"
 msgstr ""
 
-#: lib/t/games.ex:88
+#: lib/t/games.ex:90
 #, elixir-autogen, elixir-format
 msgid "like"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "bar_with_push_F"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "bar_with_push_M"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "bar_with_push_N"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "beautiful_profile_push_F"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "beautiful_profile_push_M"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "beautiful_profile_push_N"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "best_dressed_push_F"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "best_dressed_push_M"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "best_dressed_push_N"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "best_smile_push_F"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "best_smile_push_M"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "best_smile_push_N"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "cinema_with_push_F"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "cinema_with_push_M"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "cinema_with_push_N"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "eat_pizza_push_F"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "eat_pizza_push_M"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "eat_pizza_push_N"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "human_golden_retriever_push_F"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "human_golden_retriever_push_M"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "human_golden_retriever_push_N"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "invite_home_push_F"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "invite_home_push_M"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "invite_home_push_N"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "jazz_together_push_F"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "jazz_together_push_M"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "jazz_together_push_N"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "meet_for_coffee_push_F"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "meet_for_coffee_push_M"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "meet_for_coffee_push_N"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "museum_together_push_F"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "museum_together_push_M"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "museum_together_push_N"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "party_with_push_F"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "party_with_push_M"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "party_with_push_N"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "plane_trip_push_F"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "plane_trip_push_M"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "plane_trip_push_N"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "potential_friend_push_F"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "potential_friend_push_M"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "potential_friend_push_N"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "road_trip_push_F"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "road_trip_push_M"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "road_trip_push_N"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "show_baby_photos_push_F"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "show_baby_photos_push_M"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "show_baby_photos_push_N"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "smells_good_push_F"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "smells_good_push_M"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "smells_good_push_N"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "stand_up_together_push_F"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "stand_up_together_push_M"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "stand_up_together_push_N"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "tell_about_childhood_push_F"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "tell_about_childhood_push_M"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "tell_about_childhood_push_N"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "yoga_with_push_F"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "yoga_with_push_M"
 msgstr ""
 
-#: lib/t/games.ex:84
+#: lib/t/games.ex:86
 #, elixir-autogen, elixir-format
 msgid "yoga_with_push_N"
 msgstr ""
 
-#: lib/t/games.ex:89
+#: lib/t/games.ex:91
 #, elixir-autogen, elixir-format
 msgid "like_push_F"
 msgstr ""
 
-#: lib/t/games.ex:90
+#: lib/t/games.ex:92
 #, elixir-autogen, elixir-format
 msgid "like_push_M"
 msgstr ""
 
-#: lib/t/games.ex:91
+#: lib/t/games.ex:93
 #, elixir-autogen, elixir-format
 msgid "like_push_N"
 msgstr ""

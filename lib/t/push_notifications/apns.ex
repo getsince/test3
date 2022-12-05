@@ -225,6 +225,18 @@ defmodule T.PushNotifications.APNS do
     base_alert_payload(type, alert)
   end
 
+  def build_alert_payload("compliment_limit_reset" = type, %{"prompt" => "like"}) do
+    alert = %{"title" => dgettext("apns", "You can start matching up again ✨")}
+
+    base_alert_payload(type, alert)
+  end
+
+  def build_alert_payload("compliment_limit_reset" = type, _data) do
+    alert = %{"title" => dgettext("apns", "You can start playing the game again ✨")}
+
+    base_alert_payload(type, alert)
+  end
+
   defp pronoun_belonging_to("F"), do: dgettext("apns", "her BELONGING TO")
   defp pronoun_belonging_to("M"), do: dgettext("apns", "his BELONGING TO")
   defp pronoun_belonging_to(_), do: dgettext("apns", "their BELONGING TO")

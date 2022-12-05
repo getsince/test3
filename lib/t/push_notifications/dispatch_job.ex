@@ -90,6 +90,11 @@ defmodule T.PushNotifications.DispatchJob do
     :ok
   end
 
+  defp handle_type("compliment_limit_reset" = type, %{"user_id" => user_id} = args) do
+    user_id |> Accounts.list_apns_devices() |> schedule_apns(type, args)
+    :ok
+  end
+
   defp profile_info(user_id) do
     Accounts.Profile
     |> where(user_id: ^user_id)

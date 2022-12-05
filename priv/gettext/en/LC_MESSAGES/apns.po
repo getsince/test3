@@ -81,17 +81,17 @@ msgstr "Now you can see %{pronoun_belonging_to} private pages"
 msgid "%{name_of} replied%{verb_ending_ru} to you"
 msgstr "%{name_of} replied to you"
 
-#: lib/t/push_notifications/apns.ex:228
+#: lib/t/push_notifications/apns.ex:240
 #, elixir-autogen, elixir-format
 msgid "her BELONGING TO"
 msgstr "her"
 
-#: lib/t/push_notifications/apns.ex:229
+#: lib/t/push_notifications/apns.ex:241
 #, elixir-autogen, elixir-format
 msgid "his BELONGING TO"
 msgstr "his"
 
-#: lib/t/push_notifications/apns.ex:230
+#: lib/t/push_notifications/apns.ex:242
 #, elixir-autogen, elixir-format
 msgid "their BELONGING TO"
 msgstr "their"
@@ -126,17 +126,17 @@ msgstr ""
 msgid "This is a match!"
 msgstr ""
 
-#: lib/t/push_notifications/apns.ex:232
+#: lib/t/push_notifications/apns.ex:244
 #, elixir-autogen, elixir-format
 msgid "her HAVING"
 msgstr "her"
 
-#: lib/t/push_notifications/apns.ex:233
+#: lib/t/push_notifications/apns.ex:245
 #, elixir-autogen, elixir-format
 msgid "him HAVING"
 msgstr "him"
 
-#: lib/t/push_notifications/apns.ex:234
+#: lib/t/push_notifications/apns.ex:246
 #, elixir-autogen, elixir-format
 msgid "them HAVING"
 msgstr "them"
@@ -155,3 +155,13 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "%{name} liked%{verb_ending_ru} you back"
 msgstr "%{name} liked you back"
+
+#: lib/t/push_notifications/apns.ex:229
+#, elixir-autogen, elixir-format
+msgid "You can start matching up again ✨"
+msgstr ""
+
+#: lib/t/push_notifications/apns.ex:235
+#, elixir-autogen, elixir-format
+msgid "You can start playing the game again ✨"
+msgstr ""

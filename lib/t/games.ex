@@ -13,7 +13,7 @@ defmodule T.Games do
 
   alias T.Accounts.{UserReport, GenderPreference}
   alias T.Chats.{Chat, Message}
-  alias T.Games.Compliment
+  alias T.Games.{Compliment, ComplimentLimit, ComplimentLimitResetJob}
   alias T.Feeds.FeedProfile
   alias T.PushNotifications.DispatchJob
 
@@ -52,6 +52,8 @@ defmodule T.Games do
 
   @game_set_count 16
   @game_profiles_recency_limit 180 * 24 * 60 * 60
+  @compliment_limit 25
+  @compliment_limit_period 12 * 60 * 60
 
   @prompts %{
     "meet_for_coffee" => "☕️",
@@ -92,6 +94,8 @@ defmodule T.Games do
 
   def prompts, do: @prompts
   def game_set_count, do: @game_set_count
+  def compliment_limit, do: @compliment_limit
+  def compliment_limit_period, do: @compliment_limit_period
 
   ### Game
 
@@ -298,175 +302,230 @@ defmodule T.Games do
   @spec local_save_compliment(uuid, uuid, String.t()) ::
           {:ok, map} | {:error, map}
   def local_save_compliment(from_user_id, to_user_id, prompt) do
-    m = "compliment #{prompt} sent from #{from_user_id} to #{to_user_id}"
-    Logger.warn(m)
+    case fetch_compliment_limit(from_user_id) do
+      %ComplimentLimit{} = compliment_limit ->
+        %ComplimentLimit{user_id: from_user_id}
+        |> cast(%{reached: true}, [:reached])
+        |> Repo.update()
 
-    [user_id_1, user_id_2] = Enum.sort([from_user_id, to_user_id])
+        return_compliment_limit(compliment_limit)
+
+      nil ->
+        m = "compliment #{prompt} sent from #{from_user_id} to #{to_user_id}"
+        Logger.warn(m)
+
+        [user_id_1, user_id_2] = Enum.sort([from_user_id, to_user_id])
+
+        Multi.new()
+        |> Multi.run(:compliment_exchange?, fn repo, _changes ->
+          previous_compliment =
+            Compliment
+            |> where(from_user_id: ^to_user_id)
+            |> where(to_user_id: ^from_user_id)
+            |> limit(1)
+            |> repo.all()
+
+          case previous_compliment do
+            [%Compliment{} = compliment] -> {:ok, compliment}
+            [] -> {:ok, nil}
+          end
+        end)
+        |> Multi.insert(:compliment, fn %{compliment_exchange?: exchange} ->
+          compliment_changeset(%{
+            prompt: prompt,
+            from_user_id: from_user_id,
+            to_user_id: to_user_id,
+            seen: false,
+            revealed: not is_nil(exchange)
+          })
+        end)
+        |> Multi.run(:maybe_insert_compliment_limit, fn repo, _changes ->
+          limit_treshold_date =
+            DateTime.utc_now()
+            |> DateTime.add(-@compliment_limit_period)
+            |> DateTime.truncate(:second)
+
+          Compliment
+          |> where(from_user_id: ^from_user_id)
+          |> where([c], c.inserted_at > ^limit_treshold_date)
+          |> repo.aggregate(:count)
+          |> case do
+            @compliment_limit ->
+              m = "#{from_user_id} reached compliment limit"
+              Logger.warn(m)
+              Bot.async_post_message(m)
+
+              now = DateTime.utc_now()
+              insert_compliment_limit(from_user_id, prompt, now, repo)
+
+            _ ->
+              {:ok, nil}
+          end
+        end)
+        |> Multi.run(:maybe_insert_chat, fn repo, %{compliment_exchange?: exchange} ->
+          if exchange do
+            case repo.get_by(Chat, user_id_1: user_id_1, user_id_2: user_id_2) do
+              %Chat{id: chat_id} = chat ->
+                messages = Message |> where(chat_id: ^chat_id) |> repo.all
+                {:ok, %Chat{chat | messages: messages}}
+
+              nil ->
+                chat = %Chat{user_id_1: user_id_1, user_id_2: user_id_2} |> repo.insert!()
+                {:ok, chat}
+            end
+          else
+            {:ok, nil}
+          end
+        end)
+        |> Multi.run(:profiles, fn repo, _changes ->
+          to_user_profile = FeedProfile |> where(user_id: ^to_user_id) |> repo.one!()
+          to_user_location = to_user_profile.location
+
+          from_user_profile =
+            FeedProfile
+            |> where(user_id: ^from_user_id)
+            |> select([p], %{p | distance: distance_km(^to_user_location, p.location)})
+            |> repo.one!()
+
+          {:ok, %{to_user_profile: to_user_profile, from_user_profile: from_user_profile}}
+        end)
+        |> Multi.run(:maybe_insert_messages, fn repo,
+                                                %{
+                                                  maybe_insert_chat: chat,
+                                                  compliment_exchange?: exchange,
+                                                  compliment: compliment,
+                                                  profiles: %{
+                                                    to_user_profile: to_user_profile,
+                                                    from_user_profile: from_user_profile
+                                                  }
+                                                } ->
+          case {chat, exchange, compliment} do
+            {%Chat{id: chat_id}, %Compliment{} = exchange, %Compliment{} = compliment} ->
+              messages = [
+                compliment_to_message_changeset(exchange, chat_id, to_user_profile),
+                compliment_to_message_changeset(compliment, chat_id, from_user_profile)
+              ]
+
+              repo.insert_all(Message, messages,
+                returning: true,
+                on_conflict:
+                  {:replace, [:chat_id, :data, :from_user_id, :to_user_id, :inserted_at]},
+                conflict_target: [:id]
+              )
+              |> case do
+                {2, messages} -> {:ok, messages}
+                true -> {:error, :messages_not_inserted}
+              end
+
+            _ ->
+              {:ok, nil}
+          end
+        end)
+        |> Multi.run(:maybe_mark_compliment_revealed, fn repo,
+                                                         %{compliment_exchange?: exchange} ->
+          if exchange do
+            exchange |> cast(%{revealed: true}, [:revealed]) |> repo.update()
+          else
+            {:ok, nil}
+          end
+        end)
+        |> Multi.run(:push, fn _repo,
+                               %{
+                                 compliment_exchange?: exchange,
+                                 compliment: %Compliment{id: compliment_id},
+                                 profiles: %{
+                                   to_user_profile: to_user_profile,
+                                   from_user_profile: from_user_profile
+                                 }
+                               } ->
+          push_job =
+            if exchange do
+              DispatchJob.new(%{
+                "type" => "compliment_revealed",
+                "from_user_id" => from_user_id,
+                "to_user_id" => to_user_id,
+                "compliment_id" => compliment_id,
+                "prompt" => prompt,
+                "emoji" => @prompts[prompt] || "❤️"
+              })
+            else
+              DispatchJob.new(%{
+                "type" => "compliment",
+                "to_user_id" => to_user_id,
+                "compliment_id" => compliment_id,
+                "prompt" => prompt,
+                "emoji" => @prompts[prompt] || "❤️",
+                "premium" => to_user_profile.premium,
+                "from_user_name" => from_user_profile.name,
+                "from_user_gender" => from_user_profile.gender
+              })
+            end
+
+          Oban.insert(push_job)
+        end)
+        |> Repo.transaction()
+        |> case do
+          {:ok,
+           %{
+             compliment_exchange?: nil,
+             compliment: %Compliment{prompt: prompt} = compliment,
+             profiles: %{to_user_profile: to_user_profile, from_user_profile: from_user_profile}
+           }} ->
+            full_compliment =
+              %Compliment{
+                compliment
+                | text: render(prompt),
+                  emoji: @prompts[prompt] || "❤️",
+                  push_text: push_text(compliment, to_user_profile.premium, from_user_profile)
+              }
+              |> maybe_add_profile(to_user_profile.premium, from_user_profile)
+
+            broadcast_compliment(full_compliment)
+
+            {:ok, full_compliment}
+
+          {:ok,
+           %{
+             maybe_insert_chat: %Chat{messages: maybe_previous_messages} = chat,
+             maybe_insert_messages: messages
+           }} ->
+            m = "compliments exchanged between #{from_user_id} and #{to_user_id}"
+            Logger.warn(m)
+            Bot.async_post_message(m)
+
+            chat_with_messages =
+              case maybe_previous_messages do
+                nil -> %Chat{chat | messages: messages}
+                _ -> %Chat{chat | messages: maybe_previous_messages ++ messages}
+              end
+
+            broadcast_chat(chat_with_messages)
+            {:ok, chat_with_messages}
+
+          {:error, :compliment, %Ecto.Changeset{} = changeset, _changes} ->
+            {:error, changeset}
+        end
+    end
+  end
+
+  def fetch_compliment_limit(user_id),
+    do: ComplimentLimit |> where(user_id: ^user_id) |> Repo.one()
+
+  defp return_compliment_limit(%ComplimentLimit{timestamp: timestamp}) do
+    reset_timestamp = timestamp |> DateTime.add(@compliment_limit_period)
+    {:error, reset_timestamp}
+  end
+
+  def insert_compliment_limit(user_id, prompt, reference, repo \\ T.Repo) do
+    now = reference |> DateTime.truncate(:second)
+    reset_at = DateTime.add(now, @compliment_limit_period)
+
+    reset_job = ComplimentLimitResetJob.new(%{"user_id" => user_id}, scheduled_at: reset_at)
 
     Multi.new()
-    |> Multi.run(:compliment_exchange?, fn repo, _changes ->
-      previous_compliment =
-        Compliment
-        |> where(from_user_id: ^to_user_id)
-        |> where(to_user_id: ^from_user_id)
-        |> limit(1)
-        |> repo.all()
-
-      case previous_compliment do
-        [%Compliment{} = compliment] -> {:ok, compliment}
-        [] -> {:ok, nil}
-      end
-    end)
-    |> Multi.insert(:compliment, fn %{compliment_exchange?: exchange} ->
-      compliment_changeset(%{
-        prompt: prompt,
-        from_user_id: from_user_id,
-        to_user_id: to_user_id,
-        seen: false,
-        revealed: not is_nil(exchange)
-      })
-    end)
-    |> Multi.run(:maybe_insert_chat, fn repo, %{compliment_exchange?: exchange} ->
-      if exchange do
-        case repo.get_by(Chat, user_id_1: user_id_1, user_id_2: user_id_2) do
-          %Chat{id: chat_id} = chat ->
-            messages = Message |> where(chat_id: ^chat_id) |> repo.all
-            {:ok, %Chat{chat | messages: messages}}
-
-          nil ->
-            chat = %Chat{user_id_1: user_id_1, user_id_2: user_id_2} |> repo.insert!()
-            {:ok, chat}
-        end
-      else
-        {:ok, nil}
-      end
-    end)
-    |> Multi.run(:profiles, fn repo, _changes ->
-      to_user_profile = FeedProfile |> where(user_id: ^to_user_id) |> repo.one!()
-      to_user_location = to_user_profile.location
-
-      from_user_profile =
-        FeedProfile
-        |> where(user_id: ^from_user_id)
-        |> select([p], %{p | distance: distance_km(^to_user_location, p.location)})
-        |> repo.one!()
-
-      {:ok, %{to_user_profile: to_user_profile, from_user_profile: from_user_profile}}
-    end)
-    |> Multi.run(:maybe_insert_messages, fn repo,
-                                            %{
-                                              maybe_insert_chat: chat,
-                                              compliment_exchange?: exchange,
-                                              compliment: compliment,
-                                              profiles: %{
-                                                to_user_profile: to_user_profile,
-                                                from_user_profile: from_user_profile
-                                              }
-                                            } ->
-      case {chat, exchange, compliment} do
-        {%Chat{id: chat_id}, %Compliment{} = exchange, %Compliment{} = compliment} ->
-          messages = [
-            compliment_to_message_changeset(exchange, chat_id, to_user_profile),
-            compliment_to_message_changeset(compliment, chat_id, from_user_profile)
-          ]
-
-          repo.insert_all(Message, messages,
-            returning: true,
-            on_conflict: {:replace, [:chat_id, :data, :from_user_id, :to_user_id, :inserted_at]},
-            conflict_target: [:id]
-          )
-          |> case do
-            {2, messages} -> {:ok, messages}
-            true -> {:error, :messages_not_inserted}
-          end
-
-        _ ->
-          {:ok, nil}
-      end
-    end)
-    |> Multi.run(:maybe_mark_compliment_revealed, fn repo, %{compliment_exchange?: exchange} ->
-      if exchange do
-        exchange |> cast(%{revealed: true}, [:revealed]) |> repo.update()
-      else
-        {:ok, nil}
-      end
-    end)
-    |> Multi.run(:push, fn _repo,
-                           %{
-                             compliment_exchange?: exchange,
-                             compliment: %Compliment{id: compliment_id},
-                             profiles: %{
-                               to_user_profile: to_user_profile,
-                               from_user_profile: from_user_profile
-                             }
-                           } ->
-      push_job =
-        if exchange do
-          DispatchJob.new(%{
-            "type" => "compliment_revealed",
-            "from_user_id" => from_user_id,
-            "to_user_id" => to_user_id,
-            "compliment_id" => compliment_id,
-            "prompt" => prompt,
-            "emoji" => @prompts[prompt] || "❤️"
-          })
-        else
-          DispatchJob.new(%{
-            "type" => "compliment",
-            "to_user_id" => to_user_id,
-            "compliment_id" => compliment_id,
-            "prompt" => prompt,
-            "emoji" => @prompts[prompt] || "❤️",
-            "premium" => to_user_profile.premium,
-            "from_user_name" => from_user_profile.name,
-            "from_user_gender" => from_user_profile.gender
-          })
-        end
-
-      Oban.insert(push_job)
-    end)
-    |> Repo.transaction()
-    |> case do
-      {:ok,
-       %{
-         compliment_exchange?: nil,
-         compliment: %Compliment{prompt: prompt} = compliment,
-         profiles: %{to_user_profile: to_user_profile, from_user_profile: from_user_profile}
-       }} ->
-        full_compliment =
-          %Compliment{
-            compliment
-            | text: render(prompt),
-              emoji: @prompts[prompt] || "❤️",
-              push_text: push_text(compliment, to_user_profile.premium, from_user_profile)
-          }
-          |> maybe_add_profile(to_user_profile.premium, from_user_profile)
-
-        broadcast_compliment(full_compliment)
-
-        {:ok, full_compliment}
-
-      {:ok,
-       %{
-         maybe_insert_chat: %Chat{messages: maybe_previous_messages} = chat,
-         maybe_insert_messages: messages
-       }} ->
-        m = "compliments exchanged between #{from_user_id} and #{to_user_id}"
-        Logger.warn(m)
-        Bot.async_post_message(m)
-
-        chat_with_messages =
-          case maybe_previous_messages do
-            nil -> %Chat{chat | messages: messages}
-            _ -> %Chat{chat | messages: maybe_previous_messages ++ messages}
-          end
-
-        broadcast_chat(chat_with_messages)
-        {:ok, chat_with_messages}
-
-      {:error, :compliment, %Ecto.Changeset{} = changeset, _changes} ->
-        {:error, changeset}
-    end
+    |> Multi.insert(:limit, %ComplimentLimit{user_id: user_id, timestamp: now, prompt: prompt})
+    |> Oban.insert(:reset, reset_job)
+    |> repo.transaction()
   end
 
   defp compliment_changeset(attrs) do
@@ -551,4 +610,36 @@ defmodule T.Games do
         end
     end
   end
+
+  ### Compliment Limit
+
+  @spec local_reset_compliment_limit(%ComplimentLimit{}) :: :ok
+  def local_reset_compliment_limit(%ComplimentLimit{user_id: user_id} = limit) do
+    Multi.new()
+    |> Multi.delete_all(:delete_compliment_limit, ComplimentLimit |> where(user_id: ^user_id))
+    |> maybe_schedule_push(limit)
+    |> Repo.transaction()
+
+    :ok
+  end
+
+  defp maybe_schedule_push(multi, %ComplimentLimit{
+         user_id: user_id,
+         prompt: prompt,
+         reached: true
+       }) do
+    multi
+    |> Multi.run(:push, fn _repo, _changes ->
+      push_job =
+        DispatchJob.new(%{
+          "type" => "compliment_limit_reset",
+          "user_id" => user_id,
+          "prompt" => prompt
+        })
+
+      Oban.insert(push_job)
+    end)
+  end
+
+  defp maybe_schedule_push(multi, _compliment_limit), do: multi
 end

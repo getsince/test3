@@ -356,7 +356,7 @@ defmodule T.Games do
             "to_user_id" => to_user_id,
             "compliment_id" => compliment_id,
             "prompt" => prompt,
-            "emoji" => @prompts[prompt]
+            "emoji" => @prompts[prompt] || "❤️"
           })
         else
           DispatchJob.new(%{
@@ -364,7 +364,7 @@ defmodule T.Games do
             "to_user_id" => to_user_id,
             "compliment_id" => compliment_id,
             "prompt" => prompt,
-            "emoji" => @prompts[prompt]
+            "emoji" => @prompts[prompt] || "❤️"
           })
         end
 

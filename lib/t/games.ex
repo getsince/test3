@@ -326,7 +326,11 @@ defmodule T.Games do
             [exchange, compliment]
             |> Enum.map(fn c -> compliment_to_message_changeset(c, chat_id) end)
 
-          repo.insert_all(Message, messages, returning: true)
+          repo.insert_all(Message, messages,
+            returning: true,
+            on_conflict: {:replace, [:chat_id, :data, :from_user_id, :to_user_id, :inserted_at]},
+            conflict_target: [:id]
+          )
           |> case do
             {2, messages} -> {:ok, messages}
             true -> {:error, :messages_not_inserted}

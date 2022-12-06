@@ -52,7 +52,7 @@ defmodule T.Games do
 
   @game_set_count 16
   @game_profiles_recency_limit 180 * 24 * 60 * 60
-  @compliment_limit 25
+  @compliment_limit 10
   @compliment_limit_period 12 * 60 * 60
 
   @prompts %{
@@ -474,7 +474,8 @@ defmodule T.Games do
             full_compliment =
               %Compliment{
                 compliment
-                | text: render(prompt),
+                | # TODO locale of receiver
+                  text: render(prompt),
                   emoji: @prompts[prompt] || "❤️",
                   push_text: push_text(compliment, to_user_profile.premium, from_user_profile)
               }

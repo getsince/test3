@@ -25,6 +25,8 @@ defmodule T.Accounts do
     AcquisitionChannel
   }
 
+  alias T.Games.ComplimentLimit
+
   alias T.PushNotifications.DispatchJob
 
   @pubsub T.PubSub
@@ -150,7 +152,17 @@ defmodule T.Accounts do
   end
 
   def local_set_premium(user_id, premium) do
-    %Profile{user_id: user_id} |> Ecto.Changeset.change(premium: premium) |> Repo.update!()
+    Multi.new()
+    |> Multi.update_all(:set_premium, Profile |> where(user_id: ^user_id), set: [premium: premium])
+    |> Multi.run(:maybe_remove_compliment_limit, fn repo, _changes ->
+      if premium do
+        result = ComplimentLimit |> where(user_id: ^user_id) |> repo.delete_all()
+        {:ok, result}
+      else
+        {:ok, nil}
+      end
+    end)
+    |> Repo.transaction()
   end
 
   def save_acquisition_channel(user_id, channel) do

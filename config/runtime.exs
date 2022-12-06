@@ -304,6 +304,15 @@ if config_env() == :test do
     client_id: System.get_env("SPOTIFY_CLIENT_ID") || "SPOTIFY_CLIENT_ID",
     client_secret: System.get_env("SPOTIFY_CLIENT_SECRET") || "SPOTIFY_CLIENT_SECRET"
 
+  config :t, AppStore,
+    key: %{
+      key: System.get_env("APP_STORE_KEY") || "APP_STORE_KEY",
+      key_id: System.get_env("APP_STORE_KEY_ID") || "APP_STORE_KEY_ID",
+      issuer_id: System.get_env("APP_STORE_ISSUER_ID") || "APP_STORE_ISSUER_ID",
+      topic: System.get_env("APNS_TOPIC") || "APNS_TOPIC",
+      env: :dev
+    }
+
   config :ex_aws,
     access_key_id: "AWS_ACCESS_KEY_ID",
     secret_access_key: "AWS_SECRET_ACCESS_KEY"

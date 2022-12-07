@@ -238,10 +238,6 @@ defmodule AppStore do
               true
           end
 
-        m = "setting premium for user #{user_id} to #{premium}"
-        Logger.warn(m)
-        Bot.async_post_message(m)
-
         Accounts.set_premium(user_id, premium)
 
       _ ->

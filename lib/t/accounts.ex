@@ -152,6 +152,10 @@ defmodule T.Accounts do
   end
 
   def local_set_premium(user_id, premium) do
+    m = "setting premium for user #{user_id} to #{premium}"
+    Logger.warn(m)
+    Bot.async_post_message(m)
+
     Multi.new()
     |> Multi.update_all(:set_premium, Profile |> where(user_id: ^user_id), set: [premium: premium])
     |> Multi.run(:maybe_remove_compliment_limit, fn repo, _changes ->

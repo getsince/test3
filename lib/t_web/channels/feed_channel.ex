@@ -546,9 +546,6 @@ defmodule TWeb.FeedChannel do
     render(GameView, "compliment.json", %{
       id: compliment.id,
       prompt: compliment.prompt,
-      text: compliment.text,
-      push_text: compliment.push_text,
-      emoji: compliment.emoji,
       profile: compliment.profile,
       seen: compliment.seen,
       inserted_at: compliment.inserted_at,

@@ -144,4 +144,17 @@ defmodule TWeb.ViewHelpersTest do
 
     assert audio_url == "https://d6666.cloudfront.net/038fbd69-ba44-42c2-8086-5213ff093ad5"
   end
+
+  test "compliment messages" do
+    sticker = %{"question" => "compliment", "prompt" => "like", "gender" => "F"}
+
+    assert %{
+             "question" => "compliment",
+             "prompt" => "like",
+             "gender" => "F",
+             "emoji" => "❤️",
+             "text" => "Like",
+             "push_text" => "liked you"
+           } == ViewHelpers.process_sticker(sticker, _screen_width = 1200)
+  end
 end

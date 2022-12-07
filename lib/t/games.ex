@@ -263,15 +263,7 @@ defmodule T.Games do
     |> join(:inner, [c], p in FeedProfile, on: p.user_id == c.from_user_id)
     |> select([c, p], {c, %{p | distance: distance_km(^location, p.location)}})
     |> Repo.all()
-    |> Enum.map(fn {compliment, profile} ->
-      %Compliment{
-        compliment
-        | text: render(compliment.prompt),
-          emoji: @prompts[compliment.prompt] || "❤️",
-          push_text: push_text(compliment, premium, profile)
-      }
-      |> maybe_add_profile(premium, profile)
-    end)
+    |> Enum.map(fn {compliment, profile} -> compliment |> maybe_add_profile(premium, profile) end)
   end
 
   defp not_reported_complimenters(query, user_id),
@@ -279,12 +271,6 @@ defmodule T.Games do
 
   defp not_reporter_complimenters(query, user_id),
     do: where(query, [c], c.from_user_id not in subquery(reporter_user_ids_q(user_id)))
-
-  defp push_text(compliment, false = _premium, _profile),
-    do: render(compliment.prompt <> "_push_M")
-
-  defp push_text(compliment, true = _premium, profile),
-    do: render(compliment.prompt <> "_push_" <> profile.gender)
 
   defp maybe_add_profile(compliment, false = _premium, _profile), do: compliment
 
@@ -468,18 +454,11 @@ defmodule T.Games do
           {:ok,
            %{
              compliment_exchange?: nil,
-             compliment: %Compliment{prompt: prompt} = compliment,
+             compliment: %Compliment{} = compliment,
              profiles: %{to_user_profile: to_user_profile, from_user_profile: from_user_profile}
            }} ->
             full_compliment =
-              %Compliment{
-                compliment
-                | # TODO locale of receiver
-                  text: render(prompt),
-                  emoji: @prompts[prompt] || "❤️",
-                  push_text: push_text(compliment, to_user_profile.premium, from_user_profile)
-              }
-              |> maybe_add_profile(to_user_profile.premium, from_user_profile)
+              compliment |> maybe_add_profile(to_user_profile.premium, from_user_profile)
 
             broadcast_compliment(full_compliment)
 
@@ -549,17 +528,11 @@ defmodule T.Games do
            to_user_id: to_user_id,
            prompt: prompt,
            inserted_at: inserted_at
-         } = compliment,
+         },
          chat_id,
          from_user_profile
        ) do
-    data = %{
-      "question" => "compliment",
-      "prompt" => prompt,
-      "emoji" => @prompts[prompt] || "❤️",
-      "text" => render(prompt),
-      "push_text" => push_text(compliment, true, from_user_profile)
-    }
+    data = %{"question" => "compliment", "prompt" => prompt, "gender" => from_user_profile.gender}
 
     %{
       id: id,

@@ -112,6 +112,29 @@ defmodule T.AccountsTest do
     end
   end
 
+  describe "set_premium/2" do
+    test "sets true, removes ComplimentLimit" do
+      {:ok, %{profile: %Profile{user_id: user_id}}} =
+        Accounts.register_user_with_apple_id(%{"apple_id" => apple_id()})
+
+      insert(:compliment_limit, user_id: user_id, timestamp: DateTime.utc_now())
+
+      refute Accounts.Profile
+             |> where(user_id: ^user_id)
+             |> select([p], p.premium)
+             |> T.Repo.one!()
+
+      assert {:ok, _changes} = Accounts.set_premium(user_id, true)
+
+      assert Accounts.Profile
+             |> where(user_id: ^user_id)
+             |> select([p], p.premium)
+             |> T.Repo.one!()
+
+      assert T.Games.ComplimentLimit |> where(user_id: ^user_id) |> T.Repo.aggregate(:count) == 0
+    end
+  end
+
   describe "list_apns_devices/1" do
     test "success: works with user_ids" do
       [u1, u2] = insert_pair(:user)

@@ -1,6 +1,6 @@
 defmodule TWeb.ViewHelpers do
   @moduledoc false
-  alias T.Media
+  alias T.{Media, Games}
 
   @type env :: :feed | :match | :profile
 
@@ -112,6 +112,18 @@ defmodule TWeb.ViewHelpers do
     label
   end
 
+  defp process_label(
+         %{"question" => "compliment", "prompt" => prompt, "gender" => gender} = label,
+         _screen_width
+       ) do
+    %{
+      "text" => Games.render(prompt),
+      "push_text" => push_text(prompt, gender),
+      "emoji" => Games.prompts()[prompt] || "❤️"
+    }
+    |> Map.merge(label)
+  end
+
   defp process_label(%{"answer" => a} = label, _screen_width) do
     if url = Media.known_sticker_url(a) do
       Map.put(label, "url", url)
@@ -131,6 +143,8 @@ defmodule TWeb.ViewHelpers do
   defp media_cdn_url(key) when is_binary(key) do
     Media.media_cdn_url(key)
   end
+
+  defp push_text(prompt, gender), do: Games.render(prompt <> "_push_" <> gender)
 
   defp maybe_put(map, _k, nil), do: map
   defp maybe_put(map, k, v), do: Map.put(map, k, v)

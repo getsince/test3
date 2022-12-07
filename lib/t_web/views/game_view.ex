@@ -1,6 +1,7 @@
 defmodule TWeb.GameView do
   use TWeb, :view
   alias TWeb.FeedView
+  alias T.Games
 
   def render("game.json", %{game: game, version: version, screen_width: screen_width}) do
     %{"prompt" => prompt, "profiles" => profiles} = game
@@ -14,10 +15,7 @@ defmodule TWeb.GameView do
   def render("compliment.json", %{
         id: id,
         prompt: prompt,
-        text: text,
-        emoji: emoji,
         profile: profile,
-        push_text: push_text,
         seen: seen,
         inserted_at: inserted_at,
         version: version,
@@ -26,14 +24,20 @@ defmodule TWeb.GameView do
     %{
       "id" => id,
       "prompt" => prompt,
-      "text" => text,
-      "push_text" => push_text,
-      "emoji" => emoji,
+      "text" => Games.render(prompt),
+      "push_text" => push_text(prompt, profile),
+      "emoji" => Games.prompts()[prompt] || "❤️",
       "seen" => seen,
       "inserted_at" => ensure_utc(inserted_at)
     }
     |> maybe_put_profile(profile, version, screen_width)
   end
+
+  defp push_text(prompt, nil = _profile),
+    do: Games.render(prompt <> "_push_M")
+
+  defp push_text(prompt, profile),
+    do: Games.render(prompt <> "_push_" <> profile.gender)
 
   defp render_prompt({emoji, tag, text}), do: %{"emoji" => emoji, "tag" => tag, "text" => text}
 

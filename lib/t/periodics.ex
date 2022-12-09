@@ -13,7 +13,7 @@ defmodule T.Periodics do
       build_spec(
         seen_pruner: {
           _period = :timer.hours(1),
-          _task = {Feeds, :local_prune_seen_profiles, [_ttl_days = 60]}
+          _task = {Feeds, :local_prune_seen_profiles, [_ttl_days = 30]}
         },
         feed_ai: {
           :timer.hours(2),

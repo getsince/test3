@@ -34,7 +34,7 @@ defmodule TWeb.UserSocket do
              remote_ip: remote_ip,
              current_user: user,
              token: token,
-             screen_width: params["screen_width"] || 1000,
+             screen_width: screen_width(params),
              locale: params["locale"],
              version: version,
              location: location
@@ -63,6 +63,17 @@ defmodule TWeb.UserSocket do
 
   defp check_version(nil), do: false
   defp check_version(version), do: Version.match?(version, ">= 6.2.0")
+
+  defp screen_width(%{"screen_width" => width}) when is_integer(width), do: width
+
+  defp screen_width(%{"screen_width" => width}) when is_binary(width) do
+    case Integer.parse(width) do
+      {int, _} -> int
+      :error -> 1000
+    end
+  end
+
+  defp screen_width(_), do: 1000
 
   @spec handle_error(Plug.Conn.t(), :invalid_token) :: Plug.Conn.t()
   def handle_error(conn, :invalid_token), do: Plug.Conn.send_resp(conn, 401, "")

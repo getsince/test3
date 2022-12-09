@@ -17,7 +17,10 @@ defmodule TWeb.ViewHelpers do
   def process_sticker(sticker, screen_width), do: process_label(sticker, screen_width)
 
   defp blur(%{"blurred" => %{"s3_key" => s3_key} = bg}, screen_width, :feed) do
-    bg = maybe_put(bg, "proxy", image_cdn_url(s3_key, screen_width))
+    bg =
+      maybe_put(bg, "proxy", image_cdn_url(s3_key, screen_width))
+      |> maybe_put("proxy_miniature", image_cdn_url(s3_key, div(screen_width, 5)))
+
     %{"blurred" => bg, "private" => true}
   end
 
@@ -26,7 +29,10 @@ defmodule TWeb.ViewHelpers do
   end
 
   defp blur(%{"blurred" => %{"s3_key" => s3_key} = bg} = page, screen_width, :profile) do
-    bg = maybe_put(bg, "proxy", image_cdn_url(s3_key, screen_width))
+    bg =
+      maybe_put(bg, "proxy", image_cdn_url(s3_key, screen_width))
+      |> maybe_put("proxy_miniature", image_cdn_url(s3_key, div(screen_width, 5)))
+
     page |> Map.put("blurred", bg) |> Map.put("private", true)
   end
 
@@ -39,12 +45,16 @@ defmodule TWeb.ViewHelpers do
         bg =
           bg
           |> maybe_put("proxy", image_cdn_url(placeholder_key, screen_width))
+          |> maybe_put("proxy_miniature", image_cdn_url(placeholder_key, div(screen_width, 5)))
           |> maybe_put("video_url", media_cdn_url(video_key))
 
         %{page | "background" => bg}
 
       %{"background" => %{"s3_key" => key} = bg} = page when not is_nil(key) ->
-        bg = maybe_put(bg, "proxy", image_cdn_url(key, screen_width))
+        bg =
+          maybe_put(bg, "proxy", image_cdn_url(key, screen_width))
+          |> maybe_put("proxy_miniature", image_cdn_url(key, div(screen_width, 5)))
+
         %{page | "background" => bg}
 
       _ ->

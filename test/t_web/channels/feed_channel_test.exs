@@ -871,7 +871,12 @@ defmodule TWeb.FeedChannelTest do
 
       {random_prompt, _e} = Games.prompts() |> Enum.random()
 
-      ref = push(socket, "send-compliment", %{"to_user_id" => mate.id, "prompt" => random_prompt})
+      ref =
+        push(socket, "send-compliment", %{
+          "to_user_id" => mate.id,
+          "prompt" => random_prompt,
+          "seen_ids" => [mate.id]
+        })
 
       assert_reply(ref, :ok, _reply)
     end

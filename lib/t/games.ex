@@ -14,7 +14,7 @@ defmodule T.Games do
   alias T.Accounts.{UserReport, GenderPreference}
   alias T.Chats.{Chat, Message}
   alias T.Games.{Compliment, ComplimentLimit, ComplimentLimitResetJob}
-  alias T.Feeds.FeedProfile
+  alias T.Feeds.{FeedProfile, SeenProfile}
   alias T.PushNotifications.DispatchJob
 
   @type uuid :: Ecto.UUID.t()
@@ -37,6 +37,7 @@ defmodule T.Games do
     @topic <> ":u:" <> String.downcase(user_id)
   end
 
+  @spec broadcast_for_user(binary, any) :: :ok | {:error, any}
   def broadcast_for_user(user_id, message) do
     Phoenix.PubSub.broadcast(@pubsub, pubsub_user_topic(user_id), message)
   end
@@ -109,11 +110,9 @@ defmodule T.Games do
     Multi.new()
     |> Multi.all(
       :complimenters,
-      Compliment
-      |> where(to_user_id: ^user_id)
-      |> where(revealed: false)
+      filtered_complimenters_q(user_id)
       |> order_by(fragment("random()"))
-      |> limit(4)
+      |> limit(2)
       |> join(:inner, [c], p in FeedProfile, on: c.from_user_id == p.user_id)
       |> select([c, p], %{p | distance: distance_km(^location, p.location)})
     )
@@ -243,6 +242,14 @@ defmodule T.Games do
     where(query, [p], p.user_id not in subquery(complimenter_user_ids_q(user_id)))
   end
 
+  defp seen_user_ids_q(user_id) do
+    SeenProfile |> where(by_user_id: ^user_id) |> select([s], s.user_id)
+  end
+
+  defp not_seen_profiles_q(query, user_id) do
+    where(query, [p], p.user_id not in subquery(seen_user_ids_q(user_id)))
+  end
+
   defp filtered_profiles_q(user_id, gender, gender_preference) do
     not_hidden_profiles_q()
     |> not_reported_profiles_q(user_id)
@@ -251,6 +258,37 @@ defmodule T.Games do
     |> maybe_gender_preferenced_q(gender_preference)
     |> not_complimented_profiles_q(user_id)
     |> not_complimenter_profiles_q(user_id)
+    |> not_seen_profiles_q(user_id)
+  end
+
+  defp not_reported_complimenters_q(query, user_id) do
+    where(query, [c], c.from_user_id not in subquery(reported_user_ids_q(user_id)))
+  end
+
+  defp not_reporter_complimenters_q(query, user_id) do
+    where(query, [c], c.from_user_id not in subquery(reporter_user_ids_q(user_id)))
+  end
+
+  defp hidden_user_ids_q() do
+    FeedProfile |> where(hidden?: true) |> select([p], p.user_id)
+  end
+
+  defp not_hidden_complimenters_q(query) do
+    where(query, [c], c.from_user_id not in subquery(hidden_user_ids_q()))
+  end
+
+  defp not_seen_complimenters_q(query, user_id) do
+    where(query, [p], p.from_user_id not in subquery(seen_user_ids_q(user_id)))
+  end
+
+  defp filtered_complimenters_q(user_id) do
+    Compliment
+    |> where(to_user_id: ^user_id)
+    |> where(revealed: false)
+    |> not_hidden_complimenters_q()
+    |> not_reported_complimenters_q(user_id)
+    |> not_reporter_complimenters_q(user_id)
+    |> not_seen_complimenters_q(user_id)
   end
 
   ### Compliment
@@ -278,17 +316,18 @@ defmodule T.Games do
   defp maybe_add_profile(compliment, true = _premium, profile),
     do: %Compliment{compliment | profile: profile}
 
-  def save_compliment(to_user_id, from_user_id, prompt) do
+  def save_compliment(to_user_id, from_user_id, prompt, seen_ids \\ []) do
     primary_rpc(__MODULE__, :local_save_compliment, [
       from_user_id,
       to_user_id,
-      prompt
+      prompt,
+      seen_ids
     ])
   end
 
-  @spec local_save_compliment(uuid, uuid, String.t()) ::
+  @spec local_save_compliment(uuid, uuid, String.t(), [String.t()]) ::
           {:ok, map} | {:error, map}
-  def local_save_compliment(from_user_id, to_user_id, prompt) do
+  def local_save_compliment(from_user_id, to_user_id, prompt, seen_ids) do
     case fetch_compliment_limit(from_user_id) do
       %ComplimentLimit{} = compliment_limit ->
         %ComplimentLimit{user_id: from_user_id}
@@ -303,7 +342,19 @@ defmodule T.Games do
 
         [user_id_1, user_id_2] = Enum.sort([from_user_id, to_user_id])
 
+        now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+
         Multi.new()
+        |> Multi.insert_all(
+          :maybe_seen_profiles,
+          SeenProfile,
+          seen_ids
+          |> Enum.map(fn id ->
+            %{by_user_id: from_user_id, user_id: id, inserted_at: now}
+          end),
+          on_conflict: {:replace, [:inserted_at]},
+          conflict_target: [:by_user_id, :user_id]
+        )
         |> Multi.run(:compliment_exchange?, fn repo, _changes ->
           previous_compliment =
             Compliment

@@ -172,7 +172,7 @@ defmodule T.GamesTest do
       complimenters =
         profiles |> Enum.filter(fn p -> p.user_id in Enum.map(mates, fn m -> m.id end) end)
 
-      assert length(complimenters) == 4
+      assert length(complimenters) == 2
     end
   end
 

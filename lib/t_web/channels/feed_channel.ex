@@ -263,7 +263,11 @@ defmodule TWeb.FeedChannel do
 
   # compliments
 
-  def handle_in("send-compliment", %{"to_user_id" => to_user_id, "prompt" => prompt}, socket) do
+  def handle_in(
+        "send-compliment",
+        %{"to_user_id" => to_user_id, "prompt" => prompt} = params,
+        socket
+      ) do
     %{
       current_user: user,
       screen_width: screen_width,
@@ -273,7 +277,9 @@ defmodule TWeb.FeedChannel do
       location: location
     } = socket.assigns
 
-    case Games.save_compliment(to_user_id, user.id, prompt) do
+    seen_ids = params["seen_ids"] || []
+
+    case Games.save_compliment(to_user_id, user.id, prompt, seen_ids) do
       {:ok, %Compliment{} = compliment} ->
         {:reply,
          {:ok,
@@ -307,13 +313,17 @@ defmodule TWeb.FeedChannel do
     {:reply, reply, socket}
   end
 
-  def handle_in("like", %{"user_id" => to_user_id}, socket) do
+  def handle_in("like", %{"user_id" => to_user_id} = params, socket) do
     %{
       current_user: user,
       screen_width: screen_width,
       version: version,
       location: location
     } = socket.assigns
+
+    if timings = params["timings"] do
+      Events.save_seen_timings(:feed, user, to_user_id, timings)
+    end
 
     case Games.save_compliment(to_user_id, user.id, "like") do
       {:ok, %Compliment{}} ->

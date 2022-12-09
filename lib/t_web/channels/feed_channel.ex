@@ -75,8 +75,6 @@ defmodule TWeb.FeedChannel do
     feed =
       case params["need_feed"] do
         true ->
-          category = params["category"] || "recommended"
-
           fetch_feed(
             user_id,
             location,
@@ -84,17 +82,17 @@ defmodule TWeb.FeedChannel do
             feed_filter,
             version,
             screen_width,
-            true,
-            category
+            true
           )
 
         _ ->
           nil
       end
 
+    # TODO remove
     feed_categories =
       case params["need_feed"] do
-        true -> Feeds.feed_categories()
+        true -> ["recommended"]
         _ -> nil
       end
 
@@ -131,20 +129,15 @@ defmodule TWeb.FeedChannel do
      assign(socket, feed_filter: feed_filter, location: location, gender: gender, mode: :normal)}
   end
 
-  def handle_in("fetch-category", %{"category" => category}, socket) do
-    %{
-      current_user: user,
-      screen_width: screen_width,
-      version: version,
-      feed_filter: feed_filter,
-      gender: gender,
-      location: location
-    } = socket.assigns
+  # TODO remove
+  def handle_in("fetch-category", _params, socket) do
+    alert =
+      alert(
+        dgettext("alerts", "Deprecation warning"),
+        dgettext("alerts", "Your app version is no longer supported, please upgrade.")
+      )
 
-    feed =
-      fetch_feed(user.id, location, gender, feed_filter, version, screen_width, true, category)
-
-    {:reply, {:ok, %{"feed" => feed}}, socket}
+    {:reply, {:error, %{alert: alert}}, socket}
   end
 
   def handle_in("fetch-game", _params, socket) do
@@ -163,7 +156,7 @@ defmodule TWeb.FeedChannel do
   end
 
   @impl true
-  def handle_in("more", params, socket) do
+  def handle_in("more", _params, socket) do
     %{
       current_user: user,
       screen_width: screen_width,
@@ -173,10 +166,7 @@ defmodule TWeb.FeedChannel do
       location: location
     } = socket.assigns
 
-    category = params["category"] || "recommended"
-
-    feed =
-      fetch_feed(user.id, location, gender, feed_filter, version, screen_width, false, category)
+    feed = fetch_feed(user.id, location, gender, feed_filter, version, screen_width, false)
 
     {:reply, {:ok, %{"feed" => feed}}, socket}
   end
@@ -452,10 +442,9 @@ defmodule TWeb.FeedChannel do
          feed_filter,
          version,
          screen_width,
-         first_fetch,
-         category
+         first_fetch
        ) do
-    feed_reply = Feeds.fetch_feed(user_id, location, gender, feed_filter, first_fetch, category)
+    feed_reply = Feeds.fetch_feed(user_id, location, gender, feed_filter, first_fetch)
     render_feed(feed_reply, version, screen_width)
   end
 

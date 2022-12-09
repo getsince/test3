@@ -533,6 +533,8 @@ defmodule TWeb.FeedChannelTest do
                        "background" => %{
                          "proxy" =>
                            "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
+                         "proxy_miniature" =>
+                           "https://d1234.cloudfront.net/PNwumiK2a5S0HVbV7_YN5c_ZBkcsXk3rkPB5Y5qcDDM/fit/250/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
                          "s3_key" => "test"
                        },
                        "labels" => []
@@ -602,6 +604,8 @@ defmodule TWeb.FeedChannelTest do
                        "background" => %{
                          "proxy" =>
                            "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
+                         "proxy_miniature" =>
+                           "https://d1234.cloudfront.net/PNwumiK2a5S0HVbV7_YN5c_ZBkcsXk3rkPB5Y5qcDDM/fit/250/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
                          "s3_key" => "test"
                        },
                        "labels" => []
@@ -651,6 +655,8 @@ defmodule TWeb.FeedChannelTest do
                        "background" => %{
                          "proxy" =>
                            "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
+                         "proxy_miniature" =>
+                           "https://d1234.cloudfront.net/PNwumiK2a5S0HVbV7_YN5c_ZBkcsXk3rkPB5Y5qcDDM/fit/250/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
                          "s3_key" => "test"
                        },
                        "labels" => []
@@ -677,6 +683,8 @@ defmodule TWeb.FeedChannelTest do
                        "background" => %{
                          "proxy" =>
                            "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
+                         "proxy_miniature" =>
+                           "https://d1234.cloudfront.net/PNwumiK2a5S0HVbV7_YN5c_ZBkcsXk3rkPB5Y5qcDDM/fit/250/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
                          "s3_key" => "test"
                        },
                        "labels" => []

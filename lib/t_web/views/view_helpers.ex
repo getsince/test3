@@ -39,12 +39,16 @@ defmodule TWeb.ViewHelpers do
         bg =
           bg
           |> maybe_put("proxy", image_cdn_url(placeholder_key, screen_width))
+          |> maybe_put("proxy_miniature", image_cdn_url(placeholder_key, div(screen_width, 5)))
           |> maybe_put("video_url", media_cdn_url(video_key))
 
         %{page | "background" => bg}
 
       %{"background" => %{"s3_key" => key} = bg} = page when not is_nil(key) ->
-        bg = maybe_put(bg, "proxy", image_cdn_url(key, screen_width))
+        bg =
+          maybe_put(bg, "proxy", image_cdn_url(key, screen_width))
+          |> maybe_put("proxy_miniature", image_cdn_url(key, div(screen_width, 5)))
+
         %{page | "background" => bg}
 
       _ ->

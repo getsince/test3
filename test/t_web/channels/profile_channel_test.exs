@@ -148,6 +148,8 @@ defmodule TWeb.ProfileChannelTest do
                    "background" => %{
                      "proxy" =>
                        "https://d1234.cloudfront.net/e9a8Yq80qbgr7QH43crdCBPWdt6OACyhD5xWN8ysFok/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Bob3RvLmpwZw",
+                     "proxy_miniature" =>
+                       "https://d1234.cloudfront.net/Vl3FGZd66gVVrKzshMhp69Wihp504YKBfgbPVLexHMI/fit/250/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Bob3RvLmpwZw",
                      "s3_key" => "photo.jpg"
                    },
                    "labels" => [
@@ -264,6 +266,8 @@ defmodule TWeb.ProfileChannelTest do
                      "background" => %{
                        "proxy" =>
                          "https://d1234.cloudfront.net/e9a8Yq80qbgr7QH43crdCBPWdt6OACyhD5xWN8ysFok/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Bob3RvLmpwZw",
+                       "proxy_miniature" =>
+                         "https://d1234.cloudfront.net/Vl3FGZd66gVVrKzshMhp69Wihp504YKBfgbPVLexHMI/fit/250/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Bob3RvLmpwZw",
                        "s3_key" => "photo.jpg"
                      },
                      "labels" => [

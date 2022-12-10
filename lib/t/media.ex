@@ -366,6 +366,7 @@ defmodule T.Media do
     cond do
       requested_width >= 1100 -> 1200
       requested_width >= 900 -> 1000
+      requested_width <= 300 -> 250
       true -> 800
     end
   end

@@ -87,6 +87,15 @@ if config_env() == :prod and not smoke? do
       }
     ]
 
+  config :t, AppStore,
+    key: %{
+      key: System.fetch_env!("APP_STORE_KEY"),
+      key_id: System.fetch_env!("APP_STORE_KEY_ID"),
+      issuer_id: System.fetch_env!("APP_STORE_ISSUER_ID"),
+      topic: apns_topic,
+      env: :prod
+    }
+
   config :t, run_migrations_on_start?: true
 
   config :t, T.Repo,
@@ -179,6 +188,15 @@ if config_env() == :dev do
         env: :dev
       }
     ]
+
+  config :t, AppStore,
+    key: %{
+      key: System.fetch_env!("APP_STORE_KEY"),
+      key_id: System.fetch_env!("APP_STORE_KEY_ID"),
+      issuer_id: System.fetch_env!("APP_STORE_ISSUER_ID"),
+      topic: System.fetch_env!("APNS_TOPIC"),
+      env: :dev
+    }
 
   config :t, T.PushNotifications.APNS, default_topic: System.fetch_env!("APNS_TOPIC")
 
@@ -286,6 +304,15 @@ if config_env() == :test do
     client_id: System.get_env("SPOTIFY_CLIENT_ID") || "SPOTIFY_CLIENT_ID",
     client_secret: System.get_env("SPOTIFY_CLIENT_SECRET") || "SPOTIFY_CLIENT_SECRET"
 
+  config :t, AppStore,
+    key: %{
+      key: System.get_env("APP_STORE_KEY") || "APP_STORE_KEY",
+      key_id: System.get_env("APP_STORE_KEY_ID") || "APP_STORE_KEY_ID",
+      issuer_id: System.get_env("APP_STORE_ISSUER_ID") || "APP_STORE_ISSUER_ID",
+      topic: System.get_env("APNS_TOPIC") || "APNS_TOPIC",
+      env: :dev
+    }
+
   config :ex_aws,
     access_key_id: "AWS_ACCESS_KEY_ID",
     secret_access_key: "AWS_SECRET_ACCESS_KEY"
@@ -302,6 +329,7 @@ if config_env() == :test do
   config :t, T.PushNotifications.APNS, default_topic: "app.topic"
   config :t, T.Periodics, disabled?: true
   config :t, Finch, disabled?: false
+  config :t, AppStore.Notificator, disabled?: true
 
   # TODO
   config :t, primary_prefix: "nohost"
@@ -318,6 +346,7 @@ if config_env() == :bench do
   config :t, T.Periodics, disabled?: true
   config :t, T.Workflows, disabled?: true
   config :t, Finch, disabled?: true
+  config :t, AppStore.Notificator, disabled?: true
 
   # TODO
   config :t, primary_prefix: "nohost"

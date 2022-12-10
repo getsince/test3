@@ -1,6 +1,7 @@
 defmodule TWeb.GameView do
   use TWeb, :view
   alias TWeb.FeedView
+  alias T.Games
 
   def render("game.json", %{game: game, version: version, screen_width: screen_width}) do
     %{"prompt" => prompt, "profiles" => profiles} = game
@@ -14,22 +15,29 @@ defmodule TWeb.GameView do
   def render("compliment.json", %{
         id: id,
         prompt: prompt,
-        text: text,
-        emoji: emoji,
-        push_text: push_text,
+        profile: profile,
         seen: seen,
-        inserted_at: inserted_at
+        inserted_at: inserted_at,
+        version: version,
+        screen_width: screen_width
       }) do
     %{
       "id" => id,
       "prompt" => prompt,
-      "text" => text,
-      "push_text" => push_text,
-      "emoji" => emoji,
+      "text" => Games.render(prompt),
+      "push_text" => push_text(prompt, profile),
+      "emoji" => Games.prompts()[prompt] || "❤️",
       "seen" => seen,
       "inserted_at" => ensure_utc(inserted_at)
     }
+    |> maybe_put_profile(profile, version, screen_width)
   end
+
+  defp push_text(prompt, nil = _profile),
+    do: Games.render(prompt <> "_push_M")
+
+  defp push_text(prompt, profile),
+    do: Games.render(prompt <> "_push_" <> profile.gender)
 
   defp render_prompt({emoji, tag, text}), do: %{"emoji" => emoji, "tag" => tag, "text" => text}
 
@@ -40,6 +48,11 @@ defmodule TWeb.GameView do
       screen_width: screen_width
     })
   end
+
+  defp maybe_put_profile(map, nil, _version, _screen_width), do: map
+
+  defp maybe_put_profile(map, profile, version, screen_width),
+    do: map |> Map.put("profile", render_profile(profile, version, screen_width))
 
   defp ensure_utc(%DateTime{} = datetime), do: datetime
   defp ensure_utc(%NaiveDateTime{} = naive), do: DateTime.from_naive!(naive, "Etc/UTC")

@@ -4,7 +4,7 @@ defmodule T.Factory do
   alias T.Accounts.{User, Profile, GenderPreference, APNSDevice, UserToken}
   alias T.Feeds.{SeenProfile, Meeting}
   alias T.Chats.Chat
-  alias T.Games.Compliment
+  alias T.Games.{Compliment, ComplimentLimit}
 
   alias T.News
 
@@ -31,6 +31,10 @@ defmodule T.Factory do
 
   def compliment_factory do
     %Compliment{}
+  end
+
+  def compliment_limit_factory do
+    %ComplimentLimit{}
   end
 
   def chat_factory do

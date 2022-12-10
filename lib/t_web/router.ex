@@ -36,6 +36,14 @@ defmodule TWeb.Router do
   end
 
   scope "/api", TWeb do
+    pipe_through [:api]
+
+    post "/app-store-notification",
+         AppStoreNotificationController,
+         :process_app_store_notification
+  end
+
+  scope "/api", TWeb do
     pipe_through [:api, :fetch_current_user_from_bearer_token, :require_authenticated_user]
     get "/ip-location", LocationController, :get
     post "/upload-preflight", MediaController, :create_upload_form

@@ -21,7 +21,7 @@ defmodule T.PeriodicsTest do
     refute_received _anything_else
 
     # the first task runs after ~50ms
-    assert_in_delta passed_1, 50, 10
+    assert_in_delta passed_1, 50, 30
 
     # the second task runs ~50ms after the first
     assert_in_delta passed_2 - passed_1, 50, 10

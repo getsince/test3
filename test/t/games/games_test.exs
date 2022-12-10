@@ -28,6 +28,16 @@ defmodule T.GamesTest do
                )
     end
 
+    test "with compliment_limit reached", %{me: me} do
+      for _ <- 1..Games.compliment_limit() do
+        u = onboarded_user()
+        assert {:ok, %Compliment{}} = Games.save_compliment(u.id, me.id, "like")
+      end
+
+      p = onboarded_user()
+      assert {:error, %DateTime{}} = Games.save_compliment(p.id, me.id, "like")
+    end
+
     test "with no active users", %{me: me} do
       insert_list(3, :profile, gender: "F")
 
@@ -162,33 +172,27 @@ defmodule T.GamesTest do
       complimenters =
         profiles |> Enum.filter(fn p -> p.user_id in Enum.map(mates, fn m -> m.id end) end)
 
-      assert length(complimenters) == 4
+      assert length(complimenters) == 2
     end
   end
 
   describe "list_compliments/1" do
     setup do
       me = onboarded_user(location: moscow_location())
-      {:ok, me: me}
+      mate = onboarded_user(location: moscow_location())
+      {:ok, me: me, mate: mate}
     end
 
     test "no compliments", %{me: me} do
-      assert [] == Games.list_compliments(me.id)
+      assert [] == Games.list_compliments(me.id, me.profile.location, false)
     end
 
-    test "compliments have rendered text", %{me: me} do
-      mate = onboarded_user(location: moscow_location())
-
+    test "non premium", %{me: me, mate: mate} do
       {random_prompt, _e} = Games.prompts() |> Enum.random()
 
-      c =
-        insert(:compliment,
-          from_user_id: mate.id,
-          to_user_id: me.id,
-          prompt: random_prompt
-        )
+      c = insert(:compliment, from_user_id: mate.id, to_user_id: me.id, prompt: random_prompt)
 
-      [%Compliment{} = compliment] = Games.list_compliments(me.id)
+      [%Compliment{} = compliment] = Games.list_compliments(me.id, me.profile.location, false)
 
       assert compliment.id == c.id
       assert compliment.inserted_at == c.inserted_at
@@ -197,7 +201,19 @@ defmodule T.GamesTest do
       assert compliment.prompt == random_prompt
       assert compliment.revealed == false
       assert compliment.seen == false
-      assert compliment.text == Games.render(random_prompt)
+      assert compliment.profile == nil
+    end
+
+    test "premium user has revealed compliments", %{me: me, mate: mate} do
+      assert {:ok, _changes} = T.Accounts.set_premium(me.id, true)
+
+      {random_prompt, _e} = Games.prompts() |> Enum.random()
+
+      insert(:compliment, from_user_id: mate.id, to_user_id: me.id, prompt: random_prompt)
+
+      [%Compliment{} = compliment] = Games.list_compliments(me.id, me.profile.location, true)
+
+      assert compliment.profile == T.Feeds.get_mate_feed_profile(mate.id, mate.profile.location)
     end
   end
 
@@ -219,8 +235,6 @@ defmodule T.GamesTest do
 
     test "compliment exchange", %{me: me, mate: mate} do
       {random_prompt, emoji} = Games.prompts() |> Enum.random()
-      prompt_text = Games.render(random_prompt)
-      prompt_push_text = Games.render(random_prompt <> "_push")
 
       Games.subscribe_for_user(me.id)
       Games.subscribe_for_user(mate.id)
@@ -240,29 +254,21 @@ defmodule T.GamesTest do
 
       me_id = me.id
       mate_id = mate.id
+      me_name = me.profile.name
+      me_gender = me.profile.gender
 
       assert [
                %Message{
                  id: message_id,
                  from_user_id: ^me_id,
                  to_user_id: ^mate_id,
-                 data: %{
-                   "question" => "compliment",
-                   "text" => ^prompt_text,
-                   "emoji" => ^emoji,
-                   "push_text" => ^prompt_push_text
-                 }
+                 data: %{"question" => "compliment", "prompt" => random_prompt}
                },
                %Message{
                  id: message_id_1,
                  from_user_id: ^mate_id,
                  to_user_id: ^me_id,
-                 data: %{
-                   "question" => "compliment",
-                   "text" => ^prompt_text,
-                   "emoji" => ^emoji,
-                   "push_text" => ^prompt_push_text
-                 }
+                 data: %{"question" => "compliment", "prompt" => random_prompt}
                }
              ] = chat.messages
 
@@ -283,7 +289,10 @@ defmodule T.GamesTest do
                    "to_user_id" => ^mate_id,
                    "type" => "compliment",
                    "prompt" => ^random_prompt,
-                   "emoji" => ^emoji
+                   "emoji" => ^emoji,
+                   "premium" => false,
+                   "from_user_name" => ^me_name,
+                   "from_user_gender" => ^me_gender
                  }
                },
                %Oban.Job{args: %{"type" => "complete_onboarding"}},

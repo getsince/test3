@@ -25,6 +25,8 @@ defmodule T.Accounts do
     AcquisitionChannel
   }
 
+  alias T.Games.ComplimentLimit
+
   alias T.PushNotifications.DispatchJob
 
   @pubsub T.PubSub
@@ -143,6 +145,28 @@ defmodule T.Accounts do
       {1, _} -> :ok
       _ -> :error
     end
+  end
+
+  def set_premium(user_id, premium) do
+    primary_rpc(__MODULE__, :local_set_premium, [user_id, premium])
+  end
+
+  def local_set_premium(user_id, premium) do
+    m = "setting premium for user #{user_id} to #{premium}"
+    Logger.warn(m)
+    Bot.async_post_message(m)
+
+    Multi.new()
+    |> Multi.update_all(:set_premium, Profile |> where(user_id: ^user_id), set: [premium: premium])
+    |> Multi.run(:maybe_remove_compliment_limit, fn repo, _changes ->
+      if premium do
+        result = ComplimentLimit |> where(user_id: ^user_id) |> repo.delete_all()
+        {:ok, result}
+      else
+        {:ok, nil}
+      end
+    end)
+    |> Repo.transaction()
   end
 
   def save_acquisition_channel(user_id, channel) do
@@ -833,10 +857,10 @@ defmodule T.Accounts do
     end)
   end
 
-  def get_location_gender_hidden?(user_id) do
+  def get_location_gender_premium_hidden?(user_id) do
     Profile
     |> where(user_id: ^user_id)
-    |> select([p], {p.location, p.gender, p.hidden?})
+    |> select([p], {p.location, p.gender, p.premium, p.hidden?})
     |> Repo.one!()
   end
 

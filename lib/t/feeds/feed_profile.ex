@@ -18,5 +18,6 @@ defmodule T.Feeds.FeedProfile do
     field :times_liked, :integer
     field :times_shown, :integer
     field :like_ratio, :float
+    field :premium, :boolean
   end
 end

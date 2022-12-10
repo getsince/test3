@@ -302,7 +302,7 @@ defmodule TWeb.FeedChannelTest do
 
       {random_prompt, emoji} = Games.prompts() |> Enum.random()
       prompt_text = Games.render(random_prompt)
-      prompt_push_text = Games.render(random_prompt <> "_push")
+      prompt_push_text = Games.render(random_prompt <> "_push_M")
 
       [c1, c2, c3] = [
         insert(:compliment,
@@ -533,9 +533,9 @@ defmodule TWeb.FeedChannelTest do
                        "background" => %{
                          "proxy" =>
                            "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
-                         "s3_key" => "test",
                          "proxy_miniature" =>
-                           "https://d1234.cloudfront.net/8s1nzc_JP_18ksewINGRQRexpIyt258_LYPQjPe9hoU/fit/800/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q"
+                           "https://d1234.cloudfront.net/PNwumiK2a5S0HVbV7_YN5c_ZBkcsXk3rkPB5Y5qcDDM/fit/250/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
+                         "s3_key" => "test"
                        },
                        "labels" => []
                      }
@@ -604,9 +604,9 @@ defmodule TWeb.FeedChannelTest do
                        "background" => %{
                          "proxy" =>
                            "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
-                         "s3_key" => "test",
                          "proxy_miniature" =>
-                           "https://d1234.cloudfront.net/8s1nzc_JP_18ksewINGRQRexpIyt258_LYPQjPe9hoU/fit/800/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q"
+                           "https://d1234.cloudfront.net/PNwumiK2a5S0HVbV7_YN5c_ZBkcsXk3rkPB5Y5qcDDM/fit/250/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
+                         "s3_key" => "test"
                        },
                        "labels" => []
                      }
@@ -655,9 +655,9 @@ defmodule TWeb.FeedChannelTest do
                        "background" => %{
                          "proxy" =>
                            "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
-                         "s3_key" => "test",
                          "proxy_miniature" =>
-                           "https://d1234.cloudfront.net/8s1nzc_JP_18ksewINGRQRexpIyt258_LYPQjPe9hoU/fit/800/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q"
+                           "https://d1234.cloudfront.net/PNwumiK2a5S0HVbV7_YN5c_ZBkcsXk3rkPB5Y5qcDDM/fit/250/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
+                         "s3_key" => "test"
                        },
                        "labels" => []
                      }
@@ -683,9 +683,9 @@ defmodule TWeb.FeedChannelTest do
                        "background" => %{
                          "proxy" =>
                            "https://d1234.cloudfront.net/1hPLj5rf4QOwpxjzZB_S-X9SsrQMj0cayJcOCmnvXz4/fit/1000/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
-                         "s3_key" => "test",
                          "proxy_miniature" =>
-                           "https://d1234.cloudfront.net/8s1nzc_JP_18ksewINGRQRexpIyt258_LYPQjPe9hoU/fit/800/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q"
+                           "https://d1234.cloudfront.net/PNwumiK2a5S0HVbV7_YN5c_ZBkcsXk3rkPB5Y5qcDDM/fit/250/0/sm/0/aHR0cHM6Ly9wcmV0ZW5kLXRoaXMtaXMtcmVhbC5zMy5hbWF6b25hd3MuY29tL3Rlc3Q",
+                         "s3_key" => "test"
                        },
                        "labels" => []
                      }
@@ -879,9 +879,49 @@ defmodule TWeb.FeedChannelTest do
 
       {random_prompt, _e} = Games.prompts() |> Enum.random()
 
-      ref = push(socket, "send-compliment", %{"to_user_id" => mate.id, "prompt" => random_prompt})
+      ref =
+        push(socket, "send-compliment", %{
+          "to_user_id" => mate.id,
+          "prompt" => random_prompt,
+          "seen_ids" => [mate.id]
+        })
 
       assert_reply(ref, :ok, _reply)
+    end
+
+    test "compliment_limit", %{socket: socket, me: me} do
+      p = onboarded_user(story: [], name: "mate", location: apple_location(), gender: "F")
+
+      now = DateTime.utc_now() |> DateTime.truncate(:second)
+      insert(:compliment_limit, user_id: me.id, timestamp: now |> DateTime.to_naive())
+
+      ref = push(socket, "send-compliment", %{"to_user_id" => p.id, "prompt" => "like"})
+      assert_reply(ref, :error, %{"limit_expiration" => limit_expiration})
+
+      assert limit_expiration == now |> DateTime.add(T.Games.compliment_limit_period())
+    end
+
+    test "compliment_limit_reset, compliment can be made", %{socket: socket, me: me} do
+      now = DateTime.utc_now() |> DateTime.truncate(:second)
+      compliment_limit_period_ago = DateTime.add(now, -Games.compliment_limit_period() - 1)
+      _limit = Games.insert_compliment_limit(me.id, "like", compliment_limit_period_ago)
+
+      # trigger scheduled FeedLimitResetJob
+      assert %{success: 1} =
+               Oban.drain_queue(queue: :default, with_safety: false, with_scheduled: true)
+
+      p = onboarded_user(story: [], name: "mate", location: apple_location(), gender: "F")
+
+      ref = push(socket, "send-compliment", %{"to_user_id" => p.id, "prompt" => "like"})
+      assert_reply(ref, :ok, %{"compliment" => compliment})
+
+      assert %{
+               "emoji" => "❤️",
+               "prompt" => "like",
+               "push_text" => "liked you",
+               "seen" => false,
+               "text" => "Like"
+             } = compliment
     end
   end
 

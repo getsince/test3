@@ -20,7 +20,8 @@ defmodule TWeb.ProfileView do
         :min_age,
         :max_age,
         :distance,
-        :address
+        :address,
+        :premium
       ],
       version,
       screen_width,

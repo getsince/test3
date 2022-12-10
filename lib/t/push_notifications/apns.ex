@@ -181,6 +181,15 @@ defmodule T.PushNotifications.APNS do
   end
 
   # TODO remove
+  def build_alert_payload("compliment" = type, %{"prompt" => prompt, "emoji" => emoji} = data) do
+    title = emoji <> " " <> dgettext("apns", "Someone ") <> Games.render(prompt <> "_push_M")
+    body = dgettext("apns", "Play the game to find out!")
+
+    alert = %{"title" => title, "body" => body}
+    base_alert_payload(type, alert, data)
+  end
+
+  # TODO remove
   def build_alert_payload(
         "private_page_available" = type,
         %{"name_of" => name_of, "gender_of" => gender_of} = data

@@ -322,7 +322,7 @@ defmodule TWeb.FeedChannel do
     } = socket.assigns
 
     if timings = params["timings"] do
-      Events.save_seen_timings(:feed, user, to_user_id, timings)
+      Events.save_seen_timings(:feed, user.id, to_user_id, timings)
     end
 
     case Games.save_compliment(to_user_id, user.id, "like") do

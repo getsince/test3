@@ -38,7 +38,8 @@ defmodule AppStore do
   defp url(:dev),
     do: "https://api.storekit-sandbox.itunes.apple.com/inApps/v1/notifications/history/"
 
-  defp url(:prod), do: "https://api.storekit.itunes.apple.com/inApps/v1/notifications/test/"
+  defp url(:prod),
+    do: "https://api.storekit.itunes.apple.com/inApps/v1/notifications/history/"
 
   @spec load_notification_history(String.t() | nil) :: response()
   def load_notification_history(pagination_token \\ nil) do

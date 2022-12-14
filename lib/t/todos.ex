@@ -162,5 +162,5 @@ defmodule T.Todos do
     maybe_hidden_todo ++ maybe_update_todo
   end
 
-  defp last_minor_version_update, do: "8.2.0"
+  defp last_minor_version_update, do: "8.3.0"
 end

@@ -162,7 +162,8 @@ defmodule T.PushNotifications.APNS do
       ) do
     title =
       if premium do
-        emoji <> " " <> from_user_name <> Games.render(prompt <> "_push_" <> from_user_gender)
+        emoji <>
+          " " <> from_user_name <> " " <> Games.render(prompt <> "_push_" <> from_user_gender)
       else
         emoji <> " " <> dgettext("apns", "Someone ") <> Games.render(prompt <> "_push_M")
       end

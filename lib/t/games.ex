@@ -53,8 +53,7 @@ defmodule T.Games do
 
   @game_set_count 16
   @game_profiles_recency_limit 180 * 24 * 60 * 60
-  # TODO change to 25 when premium version is released
-  @compliment_limit 1000
+  @compliment_limit 25
   @compliment_limit_period 12 * 60 * 60
 
   @prompts %{

@@ -12,37 +12,78 @@ defmodule T.News do
       "ru" ->
         [
           %{
-            id: 19,
-            timestamp: ~U[2022-11-18 14:00:00Z],
-            version: "8.2.0",
+            id: 20,
+            timestamp: ~U[2022-12-14 10:00:00Z],
+            version: "8.3.0",
             story: [
               %{
                 "size" => [390, 844],
                 "labels" => [
                   %{
-                    "zoom" => 0.7109998249431089,
-                    "value" =>
-                      "Привет 👋 Попробуй игру-опрос: выбирай людей, \nотвечая на вопросы и узнавай, кому интересен ты",
-                    "center" => [193.33333333333334, 117.83333333333331],
-                    "position" => [7.812537712879987, 88.87513807785646],
+                    "zoom" => 0.8028763539650605,
+                    "value" => "Привет 👋 В новом \nапдейте:",
+                    "center" => [110.6253546589989, 133.38667333596018],
+                    "position" => [22.792021325665573, 102.05334000262685],
                     "rotation" => 0,
                     "alignment" => 0,
                     "text_color" => "#111010",
-                    "corner_radius" => 0,
+                    "corner_radius" => 1,
+                    "background_fill" => "#FFFFFF"
+                  },
+                  %{
+                    "zoom" => 0.851172271600246,
+                    "value" => "Новая фуллскрин лента \nс пользователями ❤️‍🔥",
+                    "center" => [232.40020715224574, 717.440643873187],
+                    "position" => [119.23354048557907, 684.2739772065204],
+                    "rotation" => 0,
+                    "alignment" => 0,
+                    "text_color" => "#111010",
+                    "corner_radius" => 1,
                     "background_fill" => "#FFFFFF"
                   }
                 ],
-                "drawing" => %{
-                  "lines" =>
-                    "W3sicG9pbnRzIjpbWzEyLDI0OV0sWzMxLDIzNy4zMzMzMjgyNDcwNzAzMV0sWzMxLDIzNy4zMzMzMjgyNDcwNzAzMV0sWzM3LjY2NjY1NjQ5NDE0MDYyNSwyMzIuMzMzMzI4MjQ3MDcwMzFdLFs0NC4zMzMzMjgyNDcwNzAzMTIsMjI3XSxbNTEuMzMzMzI4MjQ3MDcwMzEyLDIyMi42NjY2NTY0OTQxNDA2Ml0sWzU3LjMzMzMyODI0NzA3MDMxMiwyMThdLFs2My42NjY2NTY0OTQxNDA2MjUsMjE0LjMzMzMyODI0NzA3MDMxXSxbNjkuMzMzMzI4MjQ3MDcwMzEyLDIwOS42NjY2NTY0OTQxNDA2Ml0sWzc0LjY2NjY1NjQ5NDE0MDYyNSwyMDZdLFs3OS4zMzMzMjgyNDcwNzAzMTIsMjAxLjY2NjY1NjQ5NDE0MDYyXSxbODMuNjY2NjU2NDk0MTQwNjI1LDE5Ny42NjY2NTY0OTQxNDA2Ml0sWzg3LjMzMzMyODI0NzA3MDMxMiwxOTRdLFs5MS4zMzMzMjgyNDcwNzAzMTIsMTkwLjMzMzMyODI0NzA3MDMxXSxbOTQuNjY2NjU2NDk0MTQwNjI1LDE4Ny42NjY2NTY0OTQxNDA2Ml0sWzk4LDE4NC42NjY2NTY0OTQxNDA2Ml0sWzEwMC4zMzMzMjgyNDcwNzAzMSwxODNdLFsxMDIsMTgxLjY2NjY1NjQ5NDE0MDYyXSxbMTAzLDE4MS4zMzMzMjgyNDcwNzAzMV0sWzEwMy4zMzMzMjgyNDcwNzAzMSwxODEuMzMzMzI4MjQ3MDcwMzFdLFsxMDIsMTgxLjMzMzMyODI0NzA3MDMxXSxbMTAwLjMzMzMyODI0NzA3MDMxLDE4MS4zMzMzMjgyNDcwNzAzMV0sWzk4LDE4MS4zMzMzMjgyNDcwNzAzMV0sWzk0LjY2NjY1NjQ5NDE0MDYyNSwxODEuMzMzMzI4MjQ3MDcwMzFdLFs5MC42NjY2NTY0OTQxNDA2MjUsMTgxLjMzMzMyODI0NzA3MDMxXSxbODUuMzMzMzI4MjQ3MDcwMzEyLDE4MS42NjY2NTY0OTQxNDA2Ml0sWzgxLjMzMzMyODI0NzA3MDMxMiwxODIuNjY2NjU2NDk0MTQwNjJdLFs3Ny42NjY2NTY0OTQxNDA2MjUsMTg0XSxbNzQuMzMzMzI4MjQ3MDcwMzEyLDE4NV0sWzcyLDE4NS42NjY2NTY0OTQxNDA2Ml0sWzY5LjY2NjY1NjQ5NDE0MDYyNSwxODYuMzMzMzI4MjQ3MDcwMzFdLFs2OC42NjY2NTY0OTQxNDA2MjUsMTg2LjY2NjY1NjQ5NDE0MDYyXSxbNjguNjY2NjU2NDk0MTQwNjI1LDE4N10sWzcyLDE4N10sWzc2LjY2NjY1NjQ5NDE0MDYyNSwxODddLFs4MS42NjY2NTY0OTQxNDA2MjUsMTg3XSxbODYuNjY2NjU2NDk0MTQwNjI1LDE4N10sWzkyLDE4N10sWzk1LjY2NjY1NjQ5NDE0MDYyNSwxODYuMzMzMzI4MjQ3MDcwMzFdLFs5OC42NjY2NTY0OTQxNDA2MjUsMTg1LjY2NjY1NjQ5NDE0MDYyXSxbMTAwLjY2NjY1NjQ5NDE0MDYyLDE4NS4zMzMzMjgyNDcwNzAzMV0sWzEwMS4zMzMzMjgyNDcwNzAzMSwxODUuMzMzMzI4MjQ3MDcwMzFdLFsxMDEuNjY2NjU2NDk0MTQwNjIsMTg1LjMzMzMyODI0NzA3MDMxXSxbMTAxLjY2NjY1NjQ5NDE0MDYyLDE4NS42NjY2NTY0OTQxNDA2Ml0sWzEwMS42NjY2NTY0OTQxNDA2MiwxOTAuMzMzMzI4MjQ3MDcwMzFdLFs5OSwyMDFdLFs5MywyMTkuNjY2NjU2NDk0MTQwNjJdXSwic3Ryb2tlX2NvbG9yIjoiIzExMTAxMCIsInN0cm9rZV93aWR0aCI6NX1d"
-                },
                 "background" => %{
-                  "zoom" => 0.6507977927920133,
-                  "color" => "#83E36B",
-                  "s3_key" => "6d80b83a-475b-434f-b640-1a21da608610",
-                  "position" => [68.0944304055574, 147.36333144177036],
-                  "rotation" => 5.822303900740022,
-                  "video_s3_key" => "85bd2da6-2cd2-4273-87d3-d52823ac90a8"
+                  "zoom" => 0.6502861933878576,
+                  "color" => "#AECFFF",
+                  "s3_key" => "f15cef2b-b99f-49e1-9f3a-a73180d9dfe9",
+                  "position" => [136.38838457873555, 295.15845278064813],
+                  "rotation" => 16.258649907993558
+                }
+              },
+              %{
+                "size" => [390, 844],
+                "labels" => [
+                  %{
+                    "zoom" => 0.7921290294611806,
+                    "value" =>
+                      "Since Premium 💎 — играй без \nлимитов и узнай, кто поставил тебе \nлайк 👀",
+                    "center" => [160.61191598471876, 142.94891385338292],
+                    "position" => [9.945249318052106, 99.94891385338292],
+                    "rotation" => 0,
+                    "alignment" => 0,
+                    "text_color" => "#111010",
+                    "corner_radius" => 1,
+                    "background_fill" => "#FFFFFF"
+                  }
+                ],
+                "background" => %{
+                  "zoom" => 0.6880537910246307,
+                  "color" => "#C7E36E",
+                  "s3_key" => "5750ae8d-5952-481e-8126-783d36b06bd8",
+                  "position" => [121.65902150039406, 263.28260037521176],
+                  "rotation" => 19.973404846363323
+                }
+              },
+              %{
+                "size" => [390, 844],
+                "labels" => [],
+                "background" => %{
+                  "zoom" => 0.7149814417382633,
+                  "color" => "#111010",
+                  "s3_key" => "a3338ab4-c6d0-4987-9f6f-fe6702544519",
+                  "position" => [111.1572377220773, 240.55566317290578],
+                  "rotation" => 11.407453185183293,
+                  "video_s3_key" => "2eaf2235-4e78-49d0-87e1-15b45921b0ae"
                 }
               }
             ]
@@ -52,37 +93,88 @@ defmodule T.News do
       _ ->
         [
           %{
-            id: 19,
-            timestamp: ~U[2022-11-18 14:00:00Z],
-            version: "8.2.0",
+            id: 20,
+            timestamp: ~U[2022-12-14 10:00:00Z],
+            version: "8.3.0",
             story: [
               %{
                 "size" => [390, 844],
                 "labels" => [
                   %{
-                    "zoom" => 0.7846421379262476,
-                    "value" =>
-                      "Hey 👋 Try a new Survey Game: answer \nquestions & find out who is interested in you",
-                    "center" => [183.14779241758373, 113.26084697434098],
-                    "position" => [7.281515622027229, 82.1156976008658],
+                    "zoom" => 0.7666090812511713,
+                    "value" => "Hey 👋 In our new update:",
+                    "center" => [114.5226499775388, 120.57277384970952],
+                    "position" => [10.2638149273795, 102.557460440307],
+                    "rotation" => 0,
+                    "alignment" => 1,
+                    "text_color" => "#111010",
+                    "corner_radius" => 1,
+                    "background_fill" => "#FFFFFF"
+                  },
+                  %{
+                    "zoom" => 0.7922770082950592,
+                    "value" => "New full screen Feed with users ❤️‍🔥",
+                    "center" => [224.1666514078778, 702.9999847412109],
+                    "position" => [82.6666514078778, 683.9999847412109],
                     "rotation" => 0,
                     "alignment" => 0,
                     "text_color" => "#111010",
-                    "corner_radius" => 0,
+                    "corner_radius" => 1,
                     "background_fill" => "#FFFFFF"
                   }
                 ],
-                "drawing" => %{
-                  "lines" =>
-                    "W3sicG9pbnRzIjpbWzQ0LjMzMzMyODI0NzA3MDMxMiwyMjguNjY2NjU2NDk0MTQwNjJdLFs0OS4zMzMzMjgyNDcwNzAzMTIsMjI1XSxbNTQuNjY2NjU2NDk0MTQwNjI1LDIyMl0sWzYxLjMzMzMyODI0NzA3MDMxMiwyMTguMzMzMzI4MjQ3MDcwMzFdLFs2OC4zMzMzMjgyNDcwNzAzMTIsMjE1XSxbNzQuNjY2NjU2NDk0MTQwNjI1LDIxMS42NjY2NTY0OTQxNDA2Ml0sWzgxLjMzMzMyODI0NzA3MDMxMiwyMDhdLFs4OCwyMDQuMzMzMzI4MjQ3MDcwMzFdLFs5NC42NjY2NTY0OTQxNDA2MjUsMjAwLjMzMzMyODI0NzA3MDMxXSxbMTAxLDE5Ny4zMzMzMjgyNDcwNzAzMV0sWzEwNiwxOTQuNjY2NjU2NDk0MTQwNjJdLFsxMTAuMzMzMzI4MjQ3MDcwMzEsMTkyLjMzMzMyODI0NzA3MDMxXSxbMTEzLjY2NjY1NjQ5NDE0MDYyLDE5MC4zMzMzMjgyNDcwNzAzMV0sWzExNS4zMzMzMjgyNDcwNzAzMSwxODkuMzMzMzI4MjQ3MDcwMzFdLFsxMTYsMTg4LjY2NjY1NjQ5NDE0MDYyXSxbMTE1LjMzMzMyODI0NzA3MDMxLDE4OC42NjY2NTY0OTQxNDA2Ml0sWzExNC4zMzMzMjgyNDcwNzAzMSwxODguNjY2NjU2NDk0MTQwNjJdLFsxMTMuNjY2NjU2NDk0MTQwNjIsMTg4LjY2NjY1NjQ5NDE0MDYyXSxbMTEyLDE4OC42NjY2NTY0OTQxNDA2Ml0sWzExMCwxODkuMzMzMzI4MjQ3MDcwMzFdLFsxMDcuMzMzMzI4MjQ3MDcwMzEsMTkwXSxbMTA0LDE5MC4zMzMzMjgyNDcwNzAzMV0sWzEwMC42NjY2NTY0OTQxNDA2MiwxOTFdLFs5NywxOTEuNjY2NjU2NDk0MTQwNjJdLFs5NC4zMzMzMjgyNDcwNzAzMTIsMTkyLjMzMzMyODI0NzA3MDMxXSxbOTMsMTkyLjY2NjY1NjQ5NDE0MDYyXSxbOTIuNjY2NjU2NDk0MTQwNjI1LDE5Mi42NjY2NTY0OTQxNDA2Ml0sWzk0LDE5Mi42NjY2NTY0OTQxNDA2Ml0sWzk4LjY2NjY1NjQ5NDE0MDYyNSwxOTEuMzMzMzI4MjQ3MDcwMzFdLFsxMDQsMTg5LjMzMzMyODI0NzA3MDMxXSxbMTEwLDE4OF0sWzExNC4zMzMzMjgyNDcwNzAzMSwxODddLFsxMTcuNjY2NjU2NDk0MTQwNjIsMTg3XSxbMTE5LjMzMzMyODI0NzA3MDMxLDE4N10sWzExOS4zMzMzMjgyNDcwNzAzMSwxODcuNjY2NjU2NDk0MTQwNjJdLFsxMTgsMTkxLjMzMzMyODI0NzA3MDMxXSxbMTEzLjY2NjY1NjQ5NDE0MDYyLDE5OC42NjY2NTY0OTQxNDA2Ml0sWzEwNi4zMzMzMjgyNDcwNzAzMSwyMTFdLFs5OSwyMjZdXSwic3Ryb2tlX2NvbG9yIjoiIzExMTAxMCIsInN0cm9rZV93aWR0aCI6NX1d"
-                },
                 "background" => %{
-                  "zoom" => 0.6502722213809004,
-                  "color" => "#83E36B",
-                  "s3_key" => "ac737044-6c0e-450f-85ed-61c3a6621354",
-                  "position" => [68.19691683072443, 147.58512257726005],
-                  "rotation" => 14.802944301601595,
-                  "video_s3_key" => "11ccfa03-1536-4113-9902-c601e7c19ca4"
+                  "zoom" => 0.6500012936414258,
+                  "color" => "#C2C2C5",
+                  "s3_key" => "b9c7b0fd-5504-4772-9d50-e29da07b9c12",
+                  "position" => [68.24974773992197, 147.6994540833183],
+                  "rotation" => 8.087927233084573
+                }
+              },
+              %{
+                "size" => [390, 844],
+                "labels" => [
+                  %{
+                    "zoom" => 0.9341749443210824,
+                    "value" => "Since Premium 💎 ",
+                    "center" => [104.48331948778716, 124.16609463623656],
+                    "position" => [10.131650111357828, 102.21298344469113],
+                    "rotation" => 0,
+                    "alignment" => 1,
+                    "text_color" => "#111010",
+                    "corner_radius" => 1,
+                    "background_fill" => "#FFFFFF"
+                  },
+                  %{
+                    "zoom" => 0.8817104395110301,
+                    "value" => "Play without limits. Find out \nwho likes you 👀",
+                    "center" => [236.07814657621296, 717.8197177448103],
+                    "position" => [107.34842240760256, 683.7269140837171],
+                    "rotation" => 0,
+                    "alignment" => 0,
+                    "text_color" => "#111010",
+                    "corner_radius" => 1,
+                    "background_fill" => "#FFFFFF"
+                  }
+                ],
+                "background" => %{
+                  "zoom" => 0.7288773691847487,
+                  "color" => "#C8E46E",
+                  "s3_key" => "e8f20fcf-8670-44a5-99fa-ceca255a4f7e",
+                  "position" => [52.868913008974005, 114.41375020403609],
+                  "rotation" => 14.488575548617757
+                }
+              },
+              %{
+                "size" => [390, 844],
+                "labels" => [],
+                "background" => %{
+                  "zoom" => 0.7748900947519992,
+                  "color" => "#1D1B1E",
+                  "s3_key" => "95f60bb7-1de0-464b-9700-6e31eee1da6a",
+                  "position" => [43.89643152336015, 94.99638001465632],
+                  "rotation" => 13.167002387090731,
+                  "video_s3_key" => "e48ab2b5-31d7-4cd8-a8c2-5a6f01a1c0c0"
                 }
               }
             ]

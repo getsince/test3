@@ -28,8 +28,8 @@ jobs:
       - name: Set up Elixir
         uses: erlef/setup-beam@v1
         with:
-          elixir-version: "1.14.0"
-          otp-version: "25.1"
+          elixir-version: "1.14.4"
+          otp-version: "25.3.2"
 
       - name: Install hex
         run: mix local.hex --force

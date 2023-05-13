@@ -7,8 +7,10 @@ on:
 
 jobs:
   mix:
-    name: elixir mix test
     runs-on: ubuntu-latest
+
+    env:
+      MIX_ENV: test
 
     services:
       postgres:
@@ -24,32 +26,23 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Set up Elixir
-        uses: erlef/setup-beam@v1
+      - uses: erlef/setup-beam@v1
         with:
           elixir-version: "1.14.4"
           otp-version: "25.3.2"
 
-      - name: Restore dependencies cache
-        uses: actions/cache@v3
+      - uses: actions/cache@v3
         with:
           path: |
             deps
             _build
-
           key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
           restore-keys: ${{ runner.os }}-mix-
 
-      - name: Install dependencies
-        run: mix deps.get
-
-      - name: Check formatted
-        run: mix format --check-formatted
-
-      - name: Compile (warnings as errors)
-        run: MIX_ENV=test mix compile --warnings-as-errors
-
-      - name: Run tests
+      - run: mix deps.get --only test
+      - run: mix compile --warnings-as-errors
+      - run: mix format --check-formatted
+      - run: mix test --include integration
         env:
           SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
           SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
@@ -57,4 +50,3 @@ jobs:
           APP_STORE_KEY: ${{ secrets.APP_STORE_KEY }}
           APP_STORE_ISSUER_ID: ${{ secrets.APP_STORE_ISSUER_ID }}
           APNS_TOPIC: ${{ secrets.APNS_TOPIC }}
-        run: mix test --include integration

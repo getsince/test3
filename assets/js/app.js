@@ -1,9 +1,9 @@
 // Bring phoenix_html to deal with method=PUT/DELETE in forms and buttons
 import "phoenix_html";
 
+// Establish Phoenix Socket and LiveView configuration.
 import { Socket } from "phoenix";
 import { LiveSocket } from "phoenix_live_view";
-
 import topbar from "topbar";
 
 let scrollAt = () => {
@@ -85,5 +85,6 @@ liveSocket.connect();
 
 // expose liveSocket on window for web console debug logs and latency simulation:
 // >> liveSocket.enableDebug()
-// >> liveSocket.enableLatencySim(1000)
+// >> liveSocket.enableLatencySim(1000)  // enabled for duration of browser session
+// >> liveSocket.disableLatencySim()
 window.liveSocket = liveSocket;

@@ -5,21 +5,11 @@ defmodule TWeb.ProfileLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <div id="blocked-user-listener" class="hidden" phx-hook="BlockedUser"></div>
-    <div id="hidden-user-listener" class="hidden" phx-hook="HiddenUser"></div>
-    <%= if @live_action == :sort_by_registration do %>
-      <div id="profiles" class="p-4 space-y-4" phx-update="append" phx-hook="RegisteredProfilesInfiniteScroll" data-selector="[data-cursor-user-id]">
-        <%= for profile <- @profiles do %>
-          <.profile profile={profile} />
-        <% end %>
-      </div>
-    <% else %>
-      <div id="profiles" class="p-4 space-y-4" phx-update="append" phx-hook="ProfilesInfiniteScroll" data-selector="[data-cursor-user-id]">
-        <%= for profile <- @profiles do %>
-          <.profile profile={profile} />
-        <% end %>
-      </div>
-    <% end %>
+    <div id="profiles" class="p-4 space-y-4" phx-update="append" phx-hook="ProfilesInfiniteScroll" data-selector="[data-cursor-user-id]">
+      <%= for profile <- @profiles do %>
+        <.profile profile={profile} />
+      <% end %>
+    </div>
     """
   end
 
@@ -46,12 +36,14 @@ defmodule TWeb.ProfileLive.Index do
     {:noreply, push_event(socket, "hidden", %{"user_id" => user_id})}
   end
 
-  def handle_event("more", %{"last_active" => last_active, "user_id" => user_id}, socket) do
-    {:noreply, paginate_profiles_by_last_active(socket, last_active, user_id)}
-  end
+  def handle_event("more", %{"sorted_by" => sorted_by, "user_id" => user_id}, socket) do
+    socket =
+      case socket.assigns.live_action do
+        :index -> paginate_profiles_by_last_active(socket, sorted_by, user_id)
+        :sort_by_registration -> paginate_profiles_by_inserted_at(socket, sorted_by, user_id)
+      end
 
-  def handle_event("more", %{"inserted_at" => inserted_at, "user_id" => user_id}, socket) do
-    {:noreply, paginate_profiles_by_inserted_at(socket, inserted_at, user_id)}
+    {:noreply, socket}
   end
 
   defp paginate_profiles_by_last_active(socket) do
@@ -100,7 +92,7 @@ defmodule TWeb.ProfileLive.Index do
 
   def profile(assigns) do
     ~H"""
-    <div id={"profile-" <> @profile.user_id} data-cursor-user-id={@profile.user_id} data-cursor-last-active={@profile.last_active} data-cursor-inserted-at={@profile.inserted_at} class="p-2 rounded-lg border dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+    <div id={"profile-" <> @profile.user_id} data-cursor-user-id={@profile.user_id} data-cursor-sorted-by={@sorted_by} class="p-2 rounded-lg border dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
       <div class="flex space-x-2 items-center">
         <p class="font-bold"><%= @profile.name %> <time class="text-gray-500 dark:text-gray-400 font-normal" datetime={@profile.last_active}>was last seen <%= render_relative(@profile.last_active) %></time></p>
         <%= if @profile.blocked_at do %>

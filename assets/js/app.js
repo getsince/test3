@@ -6,30 +6,6 @@ import { LiveSocket } from "phoenix_live_view";
 
 import topbar from "topbar";
 
-const BlockedUser = {
-  mounted() {
-    this.handleEvent("blocked", ({ user_id }) => {
-      let button = document.querySelector(
-        `[phx-click='block'][phx-value-user-id='${user_id}']`
-      );
-      button.disabled = true;
-      button.innerText = "Blocked";
-    });
-  },
-};
-
-const HiddenUser = {
-  mounted() {
-    this.handleEvent("hidden", ({ user_id }) => {
-      let button = document.querySelector(
-        `[phx-click='hide'][phx-value-user-id='${user_id}']`
-      );
-      button.disabled = true;
-      button.innerText = "Hidden";
-    });
-  },
-};
-
 let scrollAt = () => {
   let scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
   let scrollHeight =
@@ -42,31 +18,8 @@ const ProfilesInfiniteScroll = {
   cursor() {
     const { selector } = this.el.dataset;
     const node = this.el.querySelector(`${selector}:last-child`);
-    const { cursorUserId, cursorLastActive, cursorInsertedAt } = node.dataset;
-    return { user_id: cursorUserId, last_active: cursorLastActive };
-  },
-
-  mounted() {
-    this.pending = false;
-    window.addEventListener("scroll", () => {
-      if (scrollAt() > 90 && !this.pending) {
-        this.pending = true;
-        this.pushEvent("more", this.cursor());
-      }
-    });
-  },
-
-  updated() {
-    this.pending = false;
-  },
-};
-
-const RegisteredProfilesInfiniteScroll = {
-  cursor() {
-    const { selector } = this.el.dataset;
-    const node = this.el.querySelector(`${selector}:last-child`);
-    const { cursorUserId, cursorLastActive, cursorInsertedAt } = node.dataset;
-    return { user_id: cursorUserId, inserted_at: cursorInsertedAt };
+    const { cursorUserId, cursorSortedBy } = node.dataset;
+    return { user_id: cursorUserId, sorted_by: cursorSortedBy };
   },
 
   mounted() {
@@ -119,12 +72,7 @@ let csrfToken = document
 let liveSocket = new LiveSocket("/live", Socket, {
   params: { _csrf_token: csrfToken },
   uploaders: { S3 },
-  hooks: {
-    ProfilesInfiniteScroll,
-    RegisteredProfilesInfiniteScroll,
-    BlockedUser,
-    HiddenUser,
-  },
+  hooks: { ProfilesInfiniteScroll },
 });
 
 // Show progress bar on live navigation and form submits

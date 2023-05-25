@@ -49,7 +49,7 @@ defmodule T.MixProject do
       {:ecto_psql_extras, "~> 0.2"},
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 1.0.0"},
-      {:gettext, "~> 0.21.0"},
+      {:gettext, "~> 0.22.1"},
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.5"},
       {:ex_aws, "~> 2.4.0"},

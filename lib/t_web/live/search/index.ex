@@ -22,8 +22,29 @@ defmodule TWeb.SearchLive.Index do
     <div class="min-h-screen w-full">
       <form class="m-4" phx-change="search" phx-submit="search">
         <div class="relative flex items-center">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 absolute ml-3 text-gray-500"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-          <input type="search" name="search" value={@search} phx-debounce="100" placeholder="0000017c-14c7-9745-0242-ac1100020000" class="rounded dark:bg-gray-800 bg-gray-50 shadow border-gray-300 dark:border-gray-600 pl-9" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="w-4 h-4 absolute ml-3 text-gray-500"
+          >
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input
+            type="search"
+            name="search"
+            value={@search}
+            phx-debounce="100"
+            placeholder="0000017c-14c7-9745-0242-ac1100020000"
+            class="rounded dark:bg-gray-800 bg-gray-50 shadow border-gray-300 dark:border-gray-600 pl-9"
+          />
         </div>
       </form>
 

@@ -9,7 +9,7 @@ defmodule AppStore do
   alias AppStore.Notification
 
   @type env :: :dev | :prod
-  @type notification :: Map.t()
+  @type notification :: map
   @type response :: :ok | :error
 
   @significant_notification_types [

@@ -28,15 +28,17 @@ defmodule T.DataCase do
   end
 
   setup tags do
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(T.Repo)
-
-    unless tags[:async] do
-      Ecto.Adapters.SQL.Sandbox.mode(T.Repo, {:shared, self()})
-    end
-
+    T.DataCase.setup_sandbox(tags)
     Mox.stub_with(MockBot, StubBot)
-
     :ok
+  end
+
+  @doc """
+  Sets up the sandbox based on the test tags.
+  """
+  def setup_sandbox(tags) do
+    pid = Ecto.Adapters.SQL.Sandbox.start_owner!(T.Repo, shared: not tags[:async])
+    on_exit(fn -> Ecto.Adapters.SQL.Sandbox.stop_owner(pid) end)
   end
 
   @doc """

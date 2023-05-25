@@ -4,7 +4,7 @@ defmodule TWeb.ViewHelpers do
 
   @type env :: :feed | :match | :profile
 
-  @spec postprocess_story([map], String.t(), pos_integer(), env) :: [map]
+  @spec postprocess_story([map], String.t() | Version.t(), pos_integer(), env) :: [map]
   def postprocess_story(story, version, screen_width, env) when is_list(story) do
     Enum.map(story, fn page ->
       page

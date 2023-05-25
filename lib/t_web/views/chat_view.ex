@@ -57,7 +57,6 @@ defmodule TWeb.ChatView do
   end
 
   defp maybe_put(map, _k, nil), do: map
-  defp maybe_put(map, _k, false), do: map
   defp maybe_put(map, k, v), do: Map.put(map, k, v)
 
   defp ensure_utc(%DateTime{} = datetime), do: datetime

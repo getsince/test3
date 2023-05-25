@@ -5,7 +5,13 @@ defmodule TWeb.ProfileLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <div id="profiles" class="p-4 space-y-4" phx-update="append" phx-hook="ProfilesInfiniteScroll" data-selector="[data-cursor-user-id]">
+    <div
+      id="profiles"
+      class="p-4 space-y-4"
+      phx-update="append"
+      phx-hook="ProfilesInfiniteScroll"
+      data-selector="[data-cursor-user-id]"
+    >
       <%= for profile <- @profiles do %>
         <.profile profile={profile} />
       <% end %>
@@ -92,27 +98,60 @@ defmodule TWeb.ProfileLive.Index do
 
   def profile(assigns) do
     ~H"""
-    <div id={"profile-" <> @profile.user_id} data-cursor-user-id={@profile.user_id} data-cursor-sorted-by={@sorted_by} class="p-2 rounded-lg border dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+    <div
+      id={"profile-" <> @profile.user_id}
+      data-cursor-user-id={@profile.user_id}
+      data-cursor-sorted-by={@sorted_by}
+      class="p-2 rounded-lg border dark:border-gray-700 bg-gray-50 dark:bg-gray-800"
+    >
       <div class="flex space-x-2 items-center">
-        <p class="font-bold"><%= @profile.name %> <time class="text-gray-500 dark:text-gray-400 font-normal" datetime={@profile.last_active}>was last seen <%= render_relative(@profile.last_active) %></time></p>
+        <p class="font-bold">
+          <%= @profile.name %>
+          <time class="text-gray-500 dark:text-gray-400 font-normal" datetime={@profile.last_active}>
+            was last seen <%= render_relative(@profile.last_active) %>
+          </time>
+        </p>
         <%= if @profile.blocked_at do %>
-          <span class="bg-red-700 px-2 rounded border border-red-500 font-semibold cursor-not-allowed">Blocked <%= render_relative(@profile.blocked_at) %></span>
+          <span class="bg-red-700 px-2 rounded border border-red-500 font-semibold cursor-not-allowed">
+            Blocked <%= render_relative(@profile.blocked_at) %>
+          </span>
         <% else %>
-          <button phx-click="block" phx-value-user-id={@profile.user_id} class="bg-red-200 dark:bg-red-500 px-2 rounded border border-red-500 dark:border-red-700 font-semibold hover:bg-red-300 dark:hover:bg-red-600 transition" data-confirm={"Are you sure you want to block #{@profile.name}?"}>Block</button>
+          <button
+            phx-click="block"
+            phx-value-user-id={@profile.user_id}
+            class="bg-red-200 dark:bg-red-500 px-2 rounded border border-red-500 dark:border-red-700 font-semibold hover:bg-red-300 dark:hover:bg-red-600 transition"
+            data-confirm={"Are you sure you want to block #{@profile.name}?"}
+          >
+            Block
+          </button>
         <% end %>
         <%= if @profile.hidden do %>
-          <span class="bg-red-700 px-2 rounded border border-red-500 font-semibold cursor-not-allowed">Hidden</span>
+          <span class="bg-red-700 px-2 rounded border border-red-500 font-semibold cursor-not-allowed">
+            Hidden
+          </span>
         <% else %>
-          <button phx-click="hide" phx-value-user-id={@profile.user_id} class="bg-red-200 dark:bg-red-500 px-2 rounded border border-red-500 dark:border-red-700 font-semibold hover:bg-red-300 dark:hover:bg-red-600 transition" data-confirm={"Are you sure you want to hide #{@profile.name}?"}>Hide</button>
+          <button
+            phx-click="hide"
+            phx-value-user-id={@profile.user_id}
+            class="bg-red-200 dark:bg-red-500 px-2 rounded border border-red-500 dark:border-red-700 font-semibold hover:bg-red-300 dark:hover:bg-red-600 transition"
+            data-confirm={"Are you sure you want to hide #{@profile.name}?"}
+          >
+            Hide
+          </button>
         <% end %>
       </div>
       <div class="mt-2 flex space-x-2 items-center">
         <p class="text-gray-500 dark:text-gray-400 font-mono text-sm"><%= @profile.user_id %></p>
       </div>
       <%= if @profile.email do %>
-      <div class="flex space-x-2 items-center">
-        <a href={"mailto:" <> @profile.email} class="text-gray-500 dark:text-gray-400 underline text-sm hover:text-gray-300 transition"><%= @profile.email %></a>
-      </div>
+        <div class="flex space-x-2 items-center">
+          <a
+            href={"mailto:" <> @profile.email}
+            class="text-gray-500 dark:text-gray-400 underline text-sm hover:text-gray-300 transition"
+          >
+            <%= @profile.email %>
+          </a>
+        </div>
       <% end %>
 
       <div class="mt-2 flex space-x-2 overflow-auto w-full">
@@ -120,8 +159,7 @@ defmodule TWeb.ProfileLive.Index do
           <.story_page page={page} />
         <% end %>
       </div>
-      <div>
-      </div>
+      <div></div>
     </div>
     """
   end
@@ -136,22 +174,29 @@ defmodule TWeb.ProfileLive.Index do
 
     ~H"""
     <div class="p-1 shrink-0">
-    <%= if image = background_image(@page) do %>
-      <div class="shrink-0 relative cursor-pointer overflow-y-hidden rounded-lg border border-gray-300 dark:border-gray-700" style={@style} phx-click={JS.toggle(to: "[data-for-image='#{image.s3_key}']")}>
-        <img src={image.url} class="w-full h-full rounded-lg object-cover" />
-        <div class="absolute top-0 left-0 w-full h-full" data-for-image={image.s3_key}>
+      <%= if image = background_image(@page) do %>
+        <div
+          class="shrink-0 relative cursor-pointer overflow-y-hidden rounded-lg border border-gray-300 dark:border-gray-700"
+          style={@style}
+          phx-click={JS.toggle(to: "[data-for-image='#{image.s3_key}']")}
+        >
+          <img src={image.url} class="w-full h-full rounded-lg object-cover" />
+          <div class="absolute top-0 left-0 w-full h-full" data-for-image={image.s3_key}>
+            <%= for label <- (@page["labels"] || []) do %>
+              <.story_label label={label} size={@page["size"]} />
+            <% end %>
+          </div>
+        </div>
+      <% else %>
+        <div
+          class="shrink-0 relative overflow-y-hidden rounded-lg border dark:border-gray-700"
+          style={"background-color:#{background_color(@page)};" <> @style}
+        >
           <%= for label <- (@page["labels"] || []) do %>
-            <.story_label label={label} size={@page["size"]}/>
+            <.story_label label={label} size={@page["size"]} />
           <% end %>
         </div>
-      </div>
-    <% else %>
-      <div class="shrink-0 relative overflow-y-hidden rounded-lg border dark:border-gray-700" style={"background-color:#{background_color(@page)};" <> @style}>
-        <%= for label <- (@page["labels"] || []) do %>
-          <.story_label label={label} size={@page["size"]} />
-        <% end %>
-      </div>
-    <% end %>
+      <% end %>
     </div>
     """
   end
@@ -217,7 +262,11 @@ defmodule TWeb.ProfileLive.Index do
 
       ~H"""
       <div class="absolute font-medium text-white" style={@style}>
-        <.text_label text={@label["value"] || @label["answer"] || @label["question"]} alignment={@alignment} bg={@label["background_fill"]} />
+        <.text_label
+          text={@label["value"] || @label["answer"] || @label["question"]}
+          alignment={@alignment}
+          bg={@label["background_fill"]}
+        />
       </div>
       """
     end
@@ -242,7 +291,9 @@ defmodule TWeb.ProfileLive.Index do
         assigns = assign(assigns, style: render_style(style))
 
         ~H"""
-        <span class="bg-black leading-6 px-2 rounded-full inline-block whitespace-nowrap" style={@style}><%= @text %></span>
+        <span class="bg-black leading-6 px-2 rounded-full inline-block whitespace-nowrap" style={@style}>
+          <%= @text %>
+        </span>
         """
 
       lines ->
@@ -320,7 +371,14 @@ defmodule TWeb.ProfileLive.Index do
 
         ~H"""
         <%= for line <- @lines do %>
-        <p><span class="bg-black leading-6 -my-0.5 px-2 inline-block whitespace-nowrap" style={line.style}><%= line.text %></span></p>
+          <p>
+            <span
+              class="bg-black leading-6 -my-0.5 px-2 inline-block whitespace-nowrap"
+              style={line.style}
+            >
+              <%= line.text %>
+            </span>
+          </p>
         <% end %>
         """
     end

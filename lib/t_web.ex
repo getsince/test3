@@ -19,35 +19,6 @@ defmodule TWeb do
 
   def static_paths, do: ~w(assets fonts images favicon.ico robots.txt)
 
-  def controller do
-    quote do
-      use Phoenix.Controller,
-        formats: [:html, :json],
-        layouts: [html: TWeb.Layouts]
-
-      import Plug.Conn
-      import T.Gettext
-
-      alias TWeb.ControllerHelpers
-
-      unquote(verified_routes())
-    end
-  end
-
-  def live_view do
-    quote do
-      use Phoenix.LiveView, layout: {TWeb.Layouts, :app}
-      unquote(html_helpers())
-    end
-  end
-
-  def live_component do
-    quote do
-      use Phoenix.LiveComponent
-      unquote(html_helpers())
-    end
-  end
-
   def router do
     quote do
       use Phoenix.Router, helpers: false
@@ -64,6 +35,42 @@ defmodule TWeb do
       use Phoenix.Channel
       alias TWeb.ChannelHelpers
       import T.Gettext
+      import Phoenix.View
+    end
+  end
+
+  def controller do
+    quote do
+      use Phoenix.Controller,
+        formats: [:html, :json],
+        layouts: [html: TWeb.Layouts]
+
+      import Plug.Conn
+      import T.Gettext
+
+      unquote(verified_routes())
+    end
+  end
+
+  def live_view do
+    quote do
+      use Phoenix.LiveView,
+        layout: {TWeb.Layouts, :app}
+
+      unquote(html_helpers())
+    end
+  end
+
+  def live_component do
+    quote do
+      use Phoenix.LiveComponent
+
+      unquote(html_helpers())
+    end
+  end
+
+  def view do
+    quote do
       import Phoenix.View
     end
   end

@@ -8,7 +8,8 @@ defmodule TWeb.Endpoint do
   @session_options [
     store: :cookie,
     key: "_t_key",
-    signing_salt: "jYcKOG7A"
+    signing_salt: "jYcKOG7A",
+    same_site: "Lax"
   ]
 
   # TODO session

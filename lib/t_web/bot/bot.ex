@@ -1,8 +1,10 @@
 defmodule TWeb.Bot do
   @moduledoc "Helpers to interact with Telegram bot."
 
+  use TWeb, :verified_routes
+
   def webhook_url do
-    TWeb.Router.Helpers.bot_url(TWeb.Endpoint, :webhook, T.Bot.token())
+    ~p"/api/bot/#{T.Bot.token()}"
   end
 
   def set_webhook do

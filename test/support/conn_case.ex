@@ -19,29 +19,24 @@ defmodule TWeb.ConnCase do
 
   using do
     quote do
+      # The default endpoint for testing
+      @endpoint TWeb.Endpoint
+
+      use TWeb, :verified_routes
+
       # Import conveniences for testing with connections
       import Plug.Conn
       import Phoenix.ConnTest
       import TWeb.ConnCase
       import T.Factory
 
-      alias TWeb.Router.Helpers, as: Routes
       alias T.Repo
-
-      # The default endpoint for testing
-      @endpoint TWeb.Endpoint
     end
   end
 
   setup tags do
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(T.Repo)
-
-    unless tags[:async] do
-      Ecto.Adapters.SQL.Sandbox.mode(T.Repo, {:shared, self()})
-    end
-
+    T.DataCase.setup_sandbox(tags)
     Mox.stub_with(MockBot, StubBot)
-
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
 end

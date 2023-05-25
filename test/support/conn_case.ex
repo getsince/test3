@@ -34,14 +34,8 @@ defmodule TWeb.ConnCase do
   end
 
   setup tags do
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(T.Repo)
-
-    unless tags[:async] do
-      Ecto.Adapters.SQL.Sandbox.mode(T.Repo, {:shared, self()})
-    end
-
+    T.DataCase.setup_sandbox(tags)
     Mox.stub_with(MockBot, StubBot)
-
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
 end

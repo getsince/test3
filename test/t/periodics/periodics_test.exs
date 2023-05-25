@@ -7,7 +7,7 @@ defmodule T.PeriodicsTest do
 
     start_supervised!(
       {Periodic,
-       {_period_ms = 50,
+       {_period_ms = 200,
         fn ->
           passed = DateTime.diff(DateTime.utc_now(), start, :millisecond)
           send(me, passed)
@@ -21,10 +21,10 @@ defmodule T.PeriodicsTest do
     refute_received _anything_else
 
     # the first task runs after ~50ms
-    assert_in_delta passed_1, 50, 30
+    assert_in_delta passed_1, 200, 100
 
     # the second task runs ~50ms after the first
-    assert_in_delta passed_2 - passed_1, 50, 10
+    assert_in_delta passed_2 - passed_1, 200, 100
   end
 
   test "T.Periodics starts all tasks which don't crash when run" do

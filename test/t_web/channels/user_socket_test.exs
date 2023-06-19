@@ -17,7 +17,8 @@ defmodule TWeb.UserSocketTest do
         |> Accounts.generate_user_session_token("mobile")
         |> Accounts.UserToken.encoded_token()
 
-      assert {:error, :unsupported_version} = connect(UserSocket, %{"token" => token}, %{})
+      assert {:error, :unsupported_version} =
+               connect(UserSocket, %{"token" => token}, connect_info: %{})
 
       %Accounts.UserToken{version: version} =
         Accounts.UserToken |> where(user_id: ^user.id) |> Repo.one()
@@ -42,7 +43,8 @@ defmodule TWeb.UserSocketTest do
         |> Accounts.generate_user_session_token("mobile")
         |> Accounts.UserToken.encoded_token()
 
-      assert {:ok, _socket} = connect(UserSocket, %{"token" => token, "version" => "7.0.0"}, %{})
+      assert {:ok, _socket} =
+               connect(UserSocket, %{"token" => token, "version" => "7.0.0"}, connect_info: %{})
 
       %Accounts.UserToken{version: version} =
         Accounts.UserToken |> where(user_id: ^user.id) |> Repo.one()
@@ -51,7 +53,7 @@ defmodule TWeb.UserSocketTest do
     end
 
     test "without token" do
-      assert :error == connect(UserSocket, %{}, %{})
+      assert :error == connect(UserSocket, %{}, connect_info: %{})
     end
 
     test "with invalid token" do
@@ -62,7 +64,11 @@ defmodule TWeb.UserSocketTest do
         Accounts.UserToken.build_token(user, "mobile")
 
       assert {:error, :invalid_token} ==
-               connect(UserSocket, %{"token" => Accounts.UserToken.encoded_token(token)}, %{})
+               connect(
+                 UserSocket,
+                 %{"token" => Accounts.UserToken.encoded_token(token)},
+                 connect_info: %{}
+               )
     end
 
     test "blocked" do
@@ -79,7 +85,11 @@ defmodule TWeb.UserSocketTest do
         |> Accounts.UserToken.encoded_token()
 
       assert {:error, :blocked_user} ==
-               connect(UserSocket, %{"token" => Accounts.UserToken.encoded_token(token)}, %{})
+               connect(
+                 UserSocket,
+                 %{"token" => Accounts.UserToken.encoded_token(token)},
+                 connect_info: %{}
+               )
     end
 
     test "with location" do
@@ -94,7 +104,7 @@ defmodule TWeb.UserSocketTest do
                connect(
                  UserSocket,
                  %{"token" => token, "version" => "7.0.0", "location" => [35.755516, 27.615040]},
-                 %{}
+                 connect_info: %{}
                )
 
       assert socket.assigns.location == %Geo.Point{coordinates: {27.61504, 35.755516}, srid: 4326}
@@ -116,8 +126,11 @@ defmodule TWeb.UserSocketTest do
       |> Accounts.generate_user_session_token("mobile")
       |> Accounts.UserToken.encoded_token()
 
-    {:ok, socket1} = connect(UserSocket, %{"token" => token1, "version" => "7.0.0"}, %{})
-    {:ok, socket2} = connect(UserSocket, %{"token" => token2, "version" => "7.0.0"}, %{})
+    {:ok, socket1} =
+      connect(UserSocket, %{"token" => token1, "version" => "7.0.0"}, connect_info: %{})
+
+    {:ok, socket2} =
+      connect(UserSocket, %{"token" => token2, "version" => "7.0.0"}, connect_info: %{})
 
     socket_id1 = UserSocket.id(socket1)
     socket_id2 = UserSocket.id(socket2)

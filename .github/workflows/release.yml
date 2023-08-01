@@ -23,19 +23,17 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-    strategy:
-      matrix:
-        elixir: ["1.15"]
-        otp: ["26"]
-
     steps:
       - uses: actions/checkout@v3
+
+      - id: versions
+        uses: marocchino/tool-versions-action@v1
 
       - name: Set up Elixir
         uses: erlef/setup-beam@v1
         with:
-          elixir-version: ${{ matrix.elixir }}
-          otp-version: ${{ matrix.otp }}
+          elixir-version: ${{ steps.versions.outputs.elixir }}
+          otp-version: ${{ steps.versions.outputs.erlang }}
 
       - name: Install hex
         run: mix local.hex --force
@@ -50,10 +48,10 @@ jobs:
             deps
             _build
 
-          key: release-otp-${{ matrix.otp }}-elixir-${{ matrix.elixir }}-ref-${{ github.head_ref || github.ref }}-mix-${{ hashFiles('**/mix.lock') }}
+          key: release-otp-${{ steps.versions.outputs.erlang }}-elixir-${{ steps.versions.outputs.elixir }}-ref-${{ github.head_ref || github.ref }}-mix-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
-            - release-otp-${{ matrix.otp }}-elixir-${{ matrix.elixir }}-ref-${{ github.head_ref || github.ref }}-mix-
-            - release-otp-${{ matrix.otp }}-elixir-${{ matrix.elixir }}-ref-refs/heads/master-mix-
+            - release-otp-${{ steps.versions.outputs.erlang }}-elixir-${{ steps.versions.outputs.elixir }}-ref-${{ github.head_ref || github.ref }}-mix-
+            - release-otp-${{ steps.versions.outputs.erlang }}-elixir-${{ steps.versions.outputs.elixir }}-ref-refs/heads/master-mix-
 
       - name: Restore assets cache
         uses: actions/cache@v3

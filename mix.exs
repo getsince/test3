@@ -60,9 +60,7 @@ defmodule T.MixProject do
       {:mox, "~> 1.0", only: :test},
       {:ex_machina, "~> 2.4", only: :test},
       {:assertions, "~> 0.19.0", only: :test},
-      # TODO switch back to hex if a new version is released
-      # https://github.com/getsentry/sentry-elixir/commit/2a08ac67
-      {:sentry, github: "getsentry/sentry-elixir", ref: "2a08ac67"},
+      {:sentry, "~> 8.1"},
       {:bigflake, "0.5.0"},
       {:imgproxy, "~> 2.0"},
       {:rexbug, "~> 1.0"},

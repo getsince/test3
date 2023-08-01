@@ -23,14 +23,19 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
+    strategy:
+      matrix:
+        elixir: ["1.15"]
+        otp: ["26"]
+
     steps:
       - uses: actions/checkout@v3
 
       - name: Set up Elixir
         uses: erlef/setup-beam@v1
         with:
-          elixir-version: "1.15"
-          otp-version: "26"
+          elixir-version: ${{ matrix.elixir }}
+          otp-version: ${{ matrix.otp }}
 
       - name: Install hex
         run: mix local.hex --force
@@ -45,8 +50,10 @@ jobs:
             deps
             _build
 
-          key: release-${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
-          restore-keys: release-${{ runner.os }}-mix-
+          key: release-otp-${{ matrix.otp }}-elixir-${{ matrix.elixir }}-ref-${{ github.head_ref || github.ref }}-mix-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            - release-otp-${{ matrix.otp }}-elixir-${{ matrix.elixir }}-ref-${{ github.head_ref || github.ref }}-mix-
+            - release-otp-${{ matrix.otp }}-elixir-${{ matrix.elixir }}-ref-refs/heads/master-mix-
 
       - name: Restore assets cache
         uses: actions/cache@v3

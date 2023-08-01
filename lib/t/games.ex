@@ -337,7 +337,7 @@ defmodule T.Games do
 
       nil ->
         m = "compliment #{prompt} sent from #{from_user_id} to #{to_user_id}"
-        Logger.warn(m)
+        Logger.warning(m)
 
         [user_id_1, user_id_2] = Enum.sort([from_user_id, to_user_id])
 
@@ -389,7 +389,7 @@ defmodule T.Games do
           |> case do
             @compliment_limit ->
               m = "#{from_user_id} reached compliment limit"
-              Logger.warn(m)
+              Logger.warning(m)
               Bot.async_post_message(m)
 
               now = DateTime.utc_now()
@@ -521,7 +521,7 @@ defmodule T.Games do
              maybe_insert_messages: messages
            }} ->
             m = "compliments exchanged between #{from_user_id} and #{to_user_id}"
-            Logger.warn(m)
+            Logger.warning(m)
             Bot.async_post_message(m)
 
             chat_with_messages =

@@ -78,12 +78,12 @@ defmodule AppStore do
 
       {:ok, response} ->
         Sentry.capture_message("failed to load notifications from App Store", extra: response)
-        Logger.warn(response)
+        Logger.warning(response)
         :error
 
       {:error, reason} = error ->
         Sentry.capture_message("failed to load notifications from App Store", extra: reason)
-        Logger.warn(error)
+        Logger.warning(error)
         :error
     end
   end
@@ -157,7 +157,7 @@ defmodule AppStore do
       {:ok,
        %Notification{notification_type: type, subtype: subtype, user_id: user_id} = notification} ->
         m = "App Store notication type #{type} #{subtype} for user #{user_id}"
-        Logger.warn(m)
+        Logger.warning(m)
         Bot.async_post_message(m)
         maybe_update_premium_status(notification)
 

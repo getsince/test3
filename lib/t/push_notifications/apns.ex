@@ -12,7 +12,7 @@ defmodule T.PushNotifications.APNS do
   def push(%{device_id: device_id} = notification) do
     with {:error, reason} = error when reason in [:bad_device_token, :unregistered] <-
            @adapter.push(notification) do
-      Logger.warn("received error=#{reason} for #{device_id}")
+      Logger.warning("received error=#{reason} for #{device_id}")
       error
     end
   end
@@ -96,10 +96,14 @@ defmodule T.PushNotifications.APNS do
           dgettext("apns", "sent%{verb_ending_ru} a drawing", verb_ending_ru: verb_ending_ru)
 
         "video" ->
-          dgettext("apns", "sent%{verb_ending_ru} a video message", verb_ending_ru: verb_ending_ru)
+          dgettext("apns", "sent%{verb_ending_ru} a video message",
+            verb_ending_ru: verb_ending_ru
+          )
 
         "audio" ->
-          dgettext("apns", "sent%{verb_ending_ru} a voice message", verb_ending_ru: verb_ending_ru)
+          dgettext("apns", "sent%{verb_ending_ru} a voice message",
+            verb_ending_ru: verb_ending_ru
+          )
 
         "spotify" ->
           dgettext("apns", "sent%{verb_ending_ru} a music track", verb_ending_ru: verb_ending_ru)

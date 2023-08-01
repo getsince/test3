@@ -4,7 +4,7 @@ defmodule TWeb.AppStoreNotificationController do
   require Logger
 
   def process_app_store_notification(conn, params) do
-    Logger.warn(params)
+    Logger.warning(params)
     {_, notification} = Enum.find(params, fn {key, _} -> key == "signedPayload" end)
     AppStore.process_notification(notification)
 

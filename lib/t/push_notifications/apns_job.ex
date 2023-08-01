@@ -28,7 +28,7 @@ defmodule T.PushNotifications.APNSJob do
         :ok
 
       {:error, reason} when reason in [:bad_device_token, :unregistered] ->
-        Logger.warn("removing apns_device=#{device_id} due to receving '#{reason}' for it")
+        Logger.warning("removing apns_device=#{device_id} due to receving '#{reason}' for it")
         Accounts.remove_apns_device(device_id)
         :discard
 

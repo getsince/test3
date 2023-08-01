@@ -99,7 +99,7 @@ defmodule T.Chats do
 
   @doc false
   def local_delete_chat(by_user_id, with_user_id) do
-    Logger.warn("#{by_user_id} deletes chat with user #{with_user_id}")
+    Logger.warning("#{by_user_id} deletes chat with user #{with_user_id}")
 
     [user_id_1, user_id_2] = Enum.sort([by_user_id, with_user_id])
 
@@ -222,7 +222,7 @@ defmodule T.Chats do
          "photo"
        ] do
       m = "message type #{message_type} sent from #{from_user_id} to #{to_user_id}"
-      Logger.warn(m)
+      Logger.warning(m)
       Bot.async_post_message(m)
     end
 

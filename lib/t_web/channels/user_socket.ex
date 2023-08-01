@@ -21,7 +21,7 @@ defmodule TWeb.UserSocket do
 
     if user = Accounts.get_user_by_session_token_and_update_version(token, ios_version, "mobile") do
       Logger.metadata(user_id: user.id)
-      Logger.warn("user online #{user.id}")
+      Logger.warning("user online #{user.id}")
       Accounts.update_last_active(user.id)
 
       location = maybe_location(params)
@@ -122,7 +122,7 @@ defmodule TWeb.UserSocket do
       pid,
       _on_disconnect = fn ->
         Accounts.update_last_active(user_id)
-        Logger.warn("user offline #{user_id}")
+        Logger.warning("user offline #{user_id}")
       end
     )
   end

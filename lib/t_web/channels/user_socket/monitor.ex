@@ -23,7 +23,7 @@ defmodule TWeb.UserSocket.Monitor do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
-  @spec monitor(pid, (() -> any)) :: :ok
+  @spec monitor(pid, (-> any)) :: :ok
   def monitor(pid, on_down) when is_function(on_down, 0) do
     GenServer.cast(__MODULE__, {:monitor, pid, on_down})
   end

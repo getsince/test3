@@ -111,7 +111,10 @@ defmodule Mix.Tasks.Events do
               }
           end)
 
-        Repo.insert_all("contact_clicks", to_insert, on_conflict: :nothing, conflict_target: [:id])
+        Repo.insert_all("contact_clicks", to_insert,
+          on_conflict: :nothing,
+          conflict_target: [:id]
+        )
       end)
     end)
     |> Stream.run()

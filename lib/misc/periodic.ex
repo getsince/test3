@@ -2,7 +2,7 @@ defmodule Periodic do
   @moduledoc "Runs a given task repeatedly with specified period in-between the runs"
   use GenServer
 
-  @type state :: {period :: pos_integer(), task :: (() -> any) | {module, atom, [term]}}
+  @type state :: {period :: pos_integer(), task :: (-> any) | {module, atom, [term]}}
 
   @spec start_link(state) :: :ignore | {:error, any} | {:ok, pid}
   def start_link(state) do

@@ -592,7 +592,7 @@ defmodule T.Feeds do
 
   def local_save_meeting(user_id, meeting_data) do
     m = "new meeting #{meeting_data["text"]} from #{user_id}"
-    Logger.warn(m)
+    Logger.warning(m)
     Bot.async_post_message(m)
 
     Multi.new()
@@ -635,7 +635,7 @@ defmodule T.Feeds do
 
   def local_delete_meeting(user_id, meeting_id) do
     m = "meeting #{meeting_id} deleted by user #{user_id}"
-    Logger.warn(m)
+    Logger.warning(m)
     Bot.async_post_message(m)
 
     Multi.new()

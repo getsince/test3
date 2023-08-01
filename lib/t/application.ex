@@ -85,11 +85,11 @@ defmodule T.Application do
       if T.Cluster.is_primary() do
         {Oban, oban_config()}
       else
-        Logger.warn("not starting oban in read-replica region")
+        Logger.warning("not starting oban in read-replica region")
         nil
       end
     else
-      Logger.warn("not starting oban due to missing repo url info")
+      Logger.warning("not starting oban due to missing repo url info")
       nil
     end
   end
@@ -131,7 +131,7 @@ defmodule T.Application do
     if get_in(config, [:http]) do
       TWeb.Endpoint
     else
-      Logger.warn("not starting web endpoint due to missing http info")
+      Logger.warning("not starting web endpoint due to missing http info")
       nil
     end
   end
@@ -140,7 +140,7 @@ defmodule T.Application do
     if repo_url() do
       T.Repo
     else
-      Logger.warn("not starting repo due to missing url info")
+      Logger.warning("not starting repo due to missing url info")
       nil
     end
   end
@@ -149,7 +149,7 @@ defmodule T.Application do
     if config = Application.get_env(:t, T.Events) do
       {T.Events, config}
     else
-      Logger.warn("not staring events due to missing config")
+      Logger.warning("not staring events due to missing config")
       nil
     end
   end

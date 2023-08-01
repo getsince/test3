@@ -88,7 +88,7 @@ defmodule T.Accounts do
     |> case do
       {:ok, %{user: user, profile: profile}} ->
         m = "new user #{user.id}"
-        Logger.warn(m)
+        Logger.warning(m)
         Bot.async_post_message(m)
 
         {:ok, %User{user | profile: profile}}
@@ -153,11 +153,13 @@ defmodule T.Accounts do
 
   def local_set_premium(user_id, premium) do
     m = "setting premium for user #{user_id} to #{premium}"
-    Logger.warn(m)
+    Logger.warning(m)
     Bot.async_post_message(m)
 
     Multi.new()
-    |> Multi.update_all(:set_premium, Profile |> where(user_id: ^user_id), set: [premium: premium])
+    |> Multi.update_all(:set_premium, Profile |> where(user_id: ^user_id),
+      set: [premium: premium]
+    )
     |> Multi.run(:maybe_remove_compliment_limit, fn repo, _changes ->
       if premium do
         result = ComplimentLimit |> where(user_id: ^user_id) |> repo.delete_all()
@@ -257,7 +259,7 @@ defmodule T.Accounts do
     m =
       "user report from #{from_user_name} (#{from_user_id}) on #{reported_user_name} (#{on_user_id}), reason: #{reason}, story of reported: #{story_string}"
 
-    Logger.warn(m)
+    Logger.warning(m)
     Bot.async_post_message(m)
 
     report_changeset =
@@ -440,7 +442,7 @@ defmodule T.Accounts do
         "deleted user #{name}, reason: #{reason}, registration date #{date}, (#{user_id}), #{story_string}"
       end
 
-    Logger.warn(m)
+    Logger.warning(m)
     Bot.async_post_silent_message(m)
 
     Multi.new()
@@ -737,7 +739,7 @@ defmodule T.Accounts do
         m =
           "user #{profile.name} (#{user.id}) from #{address_string} onboarded with story #{story_string}"
 
-        Logger.warn(m)
+        Logger.warning(m)
         Bot.async_post_message(m)
 
         {:ok, %Profile{profile | gender_preference: genders, hidden?: false}}
@@ -759,7 +761,7 @@ defmodule T.Accounts do
 
   @doc false
   def local_update_profile(user_id, attrs) do
-    Logger.warn("user #{user_id} updates profile with #{inspect(attrs)}")
+    Logger.warning("user #{user_id} updates profile with #{inspect(attrs)}")
 
     Multi.new()
     |> Multi.run(:old_profile, fn _repo, _changes -> {:ok, Repo.get!(Profile, user_id)} end)

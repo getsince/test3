@@ -11,13 +11,14 @@ config :t, TWeb.Endpoint,
   pubsub_server: T.PubSub,
   live_view: [signing_salt: "Urm6JRcI"]
 
-config :logger, :console,
-  format: "$time $metadata[$level] $message\n",
-  metadata: [:request_id, :user_id, :remote_ip, :node]
+config :logger, :console, format: "$time $metadata[$level] $message\n"
+# TODO
+# metadata: [:request_id, :user_id, :remote_ip, :node]
 
 config :logger,
   utc_log: true,
-  metadata: [:user_id, :remote_ip, :node],
+  # TODO
+  # metadata: [:user_id, :remote_ip, :node],
   format: "$time $metadata[$level] $message\n"
 
 config :sentry,

@@ -41,7 +41,7 @@ defmodule APNS do
       # more than 1 concurrent request is sent
 
       {:error, %Mint.HTTPError{module: Mint.HTTP2, reason: :too_many_concurrent_requests}} ->
-        Logger.warn("apns too_many_concurrent_requests for #{inspect(notification)}")
+        Logger.warning("apns too_many_concurrent_requests for #{inspect(notification)}")
         # the current workaround is an optimistic retry with a small delay of up to a second
         # hoping that at some point the queue of concurrent requests would clear
         :timer.sleep(round(:rand.uniform() * 1000))

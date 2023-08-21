@@ -1,7 +1,7 @@
 defmodule T.Periodics do
   @moduledoc "Supervisor for periodic tasks"
   use Supervisor
-  alias T.{Feeds, FeedAI}
+  alias T.Feeds
 
   def start_link(init_arg) do
     Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
@@ -14,15 +14,15 @@ defmodule T.Periodics do
         seen_pruner: {
           _period = :timer.hours(1),
           _task = {Feeds, :local_prune_seen_profiles, [_ttl_days = 30]}
-        },
-        feed_ai: {
-          :timer.hours(2),
-          {FeedAI, :maybe_start_workflow, []}
-        },
-        prune_feed_ai_ec2: {
-          :timer.minutes(10),
-          {FeedAI, :prune_stray_instances, []}
         }
+        # feed_ai: {
+        #   :timer.hours(2),
+        #   {FeedAI, :maybe_start_workflow, []}
+        # },
+        # prune_feed_ai_ec2: {
+        #   :timer.minutes(10),
+        #   {FeedAI, :prune_stray_instances, []}
+        # }
       )
 
     Supervisor.init(children, strategy: :one_for_one)

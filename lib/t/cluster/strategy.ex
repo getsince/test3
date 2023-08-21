@@ -1,19 +1,18 @@
-# based on https://github.com/kyleaa/libcluster_ec2/blob/master/lib/strategy/tags.ex
 defmodule T.Cluster.Strategy do
   @moduledoc """
-  Polls for private ipv4 addresses on ec2 instances in multiple regions filtering by tag:Name.
+  Polls for private ipv4 addresses on DigitalOcean instances by tag.
 
   Example configuration:
 
       config :libcluster,
         topologies: [
-          aws: [
+          digitalocean: [
             strategy: #{__MODULE__},
             config: [
               app_prefix: :e,
-              name: "since",
+              tag: "since",
               polling_interval: :timer.seconds(5),
-              regions: ["eu-north-1", "us-east-2"]
+              api_token: "sk-asdfasdf"
             ]
           ]
         ]
@@ -93,11 +92,11 @@ defmodule T.Cluster.Strategy do
 
   @spec get_nodes_set(State.t()) :: MapSet.t(atom)
   defp get_nodes_set(%State{config: config}) do
-    regions = Keyword.fetch!(config, :regions)
-    name = Keyword.fetch!(config, :name)
+    api_token = Keyword.fetch!(config, :api_token)
+    tag = Keyword.fetch!(config, :tag)
     app_prefix = Keyword.fetch!(config, :app_prefix)
 
-    T.Cluster.poll_ec2(name, regions)
+    T.Cluster.poll_digitalocean(tag, api_token)
     |> Enum.map(fn ip -> :"#{app_prefix}@#{ip}" end)
     |> MapSet.new()
   end

@@ -1,35 +1,24 @@
 defmodule T.Cluster do
   @moduledoc false
 
-  # 10.0.0.0/16 -> eu-north-1 (primary)
-  # 10.1.0.0/16 -> us-east-2 (replica)
+  @spec poll_digitalocean(String.t(), String.t()) :: [ip_address :: String.t()]
+  def poll_digitalocean(tag, token) do
+    url =
+      "https://api.digitalocean.com/v2/droplets?" <>
+        URI.encode_query([{"tag_name", tag}, {"status", "active"}])
 
-  @spec poll_ec2(String.t(), [String.t()]) :: [ip_address :: String.t()]
-  def poll_ec2(name, regions) do
-    # maybe use vpc-id per region as well?
+    headers = [{"accept", "application/json"}, {"authorization", "Bearer " <> token}]
 
-    request =
-      ExAws.EC2.describe_instances(
-        filters: [
-          {"tag:Name", [name]},
-          {"instance-state-name", ["running"]}
-        ]
-      )
+    req = Finch.build(:get, url, headers)
+    %Finch.Response{status: 200, body: body} = Finch.request!(req, T.Finch)
 
-    xpath = private_ip_address_xpath()
-
-    regions
-    |> Enum.map(fn region ->
-      {:ok, %{body: body}} = ExAws.request(request, region: region)
-      body |> SweetXml.xpath(xpath) |> Enum.uniq()
+    Jason.decode!(body)
+    |> Map.fetch!("droplets")
+    |> Enum.map(fn droplet ->
+      %{"networks" => %{"v4" => v4}} = droplet
+      [%{"ip_address" => ip_address}] = Enum.filter(v4, &(&1["type"] == "private"))
+      ip_address
     end)
-    |> List.flatten()
-  end
-
-  defp private_ip_address_xpath do
-    import SweetXml, only: [sigil_x: 2]
-
-    ~x"//DescribeInstancesResponse/reservationSet/item/instancesSet/item/privateIpAddress/text()"ls
   end
 
   @doc """

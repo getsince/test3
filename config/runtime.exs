@@ -150,20 +150,20 @@ if config_env() == :prod and not smoke? do
     buffers: [:seen_buffer, :like_buffer],
     bucket: System.fetch_env!("AWS_S3_BUCKET_EVENTS")
 
-  ec2_polling_interval = String.to_integer(System.get_env("EC2_POLL_INTERVAL_SECONDS") || "5")
+  digitalocean_polling_interval =
+    String.to_integer(System.get_env("DIGITALOCEAN_POLL_INTERVAL_SECONDS") || "5")
 
-  # export EC2_REGIONS=eu-north-1,ap-southeast-1,us-west-1
-  regions = "EC2_REGIONS" |> System.fetch_env!() |> String.split(",")
+  digitalocean_api_token = System.fetch_env!("DIGITALOCEAN_API_TOKEN")
 
   config :libcluster,
     topologies: [
-      aws: [
+      digitalocean: [
         strategy: T.Cluster.Strategy,
         config: [
           app_prefix: :t,
-          name: System.get_env("EC2_NAME") || "since-backend",
-          polling_interval: :timer.seconds(ec2_polling_interval),
-          regions: regions
+          tag: System.get_env("DIGITALOCEAN_TAG") || "since-backend",
+          polling_interval: :timer.seconds(digitalocean_polling_interval),
+          api_token: digitalocean_api_token
         ]
       ]
     ]

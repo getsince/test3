@@ -101,7 +101,8 @@ if config_env() == :prod and not smoke? do
 
   config :t, T.Repo,
     url: System.fetch_env!("DATABASE_URL"),
-    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "20")
+    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "20"),
+    ssl_opts: [verify: :verify_none]
 
   host = System.fetch_env!("HOST")
 

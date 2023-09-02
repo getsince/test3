@@ -48,14 +48,8 @@ if config_env() == :prod and smoke? do
 end
 
 if config_env() == :prod and not smoke? do
-  config :logger, backends: [:console, CloudWatch, Sentry.LoggerBackend]
+  config :logger, backends: [:console, Sentry.LoggerBackend]
   config :logger, :console, level: :info
-
-  config :logger, CloudWatch,
-    level: :warn,
-    metadata: [:user_id, :remote_ip, :node],
-    log_stream_name: "backend",
-    log_group_name: "prod"
 
   config :logger, Sentry.LoggerBackend, metadata: [:feed_ai_ec2_ip]
 
@@ -177,7 +171,7 @@ if config_env() == :prod and not smoke? do
 end
 
 if config_env() == :dev do
-  config :logger, :console, level: :warn
+  config :logger, :console, level: :warning
   config :logger, backends: [:console]
 
   config :t, APNS,

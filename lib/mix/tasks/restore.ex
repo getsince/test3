@@ -9,7 +9,7 @@ defmodule Mix.Tasks.Events do
   @shortdoc "Simply calls the Hello.say/0 function."
   def run(opts) do
     database = opt(opts, "-o") || "events.sqlite3"
-    Logger.configure(level: :warn)
+    Logger.configure(level: :warning)
 
     region = opt(opts, "--region") || "eu-north-1"
     bucket = opt(opts, "--bucket") || System.fetch_env!("AWS_S3_BUCKET_EVENTS")

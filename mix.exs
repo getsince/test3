@@ -67,7 +67,6 @@ defmodule T.MixProject do
       {:geo_postgis, "~> 3.4"},
       {:finch, "~> 0.16.0"},
       {:locus, "~> 2.2"},
-      {:cloud_watch, github: "getsince/cloud_watch", branch: "drop-httpoison"},
       {:benchee, "~> 1.0", only: :bench},
       {:dialyxir, "~> 1.1", only: :dev, runtime: false},
       {:jose, "~> 1.11"},

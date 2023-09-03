@@ -9,23 +9,23 @@ defmodule T.Application do
   def start(_type, _args) do
     children =
       [
-        {Task.Supervisor, name: T.TaskSupervisor},
-        maybe_events(),
-        APNS.Token,
-        AppStore.Token,
-        T.Spotify,
-        maybe_finch(),
-        maybe_cluster(),
-        {Phoenix.PubSub, name: T.PubSub},
-        unless_disabled(T.Media.Static),
-        TWeb.UserSocket.Monitor,
-        maybe_repo(),
-        maybe_migrator(),
-        maybe_oban(),
-        maybe_periodics(),
-        maybe_workflows(),
-        maybe_endpoint(),
-        maybe_app_store_notifications(),
+        # {Task.Supervisor, name: T.TaskSupervisor},
+        # maybe_events(),
+        # APNS.Token,
+        # AppStore.Token,
+        # T.Spotify,
+        # maybe_finch(),
+        # maybe_cluster(),
+        # {Phoenix.PubSub, name: T.PubSub},
+        # unless_disabled(T.Media.Static),
+        # TWeb.UserSocket.Monitor,
+        # maybe_repo(),
+        # maybe_migrator(),
+        # maybe_oban(),
+        # maybe_periodics(),
+        # maybe_workflows(),
+        # maybe_endpoint(),
+        # maybe_app_store_notifications(),
         TWeb.Telemetry,
         Supervisor.child_spec({Task, &T.Release.mark_ready/0}, id: :readiness_notifier)
       ]
@@ -33,7 +33,7 @@ defmodule T.Application do
       |> Enum.reject(&is_nil/1)
 
     # TODO wait with :locus.await_loader(@db) before readiness_notifier
-    maybe_setup_locus()
+    # maybe_setup_locus()
 
     # Only attach the telemetry logger when we aren't in an IEx shell
     unless Code.ensure_loaded?(IEx) && IEx.started?() do

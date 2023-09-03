@@ -93,9 +93,11 @@ defmodule T.Media.Static do
     task =
       Task.Supervisor.async_nolink(T.TaskSupervisor, fn ->
         Enum.map(Media.list_static_files(), fn object ->
-          %{e_tag: e_tag, key: key, last_modified: last_modified, size: size} = object
-          e_tag = String.replace(e_tag, "\"", "")
-          _ets_row = {key, e_tag, last_modified, size}
+          %{"ETag" => etag, "Key" => key, "LastModified" => last_modified, "Size" => size} =
+            object
+
+          etag = String.replace(etag, "\"", "")
+          _ets_row = {key, etag, last_modified, size}
         end)
       end)
 

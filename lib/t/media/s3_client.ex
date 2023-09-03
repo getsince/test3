@@ -3,10 +3,10 @@ defmodule T.Media.S3Client do
 
   @impl true
   def list_objects(bucket) do
-    %{status_code: 200, body: %{is_truncated: "false", contents: contents}} =
-      bucket
-      |> ExAws.S3.list_objects()
-      |> ExAws.request!()
+    client = T.AWS.client()
+
+    {:ok, %{"ListBucketResult" => %{"IsTruncated" => "false", "Contents" => contents}},
+     %{status_code: 200}} = AWS.S3.list_objects_v2(client, bucket)
 
     contents
   end

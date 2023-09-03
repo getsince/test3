@@ -33,10 +33,12 @@ config :t, Oban,
   ],
   queues: [default: 10, apns: 100]
 
-config :ex_aws,
-  json_codec: Jason,
-  # TODO switch to US
-  region: "eu-north-1"
+if config_env() in [:prod, :dev] do
+  config :t, T.AWS,
+    access_key_id: System.fetch_env!("AWS_ACCESS_KEY_ID"),
+    secret_access_key: System.fetch_env!("AWS_SECRET_ACCESS_KEY"),
+    region: "eu-north-1"
+end
 
 smoke? = !!System.get_env("SMOKE")
 
@@ -308,10 +310,6 @@ if config_env() == :test do
       topic: System.get_env("APNS_TOPIC") || "APNS_TOPIC",
       env: :dev
     }
-
-  config :ex_aws,
-    access_key_id: "AWS_ACCESS_KEY_ID",
-    secret_access_key: "AWS_SECRET_ACCESS_KEY"
 
   config :imgproxy,
     prefix: "https://d1234.cloudfront.net",

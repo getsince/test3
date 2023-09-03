@@ -6,7 +6,6 @@ defmodule Mix.Tasks.Events do
     use Ecto.Repo, adapter: Ecto.Adapters.SQLite3, otp_app: :t
   end
 
-  @shortdoc "Simply calls the Hello.say/0 function."
   def run(opts) do
     database = opt(opts, "-o") || "events.sqlite3"
     Logger.configure(level: :warning)
@@ -15,7 +14,6 @@ defmodule Mix.Tasks.Events do
     bucket = opt(opts, "--bucket") || System.fetch_env!("AWS_S3_BUCKET_EVENTS")
 
     {:ok, _} = Finch.start_link(name: T.Finch)
-
     {:ok, _} = Application.ensure_all_started(:ecto_sqlite3)
     {:ok, _} = Repo.start_link(database: database)
 
@@ -32,16 +30,15 @@ defmodule Mix.Tasks.Events do
     )
 
     {:ok, task_sup} = Task.Supervisor.start_link()
+    client = %AWS.Client{T.AWS.client() | region: region}
 
-    bucket
-    |> ExAws.S3.list_objects_v2(prefix: "like")
-    |> ExAws.stream!(region: region)
-    |> async_stream(task_sup, fn %{key: key} ->
+    client
+    |> s3_list_objects_stream(bucket, _prefix = "like")
+    |> async_stream(task_sup, fn %{"Key" => key} ->
       IO.puts("Downloading #{key}")
-      %{body: body} = bucket |> ExAws.S3.get_object(key) |> ExAws.request!(region: region)
 
       to_insert =
-        body
+        s3_get_object_body(client, bucket, key)
         |> NimbleCSV.RFC4180.parse_string(skip_headers: false)
         |> Enum.map(fn [event_id, by_user_id, user_id] ->
           %{id: event_id, by_user_id: by_user_id, user_id: user_id}
@@ -51,14 +48,12 @@ defmodule Mix.Tasks.Events do
     end)
     |> Stream.run()
 
-    bucket
-    |> ExAws.S3.list_objects_v2(prefix: "seen")
-    |> ExAws.stream!(region: region)
-    |> async_stream(task_sup, fn %{key: key} ->
+    client
+    |> s3_list_objects_stream(bucket, _prefix = "seen")
+    |> async_stream(task_sup, fn %{"Key" => key} ->
       IO.puts("Downloading #{key}")
-      %{body: body} = bucket |> ExAws.S3.get_object(key) |> ExAws.request!(region: region)
 
-      body
+      s3_get_object_body(client, bucket, key)
       |> NimbleCSV.RFC4180.parse_string(skip_headers: false)
       |> Enum.chunk_every(1000)
       |> Enum.each(fn chunk ->
@@ -89,14 +84,12 @@ defmodule Mix.Tasks.Events do
     end)
     |> Stream.run()
 
-    bucket
-    |> ExAws.S3.list_objects_v2(prefix: "contact")
-    |> ExAws.stream!(region: region)
-    |> async_stream(task_sup, fn %{key: key} ->
+    client
+    |> s3_list_objects_stream(bucket, _prefix = "contact")
+    |> async_stream(task_sup, fn %{"Key" => key} ->
       IO.puts("Downloading #{key}")
-      %{body: body} = bucket |> ExAws.S3.get_object(key) |> ExAws.request!(region: region)
 
-      body
+      s3_get_object_body(client, bucket, key)
       |> NimbleCSV.RFC4180.parse_string(skip_headers: false)
       |> Enum.chunk_every(1000)
       |> Enum.each(fn chunk ->
@@ -134,5 +127,52 @@ defmodule Mix.Tasks.Events do
     if idx = Enum.find_index(opts, fn v -> v == key end) do
       Enum.at(opts, idx + 1)
     end
+  end
+
+  def s3_list_objects_stream(client, bucket, prefix) do
+    Stream.resource(
+      fn -> _continuation_token = nil end,
+      fn
+        :halt ->
+          {:halt, _token = nil}
+
+        continuation_token ->
+          result =
+            AWS.S3.list_objects_v2(
+              client,
+              bucket,
+              continuation_token,
+              _delimeter = nil,
+              _encoding_type = nil,
+              _fetch_owner = nil,
+              _max_keys = nil,
+              prefix
+            )
+
+          case result do
+            {:ok, %{"ListBucketResult" => result}, _} ->
+              case result do
+                %{
+                  "Contents" => contents,
+                  "IsTruncated" => "true",
+                  "NextContinuationToken" => token
+                } ->
+                  {contents, token}
+
+                %{"Contents" => contents, "IsTruncated" => "false"} ->
+                  {contents, :halt}
+
+                %{"KeyCount" => "0"} ->
+                  {:halt, _token = nil}
+              end
+          end
+      end,
+      fn _continuation_token -> :ok end
+    )
+  end
+
+  def s3_get_object_body(client, bucket, key) do
+    {:ok, %{"Body" => body}, _} = AWS.S3.get_object(client, bucket, key)
+    body
   end
 end

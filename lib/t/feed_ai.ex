@@ -3,8 +3,6 @@ defmodule T.FeedAI do
   alias T.{Repo, Workflows}
   import T.Cluster, only: [primary_rpc: 3]
 
-  @region "eu-north-1"
-
   @doc """
   Starts FeedAI workflow on a primary node unless it has
   already been started within the last 30 minutes
@@ -151,8 +149,8 @@ defmodule T.FeedAI do
   end
 
   defp restore_seen do
+    client = T.AWS.client()
     bucket = System.fetch_env!("AWS_S3_BUCKET_EVENTS")
-    region = @region
 
     table = "seen"
 
@@ -167,15 +165,12 @@ defmodule T.FeedAI do
     File.touch!(part_path)
     fd = File.open!(part_path, [:binary, :append])
 
-    bucket
-    |> ExAws.S3.list_objects_v2(prefix: "seen")
-    |> ExAws.stream!(region: region)
-    |> async_stream(fn %{key: key} ->
+    s3_list_objects_stream(client, bucket, _prefix = "seen")
+    |> async_stream(fn %{"Key" => key} ->
       :erlang.garbage_collect(self())
-      %{body: body} = bucket |> ExAws.S3.get_object(key) |> ExAws.request!()
 
       typed_rows =
-        body
+        s3_get_object_body(client, bucket, key)
         |> NimbleCSV.RFC4180.parse_string(skip_headers: false)
         |> Enum.map(fn
           [_event_id, _by_user_id, _type, _resource_id, _json_timings] = ready ->
@@ -213,14 +208,15 @@ defmodule T.FeedAI do
 
   @doc false
   def launch_ec2(instance_name) do
-    opts = [ami: "ami-0908019583c0003da", instance_type: "c5.large", key_name: "feed"]
-    {ami, opts} = Keyword.pop!(opts, :ami)
-
-    opts =
-      Keyword.merge(opts,
-        tag_specifications: [instance: [{"Name", instance_name}]],
-        # https://eu-north-1.console.aws.amazon.com/vpc/home?region=eu-north-1#subnets:search=since-backend
-        subnet_id:
+    {:ok, %{"id" => id, "private_ip" => private_ip}, %{status_code: 200}} =
+      AWS.EC2.run_instances(client, %{
+        "ami" => "ami-0908019583c0003da",
+        "min_count" => 1,
+        "max_count" => 1,
+        "instance_type" => "c5.large",
+        "key_name" => "feed",
+        "tag_specifications" => %{"instance" => %{"Name" => instance_name}},
+        "subnet_id" =>
           Enum.random([
             # 10.0.101.0/24
             "subnet-00b6bd7aaf9b4d14b",
@@ -229,24 +225,9 @@ defmodule T.FeedAI do
             # 10.0.103.0/24
             "subnet-0e85ab49a9d0d8fed"
           ])
-      )
+      })
 
-    %{status_code: 200, body: body} =
-      ExAws.EC2.run_instances(ami, _min_count = 1, _max_count = 1, opts)
-      |> ExAws.request!(region: @region)
-
-    ec2_info(body)
-  end
-
-  defp ec2_info(xml) do
-    import SweetXml, only: [sigil_x: 2]
-    xml = SweetXml.parse(xml)
-
-    %{
-      id: SweetXml.xpath(xml, ~x"//RunInstancesResponse/instancesSet/item/instanceId/text()"s),
-      private_ip:
-        SweetXml.xpath(xml, ~x"//RunInstancesResponse/instancesSet/item/privateIpAddress/text()"s)
-    }
+    %{id: id, private_ip: private_ip}
   end
 
   @doc false
@@ -299,9 +280,8 @@ defmodule T.FeedAI do
 
   @doc false
   def terminate_ec2(instance_id) do
-    %{status_code: 200} =
-      ExAws.EC2.terminate_instances(instance_id)
-      |> ExAws.request!(region: @region)
+    {:ok, _, %{status_code: 200}} =
+      AWS.EC2.terminate_instances(T.AWS.client(), %{"instance_id" => instance_id})
   end
 
   @doc false
@@ -332,22 +312,69 @@ defmodule T.FeedAI do
 
   @doc false
   def list_ec2(filters) do
-    import SweetXml, only: [sigil_x: 2]
-
     request = ExAws.EC2.describe_instances(filters: filters)
-    {:ok, %{body: body}} = ExAws.request(request, region: @region)
+    # {:ok, %{body: body}} = ExAws.request(request, region: @region)
 
-    SweetXml.parse(body)
-    |> SweetXml.xpath(~x"//DescribeInstancesResponse/reservationSet/item/instancesSet/item"l)
-    |> Enum.map(fn xml ->
-      launch_time = SweetXml.xpath(xml, ~x"launchTime/text()"s)
-      {:ok, launch_time, 0} = DateTime.from_iso8601(launch_time)
+    # SweetXml.parse(body)
+    # # |> SweetXml.xpath(~x"//DescribeInstancesResponse/reservationSet/item/instancesSet/item"l)
+    # |> Enum.map(fn xml ->
+    #   # launch_time = SweetXml.xpath(xml, ~x"launchTime/text()"s)
+    #   launch_time = nil
+    #   {:ok, launch_time, 0} = DateTime.from_iso8601(launch_time)
 
-      %{
-        id: SweetXml.xpath(xml, ~x"instanceId/text()"s),
-        private_ip: SweetXml.xpath(xml, ~x"privateIpAddress/text()"s),
-        launch_time: launch_time
-      }
-    end)
+    #   %{
+    #     id: SweetXml.xpath(xml, ~x"instanceId/text()"s),
+    #     private_ip: SweetXml.xpath(xml, ~x"privateIpAddress/text()"s),
+    #     launch_time: launch_time
+    #   }
+    # end)
+    []
+  end
+
+  def s3_list_objects_stream(client, bucket, prefix) do
+    Stream.resource(
+      fn -> _continuation_token = nil end,
+      fn
+        :halt ->
+          {:halt, _token = nil}
+
+        continuation_token ->
+          result =
+            AWS.S3.list_objects_v2(
+              client,
+              bucket,
+              continuation_token,
+              _delimeter = nil,
+              _encoding_type = nil,
+              _fetch_owner = nil,
+              _max_keys = nil,
+              prefix
+            )
+
+          case result do
+            {:ok, %{"ListBucketResult" => result}, _} ->
+              case result do
+                %{
+                  "Contents" => contents,
+                  "IsTruncated" => "true",
+                  "NextContinuationToken" => token
+                } ->
+                  {contents, token}
+
+                %{"Contents" => contents, "IsTruncated" => "false"} ->
+                  {contents, :halt}
+
+                %{"KeyCount" => "0"} ->
+                  {:halt, _token = nil}
+              end
+          end
+      end,
+      fn _continuation_token -> :ok end
+    )
+  end
+
+  def s3_get_object_body(client, bucket, key) do
+    {:ok, %{"Body" => body}, _} = AWS.S3.get_object(client, bucket, key)
+    body
   end
 end

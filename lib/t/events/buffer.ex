@@ -68,16 +68,16 @@ defmodule T.Events.Buffer do
 
   defp async_upload(dir, filename) do
     Task.Supervisor.start_child(T.TaskSupervisor, fn ->
+      client = T.AWS.client()
       bucket = Events.bucket()
 
       {y, mo, d} = :erlang.date()
       {h, m, s} = :erlang.time()
       s3_key = Path.join([dir, "#{y}/#{mo}/#{d}/#{h}/#{m}/#{s}", filename])
 
-      dir_path(dir, filename)
-      |> ExAws.S3.Upload.stream_file()
-      |> ExAws.S3.upload(bucket, s3_key)
-      |> ExAws.request!(region: "eu-north-1")
+      # TODO stream upload
+      {:ok, _, %{status_code: 200}} =
+        AWS.S3.put_object(client, bucket, s3_key, %{"Body" => File.read!(dir_path(dir, filename))})
 
       File.rm(dir_path(dir, filename))
     end)

@@ -9,6 +9,8 @@ defmodule T.Media do
   """
   def user_bucket, do: bucket(:user_bucket)
 
+  defp user_cdn_endpoint, do: cdn_endpoint(:user_cdn)
+
   @doc """
   Bucket for static content, like stickers.
   """
@@ -65,8 +67,9 @@ defmodule T.Media do
     )
   end
 
+  # cdn -> imgproxy -> cdn -> s3
   def user_imgproxy_cdn_url(s3_key, requested_width, opts) do
-    user_imgproxy_cdn_url(user_s3_url(s3_key), requested_width, opts)
+    user_imgproxy_cdn_url(user_cdn_url(s3_key), requested_width, opts)
   end
 
   defp static_cdn_url(s3_key) do
@@ -81,9 +84,9 @@ defmodule T.Media do
   def user_s3_url, do: s3_url(user_bucket())
   def media_s3_url, do: s3_url(media_bucket())
 
-  # TODO make private
-  def user_s3_url(s3_key) do
-    Path.join([user_s3_url(), s3_key])
+  # TODO make s3 bucket private
+  def user_cdn_url(s3_key) do
+    Path.join([user_cdn_endpoint(), s3_key])
   end
 
   defp s3_url(bucket) do

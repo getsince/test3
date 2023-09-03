@@ -132,6 +132,7 @@ if config_env() == :prod and not smoke? do
 
   config :t, T.Media,
     user_bucket: System.fetch_env!("AWS_S3_BUCKET"),
+    user_cdn: System.fetch_env!("USER_CDN"),
     static_bucket: System.fetch_env!("AWS_S3_BUCKET_STATIC"),
     static_cdn: System.fetch_env!("STATIC_CDN"),
     media_bucket: System.fetch_env!("AWS_S3_BUCKET_MEDIA"),
@@ -247,6 +248,7 @@ if config_env() == :dev do
 
   config :t, T.Media,
     user_bucket: System.fetch_env!("AWS_S3_BUCKET"),
+    user_cdn: System.fetch_env!("USER_CDN"),
     static_bucket: System.fetch_env!("AWS_S3_BUCKET_STATIC"),
     static_cdn: System.fetch_env!("STATIC_CDN"),
     media_bucket: System.fetch_env!("AWS_S3_BUCKET_MEDIA"),
@@ -293,6 +295,7 @@ if config_env() == :test do
     user_bucket: "pretend-this-is-real",
     static_bucket: "pretend-this-is-static",
     media_bucket: "pretend-this-is-media",
+    user_cdn: "https://d1234.cloudfront.net",
     static_cdn: "https://d4321.cloudfront.net",
     media_cdn: "https://d6666.cloudfront.net"
 

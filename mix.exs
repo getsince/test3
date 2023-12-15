@@ -75,7 +75,7 @@ defmodule T.MixProject do
       {:nimble_csv, "~> 1.2"},
       {:libcluster, "~> 3.3"},
       {:ex_aws_ec2, "~> 2.0"},
-      {:ecto_sqlite3, "~> 0.10.3"},
+      {:ecto_sqlite3, "~> 0.14.0"},
       {:sshkit, "~> 0.3.0"}
     ]
   end

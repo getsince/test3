@@ -173,12 +173,12 @@ defmodule T.Application do
     end
   end
 
-  defp maybe_app_store_notifications() do
-    if T.Cluster.is_primary() do
-      Logger.info("Fetching App Store Notifications")
-      unless_disabled(AppStore.Notificator)
-    end
-  end
+  # defp maybe_app_store_notifications() do
+  #   if T.Cluster.is_primary() do
+  #     Logger.info("Fetching App Store Notifications")
+  #     unless_disabled(AppStore.Notificator)
+  #   end
+  # end
 
   defp disabled?(mod) when is_atom(mod) do
     get_in(Application.get_env(:t, mod), [:disabled?])

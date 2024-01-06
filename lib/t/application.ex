@@ -15,7 +15,7 @@ defmodule T.Application do
         AppStore.Token,
         T.Spotify,
         maybe_finch(),
-        maybe_cluster(),
+        # maybe_cluster(),
         {Phoenix.PubSub, name: T.PubSub},
         unless_disabled(T.Media.Static),
         TWeb.UserSocket.Monitor,
@@ -167,11 +167,11 @@ defmodule T.Application do
     end
   end
 
-  defp maybe_cluster do
-    if topologies = Application.get_env(:libcluster, :topologies) do
-      {Cluster.Supervisor, [topologies, [name: T.Cluster.Supervisor]]}
-    end
-  end
+  # defp maybe_cluster do
+  #   if topologies = Application.get_env(:libcluster, :topologies) do
+  #     {Cluster.Supervisor, [topologies, [name: T.Cluster.Supervisor]]}
+  #   end
+  # end
 
   # defp maybe_app_store_notifications() do
   #   if T.Cluster.is_primary() do

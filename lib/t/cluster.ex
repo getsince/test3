@@ -1,5 +1,6 @@
 defmodule T.Cluster do
   @moduledoc false
+  require Logger
 
   @spec poll_digitalocean(String.t(), String.t()) :: [ip_address :: String.t()]
   def poll_digitalocean(tag, token) do
@@ -10,15 +11,21 @@ defmodule T.Cluster do
     headers = [{"accept", "application/json"}, {"authorization", "Bearer " <> token}]
 
     req = Finch.build(:get, url, headers)
-    %Finch.Response{status: 200, body: body} = Finch.request!(req, T.Finch)
 
-    Jason.decode!(body)
-    |> Map.fetch!("droplets")
-    |> Enum.map(fn droplet ->
-      %{"networks" => %{"v4" => v4}} = droplet
-      [%{"ip_address" => ip_address}] = Enum.filter(v4, &(&1["type"] == "private"))
-      ip_address
-    end)
+    case Finch.request!(req, T.Finch) do
+      %Finch.Response{status: 200, body: body} ->
+        Jason.decode!(body)
+        |> Map.fetch!("droplets")
+        |> Enum.map(fn droplet ->
+          %{"networks" => %{"v4" => v4}} = droplet
+          [%{"ip_address" => ip_address}] = Enum.filter(v4, &(&1["type"] == "private"))
+          ip_address
+        end)
+
+      respone ->
+        Logger.error("unexpected response in T.Cluster.poll_digitalocean: #{inspect(response)}")
+        []
+    end
   end
 
   @doc """

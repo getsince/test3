@@ -53,7 +53,7 @@ defmodule T.Cluster.Strategy do
     %State{topology: topology, connect: connect, disconnect: disconnect, list_nodes: list_nodes} =
       state
 
-    new_nodelist = get_nodes_set(state)
+    new_nodelist = MapSet.new(get_nodes(state))
     removed = state.meta |> MapSet.difference(new_nodelist) |> MapSet.to_list()
     added = new_nodelist |> MapSet.difference(state.meta) |> MapSet.to_list()
 
@@ -90,14 +90,13 @@ defmodule T.Cluster.Strategy do
     Process.send_after(self(), :load, time)
   end
 
-  @spec get_nodes_set(State.t()) :: MapSet.t(atom)
-  defp get_nodes_set(%State{config: config}) do
+  @spec get_nodes(State.t()) :: [atom]
+  defp get_nodes(%State{config: config}) do
     api_token = Keyword.fetch!(config, :api_token)
     tag = Keyword.fetch!(config, :tag)
     app_prefix = Keyword.fetch!(config, :app_prefix)
 
     T.Cluster.poll_digitalocean(tag, api_token)
     |> Enum.map(fn ip -> :"#{app_prefix}@#{ip}" end)
-    |> MapSet.new()
   end
 end

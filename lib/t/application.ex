@@ -25,7 +25,7 @@ defmodule T.Application do
         maybe_periodics(),
         maybe_workflows(),
         maybe_endpoint(),
-        maybe_app_store_notifications(),
+        # maybe_app_store_notifications(),
         TWeb.Telemetry,
         Supervisor.child_spec({Task, &T.Release.mark_ready/0}, id: :readiness_notifier)
       ]

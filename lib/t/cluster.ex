@@ -22,7 +22,7 @@ defmodule T.Cluster do
           ip_address
         end)
 
-      respone ->
+      response ->
         Logger.error("unexpected response in T.Cluster.poll_digitalocean: #{inspect(response)}")
         []
     end

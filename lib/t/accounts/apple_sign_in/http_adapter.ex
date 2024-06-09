@@ -10,7 +10,7 @@ defmodule T.Accounts.AppleSignIn.HTTPAdapter do
   def fetch_keys do
     req = Finch.build(:get, @apple_keys_url)
     {:ok, %Finch.Response{status: 200, body: body}} = Finch.request(req, T.Finch)
-    %{"keys" => keys} = Jason.decode!(body)
+    %{"keys" => keys} = :json.decode(body)
     keys
   end
 end

@@ -49,9 +49,9 @@ defmodule TWeb.MobileAuthControllerTest do
     new_body =
       body
       |> Base.decode64!()
-      |> Jason.decode!()
+      |> :json.decode()
       |> Map.put("email", new_email)
-      |> Jason.encode!()
+      |> :json.encode()
       |> Base.encode64()
 
     [header, new_body, signature] |> Enum.join(".")

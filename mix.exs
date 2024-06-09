@@ -50,7 +50,6 @@ defmodule T.MixProject do
       {:telemetry_metrics, "~> 1.0.0"},
       {:telemetry_poller, "~> 1.1.0"},
       {:gettext, "~> 0.24.0"},
-      {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.5"},
       {:ex_aws, "~> 2.5.4"},
       {:ex_aws_s3, "~> 2.5.3"},

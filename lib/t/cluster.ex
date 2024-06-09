@@ -1,32 +1,5 @@
 defmodule T.Cluster do
   @moduledoc false
-  require Logger
-
-  @spec poll_digitalocean(String.t(), String.t()) :: [ip_address :: String.t()]
-  def poll_digitalocean(tag, token) do
-    url =
-      "https://api.digitalocean.com/v2/droplets?" <>
-        URI.encode_query([{"tag_name", tag}, {"status", "active"}])
-
-    headers = [{"accept", "application/json"}, {"authorization", "Bearer " <> token}]
-
-    req = Finch.build(:get, url, headers)
-
-    case Finch.request!(req, T.Finch) do
-      %Finch.Response{status: 200, body: body} ->
-        Jason.decode!(body)
-        |> Map.fetch!("droplets")
-        |> Enum.map(fn droplet ->
-          %{"networks" => %{"v4" => v4}} = droplet
-          [%{"ip_address" => ip_address}] = Enum.filter(v4, &(&1["type"] == "private"))
-          ip_address
-        end)
-
-      response ->
-        Logger.error("unexpected response in T.Cluster.poll_digitalocean: #{inspect(response)}")
-        []
-    end
-  end
 
   @doc """
   Checks if the node is in primary region.

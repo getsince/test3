@@ -34,7 +34,7 @@ config :t, Oban,
   queues: [default: 10, apns: 100]
 
 config :ex_aws,
-  json_codec: Jason,
+  json_codec: :json,
   # TODO switch to US
   region: "eu-north-1"
 

@@ -61,16 +61,16 @@ defmodule AppStore do
       {:ok, %Finch.Response{status: 200, body: body}} ->
         notifications =
           body
-          |> Jason.decode!()
+          |> :json.decode()
           |> Map.fetch!("notificationHistory")
           |> Enum.map(fn m -> m |> Map.fetch!("signedPayload") end)
 
         process_notifications(notifications)
 
-        has_more = body |> Jason.decode!() |> Map.fetch!("hasMore")
+        has_more = body |> :json.decode!() |> Map.fetch!("hasMore")
 
         if has_more do
-          pagination_token = body |> Jason.decode!() |> Map.fetch!("paginationToken")
+          pagination_token = body |> :json.decode!() |> Map.fetch!("paginationToken")
           load_notification_history(pagination_token)
         else
           :ok
@@ -116,7 +116,7 @@ defmodule AppStore do
       {"content-type", "application/json"}
     ]
 
-    body = Jason.encode!(notification)
+    body = :json.encode(notification)
     request = Finch.build(:post, url, headers, body)
     request
   end
@@ -170,7 +170,7 @@ defmodule AppStore do
 
   defp decode(signedPayload) do
     [_header, payload, _signature] = String.split(signedPayload, ".")
-    decoded_payload = payload |> Base.url_decode64!(padding: false) |> Jason.decode!()
+    decoded_payload = payload |> Base.url_decode64!(padding: false) |> :json.decode()
     decoded_payload
   end
 

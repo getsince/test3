@@ -17,7 +17,7 @@ defmodule T.Bot.API do
   @default_headers [{"content-type", "application/json"}]
 
   defp request(method, body) do
-    req = Finch.build(:post, build_url(method), @default_headers, Jason.encode_to_iodata!(body))
+    req = Finch.build(:post, build_url(method), @default_headers, :json.encode(body))
     Finch.request(req, T.Finch, receive_timeout: 20_000)
   end
 

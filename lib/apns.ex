@@ -27,7 +27,7 @@ defmodule APNS do
         :ok
 
       {:ok, %Finch.Response{body: body}} ->
-        {:error, body |> Jason.decode!() |> error_reason()}
+        {:error, body |> :json.decode() |> error_reason()}
 
       # in prod env (api.push.apple.com):
       # after connecting and before receiving response to the first request (stream)
@@ -70,7 +70,7 @@ defmodule APNS do
       {"apns-push-type", "alert"}
     ]
 
-    body = Jason.encode_to_iodata!(payload)
+    body = :json.encode(payload)
     Finch.build(:post, url, headers, body)
   end
 

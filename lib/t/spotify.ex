@@ -84,15 +84,11 @@ defmodule T.Spotify do
 
     case Finch.request(req, T.Finch, receive_timeout: 5000) do
       {:ok, %Finch.Response{status: _status, body: body, headers: _headers}} ->
-        case Jason.decode(body) do
-          {:ok, %{"access_token" => token, "expires_in" => expires_in}} ->
+        case :json.decode(body) do
+          %{"access_token" => token, "expires_in" => expires_in} ->
             {token, now + expires_in}
 
-          {:ok, extra} ->
-            Sentry.capture_message("failed to decode spotify token", extra: extra)
-            nil
-
-          {:error, extra} ->
+          extra ->
             Sentry.capture_message("failed to decode spotify token", extra: extra)
             nil
         end

@@ -33,7 +33,7 @@ defmodule T.Events do
   @spec save_seen_timings(:feed | :like | :match, uuid, uuid, list) :: :ok
   def save_seen_timings(type, by_user_id, resource_id, timings) do
     id = Ecto.Bigflake.UUID.generate()
-    json_timings = Jason.encode_to_iodata!(timings)
+    json_timings = :json.encode(timings)
     row = CSV.dump_to_iodata([[id, by_user_id, type, resource_id, json_timings]])
     GenServer.cast(:seen_buffer, {:add, row})
   end

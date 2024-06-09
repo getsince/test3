@@ -43,6 +43,7 @@ defmodule T.MixProject do
       {:phoenix_view, "~> 2.0"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:ecto_sql, "~> 3.6"},
+      {:ecto_sqlite3, "~> 0.16.0"},
       {:phoenix_live_view, "~> 0.20.14"},
       {:phoenix_live_dashboard, "~> 0.8.3"},
       {:telemetry_metrics, "~> 1.0.0"},
@@ -62,9 +63,7 @@ defmodule T.MixProject do
       {:locus, "~> 2.2"},
       {:benchee, "~> 1.0", only: :bench},
       {:dialyxir, "~> 1.1", only: :dev, runtime: false},
-      {:jose, "~> 1.11"},
-      {:nimble_csv, "~> 1.2"},
-      {:ecto_sqlite3, "~> 0.16.0"}
+      {:jose, "~> 1.11"}
     ]
   end
 

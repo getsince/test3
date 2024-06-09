@@ -65,7 +65,7 @@ defmodule APNS do
     url = url(env, device_id)
 
     headers = [
-      {"authorization", "bearer " <> token},
+      {"authorization", "Bearer " <> token},
       {"apns-topic", topic},
       {"apns-push-type", "alert"}
     ]

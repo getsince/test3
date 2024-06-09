@@ -50,8 +50,6 @@ if config_env() == :prod and not smoke? do
   config :logger, backends: [:console, Sentry.LoggerBackend]
   config :logger, :console, level: :info
 
-  config :logger, Sentry.LoggerBackend, metadata: [:feed_ai_ec2_ip]
-
   config :sentry, dsn: System.fetch_env!("SENTRY_DSN")
 
   config :t, T.Bot,

@@ -1,4 +1,4 @@
-name: build
+name: docker
 
 on:
   pull_request:
@@ -10,7 +10,7 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  docker:
+  build:
     runs-on: ubuntu-latest
 
     permissions:

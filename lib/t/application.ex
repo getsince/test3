@@ -23,7 +23,6 @@ defmodule T.Application do
         maybe_migrator(),
         maybe_oban(),
         maybe_periodics(),
-        maybe_workflows(),
         maybe_endpoint(),
         # maybe_app_store_notifications(),
         TWeb.Telemetry,
@@ -97,19 +96,6 @@ defmodule T.Application do
   defp maybe_periodics do
     if T.Cluster.is_primary() do
       unless_disabled(T.Periodics)
-    end
-  end
-
-  defp maybe_workflows do
-    if T.Cluster.is_primary() do
-      unless disabled?(T.Workflows) do
-        [
-          T.Workflows.Listener,
-          {Registry,
-           keys: :unique, name: T.Workflows.Registry, listeners: [T.Workflows.Listener]},
-          T.Workflows.Supervisor
-        ]
-      end
     end
   end
 

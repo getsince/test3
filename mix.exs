@@ -73,7 +73,6 @@ defmodule T.MixProject do
       {:dialyxir, "~> 1.1", only: :dev, runtime: false},
       {:jose, "~> 1.11"},
       {:nimble_csv, "~> 1.2"},
-      {:libcluster, "~> 3.3"},
       {:ecto_sqlite3, "~> 0.16.0"}
     ]
   end

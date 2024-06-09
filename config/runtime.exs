@@ -143,24 +143,6 @@ if config_env() == :prod and not smoke? do
     buffers: [:seen_buffer, :like_buffer],
     bucket: System.fetch_env!("AWS_S3_BUCKET_EVENTS")
 
-  digitalocean_polling_interval =
-    String.to_integer(System.get_env("DIGITALOCEAN_POLL_INTERVAL_SECONDS") || "5")
-
-  digitalocean_api_token = System.fetch_env!("DIGITALOCEAN_API_TOKEN")
-
-  config :libcluster,
-    topologies: [
-      digitalocean: [
-        strategy: T.Cluster.Strategy,
-        config: [
-          app_prefix: :t,
-          tag: System.get_env("DIGITALOCEAN_TAG") || "since-backend",
-          polling_interval: :timer.seconds(digitalocean_polling_interval),
-          api_token: digitalocean_api_token
-        ]
-      ]
-    ]
-
   # TODO use cidr like in PRIMARY_SUBNET=10.0.0.0/16
   # export PRIMARY_HOST_PREFIX=10.0.
   config :t, primary_prefix: System.fetch_env!("PRIMARY_HOST_PREFIX")

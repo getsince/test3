@@ -67,7 +67,7 @@ defmodule T.MixProject do
       # https://github.com/bryanjos/geo_postgis/pull/164
       {:geo_postgis,
        github: "aeruder/geo_postgis", ref: "2f037d19c5958800c06f081963c407f24c1f3df7"},
-      {:finch, "~> 0.16.0"},
+      {:finch, "~> 0.18.0"},
       {:locus, "~> 2.2"},
       {:benchee, "~> 1.0", only: :bench},
       {:dialyxir, "~> 1.1", only: :dev, runtime: false},

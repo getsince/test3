@@ -1,11 +1,11 @@
 defmodule DevAPNS do
-  alias T.PushNotifications.APNS, as: Push
+  alias Since.PushNotifications.APNS, as: Push
 
   def ruslan_id do
     "0000017c-a7df-c36e-0242-ac1100040000"
   end
 
-  # %T.Accounts.APNSDevice{
+  # %Since.Accounts.APNSDevice{
   #   __meta__: #Ecto.Schema.Metadata<:loaded, "apns_devices">,
   #   device_id: "2DAE2436E3D183F3683907FACD8EF8D515FAF541CA55A265A4144371C2A83137",
   #   env: "prod",
@@ -21,9 +21,9 @@ defmodule DevAPNS do
   def apns_device do
     import Ecto.Query
 
-    T.Accounts.APNSDevice
+    Since.Accounts.APNSDevice
     |> where(user_id: ^ruslan_id())
-    |> T.Repo.one!()
+    |> Since.Repo.one!()
     |> then(fn %{device_id: id} = device -> %{device | device_id: Base.encode16(id)} end)
   end
 
@@ -42,14 +42,14 @@ defmodule DevAPNS do
   # }
   def templated_alert(template, data \\ %{}, apns_device \\ apns_device()) do
     payload = Push.build_alert_payload(template, data)
-    %T.Accounts.APNSDevice{device_id: device_id, topic: topic, env: "prod"} = apns_device
+    %Since.Accounts.APNSDevice{device_id: device_id, topic: topic, env: "prod"} = apns_device
     APNS.build_notification(device_id, topic, payload, :prod)
   end
 
   def push_templated_alert(template, data \\ %{}, apns_device \\ apns_device()) do
     template
     |> templated_alert(data, apns_device)
-    |> APNS.push(T.Finch)
+    |> APNS.push(Since.Finch)
   end
 
   # run one of
@@ -98,8 +98,8 @@ defmodule DevAPNS do
   end
 
   def mint_conn do
-    [{T.Finch.PIDPartition0, pid, :worker, [Registry.Partition]}] =
-      Supervisor.which_children(T.Finch)
+    [{Since.Finch.PIDPartition0, pid, :worker, [Registry.Partition]}] =
+      Supervisor.which_children(Since.Finch)
 
     pid
     |> :sys.get_state()
@@ -125,7 +125,7 @@ defmodule DevAPNS do
     task_supervisor
     |> Task.Supervisor.async_stream(
       1..3,
-      fn i -> {i, APNS.push(n, T.Finch)} end,
+      fn i -> {i, APNS.push(n, Since.Finch)} end,
       max_concurrency: 100,
       ordered: false
     )

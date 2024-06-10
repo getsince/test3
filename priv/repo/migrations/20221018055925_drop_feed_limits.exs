@@ -1,4 +1,4 @@
-defmodule T.Repo.Migrations.DropFeedLimits do
+defmodule Since.Repo.Migrations.DropFeedLimits do
   use Ecto.Migration
 
   def change do

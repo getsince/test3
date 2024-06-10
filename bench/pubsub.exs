@@ -8,7 +8,7 @@ defmodule Sub do
   @impl true
   def init(opts) do
     topic = Keyword.fetch!(opts, :topic)
-    Phoenix.PubSub.subscribe(T.PubSub, topic)
+    Phoenix.PubSub.subscribe(Since.PubSub, topic)
     {:ok, nil}
   end
 
@@ -25,8 +25,8 @@ map = %{"some" => "key", "then" => "some oter key"}
 
 Benchee.run(
   %{
-    "message" => fn topic -> Phoenix.PubSub.broadcast(T.PubSub, topic, "message") end,
-    "map" => fn topic -> Phoenix.PubSub.broadcast(T.PubSub, topic, map) end
+    "message" => fn topic -> Phoenix.PubSub.broadcast(Since.PubSub, topic, "message") end,
+    "map" => fn topic -> Phoenix.PubSub.broadcast(Since.PubSub, topic, map) end
   },
   inputs: %{"lots subs" => "topic", "few subs" => "topic2"}
 )

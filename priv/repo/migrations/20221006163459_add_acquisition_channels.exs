@@ -1,4 +1,4 @@
-defmodule T.Repo.Migrations.AddAcquisitionChannels do
+defmodule Since.Repo.Migrations.AddAcquisitionChannels do
   use Ecto.Migration
 
   def change do

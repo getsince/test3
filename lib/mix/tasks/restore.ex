@@ -14,7 +14,7 @@ defmodule Mix.Tasks.Events do
     region = opt(opts, "--region") || "eu-north-1"
     bucket = opt(opts, "--bucket") || System.fetch_env!("AWS_S3_BUCKET_EVENTS")
 
-    {:ok, _} = Finch.start_link(name: T.Finch)
+    {:ok, _} = Finch.start_link(name: Since.Finch)
 
     {:ok, _} = Application.ensure_all_started(:ecto_sqlite3)
     {:ok, _} = Repo.start_link(database: database)

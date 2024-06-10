@@ -1,4 +1,4 @@
-defmodule T.Repo.Migrations.AddOnboardingEvents do
+defmodule Since.Repo.Migrations.AddOnboardingEvents do
   use Ecto.Migration
 
   def change do

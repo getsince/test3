@@ -1,4 +1,4 @@
-defmodule T.Repo.Migrations.FeededProfilesWithTimestamp do
+defmodule Since.Repo.Migrations.FeededProfilesWithTimestamp do
   use Ecto.Migration
 
   @opts [on_delete: :delete_all, type: :uuid]

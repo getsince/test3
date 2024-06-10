@@ -1,4 +1,4 @@
-defmodule T.Repo.Migrations.AddSeenProfiles do
+defmodule Since.Repo.Migrations.AddSeenProfiles do
   use Ecto.Migration
 
   @opts [on_delete: :delete_all, type: :uuid]

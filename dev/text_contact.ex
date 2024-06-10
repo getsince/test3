@@ -1,12 +1,12 @@
 defmodule Dev.TextContact do
   import Ecto.Query
-  alias T.{Repo, Accounts.Profile}
+  alias Since.{Repo, Accounts.Profile}
 
   def impacted_user_ids do
-    %Postgrex.Result{columns: ["user_id"], rows: rows} =
+    %Exqlite.Result{columns: ["user_id"], rows: rows} =
       Repo.query!("""
       SELECT DISTINCT user_id
-      FROM (SELECT user_id, jsonb_array_elements(jsonb_array_elements(story) -> 'labels') AS label FROM profiles) AS l
+      FROM (SELECT user_id, json_array_elements(json_array_elements(story) -> 'labels') AS label FROM profiles) AS l
       WHERE (l.label ->> 'text-contact') = 'true'
       """)
 

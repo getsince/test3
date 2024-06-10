@@ -1,4 +1,4 @@
-defmodule T.Repo.Migrations.AddProfiles do
+defmodule Since.Repo.Migrations.AddProfiles do
   use Ecto.Migration
 
   def change do

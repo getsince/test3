@@ -1,4 +1,4 @@
-defmodule T.Repo.Migrations.AddGenderPreferences do
+defmodule Since.Repo.Migrations.AddGenderPreferences do
   use Ecto.Migration
 
   @opts [on_delete: :delete_all, type: :uuid]

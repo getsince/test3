@@ -1,4 +1,4 @@
-defmodule T.Repo.Migrations.AddApnsDevices do
+defmodule Since.Repo.Migrations.AddApnsDevices do
   use Ecto.Migration
 
   @opts [type: :uuid, on_delete: :delete_all]

@@ -1,12 +1,12 @@
-defmodule T.Factory do
-  use ExMachina.Ecto, repo: T.Repo
+defmodule Since.Factory do
+  use ExMachina.Ecto, repo: Since.Repo
 
-  alias T.Accounts.{User, Profile, GenderPreference, APNSDevice, UserToken}
-  alias T.Feeds.{SeenProfile, Meeting}
-  alias T.Chats.Chat
-  alias T.Games.{Compliment, ComplimentLimit}
+  alias Since.Accounts.{User, Profile, GenderPreference, APNSDevice, UserToken}
+  alias Since.Feeds.{SeenProfile, Meeting}
+  alias Since.Chats.Chat
+  alias Since.Games.{Compliment, ComplimentLimit}
 
-  alias T.News
+  alias Since.News
 
   def user_factory do
     %User{apple_id: apple_id()}
@@ -51,7 +51,7 @@ defmodule T.Factory do
   end
 
   def apns_device_factory do
-    alias T.PushNotifications.APNS
+    alias Since.PushNotifications.APNS
 
     user = build(:user)
 
@@ -144,7 +144,7 @@ defmodule T.Factory do
     }
   end
 
-  alias T.{Accounts, Repo}
+  alias Since.{Accounts, Repo}
 
   def registered_user(apple_id \\ apple_id(), last_active \\ DateTime.utc_now()) do
     {:ok, user} = Accounts.register_user_with_apple_id(%{"apple_id" => apple_id}, last_active)

@@ -1,8 +1,8 @@
 import Config
 
-config :t, T.Media.Client, adapter: T.Media.S3Client
-config :t, T.Bot, adapter: T.Bot.API
-config :t, T.PushNotifications.APNS, adapter: T.PushNotifications.APNS.FinchAdapter
-config :t, T.Accounts.AppleSignIn, adapter: T.Accounts.AppleSignIn.HTTPAdapter
+config :since, Since.Media.Client, adapter: Since.Media.S3Client
+config :since, Since.Bot, adapter: Since.Bot.API
+config :since, Since.PushNotifications.APNS, adapter: Since.PushNotifications.APNS.FinchAdapter
+config :since, Since.Accounts.AppleSignIn, adapter: Since.Accounts.AppleSignIn.HTTPAdapter
 
-config :t, TWeb.Endpoint, cache_static_manifest: "priv/static/cache_manifest.json"
+config :since, SinceWeb.Endpoint, cache_static_manifest: "priv/static/cache_manifest.json"

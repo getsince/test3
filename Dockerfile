@@ -1,4 +1,4 @@
-FROM hexpm/elixir:1.16.0-erlang-26.2.1-alpine-3.18.4 as build
+FROM hexpm/elixir:1.17.0-rc.1-erlang-27.0-alpine-3.20.0 as build
 
 # install build dependencies
 RUN apk add --no-cache --update git build-base nodejs npm
@@ -37,7 +37,7 @@ RUN mix assets.deploy
 RUN mix release
 
 # prepare release image
-FROM alpine:3.18.4 AS app
+FROM alpine:3.20.0 AS app
 RUN apk add --no-cache --update bash openssl libgcc libstdc++
 
 WORKDIR /app

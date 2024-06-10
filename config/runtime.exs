@@ -6,9 +6,9 @@ import Config
 # and secrets from environment variables or elsewhere. Do not define
 # any compile-time configuration in here, as it won't be applied.
 
-config :t, TWeb.Endpoint,
-  render_errors: [view: TWeb.ErrorView, accepts: ~w(json), layout: false],
-  pubsub_server: T.PubSub,
+config :since, SinceWeb.Endpoint,
+  render_errors: [view: SinceWeb.ErrorView, accepts: ~w(json), layout: false],
+  pubsub_server: Since.PubSub,
   live_view: [signing_salt: "Urm6JRcI"]
 
 config :logger, :console, format: "$time $metadata[$level] $message\n"
@@ -25,8 +25,8 @@ config :sentry,
   environment_name: config_env(),
   included_environments: [:prod]
 
-config :t, Oban,
-  repo: T.Repo,
+config :since, Oban,
+  repo: Since.Repo,
   plugins: [
     Oban.Plugins.Pruner,
     Oban.Plugins.Stager
@@ -34,37 +34,34 @@ config :t, Oban,
   queues: [default: 10, apns: 100]
 
 config :ex_aws,
-  json_codec: Jason,
+  json_codec: :json,
   # TODO switch to US
   region: "eu-north-1"
 
 smoke? = !!System.get_env("SMOKE")
 
 if config_env() == :prod and smoke? do
-  config :t, T.Media.Static, disabled?: true
-  config :t, T.Periodics, disabled?: true
-  config :t, T.Workflows, disabled?: true
-  config :t, Finch, disabled?: true
+  config :since, Since.Media.Static, disabled?: true
+  config :since, Since.Periodics, disabled?: true
+  config :since, Finch, disabled?: true
 end
 
 if config_env() == :prod and not smoke? do
   config :logger, backends: [:console, Sentry.LoggerBackend]
   config :logger, :console, level: :info
 
-  config :logger, Sentry.LoggerBackend, metadata: [:feed_ai_ec2_ip]
-
   config :sentry, dsn: System.fetch_env!("SENTRY_DSN")
 
-  config :t, T.Bot,
+  config :since, Since.Bot,
     token: System.fetch_env!("TG_BOT_KEY"),
     room_id: System.fetch_env!("TG_ROOM_ID") |> String.to_integer()
 
   apns_topic = System.fetch_env!("APNS_TOPIC")
   team_id = System.fetch_env!("APNS_TEAM_ID")
 
-  config :t, T.PushNotifications.APNS, default_topic: apns_topic
+  config :since, Since.PushNotifications.APNS, default_topic: apns_topic
 
-  config :t, APNS,
+  config :since, APNS,
     keys: [
       %{
         key: System.fetch_env!("SANDBOX_APNS_KEY"),
@@ -82,7 +79,7 @@ if config_env() == :prod and not smoke? do
       }
     ]
 
-  config :t, AppStore,
+  config :since, AppStore,
     key: %{
       key: System.fetch_env!("APP_STORE_KEY"),
       key_id: System.fetch_env!("APP_STORE_KEY_ID"),
@@ -91,9 +88,9 @@ if config_env() == :prod and not smoke? do
       env: :prod
     }
 
-  config :t, run_migrations_on_start?: true
+  config :since, run_migrations_on_start?: true
 
-  config :t, T.Repo,
+  config :since, Since.Repo,
     url: System.fetch_env!("DATABASE_URL"),
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "20"),
     ssl_opts: [verify: :verify_none]
@@ -104,7 +101,7 @@ if config_env() == :prod and not smoke? do
   # results in check_origin = ["//*.example.com", "//*.пример.рф"]
   check_origin = "CHECK_ORIGIN" |> System.fetch_env!() |> String.split(",")
 
-  config :t, TWeb.Endpoint,
+  config :since, SinceWeb.Endpoint,
     # For production, don't forget to configure the url host
     # to something meaningful, Phoenix uses this information
     # when generating URLs.
@@ -119,18 +116,18 @@ if config_env() == :prod and not smoke? do
     secret_key_base: System.fetch_env!("SECRET_KEY_BASE"),
     server: true
 
-  config :t, :dashboard,
+  config :since, :dashboard,
     username: System.fetch_env!("DASHBOARD_USERNAME"),
     password: System.fetch_env!("DASHBOARD_PASSWORD")
 
-  config :t, maxmind_license_key: System.fetch_env!("MAXMIND_LICENSE_KEY")
+  config :since, maxmind_license_key: System.fetch_env!("MAXMIND_LICENSE_KEY")
 
   config :imgproxy,
     prefix: System.fetch_env!("IMGPROXY_PREFIX"),
     key: System.fetch_env!("IMGPROXY_KEY"),
     salt: System.fetch_env!("IMGPROXY_SALT")
 
-  config :t, T.Media,
+  config :since, Since.Media,
     user_bucket: System.fetch_env!("AWS_S3_BUCKET"),
     user_cdn: System.fetch_env!("USER_CDN"),
     static_bucket: System.fetch_env!("AWS_S3_BUCKET_STATIC"),
@@ -138,44 +135,24 @@ if config_env() == :prod and not smoke? do
     media_bucket: System.fetch_env!("AWS_S3_BUCKET_MEDIA"),
     media_cdn: System.fetch_env!("MEDIA_CDN")
 
-  config :t, T.Spotify,
+  config :since, Since.Spotify,
     client_id: System.fetch_env!("SPOTIFY_CLIENT_ID"),
     client_secret: System.fetch_env!("SPOTIFY_CLIENT_SECRET")
 
-  config :t, T.Events,
+  config :since, Since.Events,
     buffers: [:seen_buffer, :like_buffer],
     bucket: System.fetch_env!("AWS_S3_BUCKET_EVENTS")
 
-  digitalocean_polling_interval =
-    String.to_integer(System.get_env("DIGITALOCEAN_POLL_INTERVAL_SECONDS") || "5")
-
-  digitalocean_api_token = System.fetch_env!("DIGITALOCEAN_API_TOKEN")
-
-  config :libcluster,
-    topologies: [
-      digitalocean: [
-        strategy: T.Cluster.Strategy,
-        config: [
-          app_prefix: :t,
-          tag: System.get_env("DIGITALOCEAN_TAG") || "since-backend",
-          polling_interval: :timer.seconds(digitalocean_polling_interval),
-          api_token: digitalocean_api_token
-        ]
-      ]
-    ]
-
   # TODO use cidr like in PRIMARY_SUBNET=10.0.0.0/16
   # export PRIMARY_HOST_PREFIX=10.0.
-  config :t, primary_prefix: System.fetch_env!("PRIMARY_HOST_PREFIX")
-
-  config :t, T.FeedAI, instance_name: "feed-vm"
+  config :since, primary_prefix: System.fetch_env!("PRIMARY_HOST_PREFIX")
 end
 
 if config_env() == :dev do
   config :logger, :console, level: :warning
   config :logger, backends: [:console]
 
-  config :t, APNS,
+  config :since, APNS,
     keys: [
       %{
         key: System.fetch_env!("SANDBOX_APNS_KEY"),
@@ -186,7 +163,7 @@ if config_env() == :dev do
       }
     ]
 
-  config :t, AppStore,
+  config :since, AppStore,
     key: %{
       key: System.fetch_env!("APP_STORE_KEY"),
       key_id: System.fetch_env!("APP_STORE_KEY_ID"),
@@ -195,7 +172,7 @@ if config_env() == :dev do
       env: :dev
     }
 
-  config :t, T.PushNotifications.APNS, default_topic: System.fetch_env!("APNS_TOPIC")
+  config :since, Since.PushNotifications.APNS, default_topic: System.fetch_env!("APNS_TOPIC")
 
   # For development, we disable any cache and enable
   # debugging.
@@ -203,7 +180,7 @@ if config_env() == :dev do
   # The watchers configuration can be used to run external
   # watchers to your application. For example, we use it
   # with esbuild to bundle .js and .css sources.
-  config :t, TWeb.Endpoint,
+  config :since, SinceWeb.Endpoint,
     # Binding to loopback ipv4 address prevents access from other machines.
     # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
     http: [ip: {127, 0, 0, 1}, port: 4000],
@@ -216,8 +193,8 @@ if config_env() == :dev do
       patterns: [
         ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
         ~r"priv/gettext/.*(po)$",
-        ~r"lib/t_web/(live|views)/.*(ex)$",
-        ~r"lib/t_web/templates/.*(eex)$"
+        ~r"lib/since_web/(live|views)/.*(ex)$",
+        ~r"lib/since_web/templates/.*(eex)$"
       ]
     ],
     watchers: [
@@ -226,27 +203,27 @@ if config_env() == :dev do
     ]
 
   # Configure your database
-  config :t, T.Repo,
-    url: System.get_env("DATABASE_URL") || "ecto://postgres:postgres@localhost:5432/t_dev",
+  config :since, Since.Repo,
+    database: System.get_env("DATABASE_PATH") || "./t_dev",
     show_sensitive_data_on_connection_error: true,
     pool_size: 10
 
-  config :t, :dashboard,
+  config :since, :dashboard,
     username: System.fetch_env!("DASHBOARD_USERNAME"),
     password: System.fetch_env!("DASHBOARD_PASSWORD")
 
-  config :t, maxmind_license_key: System.fetch_env!("MAXMIND_LICENSE_KEY")
+  config :since, maxmind_license_key: System.fetch_env!("MAXMIND_LICENSE_KEY")
 
   config :imgproxy,
     prefix: System.fetch_env!("IMGPROXY_PREFIX"),
     key: System.fetch_env!("IMGPROXY_KEY"),
     salt: System.fetch_env!("IMGPROXY_SALT")
 
-  config :t, T.Bot,
+  config :since, Since.Bot,
     token: System.fetch_env!("TG_BOT_KEY"),
     room_id: System.fetch_env!("TG_ROOM_ID") |> String.to_integer()
 
-  config :t, T.Media,
+  config :since, Since.Media,
     user_bucket: System.fetch_env!("AWS_S3_BUCKET"),
     user_cdn: System.fetch_env!("USER_CDN"),
     static_bucket: System.fetch_env!("AWS_S3_BUCKET_STATIC"),
@@ -254,18 +231,16 @@ if config_env() == :dev do
     media_bucket: System.fetch_env!("AWS_S3_BUCKET_MEDIA"),
     media_cdn: System.fetch_env!("MEDIA_CDN")
 
-  config :t, T.Spotify,
+  config :since, Since.Spotify,
     client_id: System.get_env("SPOTIFY_CLIENT_ID"),
     client_secret: System.get_env("SPOTIFY_CLIENT_SECRET")
 
-  config :t, T.Events, buffers: false, bucket: System.get_env("AWS_S3_BUCKET_EVENTS")
-  config :t, T.Media.Static, disabled?: !!System.get_env("DISABLE_MEDIA")
-  config :t, T.Periodics, disabled?: !!System.get_env("DISABLE_PERIODICS")
+  config :since, Since.Events, buffers: false, bucket: System.get_env("AWS_S3_BUCKET_EVENTS")
+  config :since, Since.Media.Static, disabled?: !!System.get_env("DISABLE_MEDIA")
+  config :since, Since.Periodics, disabled?: !!System.get_env("DISABLE_PERIODICS")
 
   # TODO
-  config :t, primary_prefix: "nohost"
-
-  config :t, T.FeedAI, instance_name: "feed-vm-dev"
+  config :since, primary_prefix: "nohost"
 end
 
 if config_env() == :test do
@@ -274,13 +249,13 @@ if config_env() == :test do
   # The MIX_TEST_PARTITION environment variable can be used
   # to provide built-in test partitioning in CI environment.
   # Run `mix help test` for more information.
-  config :t, T.Repo,
-    url: "ecto://postgres:postgres@localhost:5432/t_test#{System.get_env("MIX_TEST_PARTITION")}",
+  config :since, Since.Repo,
+    database: "./t_test_#{System.get_env("MIX_TEST_PARTITION")}.db",
     pool: Ecto.Adapters.SQL.Sandbox
 
   # We don't run a server during test. If one is required,
   # you can enable the server option below.
-  config :t, TWeb.Endpoint,
+  config :since, SinceWeb.Endpoint,
     secret_key_base: "G3Ln+/DGlLRcc0cFikD44j8AS16t7ab5g0CjqhGBkOz2ol5GjHemYelcDWDEjkw5",
     url: [host: "localhost"],
     http: [port: 4002],
@@ -289,9 +264,9 @@ if config_env() == :test do
   # Print only errors during test
   config :logger, level: :error
 
-  config :t, Oban, queues: false, plugins: false
+  config :since, Oban, queues: false, plugins: false
 
-  config :t, T.Media,
+  config :since, Since.Media,
     user_bucket: "pretend-this-is-real",
     static_bucket: "pretend-this-is-static",
     media_bucket: "pretend-this-is-media",
@@ -299,11 +274,11 @@ if config_env() == :test do
     static_cdn: "https://d4321.cloudfront.net",
     media_cdn: "https://d6666.cloudfront.net"
 
-  config :t, T.Spotify,
+  config :since, Since.Spotify,
     client_id: System.get_env("SPOTIFY_CLIENT_ID") || "SPOTIFY_CLIENT_ID",
     client_secret: System.get_env("SPOTIFY_CLIENT_SECRET") || "SPOTIFY_CLIENT_SECRET"
 
-  config :t, AppStore,
+  config :since, AppStore,
     key: %{
       key: System.get_env("APP_STORE_KEY") || "APP_STORE_KEY",
       key_id: System.get_env("APP_STORE_KEY_ID") || "APP_STORE_KEY_ID",
@@ -321,36 +296,33 @@ if config_env() == :test do
     key: "fafafa",
     salt: "bababa"
 
-  config :t, T.Bot,
+  config :since, Since.Bot,
     token: "asdfasdfasdf",
     room_id: String.to_integer("-1234")
 
-  config :t, T.PushNotifications.APNS, default_topic: "app.topic"
-  config :t, T.Periodics, disabled?: true
-  config :t, Finch, disabled?: false
-  config :t, AppStore.Notificator, disabled?: true
+  config :since, Since.PushNotifications.APNS, default_topic: "app.topic"
+  config :since, Since.Periodics, disabled?: true
+  config :since, Finch, disabled?: false
+  config :since, AppStore.Notificator, disabled?: true
 
   # TODO
-  config :t, primary_prefix: "nohost"
-
-  config :t, T.FeedAI, instance_name: "feed-vm-test"
+  config :since, primary_prefix: "nohost"
 end
 
 if config_env() == :bench do
   config :logger, level: :info
 
-  config :t, Oban, queues: false, plugins: false
+  config :since, Oban, queues: false, plugins: false
 
-  config :t, T.Media.Static, disabled?: true
-  config :t, T.Periodics, disabled?: true
-  config :t, T.Workflows, disabled?: true
-  config :t, Finch, disabled?: true
-  config :t, AppStore.Notificator, disabled?: true
+  config :since, Since.Media.Static, disabled?: true
+  config :since, Since.Periodics, disabled?: true
+  config :since, Finch, disabled?: true
+  config :since, AppStore.Notificator, disabled?: true
 
   # TODO
-  config :t, primary_prefix: "nohost"
+  config :since, primary_prefix: "nohost"
 
-  config :t, T.Repo,
-    url: System.get_env("DATABASE_URL") || "ecto://postgres:postgres@localhost:5432/t_dev",
+  config :since, Since.Repo,
+    database: System.get_env("DATABASE_PATH") || "./t_dev",
     pool_size: 10
 end

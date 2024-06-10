@@ -1,8 +1,8 @@
 import Config
 
-config :t, ecto_repos: [T.Repo]
+config :since, ecto_repos: [Since.Repo]
 config :phoenix, json_library: :json
-config :sentry, client: T.Sentry.FinchHTTPClient
+config :sentry, client: Since.Sentry.FinchHTTPClient
 
 config :sentry,
   enable_source_code_context: true,

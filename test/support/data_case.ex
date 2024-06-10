@@ -1,4 +1,4 @@
-defmodule T.DataCase do
+defmodule Since.DataCase do
   @moduledoc """
   This module defines the setup for tests requiring
   access to the application's data layer.
@@ -18,7 +18,7 @@ defmodule T.DataCase do
 
   using do
     quote do
-      alias T.Repo
+      alias Since.Repo
 
       import Ecto
       import Ecto.{Changeset, Query}
@@ -37,7 +37,7 @@ defmodule T.DataCase do
   Sets up the sandbox based on the test tags.
   """
   def setup_sandbox(tags) do
-    pid = Ecto.Adapters.SQL.Sandbox.start_owner!(T.Repo, shared: not tags[:async])
+    pid = Ecto.Adapters.SQL.Sandbox.start_owner!(Since.Repo, shared: not tags[:async])
     on_exit(fn -> Ecto.Adapters.SQL.Sandbox.stop_owner(pid) end)
   end
 

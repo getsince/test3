@@ -1,4 +1,4 @@
-defmodule T.Repo.Migrations.AddMatchesSeen do
+defmodule Since.Repo.Migrations.AddMatchesSeen do
   use Ecto.Migration
 
   def change do

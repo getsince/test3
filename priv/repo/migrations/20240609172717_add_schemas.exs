@@ -1,4 +1,4 @@
-defmodule T.Repo.Migrations.AddSchemas do
+defmodule Since.Repo.Migrations.AddSchemas do
   use Ecto.Migration
 
   @uuid :blob

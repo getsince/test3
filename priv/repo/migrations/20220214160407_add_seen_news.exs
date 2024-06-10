@@ -1,4 +1,4 @@
-defmodule T.Repo.Migrations.AddSeenNews do
+defmodule Since.Repo.Migrations.AddSeenNews do
   use Ecto.Migration
 
   def change do

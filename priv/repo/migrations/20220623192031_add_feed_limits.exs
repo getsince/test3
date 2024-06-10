@@ -1,4 +1,4 @@
-defmodule T.Repo.Migrations.AddFeedLimits do
+defmodule Since.Repo.Migrations.AddFeedLimits do
   use Ecto.Migration
 
   def change do

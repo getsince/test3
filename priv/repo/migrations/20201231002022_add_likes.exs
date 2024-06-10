@@ -1,4 +1,4 @@
-defmodule T.Repo.Migrations.AddLikes do
+defmodule Since.Repo.Migrations.AddLikes do
   use Ecto.Migration
 
   @opts [on_delete: :delete_all, type: :uuid]

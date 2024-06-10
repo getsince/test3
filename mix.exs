@@ -1,9 +1,9 @@
-defmodule T.MixProject do
+defmodule Since.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :t,
+      app: :since,
       version: "0.1.6",
       elixir: "~> 1.16",
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -19,7 +19,7 @@ defmodule T.MixProject do
   # Type `mix help compile.app` for more information.
   def application do
     [
-      mod: {T.Application, []},
+      mod: {Since.Application, []},
       extra_applications: extra_applications(Mix.env())
     ]
   end

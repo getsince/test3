@@ -1,4 +1,4 @@
-defmodule T.Repo.Migrations.AddCompliments do
+defmodule Since.Repo.Migrations.AddCompliments do
   use Ecto.Migration
 
   @opts [on_delete: :delete_all, type: :uuid]

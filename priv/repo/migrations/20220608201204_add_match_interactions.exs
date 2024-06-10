@@ -1,4 +1,4 @@
-defmodule T.Repo.Migrations.AddMatchInterations do
+defmodule Since.Repo.Migrations.AddMatchInterations do
   use Ecto.Migration
 
   def change do

@@ -204,7 +204,7 @@ if config_env() == :dev do
 
   # Configure your database
   config :t, T.Repo,
-    url: System.get_env("DATABASE_URL") || "ecto://postgres:postgres@localhost:5432/t_dev",
+    database: System.get_env("DATABASE_PATH") || "./t_dev",
     show_sensitive_data_on_connection_error: true,
     pool_size: 10
 
@@ -250,7 +250,7 @@ if config_env() == :test do
   # to provide built-in test partitioning in CI environment.
   # Run `mix help test` for more information.
   config :t, T.Repo,
-    url: "ecto://postgres:postgres@localhost:5432/t_test#{System.get_env("MIX_TEST_PARTITION")}",
+    database: "./t_test_#{System.get_env("MIX_TEST_PARTITION")}.db",
     pool: Ecto.Adapters.SQL.Sandbox
 
   # We don't run a server during test. If one is required,
@@ -323,6 +323,6 @@ if config_env() == :bench do
   config :t, primary_prefix: "nohost"
 
   config :t, T.Repo,
-    url: System.get_env("DATABASE_URL") || "ecto://postgres:postgres@localhost:5432/t_dev",
+    database: System.get_env("DATABASE_PATH") || "./t_dev",
     pool_size: 10
 end

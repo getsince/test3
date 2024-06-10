@@ -494,7 +494,7 @@ defmodule T.Feeds do
   def user_ids_with_stickers(stickers) do
     joined_stickers = Enum.join(stickers, "', '")
 
-    %Postgrex.Result{columns: ["user_id"], rows: rows} =
+    %Exqlite.Result{rows: rows} =
       Repo.query!("""
       SELECT DISTINCT user_id
       FROM (SELECT user_id, jsonb_array_elements(jsonb_array_elements(story) -> 'labels') AS label FROM profiles

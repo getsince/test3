@@ -32,7 +32,7 @@ defmodule TWeb.Endpoint do
     brotli: true,
     only: ~w(assets fonts images favicon.ico robots.txt)
 
-  plug TWeb.Plugs.HealthCheck
+  plug :health_check
 
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.
@@ -59,8 +59,22 @@ defmodule TWeb.Endpoint do
   plug Plug.Head
   plug Plug.Session, @session_options
   plug RemoteIp
-  plug TWeb.Plugs.ConfigureLoggerMetadata
+  plug :configure_logger_metadata
 
   plug Sentry.PlugContext
   plug TWeb.Router
+
+  defp health_check(%Plug.Conn{path_info: path_info} = conn, _opts) do
+    if path_info == ["health"] do
+      status = if T.Release.ready?(), do: 200, else: 500
+      conn |> send_resp(status, []) |> halt()
+    else
+      conn
+    end
+  end
+
+  defp configure_logger_metadata(conn, _opts) do
+    Logger.metadata(remote_ip: :inet.ntoa(conn.remote_ip))
+    conn
+  end
 end

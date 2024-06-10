@@ -1,11 +1,7 @@
 import Config
 
 config :t, ecto_repos: [T.Repo]
-config :t, T.Repo, types: T.PostgresTypes
-
-config :phoenix, :json_library, :json
-
-config :ex_aws, http_client: T.ExAws.FinchHttpClient
+config :phoenix, json_library: :json
 config :sentry, client: T.Sentry.FinchHTTPClient
 
 config :sentry,

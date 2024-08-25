@@ -1,6 +1,7 @@
 services:
   postgres:
     image: postgis/postgis:16-3.4-alpine
+    platform: linux/amd64
     environment:
       POSTGRES_PASSWORD: postgres
       PGDATA: /var/lib/postgresql/data/pgdata

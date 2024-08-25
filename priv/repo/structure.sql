@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 13.1 (Debian 13.1-1.pgdg100+1)
--- Dumped by pg_dump version 14.2
+-- Dumped from database version 16.4
+-- Dumped by pg_dump version 16.4 (Homebrew)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -73,6 +73,17 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
+-- Name: acquisition_channels; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.acquisition_channels (
+    user_id uuid NOT NULL,
+    channel character varying(255),
+    inserted_at timestamp(0) without time zone NOT NULL
+);
+
+
+--
 -- Name: apns_devices; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -89,12 +100,100 @@ CREATE TABLE public.apns_devices (
 
 
 --
+-- Name: app_store_notifications; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.app_store_notifications (
+    notification_uuid uuid NOT NULL,
+    signed_date timestamp(0) without time zone NOT NULL,
+    user_id uuid,
+    notification_type character varying(255) NOT NULL,
+    subtype character varying(255),
+    purchase_date timestamp(0) without time zone,
+    expires_date timestamp(0) without time zone,
+    transaction_id character varying(255),
+    original_transaction_id character varying(255) NOT NULL,
+    original_purchase_date timestamp(0) without time zone,
+    revocation_date timestamp(0) without time zone,
+    revocation_reason integer,
+    data jsonb
+);
+
+
+--
+-- Name: calculated_feed; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.calculated_feed (
+    for_user_id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    score double precision NOT NULL
+);
+
+
+--
+-- Name: chat_messages; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.chat_messages (
+    id uuid NOT NULL,
+    chat_id uuid NOT NULL,
+    from_user_id uuid NOT NULL,
+    to_user_id uuid NOT NULL,
+    data jsonb NOT NULL,
+    seen boolean DEFAULT false NOT NULL,
+    inserted_at timestamp(0) without time zone NOT NULL
+);
+
+
+--
+-- Name: chats; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.chats (
+    id uuid NOT NULL,
+    user_id_1 uuid NOT NULL,
+    user_id_2 uuid NOT NULL,
+    matched boolean DEFAULT false NOT NULL,
+    inserted_at timestamp(0) without time zone NOT NULL
+);
+
+
+--
+-- Name: compliment_limits; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.compliment_limits (
+    user_id uuid NOT NULL,
+    "timestamp" timestamp(0) without time zone NOT NULL,
+    reached boolean DEFAULT false NOT NULL,
+    prompt character varying(255)
+);
+
+
+--
+-- Name: compliments; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.compliments (
+    id uuid NOT NULL,
+    from_user_id uuid NOT NULL,
+    to_user_id uuid NOT NULL,
+    prompt character varying(255) NOT NULL,
+    seen boolean DEFAULT false NOT NULL,
+    revealed boolean DEFAULT false NOT NULL,
+    inserted_at timestamp(0) without time zone NOT NULL
+);
+
+
+--
 -- Name: feeded_profiles; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.feeded_profiles (
     for_user_id uuid NOT NULL,
-    user_id uuid NOT NULL
+    user_id uuid NOT NULL,
+    inserted_at timestamp(0) without time zone NOT NULL
 );
 
 
@@ -133,6 +232,20 @@ CREATE TABLE public.match_events (
 
 
 --
+-- Name: match_interactions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.match_interactions (
+    id uuid NOT NULL,
+    from_user_id uuid NOT NULL,
+    to_user_id uuid NOT NULL,
+    match_id uuid NOT NULL,
+    data jsonb NOT NULL,
+    seen boolean DEFAULT false NOT NULL
+);
+
+
+--
 -- Name: matches; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -151,6 +264,18 @@ CREATE TABLE public.matches (
 CREATE TABLE public.matches_seen (
     user_id uuid NOT NULL,
     match_id uuid NOT NULL
+);
+
+
+--
+-- Name: meetings; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.meetings (
+    id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    data jsonb NOT NULL,
+    inserted_at timestamp(0) without time zone NOT NULL
 );
 
 
@@ -212,6 +337,18 @@ ALTER SEQUENCE public.oban_jobs_id_seq OWNED BY public.oban_jobs.id;
 
 
 --
+-- Name: onboarding_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.onboarding_events (
+    "timestamp" timestamp(0) without time zone NOT NULL,
+    user_id uuid NOT NULL,
+    stage character varying(255) NOT NULL,
+    event character varying(255) NOT NULL
+);
+
+
+--
 -- Name: profiles; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -229,7 +366,10 @@ CREATE TABLE public.profiles (
     distance integer,
     times_liked integer DEFAULT 0 NOT NULL,
     times_shown integer DEFAULT 0 NOT NULL,
-    like_ratio double precision DEFAULT 0 NOT NULL
+    like_ratio double precision DEFAULT 0 NOT NULL,
+    address jsonb,
+    stickers character varying(255)[],
+    premium boolean DEFAULT false NOT NULL
 );
 
 
@@ -324,6 +464,46 @@ ALTER TABLE ONLY public.apns_devices
 
 
 --
+-- Name: app_store_notifications app_store_notifications_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.app_store_notifications
+    ADD CONSTRAINT app_store_notifications_pkey PRIMARY KEY (notification_uuid);
+
+
+--
+-- Name: chat_messages chat_messages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.chat_messages
+    ADD CONSTRAINT chat_messages_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: chats chats_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.chats
+    ADD CONSTRAINT chats_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: compliment_limits compliment_limits_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.compliment_limits
+    ADD CONSTRAINT compliment_limits_pkey PRIMARY KEY (user_id);
+
+
+--
+-- Name: compliments compliments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.compliments
+    ADD CONSTRAINT compliments_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: feeded_profiles feeded_profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -348,6 +528,14 @@ ALTER TABLE ONLY public.liked_profiles
 
 
 --
+-- Name: match_interactions match_interactions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.match_interactions
+    ADD CONSTRAINT match_interactions_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: matches matches_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -361,6 +549,14 @@ ALTER TABLE ONLY public.matches
 
 ALTER TABLE ONLY public.matches_seen
     ADD CONSTRAINT matches_seen_pkey PRIMARY KEY (user_id, match_id);
+
+
+--
+-- Name: meetings meetings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meetings
+    ADD CONSTRAINT meetings_pkey PRIMARY KEY (id);
 
 
 --
@@ -435,6 +631,55 @@ CREATE UNIQUE INDEX apns_devices_device_id_index ON public.apns_devices USING bt
 
 
 --
+-- Name: app_store_notifications_signed_date_desc_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX app_store_notifications_signed_date_desc_index ON public.app_store_notifications USING btree (signed_date DESC);
+
+
+--
+-- Name: app_store_notifications_user_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX app_store_notifications_user_id_index ON public.app_store_notifications USING btree (user_id);
+
+
+--
+-- Name: calculated_feed_for_user_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX calculated_feed_for_user_id_index ON public.calculated_feed USING btree (for_user_id);
+
+
+--
+-- Name: chat_messages_chat_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX chat_messages_chat_id_index ON public.chat_messages USING btree (chat_id);
+
+
+--
+-- Name: chats_user_id_1_user_id_2_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX chats_user_id_1_user_id_2_index ON public.chats USING btree (user_id_1, user_id_2);
+
+
+--
+-- Name: compliment_limits_timestamp_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX compliment_limits_timestamp_index ON public.compliment_limits USING btree ("timestamp");
+
+
+--
+-- Name: compliments_to_user_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX compliments_to_user_id_index ON public.compliments USING btree (to_user_id);
+
+
+--
 -- Name: liked_profiles_user_id_by_user_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -453,6 +698,13 @@ CREATE INDEX match_events_event_index ON public.match_events USING btree (event)
 --
 
 CREATE INDEX match_events_match_id_timestamp_desc_index ON public.match_events USING btree (match_id, "timestamp" DESC);
+
+
+--
+-- Name: match_interactions_match_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX match_interactions_match_id_index ON public.match_interactions USING btree (match_id);
 
 
 --
@@ -481,6 +733,13 @@ CREATE INDEX oban_jobs_meta_index ON public.oban_jobs USING gin (meta);
 --
 
 CREATE INDEX oban_jobs_queue_state_priority_scheduled_at_id_index ON public.oban_jobs USING btree (queue, state, priority, scheduled_at, id);
+
+
+--
+-- Name: onboarding_events_user_id_timestamp_desc_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX onboarding_events_user_id_timestamp_desc_index ON public.onboarding_events USING btree (user_id, "timestamp" DESC);
 
 
 --
@@ -584,6 +843,70 @@ ALTER TABLE ONLY public.apns_devices
 
 
 --
+-- Name: chat_messages chat_messages_chat_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.chat_messages
+    ADD CONSTRAINT chat_messages_chat_id_fkey FOREIGN KEY (chat_id) REFERENCES public.chats(id) ON DELETE CASCADE;
+
+
+--
+-- Name: chat_messages chat_messages_from_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.chat_messages
+    ADD CONSTRAINT chat_messages_from_user_id_fkey FOREIGN KEY (from_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: chat_messages chat_messages_to_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.chat_messages
+    ADD CONSTRAINT chat_messages_to_user_id_fkey FOREIGN KEY (to_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: chats chats_user_id_1_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.chats
+    ADD CONSTRAINT chats_user_id_1_fkey FOREIGN KEY (user_id_1) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: chats chats_user_id_2_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.chats
+    ADD CONSTRAINT chats_user_id_2_fkey FOREIGN KEY (user_id_2) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: compliment_limits compliment_limits_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.compliment_limits
+    ADD CONSTRAINT compliment_limits_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: compliments compliments_from_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.compliments
+    ADD CONSTRAINT compliments_from_user_id_fkey FOREIGN KEY (from_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: compliments compliments_to_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.compliments
+    ADD CONSTRAINT compliments_to_user_id_fkey FOREIGN KEY (to_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: feeded_profiles feeded_profiles_for_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -624,6 +947,30 @@ ALTER TABLE ONLY public.liked_profiles
 
 
 --
+-- Name: match_interactions match_interactions_from_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.match_interactions
+    ADD CONSTRAINT match_interactions_from_user_id_fkey FOREIGN KEY (from_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: match_interactions match_interactions_match_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.match_interactions
+    ADD CONSTRAINT match_interactions_match_id_fkey FOREIGN KEY (match_id) REFERENCES public.matches(id) ON DELETE CASCADE;
+
+
+--
+-- Name: match_interactions match_interactions_to_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.match_interactions
+    ADD CONSTRAINT match_interactions_to_user_id_fkey FOREIGN KEY (to_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: matches_seen matches_seen_match_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -653,6 +1000,14 @@ ALTER TABLE ONLY public.matches
 
 ALTER TABLE ONLY public.matches
     ADD CONSTRAINT matches_user_id_2_fkey FOREIGN KEY (user_id_2) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: meetings meetings_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meetings
+    ADD CONSTRAINT meetings_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
@@ -728,3 +1083,20 @@ INSERT INTO public."schema_migrations" (version) VALUES (20211023090119);
 INSERT INTO public."schema_migrations" (version) VALUES (20211026203244);
 INSERT INTO public."schema_migrations" (version) VALUES (20220214160407);
 INSERT INTO public."schema_migrations" (version) VALUES (20220222114013);
+INSERT INTO public."schema_migrations" (version) VALUES (20220511162926);
+INSERT INTO public."schema_migrations" (version) VALUES (20220608201204);
+INSERT INTO public."schema_migrations" (version) VALUES (20220616181907);
+INSERT INTO public."schema_migrations" (version) VALUES (20220623192031);
+INSERT INTO public."schema_migrations" (version) VALUES (20220626171047);
+INSERT INTO public."schema_migrations" (version) VALUES (20220719163258);
+INSERT INTO public."schema_migrations" (version) VALUES (20220912135534);
+INSERT INTO public."schema_migrations" (version) VALUES (20220921123328);
+INSERT INTO public."schema_migrations" (version) VALUES (20221006163459);
+INSERT INTO public."schema_migrations" (version) VALUES (20221018055925);
+INSERT INTO public."schema_migrations" (version) VALUES (20221020081244);
+INSERT INTO public."schema_migrations" (version) VALUES (20221020082921);
+INSERT INTO public."schema_migrations" (version) VALUES (20221104110022);
+INSERT INTO public."schema_migrations" (version) VALUES (20221110084630);
+INSERT INTO public."schema_migrations" (version) VALUES (20221130104118);
+INSERT INTO public."schema_migrations" (version) VALUES (20221130125914);
+INSERT INTO public."schema_migrations" (version) VALUES (20221205152310);

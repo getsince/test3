@@ -1,5 +1,5 @@
 %{
-  "assertions": {:hex, :assertions, "0.19.0", "f177fcc22b55df6a41a58b151e430d189d0a1083dae3240522503dedaf8e1174", [:mix], [], "hexpm", "759bdbf977fe3e2d2b79f8a65d8674f29ac757781136a6cb4adf88f1574af1d8"},
+  "assertions": {:hex, :assertions, "0.20.1", "e6bfcefbf199bc760d273d5a204ad9ef8a4f6c2b4725fc51d10610d73062e57b", [:mix], [], "hexpm", "848284fbde52f752232d73b8f77060ad191e1a98c177873c4b8dc56c4958defd"},
   "base62": {:hex, :base62, "1.2.2", "85c6627eb609317b70f555294045895ffaaeb1758666ab9ef9ca38865b11e629", [:mix], [{:custom_base, "~> 0.2.1", [hex: :custom_base, repo: "hexpm", optional: false]}], "hexpm", "d41336bda8eaa5be197f1e4592400513ee60518e5b9f4dcf38f4b4dae6f377bb"},
   "benchee": {:hex, :benchee, "1.3.1", "c786e6a76321121a44229dde3988fc772bca73ea75170a73fd5f4ddf1af95ccf", [:mix], [{:deep_merge, "~> 1.0", [hex: :deep_merge, repo: "hexpm", optional: false]}, {:statistex, "~> 1.0", [hex: :statistex, repo: "hexpm", optional: false]}, {:table, "~> 0.1.0", [hex: :table, repo: "hexpm", optional: true]}], "hexpm", "76224c58ea1d0391c8309a8ecbfe27d71062878f59bd41a390266bf4ac1cc56d"},
   "bigflake": {:hex, :bigflake, "0.5.0", "a0d7df9b8b5a6b6a7fe7f866a9ec6abc522917e5fac2e35cbc3ea60ce8334b27", [:mix], [{:base62, "~> 1.2.0", [hex: :base62, repo: "hexpm", optional: false]}], "hexpm", "930d3cd6cfc990be77736f033bee241f7cf7a1b5e0f545771ffc00691c533ec1"},

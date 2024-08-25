@@ -37,7 +37,7 @@ RUN mix release
 
 # prepare release image
 FROM alpine:3.20.2 AS app
-RUN apk add --no-cache --update bash openssl libgcc libstdc++
+RUN apk add --no-cache --update openssl libgcc libstdc++
 
 WORKDIR /app
 

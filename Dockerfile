@@ -11,8 +11,7 @@ RUN mkdir /app
 WORKDIR /app
 
 # install hex + rebar
-RUN mix local.hex --force &&
-  mix local.rebar --force
+RUN mix local.hex --force && mix local.rebar --force
 
 # set build ENV
 ENV MIX_ENV=prod

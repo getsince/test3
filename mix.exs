@@ -56,7 +56,7 @@ defmodule T.MixProject do
       {:ex_aws_s3, "~> 2.4.0"},
       {:sweet_xml, "~> 0.7"},
       {:oban, "~> 2.10.1"},
-      {:remote_ip, "~> 1.1.0"},
+      {:remote_ip, "~> 1.2.0"},
       {:mox, "~> 1.0", only: :test},
       {:ex_machina, "~> 2.4", only: :test},
       {:assertions, "~> 0.19.0", only: :test},

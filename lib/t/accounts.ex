@@ -131,7 +131,7 @@ defmodule T.Accounts do
 
     Profile
     |> where(user_id: ^user_id)
-    |> Repo.update_all(set: [location: location, h3: :h3.from_geo({lat, lon}, 7)])
+    |> Repo.update_all(set: [location: location, h3: :h3.from_geo({lat / 1, lon / 1}, 7)])
   end
 
   def update_address(user_id, address) do

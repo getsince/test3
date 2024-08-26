@@ -1,7 +1,7 @@
 FROM hexpm/elixir:1.17.2-erlang-27.0.1-alpine-3.20.2 as build
 
 # install build dependencies
-RUN apk add --no-cache --update git build-base nodejs npm
+RUN apk add --no-cache --update git build-base nodejs npm cmake make gcc g++
 
 ARG GIT_SHA
 ENV GIT_SHA=${GIT_SHA}

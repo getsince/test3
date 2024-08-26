@@ -13,6 +13,7 @@ defmodule T.Accounts.Profile do
     field :story, {:array, :map}
     field :stickers, {:array, :string}
     field :location, Geo.PostGIS.Geometry
+    field :h3, :integer
     field :address, :map
 
     # filters
@@ -96,6 +97,7 @@ defmodule T.Accounts.Profile do
       end
     end)
     |> validate_subset(:gender_preference, @known_genders)
+    |> update_h3()
   end
 
   defp prepare_location(%{"latitude" => lat, "longitude" => lon} = attrs) do
@@ -110,6 +112,16 @@ defmodule T.Accounts.Profile do
 
   defp point(lat, lon) do
     %Geo.Point{coordinates: {lon, lat}, srid: 4326}
+  end
+
+  defp update_h3(changeset) do
+    if location = get_change(changeset, :location) do
+      %Geo.Point{coordinates: {lon, lat}, srid: 4326} = location
+
+      put_change(changeset, :h3, :h3.from_geo({lat / 1, lon / 1}, 7))
+    else
+      changeset
+    end
   end
 
   def story_changeset(profile, attrs) do

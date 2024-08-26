@@ -127,9 +127,11 @@ defmodule T.Accounts do
 
   @doc false
   def local_update_location(user_id, location) do
+    %Geo.Point{coordinates: {lon, lat}, srid: 4326} = location
+
     Profile
     |> where(user_id: ^user_id)
-    |> Repo.update_all(set: [location: location])
+    |> Repo.update_all(set: [location: location, h3: :h3.from_geo({lat, lon}, 7)])
   end
 
   def update_address(user_id, address) do

@@ -31,6 +31,7 @@
   "geo": {:hex, :geo, "3.6.0", "00c9c6338579f67e91cd5950af4ae2eb25cdce0c3398718c232539f61625d0bd", [:mix], [{:jason, "~> 1.4", [hex: :jason, repo: "hexpm", optional: true]}], "hexpm", "1dbdebf617183b54bc3c8ad7a36531a9a76ada8ca93f75f573b0ae94006168da"},
   "geo_postgis": {:git, "https://github.com/aeruder/geo_postgis.git", "2f037d19c5958800c06f081963c407f24c1f3df7", [ref: "2f037d19c5958800c06f081963c407f24c1f3df7"]},
   "gettext": {:hex, :gettext, "0.21.0", "15bbceb20b317b706a8041061a08e858b5a189654128618b53746bf36c84352b", [:mix], [{:expo, "~> 0.1.0", [hex: :expo, repo: "hexpm", optional: false]}], "hexpm", "04a66db4103b6d1d18f92240bb2c73167b517229316b7bef84e4eebbfb2f14f6"},
+  "h3": {:hex, :h3, "3.6.4", "e07e353c59058ea69fbf3c7e5e82c2df9af7732ee89c075d34e961f768b8f030", [:rebar3], [], "hexpm", "99db71588f14cf78c4c086bc825b0981d3d849525f9d5bfa477281db7cc59b76"},
   "hpax": {:hex, :hpax, "1.0.0", "28dcf54509fe2152a3d040e4e3df5b265dcb6cb532029ecbacf4ce52caea3fd2", [:mix], [], "hexpm", "7f1314731d711e2ca5fdc7fd361296593fc2542570b3105595bb0bc6d0fad601"},
   "imgproxy": {:hex, :imgproxy, "2.0.0", "c7b81b774bf0f0f2341fc7051a48b9e3b5adbe76882d7bc419412fb080862072", [:mix], [], "hexpm", "32be6d671aa46c7eec544b445f723518b4dd2ee387eb50b071ee3e4b971d97b3"},
   "jason": {:hex, :jason, "1.4.4", "b9226785a9aa77b6857ca22832cffa5d5011a667207eb2a0ad56adb5db443b8a", [:mix], [{:decimal, "~> 1.0 or ~> 2.0", [hex: :decimal, repo: "hexpm", optional: true]}], "hexpm", "c5eb0cab91f094599f94d55bc63409236a8ec69a21a67814529e8d5f6cc90b3b"},

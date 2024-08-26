@@ -369,7 +369,8 @@ CREATE TABLE public.profiles (
     like_ratio double precision DEFAULT 0 NOT NULL,
     address jsonb,
     stickers character varying(255)[],
-    premium boolean DEFAULT false NOT NULL
+    premium boolean DEFAULT false NOT NULL,
+    h3 bigint
 );
 
 
@@ -1100,3 +1101,4 @@ INSERT INTO public."schema_migrations" (version) VALUES (20221110084630);
 INSERT INTO public."schema_migrations" (version) VALUES (20221130104118);
 INSERT INTO public."schema_migrations" (version) VALUES (20221130125914);
 INSERT INTO public."schema_migrations" (version) VALUES (20221205152310);
+INSERT INTO public."schema_migrations" (version) VALUES (20240825073126);

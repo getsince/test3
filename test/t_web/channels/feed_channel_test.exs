@@ -203,7 +203,7 @@ defmodule SinceWeb.FeedChannelTest do
                    story: [],
                    user_id: p3.id,
                    gender: "M",
-                   distance: 9510,
+                   distance: 9485,
                    address: %{
                      "en_US" => %{
                        "city" => "Buenos Aires",
@@ -248,7 +248,7 @@ defmodule SinceWeb.FeedChannelTest do
                    story: [],
                    user_id: p2.id,
                    gender: "N",
-                   distance: 9510,
+                   distance: 9485,
                    address: %{
                      "en_US" => %{
                        "city" => "Buenos Aires",
@@ -277,7 +277,7 @@ defmodule SinceWeb.FeedChannelTest do
                    story: [],
                    user_id: p1.id,
                    gender: "F",
-                   distance: 9510,
+                   distance: 9485,
                    address: %{
                      "en_US" => %{
                        "city" => "Buenos Aires",

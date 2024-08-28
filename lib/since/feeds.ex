@@ -3,7 +3,6 @@ defmodule Since.Feeds do
 
   import Ecto.{Query, Changeset}
   alias Ecto.Multi
-  import Geo.PostGIS
 
   require Logger
 
@@ -41,15 +40,6 @@ defmodule Since.Feeds do
 
   def broadcast_for_user(user_id, message) do
     Phoenix.PubSub.broadcast(@pubsub, pubsub_user_topic(user_id), message)
-  end
-
-  defmacrop distance_km(location1, location2) do
-    quote do
-      fragment(
-        "round(? / 1000)::int",
-        st_distance_in_meters(unquote(location1), unquote(location2))
-      )
-    end
   end
 
   ### Feed
@@ -188,15 +178,43 @@ defmodule Since.Feeds do
   end
 
   defp first_time_user_feed(user_id, location, gender, feed_filter, count) do
+    %Geo.Point{coordinates: {search_lon, search_lat}, srid: 4326} = location
+    search_location_h3 = :h3.from_geo({search_lat, search_lon}, 7)
+
     feed_profiles_q(user_id, gender, feed_filter.genders)
     |> where([p], p.times_liked >= ^@quality_likes_count_treshold)
     |> where([p], fragment("jsonb_array_length(?) > 2", p.story))
-    |> order_by(fragment("location <-> ?::geometry", ^location))
+    |> order_by([p], fragment("abs(? - ?)", p.h3, ^search_location_h3))
     |> maybe_apply_age_filters(feed_filter)
     |> maybe_apply_distance_filter(location, feed_filter.distance)
     |> limit(^count)
-    |> select([p], %{p | distance: distance_km(^location, p.location)})
     |> Repo.all()
+    |> Enum.map(fn %{h3: h3} = profile ->
+      {profile_lat, profile_lon} = :h3.to_geo(h3)
+
+      %{
+        profile
+        | distance: haversine_distance_km(search_lat, search_lon, profile_lat, profile_lon)
+      }
+    end)
+  end
+
+  defp haversine_distance_km(lat1, lon1, lat2, lon2) do
+    lat1 = lat1 * :math.pi() / 180
+    lon1 = lon1 * :math.pi() / 180
+    lat2 = lat2 * :math.pi() / 180
+    lon2 = lon2 * :math.pi() / 180
+
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+
+    a =
+      :math.pow(:math.sin(dlat / 2), 2) +
+        :math.cos(lat1) * :math.cos(lat2) * :math.pow(:math.sin(dlon / 2), 2)
+
+    c = 2 * :math.atan2(:math.sqrt(a), :math.sqrt(1 - a))
+
+    round(6371 * c)
   end
 
   defp default_feed(
@@ -315,11 +333,36 @@ defmodule Since.Feeds do
 
   defp maybe_apply_distance_filter(query, location, distance) do
     if distance do
-      meters = distance * 1000
-      where(query, [p], st_dwithin_in_meters(^location, p.location, ^meters))
+      %Geo.Point{coordinates: {lon, lat}, srid: 4326} = location
+      h3_resolution = distance_to_h3_resolution(distance)
+      [cell | k_ring] = :h3.k_ring(:h3.from_geo({lat, lon}, h3_resolution), 1)
+
+      filter =
+        Enum.reduce(
+          k_ring,
+          dynamic([p], fragment("? & ?", p.h3, ^h3_bitmask(cell, h3_resolution))),
+          fn cell, dynamic ->
+            dynamic([p], ^dynamic and fragment("? & ?", p.h3, ^h3_bitmask(cell, h3_resolution)))
+          end
+        )
+
+      where(query, ^filter)
     else
       query
     end
+  end
+
+  defp distance_to_h3_resolution(distance) do
+    cond do
+      distance < 10 -> 3
+      distance < 100 -> 2
+      distance < 1000 -> 1
+      true -> 0
+    end
+  end
+
+  defp h3_bitmask(cell, resolution) do
+    import Bitwise
   end
 
   defp mark_profiles_feeded(for_user_id, feed_profiles) do

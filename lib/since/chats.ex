@@ -3,7 +3,6 @@ defmodule Since.Chats do
 
   import Ecto.{Query, Changeset}
   alias Ecto.Multi
-  import Geo.PostGIS
 
   require Logger
 
@@ -35,15 +34,6 @@ defmodule Since.Chats do
     Phoenix.PubSub.broadcast_from(@pubsub, self(), pubsub_user_topic(user_id), message)
   end
 
-  defmacrop distance_km(location1, location2) do
-    quote do
-      fragment(
-        "round(? / 1000)::int",
-        st_distance_in_meters(unquote(location1), unquote(location2))
-      )
-    end
-  end
-
   def list_chats(user_id, location) do
     Chat
     |> where([c], c.user_id_1 == ^user_id or c.user_id_2 == ^user_id)
@@ -63,17 +53,53 @@ defmodule Since.Chats do
 
     mates = Map.keys(mate_chats)
 
+    %Geo.Point{coordinates: {user_lon, user_lat}, srid: 4326} = location
+
     profiles =
       FeedProfile
       |> where([p], p.user_id in ^mates)
-      |> select([p], %{p | distance: distance_km(^location, p.location)})
       |> Repo.all()
-      |> Map.new(fn profile -> {profile.user_id, profile} end)
+      |> Map.new(fn %{h3: h3} = profile ->
+        profile =
+          if h3 do
+            {mate_lat, mate_lon} = :h3.to_geo(h3)
+            %{profile | distance: haversine_distance_km(user_lat, user_lon, mate_lat, mate_lon)}
+          else
+            profile
+          end
+
+        {profile.user_id, profile}
+      end)
 
     Enum.map(chats, fn chat ->
       [mate_id] = [chat.user_id_1, chat.user_id_2] -- [user_id]
       %Chat{chat | profile: Map.fetch!(profiles, mate_id)}
     end)
+  end
+
+  # https://jonisalonen.com/2014/computing-distance-between-coordinates-can-be-simple-and-fast/
+  # defp fast_distance_km(lat1, lon1, lat2, lon2) do
+  #   dlat = lat2 - lat1
+  #   dlng = (lon2 - lon1) * :math.cos(lat1 * :math.pi() / 180)
+  #   110.25 * :math.sqrt(dlat * dlat + dlng * dlng)
+  # end
+
+  defp haversine_distance_km(lat1, lon1, lat2, lon2) do
+    lat1 = lat1 * :math.pi() / 180
+    lon1 = lon1 * :math.pi() / 180
+    lat2 = lat2 * :math.pi() / 180
+    lon2 = lon2 * :math.pi() / 180
+
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+
+    a =
+      :math.pow(:math.sin(dlat / 2), 2) +
+        :math.cos(lat1) * :math.cos(lat2) * :math.pow(:math.sin(dlon / 2), 2)
+
+    c = 2 * :math.atan2(:math.sqrt(a), :math.sqrt(1 - a))
+
+    round(6371 * c)
   end
 
   defp preload_messages(chats) do

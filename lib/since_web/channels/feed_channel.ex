@@ -51,6 +51,7 @@ defmodule SinceWeb.FeedChannel do
   defp join_normal_mode(user_id, params, socket) do
     feed_filter = Feeds.get_feed_filter(user_id)
 
+    # TODO
     {old_location, gender, premium, hidden?} =
       Accounts.get_location_gender_premium_hidden?(user_id)
 

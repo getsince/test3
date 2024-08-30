@@ -7,8 +7,6 @@ defmodule T.Feeds do
 
   require Logger
 
-  import T.Cluster, only: [primary_rpc: 3]
-
   alias T.{Repo, Bot}
 
   alias T.Accounts.{Profile, UserReport, GenderPreference}
@@ -326,11 +324,6 @@ defmodule T.Feeds do
 
   defp mark_profiles_feeded(for_user_id, feed_profiles) do
     feeded_user_ids = Enum.map(feed_profiles, fn profile -> profile.user_id end)
-    primary_rpc(__MODULE__, :local_mark_profiles_feeded, [for_user_id, feeded_user_ids])
-  end
-
-  @doc false
-  def local_mark_profiles_feeded(for_user_id, feeded_user_ids) do
     inserted_at = DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.to_naive()
 
     data =
@@ -342,11 +335,6 @@ defmodule T.Feeds do
   end
 
   def empty_feeded_profiles(user_id) do
-    primary_rpc(__MODULE__, :local_empty_feeded_profiles, [user_id])
-  end
-
-  @doc false
-  def local_empty_feeded_profiles(user_id) do
     FeededProfile |> where(for_user_id: ^user_id) |> Repo.delete_all()
   end
 
@@ -517,11 +505,7 @@ defmodule T.Feeds do
   @doc "mark_profile_seen(user_id, by: <user-id>)"
   def mark_profile_seen(user_id, opts) do
     by_user_id = Keyword.fetch!(opts, :by)
-    primary_rpc(__MODULE__, :local_mark_profile_seen, [by_user_id, user_id])
-  end
 
-  @doc false
-  def local_mark_profile_seen(by_user_id, user_id) do
     Multi.new()
     |> Multi.insert(:seen_profile, seen_changeset(by_user_id, user_id))
     |> Multi.delete_all(
@@ -587,10 +571,6 @@ defmodule T.Feeds do
   end
 
   def save_meeting(user_id, meeting_data) do
-    primary_rpc(__MODULE__, :local_save_meeting, [user_id, meeting_data])
-  end
-
-  def local_save_meeting(user_id, meeting_data) do
     m = "new meeting #{meeting_data["text"]} from #{user_id}"
     Logger.warning(m)
     Bot.async_post_message(m)
@@ -630,10 +610,6 @@ defmodule T.Feeds do
   end
 
   def delete_meeting(user_id, meeting_id) do
-    primary_rpc(__MODULE__, :local_delete_meeting, [user_id, meeting_id])
-  end
-
-  def local_delete_meeting(user_id, meeting_id) do
     m = "meeting #{meeting_id} deleted by user #{user_id}"
     Logger.warning(m)
     Bot.async_post_message(m)

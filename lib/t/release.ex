@@ -44,8 +44,13 @@ defmodule T.Release do
   sha =
     case System.get_env("GIT_SHA") do
       nil ->
-        {sha, 0} = System.cmd("git", ["rev-parse", "HEAD"])
-        sha
+        sha =
+          case File.read!(".git/HEAD") do
+            "ref: " <> ref -> File.read!(".git/" <> String.trim(ref))
+            sha -> sha
+          end
+
+        String.trim(sha)
 
       sha ->
         sha
@@ -53,12 +58,5 @@ defmodule T.Release do
 
   def git_sha do
     unquote(String.trim(sha))
-  end
-
-  # {author, 0} = System.cmd("git", ~w[log -1 --pretty=format:'%an'])
-
-  def git_author do
-    # unquote(author |> String.trim_leading("'") |> String.trim_trailing("'"))
-    ""
   end
 end

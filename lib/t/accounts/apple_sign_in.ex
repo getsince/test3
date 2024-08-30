@@ -5,7 +5,7 @@ defmodule T.Accounts.AppleSignIn do
   @adapter Application.compile_env!(:t, [__MODULE__, :adapter])
 
   @spec fields_from_token(String.t(), [map]) ::
-          {:ok, %{user_id: String.t(), email: String.t()}}
+          {:ok, %{user_id: String.t(), email: String.t() | nil}}
           | {:error, :invalid_key_id | :invalid_token}
   def fields_from_token(id_token, keys \\ @adapter.fetch_keys()) do
     with {:key, key} when not is_nil(key) <- {:key, key_for_token(keys, id_token)},

@@ -15,7 +15,6 @@ defmodule T.Application do
         AppStore.Token,
         T.Spotify,
         maybe_finch(),
-        # maybe_cluster(),
         {Phoenix.PubSub, name: T.PubSub},
         unless_disabled(T.Media.Static),
         TWeb.UserSocket.Monitor,
@@ -23,7 +22,6 @@ defmodule T.Application do
         maybe_migrator(),
         maybe_oban(),
         maybe_periodics(),
-        maybe_workflows(),
         maybe_endpoint(),
         # maybe_app_store_notifications(),
         TWeb.Telemetry,
@@ -82,12 +80,7 @@ defmodule T.Application do
 
   defp maybe_oban do
     if repo_url() do
-      if T.Cluster.is_primary() do
-        {Oban, oban_config()}
-      else
-        Logger.warning("not starting oban in read-replica region")
-        nil
-      end
+      {Oban, oban_config()}
     else
       Logger.warning("not starting oban due to missing repo url info")
       nil
@@ -95,22 +88,7 @@ defmodule T.Application do
   end
 
   defp maybe_periodics do
-    if T.Cluster.is_primary() do
-      unless_disabled(T.Periodics)
-    end
-  end
-
-  defp maybe_workflows do
-    if T.Cluster.is_primary() do
-      unless disabled?(T.Workflows) do
-        [
-          T.Workflows.Listener,
-          {Registry,
-           keys: :unique, name: T.Workflows.Registry, listeners: [T.Workflows.Listener]},
-          T.Workflows.Supervisor
-        ]
-      end
-    end
+    unless_disabled(T.Periodics)
   end
 
   defp maybe_finch do
@@ -155,7 +133,7 @@ defmodule T.Application do
   end
 
   defp maybe_migrator do
-    if Application.get_env(:t, :run_migrations_on_start?) && T.Cluster.is_primary() do
+    if Application.get_env(:t, :run_migrations_on_start?) do
       Logger.info("Running migrations")
       T.Release.Migrator
     end
@@ -167,17 +145,9 @@ defmodule T.Application do
     end
   end
 
-  # defp maybe_cluster do
-  #   if topologies = Application.get_env(:libcluster, :topologies) do
-  #     {Cluster.Supervisor, [topologies, [name: T.Cluster.Supervisor]]}
-  #   end
-  # end
-
   # defp maybe_app_store_notifications() do
-  #   if T.Cluster.is_primary() do
-  #     Logger.info("Fetching App Store Notifications")
-  #     unless_disabled(AppStore.Notificator)
-  #   end
+  #   Logger.info("Fetching App Store Notifications")
+  #   unless_disabled(AppStore.Notificator)
   # end
 
   defp disabled?(mod) when is_atom(mod) do

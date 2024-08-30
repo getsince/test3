@@ -3,7 +3,6 @@ defmodule AppStore do
   require Logger
 
   import Ecto.{Query, Changeset}
-  import T.Cluster, only: [primary_rpc: 3]
 
   alias T.{Repo, Bot, Accounts}
   alias AppStore.Notification
@@ -125,10 +124,6 @@ defmodule AppStore do
     do: Enum.each(notifications, fn n -> process_notification(n) end)
 
   def process_notification(notification) do
-    primary_rpc(__MODULE__, :local_process_notification, [notification])
-  end
-
-  def local_process_notification(notification) do
     payload = decode(notification)
     renewal_info = decode(payload["data"]["signedRenewalInfo"])
     transaction_info = decode(payload["data"]["signedTransactionInfo"])

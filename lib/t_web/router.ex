@@ -65,7 +65,6 @@ defmodule TWeb.Router do
       live "/tokens", TokenLive.Index, :index
       live "/tokens/:user_id", TokenLive.Index, :show
       live "/search", SearchLive.Index, :index
-      live "/workflows", WorkflowLive.Index, :index
     end
   end
 

@@ -7,8 +7,6 @@ defmodule T.Games do
   import T.Gettext
   require Logger
 
-  import T.Cluster, only: [primary_rpc: 3]
-
   alias T.{Repo, Bot}
 
   alias T.Accounts.{UserReport, GenderPreference}
@@ -315,18 +313,8 @@ defmodule T.Games do
   defp maybe_add_profile(compliment, true = _premium, profile),
     do: %Compliment{compliment | profile: profile}
 
+  @spec save_compliment(uuid, uuid, String.t(), [String.t()]) :: {:ok, map} | {:error, map}
   def save_compliment(to_user_id, from_user_id, prompt, seen_ids \\ []) do
-    primary_rpc(__MODULE__, :local_save_compliment, [
-      from_user_id,
-      to_user_id,
-      prompt,
-      seen_ids
-    ])
-  end
-
-  @spec local_save_compliment(uuid, uuid, String.t(), [String.t()]) ::
-          {:ok, map} | {:error, map}
-  def local_save_compliment(from_user_id, to_user_id, prompt, seen_ids) do
     case fetch_compliment_limit(from_user_id) do
       %ComplimentLimit{} = compliment_limit ->
         %ComplimentLimit{user_id: from_user_id}
@@ -612,11 +600,6 @@ defmodule T.Games do
 
   @spec mark_compliment_seen(uuid, uuid) :: :ok | :error
   def mark_compliment_seen(by_user_id, compliment_id) do
-    primary_rpc(__MODULE__, :local_mark_compliment_seen, [by_user_id, compliment_id])
-  end
-
-  @spec local_mark_compliment_seen(uuid, uuid) :: :ok | :error
-  def local_mark_compliment_seen(by_user_id, compliment_id) do
     Compliment
     |> where(id: ^compliment_id)
     |> where(to_user_id: ^by_user_id)

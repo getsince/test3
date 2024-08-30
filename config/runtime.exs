@@ -35,7 +35,6 @@ config :t, Oban,
 
 config :ex_aws,
   json_codec: Jason,
-  # TODO switch to US
   region: "eu-north-1"
 
 smoke? = !!System.get_env("SMOKE")
@@ -43,7 +42,6 @@ smoke? = !!System.get_env("SMOKE")
 if config_env() == :prod and smoke? do
   config :t, T.Media.Static, disabled?: true
   config :t, T.Periodics, disabled?: true
-  config :t, T.Workflows, disabled?: true
   config :t, Finch, disabled?: true
 end
 
@@ -51,7 +49,7 @@ if config_env() == :prod and not smoke? do
   config :logger, backends: [:console, Sentry.LoggerBackend]
   config :logger, :console, level: :info
 
-  config :logger, Sentry.LoggerBackend, metadata: [:feed_ai_ec2_ip]
+  config :logger, Sentry.LoggerBackend
 
   config :sentry, dsn: System.fetch_env!("SENTRY_DSN")
 
@@ -145,30 +143,6 @@ if config_env() == :prod and not smoke? do
   config :t, T.Events,
     buffers: [:seen_buffer, :like_buffer],
     bucket: System.fetch_env!("AWS_S3_BUCKET_EVENTS")
-
-  digitalocean_polling_interval =
-    String.to_integer(System.get_env("DIGITALOCEAN_POLL_INTERVAL_SECONDS") || "5")
-
-  digitalocean_api_token = System.fetch_env!("DIGITALOCEAN_API_TOKEN")
-
-  config :libcluster,
-    topologies: [
-      digitalocean: [
-        strategy: T.Cluster.Strategy,
-        config: [
-          app_prefix: :t,
-          tag: System.get_env("DIGITALOCEAN_TAG") || "since-backend",
-          polling_interval: :timer.seconds(digitalocean_polling_interval),
-          api_token: digitalocean_api_token
-        ]
-      ]
-    ]
-
-  # TODO use cidr like in PRIMARY_SUBNET=10.0.0.0/16
-  # export PRIMARY_HOST_PREFIX=10.0.
-  config :t, primary_prefix: System.fetch_env!("PRIMARY_HOST_PREFIX")
-
-  config :t, T.FeedAI, instance_name: "feed-vm"
 end
 
 if config_env() == :dev do
@@ -261,11 +235,6 @@ if config_env() == :dev do
   config :t, T.Events, buffers: false, bucket: System.get_env("AWS_S3_BUCKET_EVENTS")
   config :t, T.Media.Static, disabled?: !!System.get_env("DISABLE_MEDIA")
   config :t, T.Periodics, disabled?: !!System.get_env("DISABLE_PERIODICS")
-
-  # TODO
-  config :t, primary_prefix: "nohost"
-
-  config :t, T.FeedAI, instance_name: "feed-vm-dev"
 end
 
 if config_env() == :test do
@@ -329,28 +298,4 @@ if config_env() == :test do
   config :t, T.Periodics, disabled?: true
   config :t, Finch, disabled?: false
   config :t, AppStore.Notificator, disabled?: true
-
-  # TODO
-  config :t, primary_prefix: "nohost"
-
-  config :t, T.FeedAI, instance_name: "feed-vm-test"
-end
-
-if config_env() == :bench do
-  config :logger, level: :info
-
-  config :t, Oban, queues: false, plugins: false
-
-  config :t, T.Media.Static, disabled?: true
-  config :t, T.Periodics, disabled?: true
-  config :t, T.Workflows, disabled?: true
-  config :t, Finch, disabled?: true
-  config :t, AppStore.Notificator, disabled?: true
-
-  # TODO
-  config :t, primary_prefix: "nohost"
-
-  config :t, T.Repo,
-    url: System.get_env("DATABASE_URL") || "ecto://postgres:postgres@localhost:5432/t_dev",
-    pool_size: 10
 end

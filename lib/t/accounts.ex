@@ -9,8 +9,6 @@ defmodule T.Accounts do
 
   require Logger
 
-  import T.Cluster, only: [primary_rpc: 3]
-
   alias T.{Repo, Media, Bot, Chats}
 
   alias T.Accounts.{
@@ -67,11 +65,7 @@ defmodule T.Accounts do
 
   def register_user_with_apple_id(attrs, now \\ DateTime.utc_now()) do
     now = DateTime.truncate(now, :second)
-    primary_rpc(__MODULE__, :local_register_user_with_apple_id, [attrs, now])
-  end
 
-  @doc false
-  def local_register_user_with_apple_id(attrs, now) do
     Multi.new()
     |> Multi.insert(:user, User.apple_id_registration_changeset(%User{}, attrs))
     |> add_profile(now)
@@ -111,22 +105,13 @@ defmodule T.Accounts do
 
   def update_last_active(user_id, now \\ DateTime.utc_now()) do
     now = DateTime.truncate(now, :second)
-    primary_rpc(__MODULE__, :local_update_last_active, [user_id, now])
-  end
 
-  @doc false
-  def local_update_last_active(user_id, time) do
     Profile
     |> where(user_id: ^user_id)
-    |> Repo.update_all(set: [last_active: time])
+    |> Repo.update_all(set: [last_active: now])
   end
 
   def update_location(user_id, location) do
-    primary_rpc(__MODULE__, :local_update_location, [user_id, location])
-  end
-
-  @doc false
-  def local_update_location(user_id, location) do
     %Geo.Point{coordinates: {lon, lat}, srid: 4326} = location
 
     Profile
@@ -135,11 +120,6 @@ defmodule T.Accounts do
   end
 
   def update_address(user_id, address) do
-    primary_rpc(__MODULE__, :local_update_address, [user_id, address])
-  end
-
-  @doc false
-  def local_update_address(user_id, address) do
     Profile
     |> where(user_id: ^user_id)
     |> Repo.update_all(set: [address: address])
@@ -150,10 +130,6 @@ defmodule T.Accounts do
   end
 
   def set_premium(user_id, premium) do
-    primary_rpc(__MODULE__, :local_set_premium, [user_id, premium])
-  end
-
-  def local_set_premium(user_id, premium) do
     m = "setting premium for user #{user_id} to #{premium}"
     Logger.warning(m)
     Bot.async_post_message(m)
@@ -174,11 +150,6 @@ defmodule T.Accounts do
   end
 
   def save_acquisition_channel(user_id, channel) do
-    primary_rpc(__MODULE__, :local_save_acquisition_channel, [user_id, channel])
-  end
-
-  @doc false
-  def local_save_acquisition_channel(user_id, channel) do
     Repo.insert!(%AcquisitionChannel{user_id: user_id, channel: channel})
     :ok
   end
@@ -186,17 +157,13 @@ defmodule T.Accounts do
   defp ensure_has_profile(%User{profile: %Profile{}} = user), do: user
 
   defp ensure_has_profile(%User{profile: nil} = user) do
-    profile = primary_rpc(__MODULE__, :local_ensure_has_profile, [user.id])
-    %User{user | profile: profile}
-  end
+    profile =
+      Repo.insert!(%Profile{
+        user_id: user.id,
+        last_active: DateTime.truncate(DateTime.utc_now(), :second)
+      })
 
-  # TODO race condition
-  @doc false
-  def local_ensure_has_profile(user_id) do
-    Repo.insert!(%Profile{
-      user_id: user_id,
-      last_active: DateTime.truncate(DateTime.utc_now(), :second)
-    })
+    %User{user | profile: profile}
   end
 
   @spec login_or_register_user_with_apple_id(String.t()) ::
@@ -212,9 +179,9 @@ defmodule T.Accounts do
     end
   end
 
-  # TODO in one transaction in primary
+  # TODO in one transaction
   defp get_or_register_user_with_apple_id(apple_id, email) do
-    user = primary_rpc(__MODULE__, :local_get_user_by_apple_id_updating_email, [apple_id, email])
+    user = get_user_by_apple_id_updating_email(apple_id, email)
 
     if user do
       {:ok, ensure_has_profile(user)}
@@ -223,8 +190,7 @@ defmodule T.Accounts do
     end
   end
 
-  @doc false
-  def local_get_user_by_apple_id_updating_email(apple_id, nil) do
+  defp get_user_by_apple_id_updating_email(apple_id, nil) do
     User
     |> where(apple_id: ^apple_id)
     |> select([u], u)
@@ -235,8 +201,7 @@ defmodule T.Accounts do
     end
   end
 
-  @doc false
-  def local_get_user_by_apple_id_updating_email(apple_id, email) do
+  defp get_user_by_apple_id_updating_email(apple_id, email) do
     User
     |> where(apple_id: ^apple_id)
     |> select([u], u)
@@ -249,11 +214,6 @@ defmodule T.Accounts do
 
   # TODO test
   def report_user(from_user_id, on_user_id, reason) do
-    primary_rpc(__MODULE__, :local_report_user, [from_user_id, on_user_id, reason])
-  end
-
-  @doc false
-  def local_report_user(from_user_id, on_user_id, reason) do
     {reported_user_name, story, _quality, _date} = name_story_quality_date(on_user_id)
     story_string = story_to_string(story)
     {from_user_name, _story, _quality, _date} = name_story_quality_date(from_user_id)
@@ -291,11 +251,6 @@ defmodule T.Accounts do
   end
 
   def block_user(user_id) do
-    primary_rpc(__MODULE__, :local_block_user, [user_id])
-  end
-
-  @doc false
-  def local_block_user(user_id) do
     Multi.new()
     |> Multi.run(:block, fn repo, _changes ->
       user_id |> block_user_q() |> repo.update_all([])
@@ -318,7 +273,7 @@ defmodule T.Accounts do
     end
   end
 
-  def local_unblock_user(user_id) do
+  def unblock_user(user_id) do
     Multi.new()
     |> Multi.update_all(
       :unblock,
@@ -332,17 +287,12 @@ defmodule T.Accounts do
   end
 
   def hide_user(user_id) do
-    primary_rpc(__MODULE__, :local_hide_user, [user_id])
-  end
+    {:ok, _profile} =
+      %Profile{user_id: user_id}
+      |> cast(%{hidden?: true}, [:hidden?])
+      |> Repo.update()
 
-  @doc false
-  def local_hide_user(user_id) do
-    %Profile{user_id: user_id}
-    |> cast(%{hidden?: true}, [:hidden?])
-    |> Repo.update()
-    |> case do
-      {:ok, _profile} -> :ok
-    end
+    :ok
   end
 
   defp delete_all_chats(multi, user_id) do
@@ -429,11 +379,6 @@ defmodule T.Accounts do
 
   # TODO deactivate session
   def delete_user(user_id, reason) do
-    primary_rpc(__MODULE__, :local_delete_user, [user_id, reason])
-  end
-
-  @doc false
-  def local_delete_user(user_id, reason) do
     {name, story, quality, date} = name_story_quality_date(user_id)
     story_string = story_to_string(story)
 
@@ -479,11 +424,6 @@ defmodule T.Accounts do
   end
 
   def save_apns_device_id(user_id, token, device_id, extra \\ []) do
-    primary_rpc(__MODULE__, :local_save_apns_device_id, [user_id, token, device_id, extra])
-  end
-
-  @doc false
-  def local_save_apns_device_id(user_id, token, device_id, extra) do
     %UserToken{id: token_id} = token |> UserToken.token_and_context_query("mobile") |> Repo.one!()
 
     prev_device_q =
@@ -530,11 +470,6 @@ defmodule T.Accounts do
 
   @doc "remove_apns_device(device_id_base_16)"
   def remove_apns_device(device_id) do
-    primary_rpc(__MODULE__, :local_remove_apns_device, [device_id])
-  end
-
-  @doc false
-  def local_remove_apns_device(device_id) do
     APNSDevice
     |> where(device_id: ^Base.decode16!(device_id))
     |> Repo.delete_all()
@@ -550,11 +485,6 @@ defmodule T.Accounts do
   end
 
   def generate_user_session_token(user_id, context) when is_binary(user_id) do
-    primary_rpc(__MODULE__, :local_generate_user_session_token, [user_id, context])
-  end
-
-  @doc false
-  def local_generate_user_session_token(user_id, context) do
     {token, user_token} = UserToken.build_token(user_id, context)
     Repo.insert!(user_token)
     token
@@ -577,17 +507,8 @@ defmodule T.Accounts do
     get_user_by_session_token_and_update_version(token, nil, context)
   end
 
-  def get_user_by_session_token_and_update_version(token, version, context) do
-    primary_rpc(__MODULE__, :local_get_user_by_session_token_and_update_version, [
-      token,
-      version,
-      context
-    ])
-  end
-
   # TODO split update, only do if old_version != new_version
-  @doc false
-  def local_get_user_by_session_token_and_update_version(token, version, context) do
+  def get_user_by_session_token_and_update_version(token, version, context) do
     {:ok, query} =
       case context do
         "session" -> UserToken.verify_session_token_query(token)
@@ -608,11 +529,6 @@ defmodule T.Accounts do
   Deletes the signed token with the given context.
   """
   def delete_session_token(token, context) do
-    primary_rpc(__MODULE__, :local_delete_session_token, [token, context])
-  end
-
-  @doc false
-  def local_delete_session_token(token, context) do
     Repo.delete_all(UserToken.token_and_context_query(token, context))
     :ok
   end
@@ -685,11 +601,6 @@ defmodule T.Accounts do
   end
 
   def onboard_profile(user_id, attrs) do
-    primary_rpc(__MODULE__, :local_onboard_profile, [user_id, attrs])
-  end
-
-  @doc false
-  def local_onboard_profile(user_id, attrs) do
     # TODO remove
     attrs = for {k, v} <- attrs, do: {to_string(k), v}, into: %{}
 
@@ -756,13 +667,7 @@ defmodule T.Accounts do
     # |> notify_subscribers([:user, :new])
   end
 
-  # TODO can do changeset stuff before rpc
   def update_profile(user_id, attrs) do
-    primary_rpc(__MODULE__, :local_update_profile, [user_id, attrs])
-  end
-
-  @doc false
-  def local_update_profile(user_id, attrs) do
     Logger.warning("user #{user_id} updates profile with #{inspect(attrs)}")
 
     Multi.new()
@@ -894,21 +799,11 @@ defmodule T.Accounts do
   end
 
   def schedule_upgrade_app_push(user_id) do
-    primary_rpc(__MODULE__, :local_schedule_upgrade_app_push, [user_id])
-  end
-
-  @doc false
-  def local_schedule_upgrade_app_push(user_id) do
     job = DispatchJob.new(%{"type" => "upgrade_app", "user_id" => user_id})
     Oban.insert(job)
   end
 
   def save_onboarding_event(user_id, timestamp, stage, event) do
-    primary_rpc(__MODULE__, :local_save_onboarding_event, [user_id, timestamp, stage, event])
-    :ok
-  end
-
-  def local_save_onboarding_event(user_id, timestamp, stage, event) do
     {:ok, datetime, 0} = DateTime.from_iso8601(timestamp)
 
     Repo.insert!(%OnboardingEvent{
@@ -919,6 +814,8 @@ defmodule T.Accounts do
     })
 
     if event == "finished", do: count_onboarding_stats(user_id)
+
+    :ok
   end
 
   def count_onboarding_stats(user_id) do

@@ -5,8 +5,6 @@ defmodule T.News do
   alias T.Repo
   alias T.News.SeenNews
 
-  import T.Cluster, only: [primary_rpc: 3]
-
   defp news do
     case Gettext.get_locale() do
       "ru" ->
@@ -205,11 +203,6 @@ defmodule T.News do
   end
 
   def mark_seen(user_id, news_story_id \\ last_id()) do
-    primary_rpc(__MODULE__, :local_mark_seen, [user_id, news_story_id])
-  end
-
-  @doc false
-  def local_mark_seen(user_id, news_story_id) do
     Repo.transaction(fn ->
       last_seen_id = last_seen_id(user_id) || 0
 

@@ -7,8 +7,6 @@ defmodule T.Chats do
 
   require Logger
 
-  import T.Cluster, only: [primary_rpc: 3]
-
   alias T.{Repo, Bot}
   alias T.Chats.{Chat, Message}
   alias T.Feeds.{FeedProfile, SeenProfile}
@@ -94,11 +92,6 @@ defmodule T.Chats do
 
   @spec delete_chat(uuid, uuid) :: boolean
   def delete_chat(by_user_id, with_user_id) do
-    primary_rpc(__MODULE__, :local_delete_chat, [by_user_id, with_user_id])
-  end
-
-  @doc false
-  def local_delete_chat(by_user_id, with_user_id) do
     Logger.warning("#{by_user_id} deletes chat with user #{with_user_id}")
 
     [user_id_1, user_id_2] = Enum.sort([by_user_id, with_user_id])
@@ -190,16 +183,6 @@ defmodule T.Chats do
 
   @spec save_message(uuid, uuid, map) :: {:ok, map} | {:error, map}
   def save_message(to_user_id, from_user_id, message_data) do
-    primary_rpc(__MODULE__, :local_save_message, [
-      from_user_id,
-      to_user_id,
-      message_data
-    ])
-  end
-
-  @spec local_save_message(uuid, uuid, map) ::
-          {:ok, map} | {:error, map}
-  def local_save_message(from_user_id, to_user_id, message_data) do
     message_type =
       case message_data do
         %{"question" => question} ->
@@ -364,10 +347,6 @@ defmodule T.Chats do
   end
 
   def notify_private_page_available(for_user_id, of_user_id) do
-    primary_rpc(__MODULE__, :local_notify_private_page_available, [for_user_id, of_user_id])
-  end
-
-  def local_notify_private_page_available(for_user_id, of_user_id) do
     push_job =
       DispatchJob.new(%{
         "type" => "private_page_available",
@@ -380,11 +359,6 @@ defmodule T.Chats do
 
   @spec mark_message_seen(uuid, uuid) :: :ok | :error
   def mark_message_seen(by_user_id, message_id) do
-    primary_rpc(__MODULE__, :local_mark_message_seen, [by_user_id, message_id])
-  end
-
-  @spec local_mark_message_seen(uuid, uuid) :: :ok | :error
-  def local_mark_message_seen(by_user_id, message_id) do
     Message
     |> where(id: ^message_id)
     |> where(to_user_id: ^by_user_id)

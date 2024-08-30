@@ -15,14 +15,6 @@ defmodule T.Periodics do
           _period = :timer.hours(1),
           _task = {Feeds, :local_prune_seen_profiles, [_ttl_days = 30]}
         }
-        # feed_ai: {
-        #   :timer.hours(2),
-        #   {FeedAI, :maybe_start_workflow, []}
-        # },
-        # prune_feed_ai_ec2: {
-        #   :timer.minutes(10),
-        #   {FeedAI, :prune_stray_instances, []}
-        # }
       )
 
     Supervisor.init(children, strategy: :one_for_one)

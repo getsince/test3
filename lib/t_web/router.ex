@@ -1,7 +1,6 @@
 defmodule TWeb.Router do
   use TWeb, :router
 
-  import Phoenix.LiveDashboard.Router
   import TWeb.UserAuth
 
   pipeline :browser do
@@ -15,19 +14,6 @@ defmodule TWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
-  end
-
-  scope "/" do
-    pipe_through [
-      :fetch_session,
-      :protect_from_forgery,
-      :put_secure_browser_headers,
-      :dashboard_auth
-    ]
-
-    live_dashboard "/api/dashboard",
-      metrics: TWeb.Telemetry,
-      ecto_repos: [T.Repo]
   end
 
   scope "/api/mobile/auth", TWeb do

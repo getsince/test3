@@ -45,8 +45,6 @@ defmodule T.MixProject do
       {:ecto_sql, "~> 3.6"},
       {:postgrex, ">= 0.0.0"},
       {:phoenix_live_view, "~> 0.18.18"},
-      {:phoenix_live_dashboard, "~> 0.7.2"},
-      {:ecto_psql_extras, "~> 0.2"},
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 1.1.0"},
       {:gettext, "~> 0.21.0"},

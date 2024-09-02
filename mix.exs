@@ -51,7 +51,7 @@ defmodule T.MixProject do
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.5"},
       {:ex_aws, "~> 2.4.0"},
-      {:ex_aws_s3, "~> 2.4.0"},
+      {:ex_aws_s3, "~> 2.5.3"},
       {:sweet_xml, "~> 0.7"},
       {:oban, "~> 2.10.1"},
       {:remote_ip, "~> 1.2.0"},

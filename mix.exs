@@ -45,7 +45,7 @@ defmodule T.MixProject do
       {:ecto_sql, "~> 3.6"},
       {:postgrex, ">= 0.0.0"},
       {:phoenix_live_view, "~> 0.18.18"},
-      {:telemetry_metrics, "~> 0.4"},
+      {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.1.0"},
       {:gettext, "~> 0.21.0"},
       {:jason, "~> 1.0"},

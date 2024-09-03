@@ -57,7 +57,7 @@ defmodule T.MixProject do
       {:assertions, "~> 0.19.0", only: :test},
       {:sentry, "~> 10.0"},
       {:bigflake, "0.5.0"},
-      {:imgproxy, "~> 2.0"},
+      {:imgproxy, "~> 3.0"},
       {:rexbug, "~> 1.0"},
       # https://github.com/bryanjos/geo_postgis/pull/164
       {:geo_postgis,

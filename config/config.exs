@@ -1,10 +1,10 @@
 import Config
 
-config :t, ecto_repos: [T.Repo]
-config :t, T.Repo, types: T.PostgresTypes
+config :since, ecto_repos: [Since.Repo]
+config :since, Since.Repo, types: Since.PostgresTypes
 
 config :phoenix, :json_library, Jason
-config :sentry, client: T.Sentry.FinchHTTPClient
+config :sentry, client: Since.Sentry.FinchHTTPClient
 
 config :sentry,
   enable_source_code_context: true,

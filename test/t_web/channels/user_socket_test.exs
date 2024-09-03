@@ -1,8 +1,8 @@
-defmodule TWeb.UserSocketTest do
-  use TWeb.ChannelCase, async: true
-  alias TWeb.UserSocket
-  alias T.Accounts
-  use Oban.Testing, repo: T.Repo
+defmodule SinceWeb.UserSocketTest do
+  use SinceWeb.ChannelCase, async: true
+  alias SinceWeb.UserSocket
+  alias Since.Accounts
+  use Oban.Testing, repo: Since.Repo
 
   import Ecto.Query
 
@@ -34,7 +34,7 @@ defmodule TWeb.UserSocketTest do
                    "type" => "upgrade_app"
                  }
                }
-             ] = all_enqueued(worker: T.PushNotifications.DispatchJob)
+             ] = all_enqueued(worker: Since.PushNotifications.DispatchJob)
     end
 
     test "with valid token and version", %{user: user} do
@@ -138,7 +138,7 @@ defmodule TWeb.UserSocketTest do
     @endpoint.subscribe(socket_id1)
     @endpoint.subscribe(socket_id2)
 
-    assert :ok = TWeb.UserAuth.log_out_mobile_user(token1)
+    assert :ok = SinceWeb.UserAuth.log_out_mobile_user(token1)
 
     assert_receive %Phoenix.Socket.Broadcast{
       event: "disconnect",

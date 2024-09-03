@@ -1,4 +1,4 @@
-defmodule T.Repo.Migrations.AddAuthTables do
+defmodule Since.Repo.Migrations.AddAuthTables do
   use Ecto.Migration
 
   def change do

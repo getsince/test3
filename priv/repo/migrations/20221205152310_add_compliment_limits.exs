@@ -1,4 +1,4 @@
-defmodule T.Repo.Migrations.AddComplimentLimits do
+defmodule Since.Repo.Migrations.AddComplimentLimits do
   use Ecto.Migration
 
   def change do

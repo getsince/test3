@@ -1,6 +1,6 @@
-defmodule T.Accounts.UserTokenTest do
+defmodule Since.Accounts.UserTokenTest do
   use ExUnit.Case, async: true
-  alias T.Accounts.{User, UserToken}
+  alias Since.Accounts.{User, UserToken}
 
   @uuid "0000017b-88c0-1dd1-1e00-8a0e24450000"
 

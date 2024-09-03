@@ -1,7 +1,7 @@
-defmodule T.NewsTest do
-  use T.DataCase, async: true
+defmodule Since.NewsTest do
+  use Since.DataCase, async: true
 
-  alias T.News
+  alias Since.News
 
   @previous_version "8.1.0"
   @current_version "8.3.0"

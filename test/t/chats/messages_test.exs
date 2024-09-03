@@ -1,9 +1,9 @@
-defmodule T.Chats.MessagesTest do
-  use T.DataCase, async: true
-  use Oban.Testing, repo: T.Repo
+defmodule Since.Chats.MessagesTest do
+  use Since.DataCase, async: true
+  use Oban.Testing, repo: Since.Repo
 
-  alias T.Chats
-  alias T.Chats.Message
+  alias Since.Chats
+  alias Since.Chats.Message
 
   describe "save_message/3" do
     setup [:with_profiles, :with_chat]
@@ -44,7 +44,7 @@ defmodule T.Chats.MessagesTest do
                to_user_id: ^to_user_id
              } = message
 
-      assert [i1] = Message |> where(chat_id: ^chat_id) |> T.Repo.all()
+      assert [i1] = Message |> where(chat_id: ^chat_id) |> Since.Repo.all()
       assert i1.from_user_id == p1.user_id
       assert i1.to_user_id == p2.user_id
       assert i1.chat_id == chat.id
@@ -65,7 +65,7 @@ defmodule T.Chats.MessagesTest do
                from_user_id: ^to_user_id
              } = message
 
-      assert [^i1, i2] = Message |> where(chat_id: ^chat_id) |> T.Repo.all()
+      assert [^i1, i2] = Message |> where(chat_id: ^chat_id) |> Since.Repo.all()
       assert i2.from_user_id == p2.user_id
       assert i2.to_user_id == p1.user_id
       assert i2.chat_id == chat.id
@@ -112,7 +112,7 @@ defmodule T.Chats.MessagesTest do
                    "type" => "text"
                  }
                }
-             ] = all_enqueued(worker: T.PushNotifications.DispatchJob)
+             ] = all_enqueued(worker: Since.PushNotifications.DispatchJob)
     end
 
     test "message is broadcast via pubsub to us & mate", %{
@@ -144,7 +144,7 @@ defmodule T.Chats.MessagesTest do
       assert seen == false
       assert Chats.mark_message_seen(to_user_id, message_id) == :ok
 
-      [i] = Message |> where(id: ^message_id) |> T.Repo.all()
+      [i] = Message |> where(id: ^message_id) |> Since.Repo.all()
       assert i.seen == true
     end
 
@@ -155,7 +155,7 @@ defmodule T.Chats.MessagesTest do
       assert seen == false
       assert Chats.mark_message_seen(from_user_id, message_id) == :error
 
-      [i] = Message |> where(id: ^message_id) |> T.Repo.all()
+      [i] = Message |> where(id: ^message_id) |> Since.Repo.all()
       assert i.seen == false
     end
   end

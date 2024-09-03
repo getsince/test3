@@ -4,7 +4,7 @@ defmodule AppStore do
 
   import Ecto.{Query, Changeset}
 
-  alias T.{Repo, Bot, Accounts}
+  alias Since.{Repo, Bot, Accounts}
   alias AppStore.Notification
 
   @type env :: :dev | :prod
@@ -55,7 +55,7 @@ defmodule AppStore do
 
     payload = %{"startDate" => start_date, "endDate" => :os.system_time(:millisecond)}
 
-    push(payload, pagination_token, T.Finch)
+    push(payload, pagination_token, Since.Finch)
     |> case do
       {:ok, %Finch.Response{status: 200, body: body}} ->
         notifications =

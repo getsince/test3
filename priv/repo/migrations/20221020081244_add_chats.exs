@@ -1,4 +1,4 @@
-defmodule T.Repo.Migrations.AddChats do
+defmodule Since.Repo.Migrations.AddChats do
   use Ecto.Migration
 
   @opts [on_delete: :delete_all, type: :uuid]

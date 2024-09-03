@@ -1,9 +1,9 @@
-defmodule T.Feeds.SeenTest do
-  use T.DataCase, async: true
-  use Oban.Testing, repo: T.Repo
+defmodule Since.Feeds.SeenTest do
+  use Since.DataCase, async: true
+  use Oban.Testing, repo: Since.Repo
 
-  alias T.Feeds
-  alias T.Feeds.{FeedFilter, SeenProfile}
+  alias Since.Feeds
+  alias Since.Feeds.{FeedFilter, SeenProfile}
 
   describe "feed" do
     setup do
@@ -106,13 +106,13 @@ defmodule T.Feeds.SeenTest do
 
       insert(:seen_profile, by_user: me, user: not_me, inserted_at: long_ago)
 
-      seen_profiles = SeenProfile |> where(by_user_id: ^me.id) |> T.Repo.all()
+      seen_profiles = SeenProfile |> where(by_user_id: ^me.id) |> Since.Repo.all()
 
       assert length(seen_profiles) == 1
 
       Feeds.local_prune_seen_profiles(5)
 
-      seen_profiles_after = SeenProfile |> where(by_user_id: ^me.id) |> T.Repo.all()
+      seen_profiles_after = SeenProfile |> where(by_user_id: ^me.id) |> Since.Repo.all()
 
       assert length(seen_profiles_after) == 0
     end

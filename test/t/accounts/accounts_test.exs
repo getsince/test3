@@ -1,10 +1,10 @@
-defmodule T.AccountsTest do
-  use T.DataCase, async: true
+defmodule Since.AccountsTest do
+  use Since.DataCase, async: true
   use Oban.Testing, repo: Repo
 
-  alias T.Accounts
-  alias T.Accounts.Profile
-  alias T.PushNotifications.DispatchJob
+  alias Since.Accounts
+  alias Since.Accounts.Profile
+  alias Since.PushNotifications.DispatchJob
 
   import Mox
   setup :verify_on_exit!
@@ -122,16 +122,19 @@ defmodule T.AccountsTest do
       refute Accounts.Profile
              |> where(user_id: ^user_id)
              |> select([p], p.premium)
-             |> T.Repo.one!()
+             |> Since.Repo.one!()
 
       assert {:ok, _changes} = Accounts.set_premium(user_id, true)
 
       assert Accounts.Profile
              |> where(user_id: ^user_id)
              |> select([p], p.premium)
-             |> T.Repo.one!()
+             |> Since.Repo.one!()
 
-      assert T.Games.ComplimentLimit |> where(user_id: ^user_id) |> T.Repo.aggregate(:count) == 0
+      assert Since.Games.ComplimentLimit
+             |> where(user_id: ^user_id)
+             |> Since.Repo.aggregate(:count) ==
+               0
     end
   end
 

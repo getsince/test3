@@ -1,10 +1,10 @@
-defmodule T.ChatsTest do
-  use T.DataCase, async: true
+defmodule Since.ChatsTest do
+  use Since.DataCase, async: true
   use Oban.Testing, repo: Repo
 
-  alias T.{Chats, PushNotifications.DispatchJob}
-  alias T.Feeds.FeedProfile
-  alias T.Chats.{Chat, Message}
+  alias Since.{Chats, PushNotifications.DispatchJob}
+  alias Since.Feeds.FeedProfile
+  alias Since.Chats.{Chat, Message}
 
   describe "delete_chat/2" do
     test "chat no longer, deleted_chat broadcasted" do

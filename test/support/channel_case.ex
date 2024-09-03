@@ -1,4 +1,4 @@
-defmodule TWeb.ChannelCase do
+defmodule SinceWeb.ChannelCase do
   @moduledoc """
   This module defines the test case to be used by
   channel tests.
@@ -11,7 +11,7 @@ defmodule TWeb.ChannelCase do
   we enable the SQL sandbox, so changes done to the database
   are reverted at the end of every test. If you are using
   PostgreSQL, you can even run database tests asynchronously
-  by setting `use TWeb.ChannelCase, async: true`, although
+  by setting `use SinceWeb.ChannelCase, async: true`, although
   this option is not recommended for other databases.
   """
 
@@ -22,21 +22,21 @@ defmodule TWeb.ChannelCase do
       # Import conveniences for testing with channels
       import Phoenix.ChannelTest
       import Phoenix.View
-      import TWeb.ChannelCase
-      import T.{Factory, DataCase}
+      import SinceWeb.ChannelCase
+      import Since.{Factory, DataCase}
 
-      alias T.Repo
+      alias Since.Repo
 
       # The default endpoint for testing
-      @endpoint TWeb.Endpoint
+      @endpoint SinceWeb.Endpoint
     end
   end
 
   setup tags do
     alias Ecto.Adapters.SQL.Sandbox
-    owner = Sandbox.start_owner!(T.Repo, shared: not tags[:async])
+    owner = Sandbox.start_owner!(Since.Repo, shared: not tags[:async])
 
-    :sys.replace_state(TWeb.UserSocket.Monitor, fn state ->
+    :sys.replace_state(SinceWeb.UserSocket.Monitor, fn state ->
       Map.put(state, :task_exec, fn _task -> :ok end)
     end)
 
@@ -52,10 +52,10 @@ defmodule TWeb.ChannelCase do
     :ok
   end
 
-  alias T.Accounts
+  alias Since.Accounts
   import Phoenix.ChannelTest
 
-  @endpoint TWeb.Endpoint
+  @endpoint SinceWeb.Endpoint
 
   def connected_socket(%Accounts.User{} = user, vsn \\ "8.3.0") do
     token =
@@ -64,7 +64,7 @@ defmodule TWeb.ChannelCase do
       |> Accounts.UserToken.encoded_token()
 
     {:ok, socket} =
-      connect(TWeb.UserSocket, %{"token" => token, "version" => vsn}, connect_info: %{})
+      connect(SinceWeb.UserSocket, %{"token" => token, "version" => vsn}, connect_info: %{})
 
     socket
   end

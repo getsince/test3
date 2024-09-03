@@ -1,7 +1,7 @@
-defmodule TWeb.ProfileChannelTest do
-  use TWeb.ChannelCase, async: true
+defmodule SinceWeb.ProfileChannelTest do
+  use SinceWeb.ChannelCase, async: true
   import Mox
-  alias T.Accounts
+  alias Since.Accounts
   alias Accounts.User
 
   describe "join with empty profile" do

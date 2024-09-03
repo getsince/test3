@@ -1,4 +1,4 @@
-defmodule T.Repo.Migrations.AddUserReports do
+defmodule Since.Repo.Migrations.AddUserReports do
   use Ecto.Migration
 
   @opts [type: :uuid, on_delete: :delete_all]

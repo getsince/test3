@@ -1,6 +1,6 @@
-defmodule T.Accounts.ProfileTest do
-  use T.DataCase, async: true
-  alias T.Accounts.Profile
+defmodule Since.Accounts.ProfileTest do
+  use Since.DataCase, async: true
+  alias Since.Accounts.Profile
 
   describe "essential_info_changeset/2" do
     test "gender, name, birthdate, location and gender_preferences are required" do

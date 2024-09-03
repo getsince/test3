@@ -1,5 +1,5 @@
 defmodule StubBot do
-  @behaviour T.Bot.Adapter
+  @behaviour Since.Bot.Adapter
 
   @impl true
   def set_webhook(_url), do: :ok

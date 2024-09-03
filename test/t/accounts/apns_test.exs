@@ -1,7 +1,7 @@
-defmodule T.Accounts.APNSTest do
-  use T.DataCase, async: true
-  alias T.Accounts
-  alias T.Accounts.{UserToken, APNSDevice}
+defmodule Since.Accounts.APNSTest do
+  use Since.DataCase, async: true
+  alias Since.Accounts
+  alias Since.Accounts.{UserToken, APNSDevice}
 
   setup do
     user = insert(:user)

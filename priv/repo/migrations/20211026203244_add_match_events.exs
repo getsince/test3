@@ -1,4 +1,4 @@
-defmodule T.Repo.Migrations.AddMatchEvents do
+defmodule Since.Repo.Migrations.AddMatchEvents do
   use Ecto.Migration
 
   # TODO remove?

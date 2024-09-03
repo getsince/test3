@@ -1,6 +1,6 @@
-defmodule T.Accounts.AppleSignInTest do
+defmodule Since.Accounts.AppleSignInTest do
   use ExUnit.Case, async: true
-  alias T.Accounts.AppleSignIn
+  alias Since.Accounts.AppleSignIn
 
   @keys [
     %{

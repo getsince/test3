@@ -1,11 +1,11 @@
-defmodule T.GamesTest do
-  use T.DataCase, async: true
-  use Oban.Testing, repo: T.Repo
+defmodule Since.GamesTest do
+  use Since.DataCase, async: true
+  use Oban.Testing, repo: Since.Repo
 
-  alias T.Games
-  alias T.Games.Compliment
-  alias T.Feeds.{FeedFilter}
-  alias T.Chats.{Chat, Message}
+  alias Since.Games
+  alias Since.Games.Compliment
+  alias Since.Feeds.{FeedFilter}
+  alias Since.Chats.{Chat, Message}
 
   describe "fetch_game/4" do
     setup do
@@ -205,7 +205,7 @@ defmodule T.GamesTest do
     end
 
     test "premium user has revealed compliments", %{me: me, mate: mate} do
-      assert {:ok, _changes} = T.Accounts.set_premium(me.id, true)
+      assert {:ok, _changes} = Since.Accounts.set_premium(me.id, true)
 
       {random_prompt, _e} = Games.prompts() |> Enum.random()
 
@@ -213,7 +213,8 @@ defmodule T.GamesTest do
 
       [%Compliment{} = compliment] = Games.list_compliments(me.id, me.profile.location, true)
 
-      assert compliment.profile == T.Feeds.get_mate_feed_profile(mate.id, mate.profile.location)
+      assert compliment.profile ==
+               Since.Feeds.get_mate_feed_profile(mate.id, mate.profile.location)
     end
   end
 
@@ -297,7 +298,7 @@ defmodule T.GamesTest do
                },
                %Oban.Job{args: %{"type" => "complete_onboarding"}},
                %Oban.Job{args: %{"type" => "complete_onboarding"}}
-             ] = all_enqueued(worker: T.PushNotifications.DispatchJob)
+             ] = all_enqueued(worker: Since.PushNotifications.DispatchJob)
     end
   end
 
@@ -317,7 +318,7 @@ defmodule T.GamesTest do
       assert Games.mark_compliment_seen(mate.id, compliment.id) == :ok
 
       compliment_id = compliment.id
-      [c] = Compliment |> where(id: ^compliment_id) |> T.Repo.all()
+      [c] = Compliment |> where(id: ^compliment_id) |> Since.Repo.all()
       assert c.seen == true
     end
 
@@ -325,7 +326,7 @@ defmodule T.GamesTest do
       assert Games.mark_compliment_seen(me.id, compliment.id) == :error
 
       compliment_id = compliment.id
-      [c] = Compliment |> where(id: ^compliment_id) |> T.Repo.all()
+      [c] = Compliment |> where(id: ^compliment_id) |> Since.Repo.all()
       assert c.seen == false
     end
   end

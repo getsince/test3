@@ -1,4 +1,4 @@
-defmodule T.Repo.Migrations.AddMeetings do
+defmodule Since.Repo.Migrations.AddMeetings do
   use Ecto.Migration
 
   @opts [on_delete: :delete_all, type: :uuid]

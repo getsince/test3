@@ -1,9 +1,9 @@
-defmodule T.Accounts.BlockingTest do
-  use T.DataCase, async: true
+defmodule Since.Accounts.BlockingTest do
+  use Since.DataCase, async: true
   use Oban.Testing, repo: Repo
-  alias T.{Accounts, Chats}
-  alias T.Accounts.UserReport
-  alias T.Chats.{Chat, Message}
+  alias Since.{Accounts, Chats}
+  alias Since.Accounts.UserReport
+  alias Since.Chats.{Chat, Message}
 
   # TODO move to reporting test
   describe "report_user/3" do

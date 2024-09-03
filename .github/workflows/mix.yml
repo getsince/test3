@@ -26,9 +26,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - id: versions
-        uses: marocchino/tool-versions-action@v1
-
       - uses: erlef/setup-beam@v1
         with:
           elixir-version: 1.17

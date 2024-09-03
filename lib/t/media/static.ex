@@ -57,7 +57,7 @@ defmodule T.Media.Static do
   def init(_opts) do
     @table = :ets.new(@table, [:named_table])
     Phoenix.PubSub.subscribe(@pubsub, @topic)
-    :timer.send_interval(:timer.minutes(1), :refresh)
+    :timer.send_interval(:timer.hours(24), :refresh)
     {:ok, _refresh_task_ref = nil, {:continue, :refresh}}
   end
 

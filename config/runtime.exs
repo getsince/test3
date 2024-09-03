@@ -31,10 +31,6 @@ config :t, Oban,
   ],
   queues: [default: 10, apns: 100]
 
-config :ex_aws,
-  json_codec: Jason,
-  region: "eu-north-1"
-
 smoke? = !!System.get_env("SMOKE")
 
 if config_env() == :prod and smoke? do
@@ -124,6 +120,11 @@ if config_env() == :prod and not smoke? do
     key: System.fetch_env!("IMGPROXY_KEY"),
     salt: System.fetch_env!("IMGPROXY_SALT")
 
+  config :t, :s3,
+    access_key_id: System.fetch_env!("AWS_ACCESS_KEY_ID"),
+    secret_access_key: System.fetch_env!("AWS_SECRET_ACCESS_KEY"),
+    region: "eu-north-1"
+
   config :t, T.Media,
     user_bucket: System.fetch_env!("AWS_S3_BUCKET"),
     user_cdn: System.fetch_env!("USER_CDN"),
@@ -135,10 +136,6 @@ if config_env() == :prod and not smoke? do
   config :t, T.Spotify,
     client_id: System.fetch_env!("SPOTIFY_CLIENT_ID"),
     client_secret: System.fetch_env!("SPOTIFY_CLIENT_SECRET")
-
-  config :t, T.Events,
-    buffers: [:seen_buffer, :like_buffer],
-    bucket: System.fetch_env!("AWS_S3_BUCKET_EVENTS")
 end
 
 if config_env() == :dev do
@@ -216,6 +213,11 @@ if config_env() == :dev do
     token: System.fetch_env!("TG_BOT_KEY"),
     room_id: System.fetch_env!("TG_ROOM_ID") |> String.to_integer()
 
+  config :t, :s3,
+    access_key_id: System.fetch_env!("AWS_ACCESS_KEY_ID"),
+    secret_access_key: System.fetch_env!("AWS_SECRET_ACCESS_KEY"),
+    region: "eu-north-1"
+
   config :t, T.Media,
     user_bucket: System.fetch_env!("AWS_S3_BUCKET"),
     user_cdn: System.fetch_env!("USER_CDN"),
@@ -228,7 +230,6 @@ if config_env() == :dev do
     client_id: System.get_env("SPOTIFY_CLIENT_ID"),
     client_secret: System.get_env("SPOTIFY_CLIENT_SECRET")
 
-  config :t, T.Events, buffers: false, bucket: System.get_env("AWS_S3_BUCKET_EVENTS")
   config :t, T.Media.Static, disabled?: !!System.get_env("DISABLE_MEDIA")
   config :t, T.Periodics, disabled?: !!System.get_env("DISABLE_PERIODICS")
 end
@@ -256,6 +257,11 @@ if config_env() == :test do
 
   config :t, Oban, queues: false, plugins: false
 
+  config :t, :s3,
+    access_key_id: "AKIAIOSFODNN7EXAMPLE",
+    secret_access_key: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+    region: "eu-north-1"
+
   config :t, T.Media,
     user_bucket: "pretend-this-is-real",
     static_bucket: "pretend-this-is-static",
@@ -276,10 +282,6 @@ if config_env() == :test do
       topic: System.get_env("APNS_TOPIC") || "APNS_TOPIC",
       env: :dev
     }
-
-  config :ex_aws,
-    access_key_id: "AWS_ACCESS_KEY_ID",
-    secret_access_key: "AWS_SECRET_ACCESS_KEY"
 
   config :imgproxy,
     prefix: "https://d1234.cloudfront.net",

@@ -7,10 +7,8 @@ defmodule T.Media.S3DeleteJob do
 
   @impl true
   def perform(%Oban.Job{args: %{"bucket" => bucket, "s3_key" => s3_key}}) do
-    {:ok, %{status_code: 204}} =
-      bucket
-      |> ExAws.S3.delete_object(s3_key)
-      |> ExAws.request()
+    %Finch.Response{status: 204} =
+      T.Media.s3_request(method: :delete, url: T.Media.s3_url(bucket), path: s3_key)
 
     :ok
   end

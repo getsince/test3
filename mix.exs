@@ -50,9 +50,6 @@ defmodule T.MixProject do
       {:gettext, "~> 0.21.0"},
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.5"},
-      {:ex_aws, "~> 2.4.0"},
-      {:ex_aws_s3, "~> 2.4.0"},
-      {:sweet_xml, "~> 0.7"},
       {:oban, "~> 2.10.1"},
       {:remote_ip, "~> 1.2.0"},
       {:mox, "~> 1.0", only: :test},
@@ -69,9 +66,8 @@ defmodule T.MixProject do
       {:locus, "~> 2.2"},
       {:dialyxir, "~> 1.1", only: :dev, runtime: false},
       {:jose, "~> 1.11"},
-      {:nimble_csv, "~> 1.2"},
-      {:ecto_sqlite3, "~> 0.10.3"},
-      {:h3, "~> 3.6"}
+      {:h3, "~> 3.6"},
+      {:s3, "~> 0.1.0"}
     ]
   end
 

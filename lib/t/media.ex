@@ -44,8 +44,17 @@ defmodule T.Media do
   # end
 
   defp presigned_url(method, bucket, key) do
-    {:ok, url} = ExAws.S3.presigned_url(ExAws.Config.new(:s3), method, bucket, key)
-    url
+    url =
+      S3.sign(
+        s3_config(
+          method: method,
+          url: s3_url(bucket),
+          path: key,
+          query: %{"X-Amz-Expires" => 86400}
+        )
+      )
+
+    URI.to_string(url)
   end
 
   @doc """
@@ -89,74 +98,45 @@ defmodule T.Media do
     Path.join([user_cdn_endpoint(), s3_key])
   end
 
-  defp s3_url(bucket) do
+  @doc false
+  def s3_url(bucket) do
+    # TODO #{bucket}.s3.#{region}.amazonaws.com
     "https://#{bucket}.s3.amazonaws.com"
   end
 
+  defp s3_config do
+    Application.fetch_env!(:t, :s3)
+  end
+
+  defp s3_config(options) do
+    Keyword.merge(s3_config(), options)
+  end
+
+  @doc false
+  def s3_request(opts) do
+    method = Keyword.fetch!(opts, :method)
+    {uri, headers, body} = S3.build(s3_config(opts))
+    req = Finch.build(method, uri, headers, body)
+    Finch.request!(req, T.Finch)
+  end
+
   def user_file_exists?(key) do
-    user_bucket()
-    |> ExAws.S3.head_object(key)
-    |> ExAws.request()
-    |> case do
-      {:ok, %{status_code: 200}} -> true
-      {:error, {:http_error, 404, %{status_code: 404}}} -> false
+    %Finch.Response{status: status} =
+      s3_request(
+        method: :head,
+        url: s3_url(user_bucket()),
+        path: key
+      )
+
+    case status do
+      200 -> true
+      404 -> false
     end
   end
 
-  def presign_config do
-    env = Application.get_all_env(:ex_aws)
+  def sign_form_upload(bucket \\ user_bucket(), opts) do
+    config = Map.new(s3_config())
 
-    %{
-      region: Application.fetch_env!(:ex_aws, :region),
-      access_key_id: env[:access_key_id] || System.fetch_env!("AWS_ACCESS_KEY_ID"),
-      secret_access_key: env[:secret_access_key] || System.fetch_env!("AWS_SECRET_ACCESS_KEY")
-    }
-  end
-
-  # https://gist.github.com/chrismccord/37862f1f8b1f5148644b75d20d1cb073
-  # Dependency-free S3 Form Upload using HTTP POST sigv4
-
-  # https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-post-example.html
-
-  @doc """
-  Signs a form upload.
-
-  The configuration is a map which must contain the following keys:
-
-    * `:region` - The AWS region, such as "us-east-1"
-    * `:access_key_id` - The AWS access key id
-    * `:secret_access_key` - The AWS secret access key
-
-
-  Returns a map of form fields to be used on the client via the JavaScript `FormData` API.
-
-  ## Options
-
-    * `:key` - The required key of the object to be uploaded.
-    * `:max_file_size` - The required maximum allowed file size in bytes.
-    * `:content_type` - The required MIME type of the file to be uploaded.
-    * `:expires_in` - The required expiration time in milliseconds from now
-      before the signed upload expires.
-    * `:acl` - ACL to apply to the object, defaults to `"private"`.
-
-  ## Examples
-
-      config = %{
-        region: "us-east-1",
-        access_key_id: System.fetch_env!("AWS_ACCESS_KEY_ID"),
-        secret_access_key: System.fetch_env!("AWS_SECRET_ACCESS_KEY")
-      }
-
-      {:ok, fields} =
-        sign_form_upload(config, "my-bucket",
-          key: "public/my-file-name",
-          content_type: "image/png",
-          max_file_size: 10_000,
-          expires_in: :timer.hours(1)
-        )
-
-  """
-  def sign_form_upload(config \\ presign_config(), bucket \\ user_bucket(), opts) do
     key = Keyword.fetch!(opts, :key)
     max_file_size = Keyword.fetch!(opts, :max_file_size)
     content_type = Keyword.fetch!(opts, :content_type)
@@ -265,32 +245,31 @@ defmodule T.Media do
   end
 
   def delete_sticker_by_key(key) do
-    result =
-      static_bucket()
-      |> ExAws.S3.delete_object(key)
-      |> ExAws.request!(region: "eu-north-1")
-
+    result = s3_request(method: :delete, url: s3_url(static_bucket()), path: key)
     Static.notify_s3_updated()
-
     result
   end
 
   def rename_static_file(from_key, to_key) do
     bucket = static_bucket()
-    opts = [region: "eu-north-1"]
 
-    # TODO copied object is not public
-    %{status_code: 200} =
+    # https://docs.aws.amazon.com/AmazonS3/latest/API/API_CopyObject.html
+    %Finch.Response{status: 200} =
       copy_result =
-      bucket
-      |> ExAws.S3.put_object_copy(to_key, bucket, from_key)
-      |> ExAws.request!(opts)
+      s3_request(
+        method: :put,
+        url: s3_url(bucket),
+        path: to_key,
+        headers: %{"x-amz-copy-source" => "/#{bucket}/#{from_key}"}
+      )
 
-    %{status_code: 204} =
+    %Finch.Response{status: 204} =
       delete_result =
-      bucket
-      |> ExAws.S3.delete_object(from_key)
-      |> ExAws.request!(opts)
+      s3_request(
+        method: :delete,
+        url: s3_url(bucket),
+        path: from_key
+      )
 
     Static.notify_s3_updated()
     [copy_result, delete_result]

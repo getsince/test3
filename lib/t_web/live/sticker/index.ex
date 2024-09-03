@@ -58,12 +58,10 @@ defmodule TWeb.StickerLive.Index do
   defp presign_upload(entry, socket) do
     uploads = socket.assigns.uploads
     key = entry.client_name |> Media.fix_macos_unicode() |> trim_extension()
-
-    config = Media.presign_config()
     bucket = Media.static_bucket()
 
     {:ok, fields} =
-      Media.sign_form_upload(config, bucket,
+      Media.sign_form_upload(bucket,
         key: key,
         content_type: entry.client_type,
         max_file_size: uploads.sticker.max_file_size,

@@ -4,7 +4,7 @@ defmodule T.MixProject do
   def project do
     [
       app: :t,
-      version: "0.1.6",
+      version: "0.1.0",
       elixir: "~> 1.17",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -29,7 +29,6 @@ defmodule T.MixProject do
 
   # Specifies which paths to compile per environment.
   defp elixirc_paths(:test), do: ["lib", "test/support"]
-  defp elixirc_paths(:dev), do: ["lib", "dev"]
   defp elixirc_paths(_env), do: ["lib"]
 
   # Specifies your project dependencies.

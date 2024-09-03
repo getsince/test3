@@ -58,7 +58,7 @@ defmodule T.MixProject do
       {:mox, "~> 1.0", only: :test},
       {:ex_machina, "~> 2.4", only: :test},
       {:assertions, "~> 0.19.0", only: :test},
-      {:sentry, "~> 8.1"},
+      {:sentry, "~> 10.0"},
       {:bigflake, "0.5.0"},
       {:imgproxy, "~> 2.0"},
       {:rexbug, "~> 1.0"},
@@ -89,7 +89,6 @@ defmodule T.MixProject do
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
-      sentry_recompile: ["compile", "deps.compile sentry --force"],
       "assets.deploy": [
         "cmd npm ci --prefix assets",
         "cmd npm run deploy:css --prefix assets",

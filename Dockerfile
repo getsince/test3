@@ -25,12 +25,15 @@ RUN mix deps.compile
 # build project
 COPY priv priv
 COPY lib lib
-RUN mix sentry_recompile
+RUN mix compile
 COPY config/runtime.exs config/
 
 # build assets
 COPY assets assets
 RUN mix assets.deploy
+
+# sentry stuff
+RUN mix sentry.package_source_code
 
 # build release
 RUN mix release

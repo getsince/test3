@@ -21,9 +21,7 @@ config :logger,
   # metadata: [:user_id, :remote_ip, :node],
   format: "$time $metadata[$level] $message\n"
 
-config :sentry,
-  environment_name: config_env(),
-  included_environments: [:prod]
+config :sentry, environment_name: config_env()
 
 config :t, Oban,
   repo: T.Repo,

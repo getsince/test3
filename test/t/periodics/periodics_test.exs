@@ -1,5 +1,5 @@
-defmodule T.PeriodicsTest do
-  use T.DataCase, async: true
+defmodule Since.PeriodicsTest do
+  use Since.DataCase, async: true
 
   test "task is executed after every period" do
     me = self()
@@ -27,9 +27,9 @@ defmodule T.PeriodicsTest do
     assert_in_delta passed_2 - passed_1, 200, 100
   end
 
-  test "T.Periodics starts all tasks which don't crash when run" do
-    start_supervised!(T.Periodics)
-    children = Supervisor.which_children(T.Periodics)
+  test "Since.Periodics starts all tasks which don't crash when run" do
+    start_supervised!(Since.Periodics)
+    children = Supervisor.which_children(Since.Periodics)
     me = self()
 
     assert [

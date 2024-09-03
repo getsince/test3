@@ -1,4 +1,4 @@
-defmodule T.Repo.Migrations.AddAppStoreNotifications do
+defmodule Since.Repo.Migrations.AddAppStoreNotifications do
   use Ecto.Migration
 
   def change do

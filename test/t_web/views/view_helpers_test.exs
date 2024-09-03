@@ -1,6 +1,6 @@
-defmodule TWeb.ViewHelpersTest do
-  use TWeb.ConnCase, async: true
-  alias TWeb.ViewHelpers
+defmodule SinceWeb.ViewHelpersTest do
+  use SinceWeb.ConnCase, async: true
+  alias SinceWeb.ViewHelpers
 
   setup do
     story = [

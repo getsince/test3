@@ -1,7 +1,7 @@
-defmodule TWeb.FeedChannelTest do
-  use TWeb.ChannelCase, async: true
+defmodule SinceWeb.FeedChannelTest do
+  use SinceWeb.ChannelCase, async: true
 
-  alias T.{Accounts, Chats, Feeds, Games}
+  alias Since.{Accounts, Chats, Feeds, Games}
   alias Chats.Message
 
   setup do
@@ -383,9 +383,9 @@ defmodule TWeb.FeedChannelTest do
     end
 
     test "with hidden_profile todo", %{socket: socket, me: me} do
-      %T.Accounts.Profile{user_id: me.id}
+      %Since.Accounts.Profile{user_id: me.id}
       |> Ecto.Changeset.change(hidden?: true)
-      |> T.Repo.update()
+      |> Since.Repo.update()
 
       assert {:ok, %{"todos" => todos}, _socket} = join(socket, "feed:" <> me.id)
 
@@ -849,7 +849,7 @@ defmodule TWeb.FeedChannelTest do
       Accounts.subscribe_for_user(user_id)
       Accounts.update_profile(me.id, %{"min_age" => 31})
 
-      new_filter = %T.Feeds.FeedFilter{initial_filter | min_age: 31}
+      new_filter = %Since.Feeds.FeedFilter{initial_filter | min_age: 31}
       assert_receive {Accounts, :feed_filter_updated, ^new_filter}
     end
   end
@@ -898,7 +898,7 @@ defmodule TWeb.FeedChannelTest do
       ref = push(socket, "send-compliment", %{"to_user_id" => p.id, "prompt" => "like"})
       assert_reply(ref, :error, %{"limit_expiration" => limit_expiration})
 
-      assert limit_expiration == now |> DateTime.add(T.Games.compliment_limit_period())
+      assert limit_expiration == now |> DateTime.add(Since.Games.compliment_limit_period())
     end
 
     test "compliment_limit_reset, compliment can be made", %{socket: socket, me: me} do

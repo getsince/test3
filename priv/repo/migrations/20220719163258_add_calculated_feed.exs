@@ -1,4 +1,4 @@
-defmodule T.Repo.Migrations.AddCalculatedFeed do
+defmodule Since.Repo.Migrations.AddCalculatedFeed do
   use Ecto.Migration
 
   def change do

@@ -1,4 +1,4 @@
-defmodule T.Repo.Migrations.AddSeenToInteractions do
+defmodule Since.Repo.Migrations.AddSeenToInteractions do
   use Ecto.Migration
 
   def change do

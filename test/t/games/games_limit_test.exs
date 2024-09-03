@@ -1,9 +1,9 @@
-defmodule T.Games.ComplimentLimitTest do
-  use T.DataCase, async: true
-  use Oban.Testing, repo: T.Repo
+defmodule Since.Games.ComplimentLimitTest do
+  use Since.DataCase, async: true
+  use Oban.Testing, repo: Since.Repo
 
-  alias T.{Games, PushNotifications.DispatchJob}
-  alias T.Games.{ComplimentLimit, ComplimentLimitResetJob}
+  alias Since.{Games, PushNotifications.DispatchJob}
+  alias Since.Games.{ComplimentLimit, ComplimentLimitResetJob}
 
   describe "insert_compliment_limit/1" do
     test "creates compliment limit and schedules a reset compliment limit job in the future" do
@@ -31,7 +31,7 @@ defmodule T.Games.ComplimentLimitTest do
       assert %{success: 1} =
                Oban.drain_queue(queue: :default, with_safety: false, with_scheduled: true)
 
-      refute ComplimentLimit |> where(user_id: ^user_id) |> T.Repo.exists?()
+      refute ComplimentLimit |> where(user_id: ^user_id) |> Since.Repo.exists?()
 
       assert Enum.map(all_enqueued(worker: DispatchJob), fn job -> job.args end) == []
     end
@@ -47,7 +47,7 @@ defmodule T.Games.ComplimentLimitTest do
       assert %{success: 1} =
                Oban.drain_queue(queue: :default, with_safety: false, with_scheduled: true)
 
-      refute ComplimentLimit |> where(user_id: ^user_id) |> T.Repo.exists?()
+      refute ComplimentLimit |> where(user_id: ^user_id) |> Since.Repo.exists?()
 
       assert Enum.map(all_enqueued(worker: DispatchJob), fn job -> job.args end) == [
                %{"type" => "compliment_limit_reset", "prompt" => "like", "user_id" => user_id}

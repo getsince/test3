@@ -1,8 +1,8 @@
-defmodule T.Accounts.DeletionTest do
-  use T.DataCase, async: true
+defmodule Since.Accounts.DeletionTest do
+  use Since.DataCase, async: true
   use Oban.Testing, repo: Repo
 
-  alias T.{Accounts, Chats}
+  alias Since.{Accounts, Chats}
   alias Chats.{Chat, Message}
 
   describe "delete_user/1" do

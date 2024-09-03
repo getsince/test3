@@ -1,9 +1,9 @@
-defmodule T.FeedsTest do
-  use T.DataCase, async: true
-  use Oban.Testing, repo: T.Repo
+defmodule Since.FeedsTest do
+  use Since.DataCase, async: true
+  use Oban.Testing, repo: Since.Repo
 
-  alias T.Feeds
-  alias T.Feeds.{FeedProfile, FeedFilter, SeenProfile, CalculatedFeed, Meeting}
+  alias Since.Feeds
+  alias Since.Feeds.{FeedProfile, FeedFilter, SeenProfile, CalculatedFeed, Meeting}
 
   doctest Feeds, import: true
 
@@ -292,13 +292,13 @@ defmodule T.FeedsTest do
 
       # user who invited us
       uid = calculated_ids |> Enum.at(1)
-      T.Chats.save_message(me.id, uid, %{"question" => "invitation"})
+      Since.Chats.save_message(me.id, uid, %{"question" => "invitation"})
       irrelevant_users_count = irrelevant_users_count + 1
 
       # user who we reported
       uid = calculated_ids |> Enum.at(2)
 
-      %T.Accounts.UserReport{on_user_id: uid, from_user_id: me.id, reason: "nude"}
+      %Since.Accounts.UserReport{on_user_id: uid, from_user_id: me.id, reason: "nude"}
       |> Repo.insert()
 
       irrelevant_users_count = irrelevant_users_count + 1

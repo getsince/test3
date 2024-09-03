@@ -1,4 +1,4 @@
-defmodule T.Repo.Migrations.AddMatches do
+defmodule Since.Repo.Migrations.AddMatches do
   use Ecto.Migration
 
   @opts [on_delete: :delete_all, type: :uuid]

@@ -1,6 +1,6 @@
-defmodule T.MediaTest do
+defmodule Since.MediaTest do
   use ExUnit.Case, async: true
-  alias T.Media
+  alias Since.Media
   doctest Media, import: true
 
   test "known_stickers" do

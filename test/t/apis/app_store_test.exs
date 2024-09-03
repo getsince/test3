@@ -1,6 +1,6 @@
-defmodule T.AppStoreTest do
+defmodule Since.AppStoreTest do
   use ExUnit.Case, async: true
-  use T.DataCase, async: true
+  use Since.DataCase, async: true
   alias AppStore
 
   describe "load_notification_history" do

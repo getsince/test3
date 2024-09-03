@@ -1,5 +1,5 @@
 defmodule StubMediaClient do
-  @behaviour T.Media.Client
+  @behaviour Since.Media.Client
 
   @impl true
   def list_objects(_bucket) do

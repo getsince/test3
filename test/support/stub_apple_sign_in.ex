@@ -1,5 +1,5 @@
 defmodule StubAppleSignIn do
-  @behaviour T.Accounts.AppleSignIn.Adapter
+  @behaviour Since.Accounts.AppleSignIn.Adapter
 
   @impl true
   def fetch_keys do

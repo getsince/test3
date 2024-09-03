@@ -1,4 +1,4 @@
-defmodule TWeb.ConnCase do
+defmodule SinceWeb.ConnCase do
   @moduledoc """
   This module defines the test case to be used by
   tests that require setting up a connection.
@@ -11,7 +11,7 @@ defmodule TWeb.ConnCase do
   we enable the SQL sandbox, so changes done to the database
   are reverted at the end of every test. If you are using
   PostgreSQL, you can even run database tests asynchronously
-  by setting `use TWeb.ConnCase, async: true`, although
+  by setting `use SinceWeb.ConnCase, async: true`, although
   this option is not recommended for other databases.
   """
 
@@ -22,19 +22,19 @@ defmodule TWeb.ConnCase do
       # Import conveniences for testing with connections
       import Plug.Conn
       import Phoenix.ConnTest
-      import TWeb.ConnCase
-      import T.Factory
+      import SinceWeb.ConnCase
+      import Since.Factory
 
-      alias TWeb.Router.Helpers, as: Routes
-      alias T.Repo
+      alias SinceWeb.Router.Helpers, as: Routes
+      alias Since.Repo
 
       # The default endpoint for testing
-      @endpoint TWeb.Endpoint
+      @endpoint SinceWeb.Endpoint
     end
   end
 
   setup tags do
-    T.DataCase.setup_sandbox(tags)
+    Since.DataCase.setup_sandbox(tags)
     Mox.stub_with(MockBot, StubBot)
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end

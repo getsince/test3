@@ -1,4 +1,4 @@
-defmodule T.Repo.Migrations.AddObanJobsTable do
+defmodule Since.Repo.Migrations.AddObanJobsTable do
   use Ecto.Migration
 
   def up do

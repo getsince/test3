@@ -25,7 +25,7 @@ defmodule AppStore.Token do
 
   @spec find_app_store_key() :: map | nil
   defp find_app_store_key() do
-    Application.fetch_env!(:t, AppStore)
+    Application.fetch_env!(:since, AppStore)
     |> Keyword.fetch!(:key)
   end
 

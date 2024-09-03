@@ -1,5 +1,5 @@
-defmodule TWeb.Plugs.HealthCheckTest do
-  use TWeb.ConnCase, async: true
+defmodule SinceWeb.Plugs.HealthCheckTest do
+  use SinceWeb.ConnCase, async: true
 
   test "success: returns 200 when healthy", %{conn: conn} do
     conn = get(conn, "/health")

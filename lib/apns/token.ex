@@ -23,7 +23,7 @@ defmodule APNS.Token do
 
   @spec find_apns_key(String.t(), APNS.env()) :: map | nil
   defp find_apns_key(topic, env) do
-    Application.fetch_env!(:t, APNS)
+    Application.fetch_env!(:since, APNS)
     |> Keyword.fetch!(:keys)
     |> Enum.find(fn %{topic: t, env: e} -> topic == t and env == e end)
   end

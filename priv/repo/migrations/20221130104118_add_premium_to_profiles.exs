@@ -1,4 +1,4 @@
-defmodule T.Repo.Migrations.AddPremiumToProfiles do
+defmodule Since.Repo.Migrations.AddPremiumToProfiles do
   use Ecto.Migration
 
   def change do

@@ -1,4 +1,4 @@
-defmodule T.Repo.Migrations.AddStickersColumnToProfiles do
+defmodule Since.Repo.Migrations.AddStickersColumnToProfiles do
   use Ecto.Migration
 
   def change do

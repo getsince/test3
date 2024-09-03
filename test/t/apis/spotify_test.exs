@@ -1,6 +1,6 @@
-defmodule T.SpotifyTest do
+defmodule Since.SpotifyTest do
   use ExUnit.Case, async: true
-  alias T.Spotify
+  alias Since.Spotify
 
   describe "current_token" do
     @tag :integration

@@ -566,7 +566,6 @@ defmodule T.Accounts do
 
   def media_upload_form(content_type) do
     Media.sign_form_upload(
-      Media.presign_config(),
       Media.media_bucket(),
       key: Ecto.UUID.generate(),
       content_type: content_type,

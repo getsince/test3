@@ -3,7 +3,7 @@ defmodule TWeb.FeedChannel do
   import TWeb.ChannelHelpers
 
   alias TWeb.{FeedView, ChatView, ViewHelpers, GameView}
-  alias T.{Feeds, Chats, Accounts, Events, News, Todos, Games}
+  alias T.{Feeds, Chats, Accounts, News, Todos, Games}
   alias T.Chats.{Chat, Message}
   alias T.Games.Compliment
 
@@ -207,13 +207,13 @@ defmodule TWeb.FeedChannel do
   end
 
   # TODO possibly batch
-  def handle_in("seen", %{"user_id" => user_id} = params, socket) do
+  def handle_in("seen", %{"user_id" => user_id}, socket) do
     me = me_id(socket)
     %{mode: mode} = socket.assigns
 
-    if timings = params["timings"] do
-      Events.save_seen_timings(:feed, me, user_id, timings)
-    end
+    # if timings = params["timings"] do
+    #   Events.save_seen_timings(:feed, me, user_id, timings)
+    # end
 
     if mode == :normal, do: Feeds.mark_profile_seen(user_id, by: me)
 
@@ -313,7 +313,7 @@ defmodule TWeb.FeedChannel do
     {:reply, reply, socket}
   end
 
-  def handle_in("like", %{"user_id" => to_user_id} = params, socket) do
+  def handle_in("like", %{"user_id" => to_user_id}, socket) do
     %{
       current_user: user,
       screen_width: screen_width,
@@ -321,9 +321,9 @@ defmodule TWeb.FeedChannel do
       location: location
     } = socket.assigns
 
-    if timings = params["timings"] do
-      Events.save_seen_timings(:feed, user.id, to_user_id, timings)
-    end
+    # if timings = params["timings"] do
+    #   Events.save_seen_timings(:feed, user.id, to_user_id, timings)
+    # end
 
     case Games.save_compliment(to_user_id, user.id, "like") do
       {:ok, %Compliment{}} ->

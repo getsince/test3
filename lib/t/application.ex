@@ -10,7 +10,6 @@ defmodule T.Application do
     children =
       [
         {Task.Supervisor, name: T.TaskSupervisor},
-        maybe_events(),
         APNS.Token,
         AppStore.Token,
         T.Spotify,
@@ -119,15 +118,6 @@ defmodule T.Application do
       T.Repo
     else
       Logger.warning("not starting repo due to missing url info")
-      nil
-    end
-  end
-
-  defp maybe_events do
-    if config = Application.get_env(:t, T.Events) do
-      {T.Events, config}
-    else
-      Logger.warning("not staring events due to missing config")
       nil
     end
   end

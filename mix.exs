@@ -44,7 +44,7 @@ defmodule T.MixProject do
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:ecto_sql, "~> 3.6"},
       {:postgrex, ">= 0.0.0"},
-      {:phoenix_live_view, "~> 0.18.18"},
+      {:phoenix_live_view, "~> 0.20.17"},
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.1.0"},
       {:gettext, "~> 0.21.0"},

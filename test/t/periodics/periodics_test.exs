@@ -37,7 +37,7 @@ defmodule Since.PeriodicsTest do
            ] = children
 
     # smoke test that nothing crashes during run
-    Enum.each(children, fn {id, pid, :worker, [Periodic]} ->
+    Enum.each(children, fn {_id, pid, :worker, [Periodic]} ->
       Ecto.Adapters.SQL.Sandbox.allow(Repo, me, pid)
       send(pid, :run)
       assert {_period, _fun} = :sys.get_state(pid)

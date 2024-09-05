@@ -5,6 +5,7 @@ defmodule Since.Feeds do
   alias Ecto.Multi
 
   require Logger
+  require Since.Geo
 
   alias Since.{Repo, Bot}
 
@@ -184,37 +185,13 @@ defmodule Since.Feeds do
     feed_profiles_q(user_id, gender, feed_filter.genders)
     |> where([p], p.times_liked >= ^@quality_likes_count_treshold)
     |> where([p], fragment("jsonb_array_length(?) > 2", p.story))
-    |> order_by([p], fragment("abs(? - ?)", p.h3, ^search_location_h3))
+    |> order_by([p],
+      asc_nulls_last: fragment("h3_grid_distance(?, ?)", p.h3, ^search_location_h3)
+    )
     |> maybe_apply_age_filters(feed_filter)
     |> maybe_apply_distance_filter(location, feed_filter.distance)
     |> limit(^count)
     |> Repo.all()
-    |> Enum.map(fn %{h3: h3} = profile ->
-      {profile_lat, profile_lon} = :h3.to_geo(h3)
-
-      %{
-        profile
-        | distance: haversine_distance_km(search_lat, search_lon, profile_lat, profile_lon)
-      }
-    end)
-  end
-
-  defp haversine_distance_km(lat1, lon1, lat2, lon2) do
-    lat1 = lat1 * :math.pi() / 180
-    lon1 = lon1 * :math.pi() / 180
-    lat2 = lat2 * :math.pi() / 180
-    lon2 = lon2 * :math.pi() / 180
-
-    dlat = lat2 - lat1
-    dlon = lon2 - lon1
-
-    a =
-      :math.pow(:math.sin(dlat / 2), 2) +
-        :math.cos(lat1) * :math.cos(lat2) * :math.pow(:math.sin(dlon / 2), 2)
-
-    c = 2 * :math.atan2(:math.sqrt(a), :math.sqrt(1 - a))
-
-    round(6371 * c)
   end
 
   defp default_feed(

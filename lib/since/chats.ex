@@ -62,6 +62,7 @@ defmodule Since.Chats do
       |> where([p], p.user_id in ^mates)
       |> select([p], %{p | distance: Since.Geo.distance_km(^location_h3, p.h3)})
       |> Repo.all()
+      |> Map.new(fn profile -> {profile.user_id, profile} end)
 
     Enum.map(chats, fn chat ->
       [mate_id] = [chat.user_id_1, chat.user_id_2] -- [user_id]

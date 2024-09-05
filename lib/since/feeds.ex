@@ -180,17 +180,18 @@ defmodule Since.Feeds do
 
   defp first_time_user_feed(user_id, location, gender, feed_filter, count) do
     %Geo.Point{coordinates: {search_lon, search_lat}, srid: 4326} = location
-    search_location_h3 = :h3.from_geo({search_lat, search_lon}, 7)
+    location_h3 = :h3.from_geo({search_lat, search_lon}, 7)
 
     feed_profiles_q(user_id, gender, feed_filter.genders)
     |> where([p], p.times_liked >= ^@quality_likes_count_treshold)
     |> where([p], fragment("jsonb_array_length(?) > 2", p.story))
     |> order_by([p],
-      asc_nulls_last: fragment("h3_grid_distance(?, ?)", p.h3, ^search_location_h3)
+      asc_nulls_last: fragment("h3_grid_distance(?, ?)", ^location_h3, p.h3)
     )
     |> maybe_apply_age_filters(feed_filter)
-    |> maybe_apply_distance_filter(location, feed_filter.distance)
+    |> maybe_apply_distance_filter(feed_filter.distance)
     |> limit(^count)
+    |> select([p], %{p | distance: Since.Geo.distance_km(^location_h3, p.h3)})
     |> Repo.all()
   end
 
@@ -203,25 +204,31 @@ defmodule Since.Feeds do
          feed_filter,
          count
        ) do
+    %Geo.Point{coordinates: {search_lon, search_lat}, srid: 4326} = location
+    location_h3 = :h3.from_geo({search_lat, search_lon}, 7)
+
     feed_profiles_q(user_id, gender, feed_filter.genders)
     |> where([p], p.user_id not in ^calculated_feed_ids)
     |> where([p], p.user_id not in subquery(feeded_ids_q))
     |> not_seen_profiles_q(user_id)
-    |> order_by(fragment("location <-> ?::geometry", ^location))
+    |> order_by(fragment("h3_grid_distance(?, ?)", ^location_h3, p.h3))
     |> maybe_apply_age_filters(feed_filter)
-    |> maybe_apply_distance_filter(location, feed_filter.distance)
+    |> maybe_apply_distance_filter(feed_filter.distance)
     |> limit(^count)
-    |> select([p], %{p | distance: distance_km(^location, p.location)})
+    |> select([p], %{p | distance: Since.Geo.distance_km(^location_h3, p.h3)})
     |> Repo.all()
   end
 
   defp preload_feed_profiles(profile_ids, user_id, location, gender, feed_filter) do
+    %Geo.Point{coordinates: {search_lon, search_lat}, srid: 4326} = location
+    location_h3 = :h3.from_geo({search_lat, search_lon}, 7)
+
     feed_profiles_q(user_id, gender, feed_filter.genders)
     |> where([p], p.user_id in ^profile_ids)
     |> maybe_apply_age_filters(feed_filter)
-    |> maybe_apply_distance_filter(location, feed_filter.distance)
+    |> maybe_apply_distance_filter(feed_filter.distance)
     |> limit(^@feed_fetch_count)
-    |> select([p], %{p | distance: distance_km(^location, p.location)})
+    |> select([p], %{p | distance: Since.Geo.distance_km(^location_3, p.h3)})
     |> Repo.all()
   end
 
@@ -241,15 +248,18 @@ defmodule Since.Feeds do
          feeded_ids_q,
          feed_filter
        ) do
+    %Geo.Point{coordinates: {search_lon, search_lat}, srid: 4326} = location
+    location_h3 = :h3.from_geo({search_lat, search_lon}, 7)
+
     feed_profiles_q(user_id, gender, feed_filter.genders)
     |> where([p], p.user_id not in subquery(feeded_ids_q))
     |> join(:left, [p, g], s in SeenProfile, on: [user_id: p.user_id, by_user_id: ^user_id])
     |> maybe_filter_by_sticker(feed_category)
     |> order_by_feed_category(feed_category, location)
     |> maybe_apply_age_filters(feed_filter)
-    |> maybe_apply_distance_filter(location, feed_filter.distance)
+    |> maybe_apply_distance_filter(feed_filter.distance)
     |> limit(^@feed_fetch_count)
-    |> select([p, g, s], %{p | distance: distance_km(^location, p.location)})
+    |> select([p, g, s], %{p | distance: Since.Geo.distance_km(^location_h3, p.h3)})
     |> Repo.all()
   end
 
@@ -308,38 +318,12 @@ defmodule Since.Feeds do
     end
   end
 
-  defp maybe_apply_distance_filter(query, location, distance) do
+  defp maybe_apply_distance_filter(query, distance) do
     if distance do
-      %Geo.Point{coordinates: {lon, lat}, srid: 4326} = location
-      h3_resolution = distance_to_h3_resolution(distance)
-      [cell | k_ring] = :h3.k_ring(:h3.from_geo({lat, lon}, h3_resolution), 1)
-
-      filter =
-        Enum.reduce(
-          k_ring,
-          dynamic([p], fragment("? & ?", p.h3, ^h3_bitmask(cell, h3_resolution))),
-          fn cell, dynamic ->
-            dynamic([p], ^dynamic and fragment("? & ?", p.h3, ^h3_bitmask(cell, h3_resolution)))
-          end
-        )
-
-      where(query, ^filter)
+      having(query, [p], p.distance <= ^distance)
     else
       query
     end
-  end
-
-  defp distance_to_h3_resolution(distance) do
-    cond do
-      distance < 10 -> 3
-      distance < 100 -> 2
-      distance < 1000 -> 1
-      true -> 0
-    end
-  end
-
-  defp h3_bitmask(cell, resolution) do
-    import Bitwise
   end
 
   defp mark_profiles_feeded(for_user_id, feed_profiles) do
@@ -372,9 +356,12 @@ defmodule Since.Feeds do
 
   @spec get_mate_feed_profile(Ecto.UUID.t(), Geo.Point.t()) :: %FeedProfile{} | nil
   def get_mate_feed_profile(user_id, location) do
+    %Geo.Point{coordinates: {lon, lat}, srid: 4326} = location
+    location_h3 = :h3.from_geo({lat, lon}, 7)
+
     not_hidden_profiles_q()
     |> where(user_id: ^user_id)
-    |> select([p], %{p | distance: distance_km(^location, p.location)})
+    |> select([p], %{p | distance: Since.Geo.distance_km(^location_h3, p.h3)})
     |> Repo.one()
   end
 

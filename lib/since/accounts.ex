@@ -768,6 +768,7 @@ defmodule Since.Accounts do
   def get_location_gender_premium_hidden?(user_id) do
     Profile
     |> where(user_id: ^user_id)
+    # TODO
     |> select([p], {p.location, p.gender, p.premium, p.hidden?})
     |> Repo.one!()
   end

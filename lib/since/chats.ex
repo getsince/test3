@@ -3,9 +3,9 @@ defmodule Since.Chats do
 
   import Ecto.{Query, Changeset}
   alias Ecto.Multi
-  import Geo.PostGIS
 
   require Logger
+  require Since.Geo
 
   alias Since.{Repo, Bot}
   alias Since.Chats.{Chat, Message}
@@ -35,15 +35,6 @@ defmodule Since.Chats do
     Phoenix.PubSub.broadcast_from(@pubsub, self(), pubsub_user_topic(user_id), message)
   end
 
-  defmacrop distance_km(location1, location2) do
-    quote do
-      fragment(
-        "round(? / 1000)::int",
-        st_distance_in_meters(unquote(location1), unquote(location2))
-      )
-    end
-  end
-
   def list_chats(user_id, location) do
     Chat
     |> where([c], c.user_id_1 == ^user_id or c.user_id_2 == ^user_id)
@@ -63,10 +54,13 @@ defmodule Since.Chats do
 
     mates = Map.keys(mate_chats)
 
+    %Geo.Point{coordinates: {user_lon, user_lat}, srid: 4326} = location
+    location_h3 = :h3.from_geo({user_lat, user_lon}, 7)
+
     profiles =
       FeedProfile
       |> where([p], p.user_id in ^mates)
-      |> select([p], %{p | distance: distance_km(^location, p.location)})
+      |> select([p], %{p | distance: Since.Geo.distance_km(^location_h3, p.h3)})
       |> Repo.all()
       |> Map.new(fn profile -> {profile.user_id, profile} end)
 

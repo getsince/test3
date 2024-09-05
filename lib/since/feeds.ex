@@ -179,8 +179,7 @@ defmodule Since.Feeds do
   end
 
   defp first_time_user_feed(user_id, location, gender, feed_filter, count) do
-    %Geo.Point{coordinates: {search_lon, search_lat}, srid: 4326} = location
-    location_h3 = :h3.from_geo({search_lat, search_lon}, 7)
+    location_h3 = Since.Geo.point_to_h3(location)
 
     feed_profiles_q(user_id, gender, feed_filter.genders)
     |> where([p], p.times_liked >= ^@quality_likes_count_treshold)

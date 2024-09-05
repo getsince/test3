@@ -3,9 +3,9 @@ defmodule Since.Feeds do
 
   import Ecto.{Query, Changeset}
   alias Ecto.Multi
-  import Geo.PostGIS
 
   require Logger
+  require Since.Geo
 
   alias Since.{Repo, Bot}
 
@@ -41,15 +41,6 @@ defmodule Since.Feeds do
 
   def broadcast_for_user(user_id, message) do
     Phoenix.PubSub.broadcast(@pubsub, pubsub_user_topic(user_id), message)
-  end
-
-  defmacrop distance_km(location1, location2) do
-    quote do
-      fragment(
-        "round(? / 1000)::int",
-        st_distance_in_meters(unquote(location1), unquote(location2))
-      )
-    end
   end
 
   ### Feed
@@ -114,7 +105,7 @@ defmodule Since.Feeds do
 
   def fetch_feed(
         user_id,
-        location,
+        h3,
         gender,
         feed_filter,
         first_fetch,
@@ -127,20 +118,20 @@ defmodule Since.Feeds do
     feed =
       case feed_category do
         "recommended" ->
-          fetch_recommended_feed(user_id, location, gender, feeded_ids_q, feed_filter)
+          fetch_recommended_feed(user_id, h3, gender, feeded_ids_q, feed_filter)
 
         _ ->
-          fetch_category_feed(user_id, location, gender, feed_category, feeded_ids_q, feed_filter)
+          fetch_category_feed(user_id, h3, gender, feed_category, feeded_ids_q, feed_filter)
       end
 
     mark_profiles_feeded(user_id, feed)
     feed
   end
 
-  defp fetch_recommended_feed(user_id, location, gender, feeded_ids_q, feed_filter) do
+  defp fetch_recommended_feed(user_id, h3, gender, feeded_ids_q, feed_filter) do
     cond do
       first_time_user(user_id) ->
-        first_time_user_feed(user_id, location, gender, feed_filter, @feed_fetch_count)
+        first_time_user_feed(user_id, h3, gender, feed_filter, @feed_fetch_count)
 
       true ->
         calculated_feed_ids =
@@ -158,7 +149,7 @@ defmodule Since.Feeds do
           preload_feed_profiles(
             calculated_feed_ids,
             user_id,
-            location,
+            h3,
             gender,
             feed_filter
           )
@@ -169,7 +160,7 @@ defmodule Since.Feeds do
               user_id,
               calculated_feed_ids,
               feeded_ids_q,
-              location,
+              h3,
               gender,
               feed_filter,
               @feed_fetch_count - length(calculated_feed)
@@ -187,46 +178,47 @@ defmodule Since.Feeds do
       CalculatedFeed |> where(for_user_id: ^user_id) |> Repo.all() |> length() == 0
   end
 
-  defp first_time_user_feed(user_id, location, gender, feed_filter, count) do
+  defp first_time_user_feed(user_id, h3, gender, feed_filter, count) do
     feed_profiles_q(user_id, gender, feed_filter.genders)
     |> where([p], p.times_liked >= ^@quality_likes_count_treshold)
     |> where([p], fragment("jsonb_array_length(?) > 2", p.story))
-    |> order_by(fragment("location <-> ?::geometry", ^location))
+    |> order_by([p], asc_nulls_last: fragment("abs(? - ?)", ^h3, p.h3))
     |> maybe_apply_age_filters(feed_filter)
-    |> maybe_apply_distance_filter(location, feed_filter.distance)
+    |> maybe_apply_distance_filter(feed_filter.distance)
     |> limit(^count)
-    |> select([p], %{p | distance: distance_km(^location, p.location)})
+    |> select([p], %{
+      p
+      | distance: selected_as(Since.Geo.h3_great_circle_distance_km(^h3, p.h3), :distance)
+    })
     |> Repo.all()
   end
 
-  defp default_feed(
-         user_id,
-         calculated_feed_ids,
-         feeded_ids_q,
-         location,
-         gender,
-         feed_filter,
-         count
-       ) do
+  defp default_feed(user_id, calculated_feed_ids, feeded_ids_q, h3, gender, feed_filter, count) do
     feed_profiles_q(user_id, gender, feed_filter.genders)
     |> where([p], p.user_id not in ^calculated_feed_ids)
     |> where([p], p.user_id not in subquery(feeded_ids_q))
     |> not_seen_profiles_q(user_id)
-    |> order_by(fragment("location <-> ?::geometry", ^location))
+    |> order_by([p], asc_nulls_last: fragment("abs(? - ?)", ^h3, p.h3))
     |> maybe_apply_age_filters(feed_filter)
-    |> maybe_apply_distance_filter(location, feed_filter.distance)
+    |> maybe_apply_distance_filter(feed_filter.distance)
     |> limit(^count)
-    |> select([p], %{p | distance: distance_km(^location, p.location)})
+    |> select([p], %{
+      p
+      | distance: selected_as(Since.Geo.h3_great_circle_distance_km(^h3, p.h3), :distance)
+    })
     |> Repo.all()
   end
 
-  defp preload_feed_profiles(profile_ids, user_id, location, gender, feed_filter) do
+  defp preload_feed_profiles(profile_ids, user_id, h3, gender, feed_filter) do
     feed_profiles_q(user_id, gender, feed_filter.genders)
     |> where([p], p.user_id in ^profile_ids)
     |> maybe_apply_age_filters(feed_filter)
-    |> maybe_apply_distance_filter(location, feed_filter.distance)
+    |> maybe_apply_distance_filter(feed_filter.distance)
     |> limit(^@feed_fetch_count)
-    |> select([p], %{p | distance: distance_km(^location, p.location)})
+    |> select([p], %{
+      p
+      | distance: selected_as(Since.Geo.h3_great_circle_distance_km(^h3, p.h3), :distance)
+    })
     |> Repo.all()
   end
 
@@ -238,23 +230,19 @@ defmodule Since.Feeds do
     where(query, [p], p.user_id not in subquery(seen_user_ids_q(user_id)))
   end
 
-  defp fetch_category_feed(
-         user_id,
-         location,
-         gender,
-         feed_category,
-         feeded_ids_q,
-         feed_filter
-       ) do
+  defp fetch_category_feed(user_id, h3, gender, feed_category, feeded_ids_q, feed_filter) do
     feed_profiles_q(user_id, gender, feed_filter.genders)
     |> where([p], p.user_id not in subquery(feeded_ids_q))
     |> join(:left, [p, g], s in SeenProfile, on: [user_id: p.user_id, by_user_id: ^user_id])
     |> maybe_filter_by_sticker(feed_category)
-    |> order_by_feed_category(feed_category, location)
+    |> order_by_feed_category(feed_category, h3)
     |> maybe_apply_age_filters(feed_filter)
-    |> maybe_apply_distance_filter(location, feed_filter.distance)
+    |> maybe_apply_distance_filter(feed_filter.distance)
     |> limit(^@feed_fetch_count)
-    |> select([p, g, s], %{p | distance: distance_km(^location, p.location)})
+    |> select([p, g, s], %{
+      p
+      | distance: selected_as(Since.Geo.h3_great_circle_distance_km(^h3, p.h3), :distance)
+    })
     |> Repo.all()
   end
 
@@ -271,23 +259,23 @@ defmodule Since.Feeds do
     query |> where(fragment("stickers && ?", ^category_stickers))
   end
 
-  defp order_by_feed_category(query, "new", _location) do
+  defp order_by_feed_category(query, "new", _h3) do
     query |> order_by(desc: :user_id)
   end
 
-  defp order_by_feed_category(query, "recent", _location) do
+  defp order_by_feed_category(query, "recent", _h3) do
     query |> order_by(desc: :last_active)
   end
 
-  defp order_by_feed_category(query, "close", location) do
-    query |> order_by(fragment("location <-> ?::geometry", ^location))
+  defp order_by_feed_category(query, "close", h3) do
+    query |> order_by([p], fragment("abs(? - ?)", ^h3, p.h3))
   end
 
-  defp order_by_feed_category(query, _feed_category, location) do
+  defp order_by_feed_category(query, _feed_category, h3) do
     query
     |> order_by([p, g, s], [
       fragment("? IS NOT NULL", s.by_user_id),
-      fragment("location <-> ?::geometry", ^location)
+      fragment("abs(? - ?)", ^h3, p.h3)
     ])
   end
 
@@ -313,10 +301,9 @@ defmodule Since.Feeds do
     end
   end
 
-  defp maybe_apply_distance_filter(query, location, distance) do
+  defp maybe_apply_distance_filter(query, distance) do
     if distance do
-      meters = distance * 1000
-      where(query, [p], st_dwithin_in_meters(^location, p.location, ^meters))
+      where(query, [p], selected_as(:distance) <= ^distance)
     else
       query
     end
@@ -350,11 +337,11 @@ defmodule Since.Feeds do
     %FeedFilter{genders: genders, min_age: min_age, max_age: max_age, distance: distance}
   end
 
-  @spec get_mate_feed_profile(Ecto.UUID.t(), Geo.Point.t()) :: %FeedProfile{} | nil
-  def get_mate_feed_profile(user_id, location) do
+  @spec get_mate_feed_profile(Ecto.UUID.t(), non_neg_integer) :: %FeedProfile{} | nil
+  def get_mate_feed_profile(user_id, h3) do
     not_hidden_profiles_q()
     |> where(user_id: ^user_id)
-    |> select([p], %{p | distance: distance_km(^location, p.location)})
+    |> select([p], %{p | distance: Since.Geo.h3_great_circle_distance_km(^h3, p.h3)})
     |> Repo.one()
   end
 
@@ -444,7 +431,7 @@ defmodule Since.Feeds do
   ### Onboarding Feed
 
   def fetch_onboarding_feed(remote_ip, likes_count_treshold \\ @quality_likes_count_treshold) do
-    location =
+    maybe_location =
       case remote_ip do
         nil ->
           nil
@@ -456,12 +443,13 @@ defmodule Since.Feeds do
           end
       end
 
+    maybe_h3 = if maybe_location, do: Since.Geo.point_to_h3(maybe_location)
     stickers = @onboarding_categories_stickers |> Map.keys()
 
     user_ids = user_ids_with_stickers(stickers)
 
     profiles =
-      fetch_onboarding_profiles(user_ids, location, likes_count_treshold, @onboarding_feed_count)
+      fetch_onboarding_profiles(user_ids, maybe_h3, likes_count_treshold, @onboarding_feed_count)
 
     profiles
     |> Enum.map(fn profile -> %{profile: profile, categories: profile_categories(profile)} end)
@@ -493,11 +481,17 @@ defmodule Since.Feeds do
     Enum.map(rows, fn [user_id] -> Ecto.UUID.cast!(user_id) end)
   end
 
-  defp fetch_onboarding_profiles(user_ids, location, likes_count_treshold, count) do
+  defp fetch_onboarding_profiles(user_ids, maybe_h3, likes_count_treshold, count) do
     not_hidden_profiles_q()
     |> where([p], p.user_id in ^user_ids)
     |> where([p], p.times_liked >= ^likes_count_treshold)
-    |> order_by(fragment("location <-> ?::geometry", ^location))
+    |> then(fn q ->
+      if maybe_h3 do
+        order_by(q, [p], fragment("abs(? - ?)", ^maybe_h3, p.h3))
+      else
+        q
+      end
+    end)
     |> limit(^count)
     |> Repo.all()
   end
@@ -549,7 +543,7 @@ defmodule Since.Feeds do
 
   ### Meetings
 
-  def fetch_meetings(user_id, location, cursor) do
+  def fetch_meetings(user_id, h3, cursor) do
     Meeting
     |> maybe_apply_cursor(cursor)
     |> join(:inner, [m], p in FeedProfile, on: p.user_id == m.user_id)
@@ -558,7 +552,10 @@ defmodule Since.Feeds do
     |> where([m, p], p.user_id not in subquery(reporter_user_ids_q(user_id)))
     |> order_by([m], desc: m.id)
     |> limit(^@feed_fetch_count)
-    |> select([m, p], %{m | profile: %{p | distance: distance_km(^location, p.location)}})
+    |> select([m, p], %{
+      m
+      | profile: %{p | distance: Since.Geo.h3_great_circle_distance_km(^h3, p.h3)}
+    })
     |> Repo.all()
   end
 

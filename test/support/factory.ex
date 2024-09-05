@@ -99,14 +99,17 @@ defmodule Since.Factory do
 
   # https://yandex.com/maps/-/CCUmFHtcGA
   def moscow_location do
+    # h3=608296732119269375
     [lat: 55.755516, lon: 37.615040]
   end
 
   # https://yandex.com/maps/-/CCUmFHtYpB
   def apple_location do
+    # h3=608693241335775231
     [lat: 37.331647, lon: -122.029970]
   end
 
+  # h3=610049622659825663
   def default_location, do: %Geo.Point{coordinates: {0, 0}, srid: 4326}
 
   def onboarding_attrs(opts \\ []) do

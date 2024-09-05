@@ -54,17 +54,18 @@ defmodule SinceWeb.FeedChannel do
     {old_location, gender, premium, hidden?} =
       Accounts.get_location_gender_premium_hidden?(user_id)
 
-    location = socket.assigns.location || old_location
+    h3 = Since.Geo.point_to_h3(socket.assigns.location || old_location)
+
     %{screen_width: screen_width, version: version} = socket.assigns
 
     chats =
       user_id
-      |> Chats.list_chats(location)
+      |> Chats.list_chats(h3)
       |> render_chats(version, screen_width)
 
     compliments =
       user_id
-      |> Games.list_compliments(location, premium)
+      |> Games.list_compliments(h3, premium)
       |> render_compliments(version, screen_width)
 
     news =
@@ -81,17 +82,7 @@ defmodule SinceWeb.FeedChannel do
       case params["need_feed"] do
         true ->
           category = params["category"] || "recommended"
-
-          fetch_feed(
-            user_id,
-            location,
-            gender,
-            feed_filter,
-            version,
-            screen_width,
-            true,
-            category
-          )
+          fetch_feed(user_id, h3, gender, feed_filter, version, screen_width, true, category)
 
         _ ->
           nil
@@ -106,7 +97,7 @@ defmodule SinceWeb.FeedChannel do
     meetings =
       case params["need_feed"] do
         true ->
-          fetch_meetings(user_id, location, nil, version, screen_width)
+          fetch_meetings(user_id, h3, nil, version, screen_width)
 
         _ ->
           nil
@@ -115,7 +106,7 @@ defmodule SinceWeb.FeedChannel do
     game =
       case params["need_feed"] do
         true ->
-          fetch_game(user_id, location, gender, feed_filter, version, screen_width)
+          fetch_game(user_id, h3, gender, feed_filter, version, screen_width)
 
         _ ->
           nil
@@ -135,7 +126,7 @@ defmodule SinceWeb.FeedChannel do
     {:ok, reply,
      assign(socket,
        feed_filter: feed_filter,
-       location: location,
+       h3: h3,
        gender: gender,
        premium: premium,
        mode: :normal
@@ -149,11 +140,11 @@ defmodule SinceWeb.FeedChannel do
       version: version,
       feed_filter: feed_filter,
       gender: gender,
-      location: location
+      h3: h3
     } = socket.assigns
 
     feed =
-      fetch_feed(user.id, location, gender, feed_filter, version, screen_width, true, category)
+      fetch_feed(user.id, h3, gender, feed_filter, version, screen_width, true, category)
 
     {:reply, {:ok, %{"feed" => feed}}, socket}
   end
@@ -165,10 +156,10 @@ defmodule SinceWeb.FeedChannel do
       version: version,
       feed_filter: feed_filter,
       gender: gender,
-      location: location
+      h3: h3
     } = socket.assigns
 
-    game = fetch_game(user.id, location, gender, feed_filter, version, screen_width)
+    game = fetch_game(user.id, h3, gender, feed_filter, version, screen_width)
 
     {:reply, {:ok, %{"game" => game}}, socket}
   end
@@ -181,13 +172,11 @@ defmodule SinceWeb.FeedChannel do
       version: version,
       feed_filter: feed_filter,
       gender: gender,
-      location: location
+      h3: h3
     } = socket.assigns
 
     category = params["category"] || "recommended"
-
-    feed =
-      fetch_feed(user.id, location, gender, feed_filter, version, screen_width, false, category)
+    feed = fetch_feed(user.id, h3, gender, feed_filter, version, screen_width, false, category)
 
     {:reply, {:ok, %{"feed" => feed}}, socket}
   end
@@ -198,10 +187,10 @@ defmodule SinceWeb.FeedChannel do
       current_user: user,
       screen_width: screen_width,
       version: version,
-      location: location
+      h3: h3
     } = socket.assigns
 
-    meetings = fetch_meetings(user.id, location, cursor, version, screen_width)
+    meetings = fetch_meetings(user.id, h3, cursor, version, screen_width)
 
     {:reply, {:ok, %{"meetings" => meetings}}, socket}
   end
@@ -274,7 +263,7 @@ defmodule SinceWeb.FeedChannel do
       version: version,
       feed_filter: feed_filter,
       gender: gender,
-      location: location
+      h3: h3
     } = socket.assigns
 
     seen_ids = params["seen_ids"] || []
@@ -285,16 +274,16 @@ defmodule SinceWeb.FeedChannel do
          {:ok,
           %{
             "compliment" => render_compliment(compliment, version, screen_width),
-            "game" => fetch_game(user.id, location, gender, feed_filter, version, screen_width)
+            "game" => fetch_game(user.id, h3, gender, feed_filter, version, screen_width)
           }}, socket}
 
       {:ok, %Chat{} = chat} ->
-        if profile = Feeds.get_mate_feed_profile(to_user_id, location) do
+        if profile = Feeds.get_mate_feed_profile(to_user_id, h3) do
           {:reply,
            {:ok,
             %{
               "chat" => render_chat(%{chat | profile: profile}, version, screen_width),
-              "game" => fetch_game(user.id, location, gender, feed_filter, version, screen_width)
+              "game" => fetch_game(user.id, h3, gender, feed_filter, version, screen_width)
             }}, socket}
         end
 
@@ -318,7 +307,7 @@ defmodule SinceWeb.FeedChannel do
       current_user: user,
       screen_width: screen_width,
       version: version,
-      location: location
+      h3: h3
     } = socket.assigns
 
     # if timings = params["timings"] do
@@ -330,7 +319,7 @@ defmodule SinceWeb.FeedChannel do
         {:reply, :ok, socket}
 
       {:ok, %Chat{} = chat} ->
-        if profile = Feeds.get_mate_feed_profile(to_user_id, location) do
+        if profile = Feeds.get_mate_feed_profile(to_user_id, h3) do
           {:reply,
            {:ok,
             %{
@@ -364,12 +353,12 @@ defmodule SinceWeb.FeedChannel do
       current_user: %{id: user_id},
       version: version,
       screen_width: screen_width,
-      location: location
+      h3: h3
     } = socket.assigns
 
     case Feeds.save_meeting(user_id, meeting_data) do
       {:ok, meeting} ->
-        if profile = Feeds.get_mate_feed_profile(user_id, location) do
+        if profile = Feeds.get_mate_feed_profile(user_id, h3) do
           {:reply,
            {:ok,
             %{"meeting" => render_meeting(%{meeting | profile: profile}, version, screen_width)}},
@@ -393,13 +382,13 @@ defmodule SinceWeb.FeedChannel do
       current_user: %{id: user_id},
       screen_width: screen_width,
       version: version,
-      location: location
+      h3: h3
     } = socket.assigns
 
     Accounts.set_premium(user_id, true)
 
     compliments =
-      Games.list_compliments(user_id, location, true) |> render_compliments(version, screen_width)
+      Games.list_compliments(user_id, h3, true) |> render_compliments(version, screen_width)
 
     {:reply, {:ok, %{"compliments" => compliments}}, assign(socket, premium: true)}
   end
@@ -411,11 +400,11 @@ defmodule SinceWeb.FeedChannel do
   end
 
   def handle_info({Chats, :chat, %Chat{user_id_1: uid1, user_id_2: uid2} = chat}, socket) do
-    %{screen_width: screen_width, version: version, location: location} = socket.assigns
+    %{screen_width: screen_width, version: version, h3: h3} = socket.assigns
 
     [mate] = [uid1, uid2] -- [me_id(socket)]
 
-    if profile = Feeds.get_mate_feed_profile(mate, location) do
+    if profile = Feeds.get_mate_feed_profile(mate, h3) do
       push(socket, "chat", %{
         "chat" => render_chat(%Chat{chat | profile: profile}, version, screen_width)
       })
@@ -436,11 +425,11 @@ defmodule SinceWeb.FeedChannel do
   end
 
   def handle_info({Chats, :chat_match, users}, socket) do
-    %{screen_width: screen_width, version: version, location: location} = socket.assigns
+    %{screen_width: screen_width, version: version, h3: h3} = socket.assigns
 
     [mate] = users -- [me_id(socket)]
 
-    if profile = Feeds.get_mate_feed_profile(mate, location) do
+    if profile = Feeds.get_mate_feed_profile(mate, h3) do
       has_private_page = profile.story |> Enum.any?(fn page -> Map.has_key?(page, "blurred") end)
       # TODO? refactor (logic shouldn't be in channel)
       if has_private_page, do: Chats.notify_private_page_available(me_id(socket), mate)
@@ -469,11 +458,11 @@ defmodule SinceWeb.FeedChannel do
   end
 
   def handle_info({Games, :chat, %Chat{user_id_1: uid1, user_id_2: uid2} = chat}, socket) do
-    %{screen_width: screen_width, version: version, location: location} = socket.assigns
+    %{screen_width: screen_width, version: version, h3: h3} = socket.assigns
 
     [mate] = [uid1, uid2] -- [me_id(socket)]
 
-    if profile = Feeds.get_mate_feed_profile(mate, location) do
+    if profile = Feeds.get_mate_feed_profile(mate, h3) do
       push(socket, "chat", %{
         "chat" => render_chat(%Chat{chat | profile: profile}, version, screen_width)
       })
@@ -495,7 +484,7 @@ defmodule SinceWeb.FeedChannel do
 
   defp fetch_feed(
          user_id,
-         location,
+         h3,
          gender,
          feed_filter,
          version,
@@ -503,17 +492,17 @@ defmodule SinceWeb.FeedChannel do
          first_fetch,
          category
        ) do
-    feed_reply = Feeds.fetch_feed(user_id, location, gender, feed_filter, first_fetch, category)
+    feed_reply = Feeds.fetch_feed(user_id, h3, gender, feed_filter, first_fetch, category)
     render_feed(feed_reply, version, screen_width)
   end
 
-  defp fetch_meetings(user_id, location, cursor, version, screen_width) do
-    meetings_reply = Feeds.fetch_meetings(user_id, location, cursor)
+  defp fetch_meetings(user_id, h3, cursor, version, screen_width) do
+    meetings_reply = Feeds.fetch_meetings(user_id, h3, cursor)
     render_meetings(meetings_reply, version, screen_width)
   end
 
-  defp fetch_game(user_id, location, gender, feed_filter, version, screen_width) do
-    game = Games.fetch_game(user_id, location, gender, feed_filter)
+  defp fetch_game(user_id, h3, gender, feed_filter, version, screen_width) do
+    game = Games.fetch_game(user_id, h3, gender, feed_filter)
     render_game(game, version, screen_width)
   end
 

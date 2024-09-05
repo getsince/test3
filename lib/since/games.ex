@@ -3,9 +3,9 @@ defmodule Since.Games do
 
   import Ecto.{Query, Changeset}
   alias Ecto.Multi
-  import Geo.PostGIS
   import Since.Gettext
   require Logger
+  require Since.Geo
 
   alias Since.{Repo, Bot}
 
@@ -38,15 +38,6 @@ defmodule Since.Games do
   @spec broadcast_for_user(binary, any) :: :ok | {:error, any}
   def broadcast_for_user(user_id, message) do
     Phoenix.PubSub.broadcast(@pubsub, pubsub_user_topic(user_id), message)
-  end
-
-  defmacrop distance_km(location1, location2) do
-    quote do
-      fragment(
-        "round(? / 1000)::int",
-        st_distance_in_meters(unquote(location1), unquote(location2))
-      )
-    end
   end
 
   @game_set_count 16
@@ -98,11 +89,11 @@ defmodule Since.Games do
 
   ### Game
 
-  def fetch_game(user_id, location, gender, feed_filter) do
+  def fetch_game(user_id, h3, gender, feed_filter) do
     {tag, emoji} = @prompts |> Enum.random()
     random_prompt = {emoji, tag, render(tag)}
 
-    filtered_q = feed_profiles_q(user_id, gender, feed_filter.genders, feed_filter, location)
+    filtered_q = feed_profiles_q(user_id, gender, feed_filter.genders, feed_filter, h3)
 
     Multi.new()
     |> Multi.all(
@@ -111,7 +102,7 @@ defmodule Since.Games do
       |> order_by(fragment("random()"))
       |> limit(2)
       |> join(:inner, [c], p in FeedProfile, on: c.from_user_id == p.user_id)
-      |> select([c, p], %{p | distance: distance_km(^location, p.location)})
+      |> select([c, p], %{p | distance: Since.Geo.h3_great_circle_distance_km(^h3, p.h3)})
     )
     |> Multi.one(:count, filtered_q |> select([p], count(p.user_id)))
     |> Multi.run(:profiles, fn repo, %{complimenters: complimenters, count: count} ->
@@ -123,8 +114,8 @@ defmodule Since.Games do
           filtered_q
           |> offset(^offset)
           |> limit(^required_count)
-          |> order_by(fragment("location <-> ?::geometry", ^location))
-          |> select([p], %{p | distance: distance_km(^location, p.location)})
+          |> order_by([p], asc_nulls_last: fragment("abs(? - ?)", ^h3, p.h3))
+          |> select([p], %{p | distance: Since.Geo.h3_great_circle_distance_km(^h3, p.h3)})
           |> repo.all()
 
         {:ok, profiles}
@@ -167,16 +158,15 @@ defmodule Since.Games do
     end
   end
 
-  defp maybe_apply_distance_filter(query, location, distance) do
+  defp maybe_apply_distance_filter(query, h3, distance) do
     if distance do
-      meters = distance * 1000
-      where(query, [p], st_dwithin_in_meters(^location, p.location, ^meters))
+      where(query, [p], Since.Geo.h3_great_circle_distance_km(^h3, p.h3) <= ^distance)
     else
       query
     end
   end
 
-  defp feed_profiles_q(user_id, gender, gender_preference, feed_filter, location) do
+  defp feed_profiles_q(user_id, gender, gender_preference, feed_filter, h3) do
     # TODO
     treshold_date = DateTime.utc_now() |> DateTime.add(-@game_profiles_recency_limit, :second)
 
@@ -184,7 +174,7 @@ defmodule Since.Games do
     |> where([p], p.user_id != ^user_id)
     |> where([p], p.last_active > ^treshold_date)
     |> maybe_apply_age_filters(feed_filter)
-    |> maybe_apply_distance_filter(location, feed_filter.distance)
+    |> maybe_apply_distance_filter(h3, feed_filter.distance)
   end
 
   defp reported_user_ids_q(user_id) do
@@ -290,14 +280,14 @@ defmodule Since.Games do
 
   ### Compliment
 
-  def list_compliments(user_id, location, premium) do
+  def list_compliments(user_id, h3, premium) do
     Compliment
     |> where(to_user_id: ^user_id)
     |> not_reported_complimenters(user_id)
     |> not_reporter_complimenters(user_id)
     |> order_by(desc: :inserted_at)
     |> join(:inner, [c], p in FeedProfile, on: p.user_id == c.from_user_id)
-    |> select([c, p], {c, %{p | distance: distance_km(^location, p.location)}})
+    |> select([c, p], {c, %{p | distance: Since.Geo.h3_great_circle_distance_km(^h3, p.h3)}})
     |> Repo.all()
     |> Enum.map(fn {compliment, profile} -> compliment |> maybe_add_profile(premium, profile) end)
   end
@@ -404,12 +394,15 @@ defmodule Since.Games do
         end)
         |> Multi.run(:profiles, fn repo, _changes ->
           to_user_profile = FeedProfile |> where(user_id: ^to_user_id) |> repo.one!()
-          to_user_location = to_user_profile.location
+          to_user_h3 = to_user_profile.h3
 
           from_user_profile =
             FeedProfile
             |> where(user_id: ^from_user_id)
-            |> select([p], %{p | distance: distance_km(^to_user_location, p.location)})
+            |> select([p], %{
+              p
+              | distance: Since.Geo.h3_great_circle_distance_km(^to_user_h3, p.h3)
+            })
             |> repo.one!()
 
           {:ok, %{to_user_profile: to_user_profile, from_user_profile: from_user_profile}}

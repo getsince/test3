@@ -116,9 +116,7 @@ defmodule Since.Accounts.Profile do
 
   defp update_h3(changeset) do
     if location = get_change(changeset, :location) do
-      %Geo.Point{coordinates: {lon, lat}, srid: 4326} = location
-
-      put_change(changeset, :h3, :h3.from_geo({lat / 1, lon / 1}, 7))
+      put_change(changeset, :h3, Since.Geo.point_to_h3(location))
     else
       changeset
     end

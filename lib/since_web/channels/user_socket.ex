@@ -26,6 +26,7 @@ defmodule SinceWeb.UserSocket do
 
       location = maybe_location(params)
       if location, do: Accounts.update_location(user.id, location)
+      h3 = if location, do: Since.Geo.point_to_h3(location)
 
       if user.blocked_at == nil do
         if check_version(version) do
@@ -37,7 +38,8 @@ defmodule SinceWeb.UserSocket do
              screen_width: screen_width(params),
              locale: params["locale"],
              version: version,
-             location: location
+             location: location,
+             h3: h3
            )}
         else
           Accounts.schedule_upgrade_app_push(user.id)

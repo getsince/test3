@@ -5,10 +5,12 @@ defmodule SinceWeb.ProfileView do
   alias Since.Accounts.Profile
 
   def render("show_with_location.json", %{
-        profile: %Profile{location: location} = profile,
+        profile: %Profile{h3: h3} = profile,
         screen_width: screen_width,
         version: version
       }) do
+    {lat, lon} = if h3, do: :h3.to_geo(h3), else: {nil, nil}
+
     profile
     |> render_profile(
       [
@@ -27,15 +29,9 @@ defmodule SinceWeb.ProfileView do
       screen_width,
       _env = :profile
     )
-    |> Map.put(:latitude, lat(location))
-    |> Map.put(:longitude, lon(location))
+    |> Map.put(:latitude, lat && Float.round(lat, 5))
+    |> Map.put(:longitude, lon && Float.round(lon, 5))
   end
-
-  defp lat(%Geo.Point{coordinates: {_lon, lat}}), do: lat
-  defp lat(nil), do: nil
-
-  defp lon(%Geo.Point{coordinates: {lon, _lat}}), do: lon
-  defp lon(nil), do: nil
 
   defp render_profile(%Profile{story: story} = profile, fields, version, screen_width, env) do
     profile

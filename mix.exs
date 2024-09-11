@@ -49,7 +49,7 @@ defmodule Since.MixProject do
       {:gettext, "~> 0.21.0"},
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.5"},
-      {:oban, "~> 2.10.1"},
+      {:oban, "~> 2.18.3"},
       {:remote_ip, "~> 1.2.0"},
       {:mox, "~> 1.0", only: :test},
       {:ex_machina, "~> 2.4", only: :test},

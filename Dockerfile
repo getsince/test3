@@ -1,4 +1,4 @@
-FROM hexpm/elixir:1.17.2-erlang-27.0.1-alpine-3.20.2 AS build
+FROM hexpm/elixir:1.17.2-erlang-27.1-alpine-3.20.3 AS build
 
 # install build dependencies
 RUN apk add --no-cache --update git build-base nodejs npm cmake make gcc g++

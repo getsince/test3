@@ -46,7 +46,7 @@ defmodule Since.MixProject do
       {:phoenix_live_view, "~> 0.18.18"},
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.1.0"},
-      {:gettext, "~> 0.21.0"},
+      {:gettext, "~> 0.26.2"},
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.5"},
       {:oban, "~> 2.10.1"},

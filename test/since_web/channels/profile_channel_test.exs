@@ -177,8 +177,8 @@ defmodule SinceWeb.ProfileChannelTest do
                distance: nil,
                max_age: nil,
                min_age: nil,
-               latitude: 55.755833,
-               longitude: 37.617222,
+               latitude: 55.76143,
+               longitude: 37.63234,
                birthdate: ~D[1998-10-28],
                user_id: user.id,
                address: %{
@@ -255,8 +255,8 @@ defmodule SinceWeb.ProfileChannelTest do
       assert reply == %{
                profile: %{
                  user_id: user.id,
-                 latitude: 50,
-                 longitude: 50,
+                 latitude: 50.00207,
+                 longitude: 50.00527,
                  gender_preference: ["F", "M"],
                  distance: 10,
                  min_age: 18,

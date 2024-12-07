@@ -39,7 +39,7 @@ RUN mix sentry.package_source_code
 RUN mix release
 
 # prepare release image
-FROM alpine:3.20.3 AS app
+FROM alpine:3.21.0 AS app
 RUN apk add --no-cache --update openssl libgcc libstdc++ ncurses ca-certificates
 
 WORKDIR /app

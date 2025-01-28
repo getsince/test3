@@ -79,7 +79,7 @@ defmodule SinceWeb.FeedChannelTest do
                        "state" => "Autonomous City of Buenos Aires"
                      }
                    },
-                   distance: 9510,
+                   distance: 9484,
                    gender: "F",
                    name: "mate",
                    story: [],
@@ -117,7 +117,7 @@ defmodule SinceWeb.FeedChannelTest do
                        "state" => "Autonomous City of Buenos Aires"
                      }
                    },
-                   distance: 9510,
+                   distance: 9484,
                    gender: "F",
                    name: "mate",
                    story: [],
@@ -540,7 +540,7 @@ defmodule SinceWeb.FeedChannelTest do
                        "labels" => []
                      }
                    ],
-                   distance: 9510,
+                   distance: 9484,
                    address: %{
                      "en_US" => %{
                        "city" => "Buenos Aires",
@@ -690,7 +690,7 @@ defmodule SinceWeb.FeedChannelTest do
                        "labels" => []
                      }
                    ],
-                   distance: 9510,
+                   distance: 9484,
                    address: %{
                      "en_US" => %{
                        "city" => "Buenos Aires",
